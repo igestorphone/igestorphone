@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Limpar Dados - iGestorPhone</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3a8a, #7c3aed, #1e40af);
+            color: white;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover {
+            background: #dc2626;
+        }
+        .success {
+            background: #10b981;
+        }
+        .success:hover {
+            background: #059669;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpar Dados - iGestorPhone</h1>
+        <p>Clique no botão abaixo para limpar todos os dados de teste:</p>
+        
+        <button onclick="clearAllData()">🗑️ Limpar Todos os Dados</button>
+        <button onclick="clearSuppliers()" class="success">👥 Limpar Apenas Fornecedores</button>
+        <button onclick="clearProcessamentos()" class="success">📋 Limpar Apenas Processamentos</button>
+        
+        <div id="result" style="margin-top: 20px; font-weight: bold;"></div>
+        
+        <div style="margin-top: 30px; font-size: 14px; opacity: 0.8;">
+            <p>Dados que serão limpos:</p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Fornecedores cadastrados</li>
+                <li>Listas processadas</li>
+                <li>Dados de teste</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function clearAllData() {
+            try {
+                localStorage.removeItem('fornecedores');
+                localStorage.removeItem('processamentos');
+                localStorage.removeItem('auth-storage');
+                
+                document.getElementById('result').innerHTML = '✅ Todos os dados foram limpos com sucesso!';
+                document.getElementById('result').style.color = '#10b981';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '❌ Erro ao limpar dados: ' + error.message;
+                document.getElementById('result').style.color = '#ef4444';
+            }
+        }
+        
+        function clearSuppliers() {
+            try {
+                localStorage.removeItem('fornecedores');
+                document.getElementById('result').innerHTML = '✅ Fornecedores foram limpos com sucesso!';
+                document.getElementById('result').style.color = '#10b981';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '❌ Erro ao limpar fornecedores: ' + error.message;
+                document.getElementById('result').style.color = '#ef4444';
+            }
+        }
+        
+        function clearProcessamentos() {
+            try {
+                localStorage.removeItem('processamentos');
+                document.getElementById('result').innerHTML = '✅ Processamentos foram limpos com sucesso!';
+                document.getElementById('result').style.color = '#10b981';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '❌ Erro ao limpar processamentos: ' + error.message;
+                document.getElementById('result').style.color = '#ef4444';
+            }
+        }
+        
+        // Mostrar dados atuais
+        window.onload = function() {
+            const fornecedores = JSON.parse(localStorage.getItem('fornecedores') || '[]');
+            const processamentos = JSON.parse(localStorage.getItem('processamentos') || '[]');
+            
+            document.getElementById('result').innerHTML = 
+                `📊 Dados atuais: ${fornecedores.length} fornecedores, ${processamentos.length} processamentos`;
+            document.getElementById('result').style.color = '#fbbf24';
+        }
+    </script>
+</body>
+</html>
+
+
+
+

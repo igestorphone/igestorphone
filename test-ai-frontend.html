@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste IA Frontend</title>
+</head>
+<body>
+    <h1>Teste da IA - Frontend</h1>
+    <div id="status">Carregando...</div>
+    <div id="result"></div>
+    
+    <script>
+        async function testAI() {
+            try {
+                // Testar status da IA
+                const statusResponse = await fetch('http://localhost:3001/api/ai/status');
+                const statusData = await statusResponse.json();
+                
+                document.getElementById('status').innerHTML = `
+                    <h2>Status da IA:</h2>
+                    <p>Conectada: ${statusData.status.ai_enabled ? '✅ Sim' : '❌ Não'}</p>
+                    <p>Modelo: ${statusData.status.model}</p>
+                    <p>Max Tokens: ${statusData.status.max_tokens}</p>
+                    <p>Timestamp: ${statusData.status.timestamp}</p>
+                `;
+                
+                // Testar validação de lista
+                const testData = {
+                    products: [{
+                        name: "iPhone 15 Pro Max",
+                        model: "256GB",
+                        price: 8500,
+                        condition: "Novo"
+                    }]
+                };
+                
+                const validateResponse = await fetch('http://localhost:3001/api/ai/validate-list', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + await getToken()
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                const validateData = await validateResponse.json();
+                
+                document.getElementById('result').innerHTML = `
+                    <h2>Teste de Validação:</h2>
+                    <pre>${JSON.stringify(validateData, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <h2>Erro:</h2>
+                    <p style="color: red;">${error.message}</p>
+                `;
+            }
+        }
+        
+        async function getToken() {
+            const response = await fetch('http://localhost:3001/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    email: 'igestorphone@gmail.com',
+                    password: 'Luiz180380@'
+                })
+            });
+            
+            const data = await response.json();
+            return data.token;
+        }
+        
+        // Executar teste quando a página carregar
+        window.onload = testAI;
+    </script>
+</body>
+</html>
+
+
+
+
+
