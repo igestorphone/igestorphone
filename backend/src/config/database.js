@@ -5,18 +5,33 @@ dotenv.config();
 
 const { Pool } = pkg;
 
-// Configuração do banco de dados
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 5432,
-  database: process.env.DB_NAME || 'igestorphone',
-  user: process.env.DB_USER || 'MAC',
-  password: process.env.DB_PASSWORD || '',
-  max: 20, // máximo de conexões no pool
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+const isProduction = process.env.NODE_ENV === 'production';
+
+const basePoolConfig = {
+  max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+  idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
+  connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10)
 };
+
+let dbConfig;
+
+if (process.env.DATABASE_URL) {
+  dbConfig = {
+    connectionString: process.env.DATABASE_URL,
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    ...basePoolConfig
+  };
+} else {
+  dbConfig = {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    database: process.env.DB_NAME || 'igestorphone',
+    user: process.env.DB_USER || 'MAC',
+    password: process.env.DB_PASSWORD || '',
+    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    ...basePoolConfig
+  };
+}
 
 // Criar pool de conexões
 const pool = new Pool(dbConfig);
