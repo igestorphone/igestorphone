@@ -2,9 +2,11 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ApiResponse } from '@/types'
 import { getErrorMessage } from '@/lib/utils'
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+
 // Create axios instance
 export const api: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -14,7 +16,7 @@ export const api: AxiosInstance = axios.create({
 
 // Create axios instance for test routes (no auth required)
 export const testApi: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:3001/api',
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
