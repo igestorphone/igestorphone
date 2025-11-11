@@ -13,6 +13,66 @@ class AIService {
     this.maxTokens = parseInt(process.env.OPENAI_MAX_TOKENS) || 4000;
   }
 
+  async createAIResponse({
+    systemPrompt,
+    userPrompt,
+    temperature = 0.3,
+    responseFormat = 'json_object',
+    maxOutputTokens
+  }) {
+    const input = [];
+
+    if (systemPrompt) {
+      input.push({
+        role: 'system',
+        content: [{ type: 'text', text: systemPrompt }]
+      });
+    }
+
+    if (userPrompt) {
+      input.push({
+        role: 'user',
+        content: [{ type: 'text', text: userPrompt }]
+      });
+    }
+
+    const requestPayload = {
+      model: this.model,
+      input,
+      temperature,
+      max_output_tokens: maxOutputTokens || this.maxTokens
+    };
+
+    if (responseFormat) {
+      requestPayload.response_format = { type: responseFormat };
+    }
+
+    const response = await openai.responses.create(requestPayload);
+
+    let outputText = response.output_text ? response.output_text.trim() : '';
+
+    if (!outputText && Array.isArray(response.output)) {
+      outputText = response.output
+        .map((block) =>
+          (block.content || [])
+            .filter((item) => item.type === 'text' && item.text)
+            .map((item) => item.text)
+            .join('')
+        )
+        .join('')
+        .trim();
+    }
+
+    if (!outputText) {
+      throw new Error('Resposta da IA vazia ou inválida');
+    }
+
+    const tokensUsed =
+      (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
+
+    return { response, outputText, tokensUsed };
+  }
+
   // Função auxiliar para fazer parse da resposta da IA (melhorada e mais robusta)
   parseAIResponse(content) {
     if (!content || typeof content !== 'string') {
@@ -434,36 +494,29 @@ Responda APENAS em JSON válido:
 }
 `;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [
-          { 
-            role: 'system', 
-            content: 'Você é um assistente especializado em produtos Apple. Você SEMPRE retorna JSON válido e bem formatado. Nunca inclua vírgulas extras ou elementos malformados. Certifique-se de que todos os arrays e objetos estão corretamente fechados. REGRA CRÍTICA DE PRECISÃO: Extraia modelos EXATAMENTE como aparecem no texto. Se o texto diz "iPhone 17 256GB", extraia EXATAMENTE isso, NUNCA adicione "Pro" ou "Pro Max" se não estiver explícito. NUNCA assuma variantes (Pro, Pro Max, Plus, Mini, Air, SE) - apenas extraia o que está escrito. Quando encontrar um formato onde o preço aparece ANTES das cores, extraia cada cor como um produto separado com o mesmo preço.'
-          },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: this.maxTokens,
+      const { outputText, tokensUsed } = await this.createAIResponse({
+        systemPrompt:
+          'Você é um assistente especializado em produtos Apple. Você SEMPRE retorna JSON válido e bem formatado. Nunca inclua vírgulas extras ou elementos malformados. Certifique-se de que todos os arrays e objetos estão corretamente fechados. REGRA CRÍTICA DE PRECISÃO: Extraia modelos EXATAMENTE como aparecem no texto. Se o texto diz "iPhone 17 256GB", extraia EXATAMENTE isso, NUNCA adicione "Pro" ou "Pro Max" se não estiver explícito. NUNCA assuma variantes (Pro, Pro Max, Plus, Mini, Air, SE) - apenas extraia o que está escrito. Quando encontrar um formato onde o preço aparece ANTES das cores, extraia cada cor como um produto separado com o mesmo preço.',
+        userPrompt: prompt,
         temperature: 0.3,
-        response_format: { type: 'json_object' } // Forçar formato JSON válido
+        responseFormat: 'json_object'
       });
 
-      const response = this.parseAIResponse(completion.choices[0].message.content);
+      const parsedResponse = this.parseAIResponse(outputText);
       
       // Calcular tokens e custo
-      const tokensUsed = completion.usage?.total_tokens || 0;
       const cost = aiDashboardService.calculateCost(tokensUsed);
       
       // Log da validação com tracking real
       const lineCount = rawListText.split('\n').length;
       await aiDashboardService.logAIUsage('validate_product_list', {
         input_count: lineCount,
-        validation_result: response
+        validation_result: parsedResponse
       }, tokensUsed, cost);
 
       // Garantir que a resposta tenha a estrutura esperada
-      if (!response || typeof response !== 'object') {
-        console.error('❌ Resposta da IA inválida:', response);
+      if (!parsedResponse || typeof parsedResponse !== 'object') {
+        console.error('❌ Resposta da IA inválida:', parsedResponse);
         return {
           valid: false,
           errors: ['Resposta da IA em formato inesperado'],
@@ -474,8 +527,8 @@ Responda APENAS em JSON válido:
       }
 
       // Garantir que validated_products seja um array
-      if (!Array.isArray(response.validated_products)) {
-        response.validated_products = [];
+      if (!Array.isArray(parsedResponse.validated_products)) {
+        parsedResponse.validated_products = [];
       }
 
       const extractNormalizedStorage = (text) => {
@@ -557,7 +610,7 @@ Responda APENAS em JSON válido:
         return product.variant ? product.variant.toString().toUpperCase() : null;
       };
 
-      response.validated_products = response.validated_products.map((product) => {
+      parsedResponse.validated_products = parsedResponse.validated_products.map((product) => {
         const combinedText = [product.storage, product.model, product.name]
           .filter(Boolean)
           .join(' ');
@@ -579,7 +632,7 @@ Responda APENAS em JSON válido:
         return updatedProduct;
       });
 
-      return response;
+      return parsedResponse;
     } catch (error) {
       console.error('❌ Erro na validação de lista a partir de texto:', error);
       console.error('❌ Stack trace:', error.stack);
@@ -629,14 +682,13 @@ Responda em JSON com:
 }
 `;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: this.maxTokens,
-        temperature: 0.2
+      const { outputText } = await this.createAIResponse({
+        userPrompt: prompt,
+        temperature: 0.2,
+        responseFormat: 'json_object'
       });
 
-      const response = this.parseAIResponse(completion.choices[0].message.content);
+      const response = this.parseAIResponse(outputText);
       
       // Log da análise
       await this.logAIAction('calculate_price_average', {
@@ -699,14 +751,13 @@ Responda em JSON com:
 }
 `;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: this.maxTokens,
-        temperature: 0.3
+      const { outputText } = await this.createAIResponse({
+        userPrompt: prompt,
+        temperature: 0.3,
+        responseFormat: 'json_object'
       });
 
-      const response = this.parseAIResponse(completion.choices[0].message.content);
+      const response = this.parseAIResponse(outputText);
       
       // Log da busca
       await this.logAIAction('search_optimal_prices', {
@@ -777,14 +828,13 @@ Responda em JSON com:
 }
 `;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: this.maxTokens,
-        temperature: 0.2
+      const { outputText } = await this.createAIResponse({
+        userPrompt: prompt,
+        temperature: 0.2,
+        responseFormat: 'json_object'
       });
 
-      const response = this.parseAIResponse(completion.choices[0].message.content);
+      const response = this.parseAIResponse(outputText);
       
       // Log da análise
       await this.logAIAction('analyze_market_trends', {
@@ -849,14 +899,13 @@ Responda em JSON com:
 }
 `;
 
-      const completion = await openai.chat.completions.create({
-        model: this.model,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: this.maxTokens,
-        temperature: 0.3
+      const { outputText } = await this.createAIResponse({
+        userPrompt: prompt,
+        temperature: 0.3,
+        responseFormat: 'json_object'
       });
 
-      const response = this.parseAIResponse(completion.choices[0].message.content);
+      const response = this.parseAIResponse(outputText);
       
       // Log da geração
       await this.logAIAction('generate_intelligent_report', {
