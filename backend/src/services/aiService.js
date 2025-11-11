@@ -17,7 +17,6 @@ class AIService {
     systemPrompt,
     userPrompt,
     temperature = 0.3,
-    responseFormat,
     maxOutputTokens
   }) {
     const input = [];
@@ -42,10 +41,6 @@ class AIService {
       temperature,
       max_output_tokens: maxOutputTokens || this.maxTokens
     };
-
-    if (responseFormat) {
-      requestPayload.text_format = responseFormat;
-    }
 
     const response = await openai.responses.create(requestPayload);
 
@@ -498,8 +493,7 @@ Responda APENAS em JSON válido:
         systemPrompt:
           'Você é um assistente especializado em produtos Apple. Você SEMPRE retorna JSON válido e bem formatado. Nunca inclua vírgulas extras ou elementos malformados. Certifique-se de que todos os arrays e objetos estão corretamente fechados. REGRA CRÍTICA DE PRECISÃO: Extraia modelos EXATAMENTE como aparecem no texto. Se o texto diz "iPhone 17 256GB", extraia EXATAMENTE isso, NUNCA adicione "Pro" ou "Pro Max" se não estiver explícito. NUNCA assuma variantes (Pro, Pro Max, Plus, Mini, Air, SE) - apenas extraia o que está escrito. Quando encontrar um formato onde o preço aparece ANTES das cores, extraia cada cor como um produto separado com o mesmo preço.',
         userPrompt: prompt,
-        temperature: 0.3,
-        responseFormat: 'json'
+        temperature: 0.3
       });
 
       const parsedResponse = this.parseAIResponse(outputText);
@@ -684,8 +678,7 @@ Responda em JSON com:
 
       const { outputText } = await this.createAIResponse({
         userPrompt: prompt,
-        temperature: 0.2,
-        responseFormat: 'json'
+        temperature: 0.2
       });
 
       const response = this.parseAIResponse(outputText);
@@ -753,8 +746,7 @@ Responda em JSON com:
 
       const { outputText } = await this.createAIResponse({
         userPrompt: prompt,
-        temperature: 0.3,
-        responseFormat: 'json'
+        temperature: 0.3
       });
 
       const response = this.parseAIResponse(outputText);
@@ -830,8 +822,7 @@ Responda em JSON com:
 
       const { outputText } = await this.createAIResponse({
         userPrompt: prompt,
-        temperature: 0.2,
-        responseFormat: 'json'
+        temperature: 0.2
       });
 
       const response = this.parseAIResponse(outputText);
@@ -901,8 +892,7 @@ Responda em JSON com:
 
       const { outputText } = await this.createAIResponse({
         userPrompt: prompt,
-        temperature: 0.3,
-        responseFormat: 'json'
+        temperature: 0.3
       });
 
       const response = this.parseAIResponse(outputText);
