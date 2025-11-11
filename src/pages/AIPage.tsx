@@ -2,7 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Brain, DollarSign, Activity, CheckCircle, Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '');
+const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '');
+const API_BASE_URL = RAW_API_BASE.includes('/api') ? RAW_API_BASE : `${RAW_API_BASE}/api`;
+
+const buildApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+};
 
 const AIPage: React.FC = () => {
   const { user } = useAuthStore();
@@ -60,7 +66,7 @@ const AIPage: React.FC = () => {
       const authToken = authData.state?.token;
       console.log('🔍 AIPage - Token extraído:', authToken);
 
-      const response = await fetch(`${API_BASE_URL}/ai/dashboard`, {
+      const response = await fetch(buildApiUrl('/ai/dashboard'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +97,7 @@ const AIPage: React.FC = () => {
       setIsChecking(true);
       const startTime = Date.now();
       
-      const response = await fetch(`${API_BASE_URL}/ai/status`, {
+      const response = await fetch(buildApiUrl('/ai/status'), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

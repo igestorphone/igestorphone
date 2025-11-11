@@ -3,7 +3,13 @@ import { motion } from 'framer-motion'
 import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
+const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
+const API_BASE_URL = RAW_API_BASE.includes('/api') ? RAW_API_BASE : `${RAW_API_BASE}/api`
+
+const buildApiUrl = (path: string) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${API_BASE_URL}${normalizedPath}`
+}
 
 export default function ProcessListPage() {
   const { user } = useAuthStore()
@@ -48,7 +54,7 @@ export default function ProcessListPage() {
           return
         }
 
-        const response = await fetch(`${API_BASE_URL}/suppliers`, {
+        const response = await fetch(buildApiUrl('/suppliers'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -117,7 +123,7 @@ export default function ProcessListPage() {
       console.log('🔍 ProcessList - Primeiras linhas:', rawList.split('\n').slice(0, 5))
 
       // Enviar lista BRUTA para IA processar tudo
-      const response = await fetch(`${API_BASE_URL}/ai/validate-list`, {
+      const response = await fetch(buildApiUrl('/ai/validate-list'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +184,7 @@ export default function ProcessListPage() {
         // Salvar produtos validados no banco de dados
         console.log('🔍 ProcessList - Salvando produtos no banco de dados...')
         console.log('🔍 ProcessList - Fornecedor:', { supplierId, supplierName, supplierWhatsapp })
-        const saveResponse = await fetch(`${API_BASE_URL}/ai/process-list`, {
+        const saveResponse = await fetch(buildApiUrl('/ai/process-list'), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -245,7 +251,7 @@ export default function ProcessListPage() {
         localStorage.setItem('processamentos', JSON.stringify(existingProcessamentos))
 
         // Recarregar fornecedores do banco de dados após salvar
-        const suppliersResponse = await fetch(`${API_BASE_URL}/suppliers`, {
+        const suppliersResponse = await fetch(buildApiUrl('/suppliers'), {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -304,7 +310,7 @@ export default function ProcessListPage() {
       }
 
       // Criar fornecedor no banco de dados via API
-      const response = await fetch(`${API_BASE_URL}/suppliers`, {
+      const response = await fetch(buildApiUrl('/suppliers'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -328,7 +334,7 @@ export default function ProcessListPage() {
       console.log('✅ Fornecedor criado no banco:', newSupplierData)
 
       // Recarregar fornecedores do banco de dados
-      const suppliersResponse = await fetch(`${API_BASE_URL}/suppliers`, {
+      const suppliersResponse = await fetch(buildApiUrl('/suppliers'), {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
