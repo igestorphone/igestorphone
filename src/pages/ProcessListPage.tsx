@@ -4,7 +4,7 @@ import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Ma
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
-const API_BASE_URL = RAW_API_BASE.includes('/api') ? RAW_API_BASE : `${RAW_API_BASE}/api`
+const API_BASE_URL = /\/api$/i.test(RAW_API_BASE) ? RAW_API_BASE : `${RAW_API_BASE}/api`
 
 const buildApiUrl = (path: string) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
