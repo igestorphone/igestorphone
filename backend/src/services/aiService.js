@@ -24,14 +24,14 @@ class AIService {
     if (systemPrompt) {
       input.push({
         role: 'system',
-        content: [{ type: 'text', text: systemPrompt }]
+        content: [{ type: 'input_text', text: systemPrompt }]
       });
     }
 
     if (userPrompt) {
       input.push({
         role: 'user',
-        content: [{ type: 'text', text: userPrompt }]
+        content: [{ type: 'input_text', text: userPrompt }]
       });
     }
 
