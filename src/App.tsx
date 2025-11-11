@@ -1,7 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 
 // Layouts
 import AuthLayout from '@/components/layout/AuthLayout'
@@ -27,78 +25,22 @@ import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
 import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
 import BugReportsPage from '@/pages/BugReportsPage'
 import GoalsPage from '@/pages/GoalsPage'
+import LandingPage from '@/pages/LandingPage'
+import LoginPage from '@/pages/LoginPage'
 
 function App() {
-  const { isAuthenticated, login } = useAuthStore()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-
-  const handleLogin = async () => {
-    setError(null)
-    const success = await login({ email, password: password })
-    if (!success) {
-      setError('Email ou senha inválidos')
-    }
-  }
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('User authenticated, redirecting to dashboard...')
-    }
-  }, [isAuthenticated])
+  const { isAuthenticated } = useAuthStore()
 
   return (
     <div className="min-h-screen bg-gradient-primary">
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
         <Route path="/login" element={
           isAuthenticated ? (
             <Navigate to="/dashboard" />
           ) : (
             <AuthLayout>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className="w-full max-w-md p-8 space-y-6 bg-white/5 backdrop-blur-lg rounded-xl shadow-2xl border border-white/10"
-              >
-                <div className="text-center">
-                  <h1 className="text-3xl font-bold text-white mb-2">iGestorPhone</h1>
-                  <p className="text-white/70">Sistema de Automação Apple</p>
-                </div>
-                {error && <p className="text-red-500 text-center">{error}</p>}
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">Email</label>
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
-                      placeholder="seu@email.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">Senha</label>
-                    <input
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
-                      placeholder="********"
-                    />
-                  </div>
-                  <motion.button
-                    onClick={handleLogin}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors"
-                  >
-                    Fazer Login
-                  </motion.button>
-                </div>
-              </motion.div>
+              <LoginPage />
             </AuthLayout>
           )
         } />
