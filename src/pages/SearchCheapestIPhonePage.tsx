@@ -115,6 +115,7 @@ export default function SearchCheapestIPhonePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedConditionType, setSelectedConditionType] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedSupplier, setSelectedSupplier] = useState('')
@@ -150,6 +151,7 @@ export default function SearchCheapestIPhonePage() {
     debouncedSearch.length >= 1 ||
     !!selectedDate ||
     !!selectedCategory ||
+    !!selectedConditionType ||
     !!selectedStorage ||
     !!selectedColor ||
     !!selectedSupplier
@@ -160,6 +162,7 @@ export default function SearchCheapestIPhonePage() {
       debouncedSearch,
       selectedDate,
       selectedCategory,
+      selectedConditionType,
       selectedStorage,
       selectedColor,
       selectedSupplier
@@ -168,6 +171,7 @@ export default function SearchCheapestIPhonePage() {
       produtosApi.getAll({
         search: debouncedSearch,
         condition: selectedCategory,
+        condition_type: selectedConditionType || undefined,
         storage: selectedStorage,
         color: selectedColor,
         supplier_id: selectedSupplier,
@@ -335,6 +339,7 @@ export default function SearchCheapestIPhonePage() {
   const clearFilters = () => {
     setSelectedDate('')
     setSelectedCategory('')
+    setSelectedConditionType('')
     setSelectedStorage('')
     setSelectedColor('')
     setSelectedSupplier('')
@@ -343,6 +348,7 @@ export default function SearchCheapestIPhonePage() {
   const hasActiveFilters =
     !!selectedDate ||
     !!selectedCategory ||
+    !!selectedConditionType ||
     !!selectedStorage ||
     !!selectedColor ||
     !!selectedSupplier
@@ -351,9 +357,9 @@ export default function SearchCheapestIPhonePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Status bar */}
-        <motion.div
+      <motion.div
           initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: 1, y: 0 }}
           className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg p-2 md:p-2.5 border border-white/20 flex items-center justify-between flex-wrap gap-2 text-xs"
         >
           <div className="flex items-center gap-2">
@@ -370,7 +376,7 @@ export default function SearchCheapestIPhonePage() {
               </span>
             )}
           </div>
-
+          
           <div className="h-4 w-px bg-white/20" />
 
           <div className="flex items-center gap-1.5">
@@ -392,8 +398,8 @@ export default function SearchCheapestIPhonePage() {
           <div className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-blue-400" />
             <span className="text-white font-semibold">{formatTime(currentTime)}</span>
-          </div>
-        </motion.div>
+        </div>
+      </motion.div>
 
         {/* Header */}
         <motion.div
@@ -459,8 +465,8 @@ export default function SearchCheapestIPhonePage() {
                     <p className="text-2xl font-bold text-white mt-1">{stats.suppliersCount}</p>
                   </div>
                   <ShoppingCart className="w-8 h-8 text-purple-400" />
-                </div>
-              </div>
+          </div>
+          </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -495,7 +501,7 @@ export default function SearchCheapestIPhonePage() {
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-gray-300" />
               <h2 className="text-lg font-semibold text-white">Filtros</h2>
-            </div>
+              </div>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
@@ -525,7 +531,7 @@ export default function SearchCheapestIPhonePage() {
                 ))}
               </select>
               <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-            </div>
+              </div>
 
             <div className="relative">
               <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
@@ -553,6 +559,23 @@ export default function SearchCheapestIPhonePage() {
                     <option value="Apple Watch">Apple Watch</option>
                   </>
                 )}
+              </select>
+              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
+                </div>
+
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
+                <Package className="w-4 h-4 mr-1" />
+                Tipo de Condição
+              </label>
+              <select
+                value={selectedConditionType}
+                onChange={(e) => setSelectedConditionType(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
+              >
+                <option value="">Todos</option>
+                <option value="lacrados_novos">Lacrados/Novos</option>
+                <option value="seminovos">Seminovos (SWAP/VITRINE/SEMINOVO)</option>
               </select>
               <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
             </div>
@@ -592,7 +615,7 @@ export default function SearchCheapestIPhonePage() {
                 )}
               </select>
               <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-            </div>
+                </div>
 
             <div className="relative">
               <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
@@ -622,7 +645,7 @@ export default function SearchCheapestIPhonePage() {
                 )}
               </select>
               <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-            </div>
+                        </div>
 
             <div className="relative">
               <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
@@ -687,7 +710,7 @@ export default function SearchCheapestIPhonePage() {
           </div>
         </motion.div>
 
-        {/* Results */}
+      {/* Results */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -830,8 +853,8 @@ export default function SearchCheapestIPhonePage() {
                         {productsQuery.data.map((product: any, index: number) => (
                           <motion.tr
                             key={`${product.id}-${index}`}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.2, delay: index * 0.02 }}
                             className="hover:bg-white/10 transition-colors group"
@@ -855,7 +878,7 @@ export default function SearchCheapestIPhonePage() {
                                   {product.model && product.model !== product.name && (
                                     <div className="text-xs text-gray-300 mt-0.5">{product.model}</div>
                                   )}
-                                </div>
+                          </div>
                               </div>
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-sm text-white">
@@ -916,7 +939,7 @@ export default function SearchCheapestIPhonePage() {
                               {product.created_at && (
                                 <div className="text-xs text-gray-400 mt-1">
                                   {new Date(product.created_at).toLocaleDateString('pt-BR')}
-                                </div>
+                            </div>
                               )}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-center">
@@ -935,9 +958,9 @@ export default function SearchCheapestIPhonePage() {
                                 ) : (
                                   <div className="text-xs text-gray-400 px-2 py-1">Sem WhatsApp</div>
                                 )}
-                                <motion.button
+                          <motion.button
                                   whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
+                            whileTap={{ scale: 0.95 }}
                                   onClick={() => {
                                     const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A')}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
@@ -949,11 +972,11 @@ export default function SearchCheapestIPhonePage() {
                                   title="Copiar informações"
                                 >
                                   <Copy className="w-5 h-5" />
-                                </motion.button>
-                              </div>
+                          </motion.button>
+                        </div>
                             </td>
                           </motion.tr>
-                        ))}
+                  ))}
                       </AnimatePresence>
                     </tbody>
                   </table>
@@ -962,7 +985,7 @@ export default function SearchCheapestIPhonePage() {
             )}
           </AnimatePresence>
         </motion.div>
-      </div>
+          </div>
     </div>
   )
 }

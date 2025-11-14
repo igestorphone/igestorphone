@@ -504,6 +504,18 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           }
         }
 
+        // Extrair condition_detail (condição original)
+        let conditionDetail = product.condition_detail || '';
+        if (typeof conditionDetail === 'string') {
+          conditionDetail = conditionDetail.trim().toUpperCase();
+          // Se não foi fornecido, tentar inferir da condição padronizada
+          if (!conditionDetail && condition === 'Seminovo') {
+            conditionDetail = 'SEMINOVO'; // Padrão para seminovos sem detalhe
+          } else if (!conditionDetail && condition === 'Novo') {
+            conditionDetail = 'NOVO'; // Padrão para novos sem detalhe
+          }
+        }
+
         // Verificar se produto já existe (mesmo fornecedor, modelo, cor, armazenamento, condição)
         // Busca mais precisa para evitar duplicados: compara exatamente os campos principais
         let existingProduct;
@@ -591,8 +603,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 color = $4,
                 storage = $5,
                 variant = $6,
+                condition_detail = $7,
                 updated_at = NOW()
-            WHERE id = $7
+            WHERE id = $8
           `, [
             product.price,
             product.name,
@@ -600,6 +613,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             product.color || null,
             product.storage || null,
             normalizedVariant,
+            conditionDetail || null,
             productId
           ]);
 
@@ -622,15 +636,15 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             `, [productId, finalSupplierId, product.price]);
           }
 
-          savedProducts.push({ ...product, id: productId, updated: true, variant: normalizedVariant });
+          savedProducts.push({ ...product, id: productId, updated: true, variant: normalizedVariant, condition_detail: conditionDetail });
         } else {
           // Criar novo produto
           const productResult = await query(`
             INSERT INTO products (
-              supplier_id, name, model, color, storage, condition, variant,
+              supplier_id, name, model, color, storage, condition, condition_detail, variant,
               price, stock_quantity, is_active
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id
           `, [
             finalSupplierId,
@@ -639,6 +653,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             product.color || null,
             product.storage || null,
             condition,
+            conditionDetail || null,
             normalizedVariant,
             product.price,
             1, // stock_quantity padrão

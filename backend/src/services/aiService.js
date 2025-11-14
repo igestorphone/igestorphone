@@ -212,28 +212,34 @@ PRODUTOS APPLE VÁLIDOS:
 - Acessórios: Magic Keyboard, Magic Mouse, Magic Trackpad
 
 CONDIÇÕES PADRONIZADAS (lidar com códigos):
-GRUPO SEMINOVO (todos são "Seminovo"):
-- "SWAP" = "Seminovo"
-- "VITRINE" = "Seminovo" 
-- "SEMINOVO" = "Seminovo"
-- "SEMINOVO PREMIUM" = "Seminovo"
-- "SEMINOVO AMERICANO" = "Seminovo"
-- "NON ACTIVE" = "Seminovo"
-- "ASIS" = "Seminovo"
-- "ASIS+" = "Seminovo"
-- "AS IS PLUS" = "Seminovo"
+IMPORTANTE: Você deve extrair DOIS campos de condição:
+1. "condition": condição padronizada (Novo, Seminovo, Usado, Recondicionado)
+2. "condition_detail": condição original encontrada no texto (SWAP, VITRINE, SEMINOVO, LACRADO, NOVO, CPO, etc.)
 
-GRUPO NOVO (todos são "Novo"):
-- "CPO" = "Novo" (CPO = Certified Pre-Owned, mas vendido como novo)
-- "LACRADO" = "Novo"
-- "LACRADOS" = "Novo"
-- "GARANTIA" = "Novo" (quando mencionado com "1 ano", "Apple", etc)
-- "NOVO" = "Novo"
-- "NOVOS" = "Novo"
+GRUPO SEMINOVO (condition = "Seminovo"):
+- "SWAP" → condition: "Seminovo", condition_detail: "SWAP"
+- "VITRINE" → condition: "Seminovo", condition_detail: "VITRINE"
+- "SEMINOVO" → condition: "Seminovo", condition_detail: "SEMINOVO"
+- "SEMINOVO PREMIUM" → condition: "Seminovo", condition_detail: "SEMINOVO PREMIUM"
+- "SEMINOVO AMERICANO" → condition: "Seminovo", condition_detail: "SEMINOVO AMERICANO"
+- "NON ACTIVE" → condition: "Seminovo", condition_detail: "NON ACTIVE"
+- "ASIS" → condition: "Seminovo", condition_detail: "ASIS"
+- "ASIS+" → condition: "Seminovo", condition_detail: "ASIS+"
+- "AS IS PLUS" → condition: "Seminovo", condition_detail: "AS IS PLUS"
+
+GRUPO NOVO (condition = "Novo"):
+- "CPO" → condition: "Novo", condition_detail: "CPO"
+- "LACRADO" → condition: "Novo", condition_detail: "LACRADO"
+- "LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
+- "GARANTIA" → condition: "Novo", condition_detail: "NOVO" (quando mencionado com "1 ano", "Apple", etc)
+- "NOVO" → condition: "Novo", condition_detail: "NOVO"
+- "NOVOS" → condition: "Novo", condition_detail: "NOVO"
 
 OUTROS:
-- "USADO" = "Usado"
-- "RECONDICIONADO" = "Recondicionado"
+- "USADO" → condition: "Usado", condition_detail: "USADO"
+- "RECONDICIONADO" → condition: "Recondicionado", condition_detail: "RECONDICIONADO"
+
+Se não encontrar condição específica no texto, use condition_detail: "" (string vazia).
 
 CORES VÁLIDAS (incluindo variações e emojis):
 Cores em português: azul, preto, branco, rosa, verde, amarelo, roxo, cinza, dourado, prata, lilas, vermelho, laranja
@@ -480,6 +486,7 @@ Responda APENAS em JSON válido:
       "color": "cor_extraída_ou_vazio",
       "storage": "armazenamento_extraído_ou_vazio",
       "condition": "Novo|Seminovo|Usado|Recondicionado",
+      "condition_detail": "SWAP|VITRINE|SEMINOVO|LACRADO|NOVO|CPO|USADO|RECONDICIONADO|\"\"",
       "price": preço_numérico,
       "variant": "ANATEL|E-SIM|CHIP FÍSICO|CPO|CHINÊS|JAPONÊS|INDIANO|AMERICANO|CHIP VIRTUAL|\"\"",
       "validated": true,

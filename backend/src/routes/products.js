@@ -22,6 +22,13 @@ router.get('/', [
     if (value === '' || value === undefined || value === null) return true;
     return ['Novo', 'Seminovo', 'Usado', 'Recondicionado'].includes(value);
   }),
+  queryValidator('condition_type').optional().custom((value) => {
+    // Aceitar string vazia ou valor válido para filtrar por tipo de condição
+    // "lacrados_novos" = LACRADO, NOVO, CPO
+    // "seminovos" = SWAP, VITRINE, SEMINOVO
+    if (value === '' || value === undefined || value === null) return true;
+    return ['lacrados_novos', 'seminovos'].includes(value);
+  }),
   queryValidator('color').optional().trim(), // Adicionar validação para color
   queryValidator('storage').optional().trim(), // Adicionar validação para storage
   queryValidator('date').optional().trim(), // Adicionar validação para date (YYYY-MM-DD)
@@ -44,6 +51,7 @@ router.get('/', [
       min_price,
       max_price,
       condition,
+      condition_type,
       date,
       sort_by = 'created_at',
       sort_order = 'desc'
@@ -52,6 +60,7 @@ router.get('/', [
     // Limpar valores vazios
     const cleanSupplierId = supplier_id === '' || supplier_id === undefined || supplier_id === null ? null : supplier_id;
     const cleanCondition = condition === '' || condition === undefined || condition === null ? null : condition;
+    const cleanConditionType = condition_type === '' || condition_type === undefined || condition_type === null ? null : condition_type;
     const cleanDate = date === '' || date === undefined || date === null ? null : date;
 
     const offset = (page - 1) * limit;
@@ -227,6 +236,23 @@ router.get('/', [
       whereClause += ` AND p.condition = $${paramCount}`;
       values.push(cleanCondition);
       paramCount++;
+    }
+
+    // Filtro por tipo de condição (lacrados_novos ou seminovos)
+    if (cleanConditionType) {
+      if (cleanConditionType === 'lacrados_novos') {
+        // Filtrar produtos com condition_detail = LACRADO, NOVO, CPO ou condition = Novo sem condition_detail específico
+        whereClause += ` AND (
+          p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
+          OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
+        )`;
+      } else if (cleanConditionType === 'seminovos') {
+        // Filtrar produtos com condition_detail = SWAP, VITRINE, SEMINOVO ou condition = Seminovo sem condition_detail específico
+        whereClause += ` AND (
+          p.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')
+          OR (p.condition = 'Seminovo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
+        )`;
+      }
     }
 
     // Adicionar filtros adicionais se necessário
