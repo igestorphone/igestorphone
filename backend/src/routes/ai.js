@@ -461,8 +461,13 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     }
 
     if (!finalSupplierId) {
+      console.error('❌ Fornecedor não encontrado ou não fornecido');
+      console.error('  supplier_id recebido:', supplier_id);
+      console.error('  supplier_name recebido:', supplier_name);
       return res.status(400).json({ message: 'Fornecedor não encontrado ou não fornecido' });
     }
+
+    console.log(`✅ Fornecedor identificado: ID=${finalSupplierId}, Nome=${supplier_name || 'N/A'}`);
 
     // Verificar se fornecedor existe e está ativo
     const supplierCheck = await query(
@@ -503,8 +508,11 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     const savedProducts = [];
     const saveErrors = [];
 
+    console.log(`📦 Processando ${validated_products.length} produtos para o fornecedor ${finalSupplierId}...`);
+
     for (const product of validated_products) {
       try {
+        console.log(`  🔍 Processando produto: ${product.name} (${product.model || 'sem modelo'}) - R$ ${product.price}`);
         // Padronizar condição
         let condition = product.condition || 'Novo';
         if (typeof condition === 'string') {
@@ -604,6 +612,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         if (existingProduct.rows.length > 0) {
           // Atualizar produto existente (preço, nome, modelo, etc)
           const productId = existingProduct.rows[0].id;
+          console.log(`    ✅ Produto existente encontrado (ID: ${productId}), atualizando...`);
           await query(`
             UPDATE products 
             SET price = $1, 
@@ -648,8 +657,10 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           }
 
           savedProducts.push({ ...product, id: productId, updated: true, variant: normalizedVariant, condition_detail: conditionDetail });
+          console.log(`    ✅ Produto atualizado com sucesso (ID: ${productId})`);
         } else {
           // Criar novo produto
+          console.log(`    ➕ Criando novo produto...`);
           const productResult = await query(`
             INSERT INTO products (
               supplier_id, name, model, color, storage, condition, condition_detail, variant,
@@ -680,14 +691,23 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           `, [productId, finalSupplierId, product.price]);
 
           savedProducts.push({ ...product, id: productId, created: true, variant: normalizedVariant });
+          console.log(`    ✅ Produto criado com sucesso (ID: ${productId})`);
         }
       } catch (error) {
-        console.error(`Erro ao salvar produto ${product.name}:`, error);
+        console.error(`    ❌ Erro ao salvar produto ${product.name}:`, error);
+        console.error(`    ❌ Stack trace:`, error.stack);
         saveErrors.push({
           product: product.name,
           error: error.message
         });
       }
+    }
+
+    console.log(`📊 Resumo do salvamento:`);
+    console.log(`  ✅ Produtos salvos: ${savedProducts.length}`);
+    console.log(`  ❌ Erros: ${saveErrors.length}`);
+    if (saveErrors.length > 0) {
+      console.error(`  📋 Erros detalhados:`, saveErrors);
     }
 
     // Log da ação

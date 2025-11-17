@@ -177,6 +177,9 @@ export default function ProcessListPage() {
 
         // Buscar informações do fornecedor selecionado
         const fornecedorSelecionado = fornecedores.find(f => f.id?.toString() === selectedSupplier || f.id === selectedSupplier)
+        console.log('🔍 ProcessList - Fornecedor selecionado:', fornecedorSelecionado)
+        console.log('🔍 ProcessList - selectedSupplier:', selectedSupplier)
+        
         const supplierId = fornecedorSelecionado?.id || fornecedorSelecionado?.id?.toString() || null
         const supplierName = fornecedorSelecionado?.name || fornecedorSelecionado?.nome || 'Fornecedor'
         const supplierWhatsapp = fornecedorSelecionado?.whatsapp || fornecedorSelecionado?.contact_phone || ''
@@ -184,19 +187,30 @@ export default function ProcessListPage() {
         // Salvar produtos validados no banco de dados
         console.log('🔍 ProcessList - Salvando produtos no banco de dados...')
         console.log('🔍 ProcessList - Fornecedor:', { supplierId, supplierName, supplierWhatsapp })
+        console.log('🔍 ProcessList - Produtos validados:', validProducts.length)
+        console.log('🔍 ProcessList - Primeiros produtos:', validProducts.slice(0, 3))
+        
+        const requestBody = {
+          supplier_id: supplierId ? parseInt(supplierId) : undefined, // Enviar ID se disponível
+          supplier_name: supplierName,
+          supplier_whatsapp: supplierWhatsapp,
+          validated_products: validProducts,
+          raw_list_text: rawList
+        }
+        
+        console.log('🔍 ProcessList - Request body:', {
+          ...requestBody,
+          validated_products: `${validProducts.length} produtos`,
+          raw_list_text: `${rawList.length} caracteres`
+        })
+        
         const saveResponse = await fetch(buildApiUrl('/ai/process-list'), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            supplier_id: supplierId ? parseInt(supplierId) : undefined, // Enviar ID se disponível
-            supplier_name: supplierName,
-            supplier_whatsapp: supplierWhatsapp,
-            validated_products: validProducts,
-            raw_list_text: rawList
-          })
+          body: JSON.stringify(requestBody)
         })
 
         if (!saveResponse.ok) {
@@ -206,7 +220,12 @@ export default function ProcessListPage() {
         }
 
         const saveResult = await saveResponse.json()
-        console.log('🔍 ProcessList - Produtos salvos:', saveResult)
+        console.log('🔍 ProcessList - Resposta do servidor:', saveResult)
+        console.log('🔍 ProcessList - Produtos salvos:', saveResult.summary?.saved_products || 0)
+        console.log('🔍 ProcessList - Erros:', saveResult.summary?.errors || 0)
+        if (saveResult.errors && saveResult.errors.length > 0) {
+          console.error('🔍 ProcessList - Erros detalhados:', saveResult.errors)
+        }
 
         const totalProdutos = validProducts.length
         const produtosValidos = saveResult.summary?.saved_products || validProducts.length
