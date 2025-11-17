@@ -43,12 +43,10 @@ router.get('/', [
     }
 
     // Buscar fornecedores com informações de processamento do dia
-    // Considerar "dia" resetando às 19h ou 20h (configurável via variável de ambiente RESET_HOUR)
-    // Para reset às 19h: se agora é >= 19h, considerar desde hoje 19h; senão, considerar desde ontem 19h
-    // Para reset às 20h: se agora é >= 20h, considerar desde hoje 20h; senão, considerar desde ontem 20h
     // Por padrão, reset às 00h (meia-noite)
-    // Configurar no .env: RESET_HOUR=19 ou RESET_HOUR=20 (ou omitir para 00h)
-    const resetHour = parseInt(process.env.RESET_HOUR || '0') || 0; // 0 = 00h, 19 = 19h, 20 = 20h
+    // Configurar no .env: RESET_HOUR=0 (ou omitir para 00h)
+    // Para outros horários: RESET_HOUR=19 (19h) ou RESET_HOUR=20 (20h)
+    const resetHour = parseInt(process.env.RESET_HOUR || '0') || 0; // 0 = 00h (padrão), 19 = 19h, 20 = 20h
     const now = new Date();
     const currentHour = now.getHours();
     
