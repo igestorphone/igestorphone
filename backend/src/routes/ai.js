@@ -475,9 +475,19 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
 
     // IMPORTANTE: Antes de salvar novos produtos, desativar produtos do mesmo fornecedor processados HOJE
     // Isso garante que ao reprocessar a lista no mesmo dia, os produtos antigos sejam substituídos pelos novos
+    // MAS: Buscar produtos existentes ANTES de desativar, para poder reativá-los depois
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    console.log(`🔄 Desativando produtos do fornecedor ${finalSupplierId} processados hoje (${today}) para evitar duplicados...`);
+    console.log(`🔄 Preparando para processar lista do fornecedor ${finalSupplierId} (${today})...`);
     
+    // Buscar IDs dos produtos que serão processados hoje (para reativá-los depois)
+    const todayProductsResult = await query(`
+      SELECT id FROM products 
+      WHERE supplier_id = $1 
+        AND DATE(updated_at) = $2
+        AND is_active = true
+    `, [finalSupplierId, today]);
+    
+    // Desativar produtos do mesmo fornecedor processados HOJE
     const deactivatedResult = await query(`
       UPDATE products 
       SET is_active = false 
@@ -487,7 +497,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       RETURNING id
     `, [finalSupplierId, today]);
     
-    console.log(`✅ ${deactivatedResult.rows.length} produtos desativados (serão substituídos pelos novos)`);
+    console.log(`✅ ${deactivatedResult.rows.length} produtos desativados (serão reativados/atualizados se estiverem na nova lista)`);
 
     // Salvar produtos validados
     const savedProducts = [];
@@ -529,6 +539,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         
         if (normalizedModel) {
           // Busca por modelo: compara modelo, cor, armazenamento e condição
+          // Buscar mesmo produtos inativos (que foram desativados hoje) para reativá-los
           // Usa comparação exata normalizada para evitar duplicados
           // Procura primeiro por match exato, depois por match parcial se necessário
           existingProduct = await query(`
@@ -538,7 +549,6 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
               AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
               AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
               AND condition = $5
-              AND is_active = true
             ORDER BY updated_at DESC
             LIMIT 1
           `, [
@@ -560,7 +570,6 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
                 AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
                 AND condition = $5
-                AND is_active = true
               ORDER BY updated_at DESC
               LIMIT 1
             `, [
@@ -573,6 +582,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           }
         } else {
           // Se não tem modelo, buscar por nome completo, cor, armazenamento e condição
+          // Buscar mesmo produtos inativos (que foram desativados hoje) para reativá-los
           existingProduct = await query(`
             SELECT id FROM products 
             WHERE supplier_id = $1 
@@ -580,7 +590,6 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
               AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
               AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
               AND condition = $5
-              AND is_active = true
             ORDER BY updated_at DESC
             LIMIT 1
           `, [
@@ -604,8 +613,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 storage = $5,
                 variant = $6,
                 condition_detail = $7,
+                is_active = $8,
                 updated_at = NOW()
-            WHERE id = $8
+            WHERE id = $9
           `, [
             product.price,
             product.name,
@@ -614,6 +624,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             product.storage || null,
             normalizedVariant,
             conditionDetail || null,
+            true, // Garantir que está ativo
             productId
           ]);
 
