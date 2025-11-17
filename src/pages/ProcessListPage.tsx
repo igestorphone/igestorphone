@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain } from 'lucide-react'
+import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
@@ -71,12 +71,12 @@ export default function ProcessListPage() {
         const suppliers = data.suppliers || data.data?.suppliers || data.data || []
         setFornecedores(suppliers)
         console.log('✅ Fornecedores carregados do banco:', suppliers.length)
-      } catch (error) {
-        console.error('Erro ao carregar fornecedores:', error)
-        setFornecedores([])
+    } catch (error) {
+      console.error('Erro ao carregar fornecedores:', error)
+      setFornecedores([])
       } finally {
         setIsLoadingSuppliers(false)
-      }
+    }
     }
 
     loadSuppliers()
@@ -108,15 +108,15 @@ export default function ProcessListPage() {
     
     try {
       // Processamento automático com IA
-      const authData = localStorage.getItem('auth-storage')
-      if (!authData) {
-        throw new Error('Token não encontrado')
-      }
-      
-      const token = JSON.parse(authData).state?.token
-      if (!token) {
-        throw new Error('Token inválido')
-      }
+        const authData = localStorage.getItem('auth-storage')
+        if (!authData) {
+          throw new Error('Token não encontrado')
+        }
+        
+        const token = JSON.parse(authData).state?.token
+        if (!token) {
+          throw new Error('Token inválido')
+        }
 
       console.log('🔍 ProcessList - Enviando lista BRUTA para IA processar')
       console.log('🔍 ProcessList - Tamanho da lista:', rawList.length, 'caracteres')
@@ -124,13 +124,13 @@ export default function ProcessListPage() {
 
       // Enviar lista BRUTA para IA processar tudo
       const response = await fetch(buildApiUrl('/ai/validate-list'), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
         body: JSON.stringify({ rawListText: rawList })
-      })
+        })
 
         if (!response.ok) {
           const errorText = await response.text()
@@ -346,14 +346,14 @@ export default function ProcessListPage() {
         const suppliers = suppliersData.suppliers || suppliersData.data?.suppliers || suppliersData.data || []
         setFornecedores(suppliers)
       }
-      
-      // Reset form
-      setNewSupplier({
-        nome: '',
-        whatsapp: '',
-        cidade: 'São Paulo'
-      })
-      setShowCreateSupplier(false)
+    
+    // Reset form
+    setNewSupplier({
+      nome: '',
+      whatsapp: '',
+      cidade: 'São Paulo'
+    })
+    setShowCreateSupplier(false)
       alert('✅ Fornecedor criado com sucesso!')
     } catch (error) {
       console.error('❌ Erro ao criar fornecedor:', error)
@@ -393,7 +393,7 @@ export default function ProcessListPage() {
         className="text-center mb-8"
       >
         <div className="text-center mb-4">
-          <h1 className="text-3xl font-bold text-white mb-2">Processar Lista Apple</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Processar Lista Apple</h1>
           <p className="text-white/70">Cole a lista do fornecedor e a IA processará automaticamente todos os produtos Apple</p>
           <p className="text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
         </div>
@@ -420,7 +420,7 @@ export default function ProcessListPage() {
         </div>
 
         {/* Dropdown de Fornecedores */}
-        <div className="relative">
+        <div className="relative mb-4">
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-left text-white hover:bg-white/15 transition-colors flex items-center justify-between"
@@ -449,109 +449,189 @@ export default function ProcessListPage() {
           </button>
           
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/95 backdrop-blur-lg border border-white/20 rounded-lg shadow-xl z-10 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/98 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
               {fornecedores.length === 0 ? (
                 <div className="p-4 text-white/70 text-center">
                   <Users className="w-8 h-8 mx-auto mb-2 text-white/40" />
                   <p>Nenhum fornecedor cadastrado</p>
                   <p className="text-sm mt-1">Clique em "Cadastrar Fornecedor" para adicionar</p>
                 </div>
-                      ) : (
-                        fornecedores.map((fornecedor) => {
-                          const isSelected = selectedSupplier === fornecedor.id?.toString() || selectedSupplier === fornecedor.id
-                          const whatsapp = fornecedor.whatsapp || fornecedor.contact_phone
-                          const cidade = fornecedor.city || fornecedor.cidade
-                          const totalProducts = fornecedor.total_products || fornecedor.totalProdutos || 0
-                          
-                          // Verificar se foi processado hoje
-                          const processedToday = fornecedor.processed_today === true || fornecedor.processed_today === 'true'
-                          const lastProcessedAt = fornecedor.last_processed_at
-                          const productsProcessedToday = fornecedor.products_processed_today || 0
-                          
-                          // Formatar data do último processamento
-                          let lastProcessedText = ''
-                          if (lastProcessedAt) {
-                            const lastProcessed = new Date(lastProcessedAt)
-                            const now = new Date()
-                            const diffHours = Math.floor((now - lastProcessed) / (1000 * 60 * 60))
-                            
-                            if (processedToday) {
-                              if (diffHours < 1) {
-                                lastProcessedText = 'há menos de 1h'
-                              } else if (diffHours === 1) {
-                                lastProcessedText = 'há 1h'
-                              } else {
-                                lastProcessedText = `há ${diffHours}h`
-                              }
+              ) : (
+                <div className="divide-y divide-white/10">
+                  {fornecedores.map((fornecedor) => {
+                    const isSelected = selectedSupplier === fornecedor.id?.toString() || selectedSupplier === fornecedor.id
+                    const whatsapp = fornecedor.whatsapp || fornecedor.contact_phone
+                    const cidade = fornecedor.city || fornecedor.cidade
+                    const totalProducts = fornecedor.product_count || fornecedor.total_products || fornecedor.totalProdutos || 0
+                    
+                    // Verificar se foi processado hoje
+                    const processedToday = fornecedor.processed_today === true || fornecedor.processed_today === 'true' || fornecedor.processed_today === true
+                    const lastProcessedAt = fornecedor.last_processed_at
+                    const productsProcessedToday = parseInt(fornecedor.products_processed_today || 0)
+                    
+                    // Formatar data do último processamento
+                    let lastProcessedText = ''
+                    if (lastProcessedAt) {
+                      try {
+                        const lastProcessed = new Date(lastProcessedAt)
+                        const now = new Date()
+                        const diffMs = now.getTime() - lastProcessed.getTime()
+                        const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+                        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                        
+                        if (processedToday) {
+                          if (diffHours < 1) {
+                            if (diffMinutes < 1) {
+                              lastProcessedText = 'há menos de 1 min'
+                            } else if (diffMinutes === 1) {
+                              lastProcessedText = 'há 1 min'
                             } else {
-                              lastProcessedText = `em ${lastProcessed.toLocaleDateString('pt-BR')}`
+                              lastProcessedText = `há ${diffMinutes} min`
                             }
+                          } else if (diffHours === 1) {
+                            lastProcessedText = 'há 1h'
+                          } else {
+                            lastProcessedText = `há ${diffHours}h`
                           }
-                          
-                          const infoParts = []
-                          if (whatsapp) infoParts.push(whatsapp)
-                          if (cidade) infoParts.push(cidade)
-                          if (totalProducts > 0) infoParts.push(`${totalProducts} produtos`)
-                          
-                          return (
-                            <button
-                              key={fornecedor.id}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                const supplierId = fornecedor.id?.toString() || String(fornecedor.id || '')
-                                if (supplierId) {
-                                  setSelectedSupplier(supplierId)
-                                  setIsDropdownOpen(false)
-                                }
-                              }}
-                              className={`w-full p-4 text-left transition-colors flex items-center justify-between ${
-                                isSelected 
-                                  ? 'bg-blue-500/20 border-l-4 border-blue-500' 
-                                  : 'hover:bg-white/10'
-                              }`}
-                            >
-                              <div className="flex-1 min-w-0">
-                                <div className="font-medium text-white flex items-center space-x-2">
-                                  <span>{fornecedor.name || fornecedor.nome}</span>
-                                  {isSelected && <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />}
-                                  {processedToday && (
-                                    <span className="flex items-center space-x-1 bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-xs font-medium">
-                                      <CheckCircle className="w-3 h-3" />
-                                      <span>Processado hoje</span>
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center space-x-2 mt-1">
-                                  {infoParts.length > 0 && (
-                                    <div className="text-sm text-white/60">
-                                      {infoParts.join(' • ')}
-                                    </div>
-                                  )}
-                                  {processedToday && lastProcessedText && (
-                                    <span className="text-xs text-green-400/80">
-                                      {lastProcessedText}
-                                      {productsProcessedToday > 0 && ` • ${productsProcessedToday} produtos`}
-                                    </span>
-                                  )}
-                                </div>
+                        } else {
+                          lastProcessedText = `em ${lastProcessed.toLocaleDateString('pt-BR')}`
+                        }
+                      } catch (e) {
+                        lastProcessedText = ''
+                      }
+                    }
+                    
+                    return (
+                  <button
+                    key={fornecedor.id}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          const supplierId = fornecedor.id?.toString() || String(fornecedor.id || '')
+                          if (supplierId) {
+                            setSelectedSupplier(supplierId)
+                      setIsDropdownOpen(false)
+                          }
+                        }}
+                        className={`w-full p-4 text-left transition-colors ${
+                          isSelected 
+                            ? 'bg-blue-500/20 border-l-4 border-blue-500' 
+                            : 'hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-white truncate">{fornecedor.name || fornecedor.nome}</span>
+                              {isSelected && <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />}
+                      </div>
+                            
+                            {/* Informações do fornecedor */}
+                            <div className="flex flex-wrap items-center gap-2 text-sm text-white/60 mb-2">
+                              {whatsapp && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  <span className="truncate">{whatsapp}</span>
+                                </span>
+                              )}
+                              {cidade && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  <span>{cidade}</span>
+                                </span>
+                              )}
+                              {totalProducts > 0 && (
+                                <span className="text-white/50">
+                                  {totalProducts} {totalProducts === 1 ? 'produto' : 'produtos'}
+                                </span>
+                              )}
+                    </div>
+                            
+                            {/* Status de processamento */}
+                            {processedToday ? (
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="flex items-center gap-1.5 bg-green-500/20 text-green-400 px-2.5 py-1 rounded-md text-xs font-medium">
+                                  <CheckCircle className="w-3.5 h-3.5" />
+                                  <span>Processado hoje</span>
+                                </span>
+                                {lastProcessedText && (
+                                  <span className="text-xs text-green-400/80">
+                                    {lastProcessedText}
+                                  </span>
+                                )}
+                                {productsProcessedToday > 0 && (
+                                  <span className="text-xs text-green-400/80 font-medium">
+                                    • {productsProcessedToday} {productsProcessedToday === 1 ? 'produto' : 'produtos'} processados
+                                  </span>
+                                )}
                               </div>
-                            </button>
-                          )
-                        })
-                      )}
+                            ) : lastProcessedAt ? (
+                              <div className="mt-2">
+                                <span className="text-xs text-white/50">
+                                  Último processamento: {lastProcessedText}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="mt-2">
+                                <span className="text-xs text-yellow-400/70">
+                                  Ainda não processado hoje
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                  </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
         
         {/* Fornecedor Selecionado - Card */}
-        {selectedSupplier && (() => {
+        {selectedSupplier && !isDropdownOpen && (() => {
           const fornecedorSelecionado = fornecedores.find(f => f.id?.toString() === selectedSupplier || f.id === selectedSupplier)
           if (!fornecedorSelecionado) return null
           
           const whatsapp = fornecedorSelecionado.whatsapp || fornecedorSelecionado.contact_phone
           const cidade = fornecedorSelecionado.city || fornecedorSelecionado.cidade
-          const totalProducts = fornecedorSelecionado.total_products || fornecedorSelecionado.totalProdutos || 0
+          const totalProducts = fornecedorSelecionado.product_count || fornecedorSelecionado.total_products || fornecedorSelecionado.totalProdutos || 0
+          const processedToday = fornecedorSelecionado.processed_today === true || fornecedorSelecionado.processed_today === 'true' || fornecedorSelecionado.processed_today === true
+          const lastProcessedAt = fornecedorSelecionado.last_processed_at
+          const productsProcessedToday = parseInt(fornecedorSelecionado.products_processed_today || 0)
+          
+          // Formatar data do último processamento
+          let lastProcessedText = ''
+          if (lastProcessedAt) {
+            try {
+              const lastProcessed = new Date(lastProcessedAt)
+              const now = new Date()
+              const diffMs = now.getTime() - lastProcessed.getTime()
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+              const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+              
+              if (processedToday) {
+                if (diffHours < 1) {
+                  if (diffMinutes < 1) {
+                    lastProcessedText = 'há menos de 1 min'
+                  } else if (diffMinutes === 1) {
+                    lastProcessedText = 'há 1 min'
+                  } else {
+                    lastProcessedText = `há ${diffMinutes} min`
+                  }
+                } else if (diffHours === 1) {
+                  lastProcessedText = 'há 1h'
+                } else {
+                  lastProcessedText = `há ${diffHours}h`
+                }
+              } else {
+                lastProcessedText = `em ${lastProcessed.toLocaleDateString('pt-BR')}`
+              }
+            } catch (e) {
+              lastProcessedText = ''
+            }
+          }
           
           return (
             <motion.div
@@ -559,18 +639,26 @@ export default function ProcessListPage() {
               animate={{ opacity: 1, y: 0 }}
               className="mt-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg p-4"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start space-x-3 flex-1 min-w-0">
                   <div className="flex-shrink-0">
                     <div className="w-12 h-12 bg-blue-500/30 rounded-full flex items-center justify-center">
                       <Users className="w-6 h-6 text-blue-400" />
                     </div>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-white text-lg truncate">
-                      {fornecedorSelecionado.name || fornecedorSelecionado.nome}
-                    </h4>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-white text-lg truncate">
+                        {fornecedorSelecionado.name || fornecedorSelecionado.nome}
+                      </h4>
+                      {processedToday && (
+                        <span className="flex items-center gap-1 bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-xs font-medium flex-shrink-0">
+                          <CheckCircle className="w-3 h-3" />
+                          <span>Processado hoje</span>
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
                       {cidade && (
                         <span className="text-white/70 text-sm flex items-center space-x-1">
                           <MapPin className="w-3 h-3" />
@@ -584,11 +672,35 @@ export default function ProcessListPage() {
                         </span>
                       )}
                       {totalProducts > 0 && (
-                        <span className="text-green-400 text-sm font-medium">
-                          {totalProducts} {totalProducts === 1 ? 'produto' : 'produtos'}
+                        <span className="text-blue-400 text-sm font-medium">
+                          {totalProducts} {totalProducts === 1 ? 'produto' : 'produtos'} cadastrados
                         </span>
                       )}
                     </div>
+                    {processedToday && (
+                      <div className="flex items-center gap-2 text-sm">
+                        {lastProcessedText && (
+                          <span className="text-green-400/80">
+                            {lastProcessedText}
+                          </span>
+                        )}
+                        {productsProcessedToday > 0 && (
+                          <span className="text-green-400/80 font-medium">
+                            • {productsProcessedToday} {productsProcessedToday === 1 ? 'produto' : 'produtos'} processados hoje
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {!processedToday && lastProcessedAt && (
+                      <div className="text-sm text-white/50">
+                        Último processamento: {lastProcessedText}
+                      </div>
+                    )}
+                    {!processedToday && !lastProcessedAt && (
+                      <div className="text-sm text-yellow-400/70">
+                        Ainda não processado hoje
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
@@ -596,12 +708,10 @@ export default function ProcessListPage() {
                     setSelectedSupplier('')
                     setIsDropdownOpen(false)
                   }}
-                  className="flex-shrink-0 ml-3 text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+                  className="flex-shrink-0 text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
                   title="Remover seleção"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </motion.div>
