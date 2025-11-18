@@ -8,7 +8,7 @@ const router = express.Router();
 // Listar fornecedores
 router.get('/', [
   queryValidator('page').optional().isInt({ min: 1 }),
-  queryValidator('limit').optional().isInt({ min: 1, max: 100 }),
+  queryValidator('limit').optional().isInt({ min: 1, max: 1000 }),
   queryValidator('search').optional().trim(),
   queryValidator('is_active').optional().isBoolean()
 ], async (req, res) => {
@@ -18,7 +18,7 @@ router.get('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { page = 1, limit = 20, search = '', is_active } = req.query;
+    const { page = 1, limit = 1000, search = '', is_active } = req.query;
     const offset = (page - 1) * limit;
 
     let whereClause = '';
