@@ -214,17 +214,21 @@ export default function ProcessListPage() {
 
         const validationResult = await response.json()
         console.log('🔍 ProcessList - Resultado da IA:', validationResult)
+        console.log('🔍 ProcessList - Validation object completo:', JSON.stringify(validationResult.validation, null, 2))
         
         // Processar resultados da IA
-        const validProducts = validationResult.validation.validated_products || []
+        const validProducts = validationResult.validation?.validated_products || []
+        const errors = validationResult.validation?.errors || []
+        const warnings = validationResult.validation?.warnings || []
+        const suggestions = validationResult.validation?.suggestions || []
+        
         console.log('🔍 ProcessList - Produtos validados pela IA:', validProducts.length)
+        console.log('🔍 ProcessList - Erros:', errors)
+        console.log('🔍 ProcessList - Avisos:', warnings)
+        console.log('🔍 ProcessList - Sugestões:', suggestions)
         console.log('🔍 ProcessList - Primeiros produtos validados:', validProducts.slice(0, 3))
         
         if (validProducts.length === 0) {
-          const errors = validationResult.validation?.errors || []
-          const warnings = validationResult.validation?.warnings || []
-          const suggestions = validationResult.validation?.suggestions || []
-          
           // Verificar se é erro temporário da IA
           const isTemporaryError = errors.some(err => 
             err.includes('temporário') || 
@@ -237,17 +241,24 @@ export default function ProcessListPage() {
             : '⚠️ Nenhum produto válido encontrado na lista.\n\n'
           
           if (errors.length > 0) {
-            errorMessage += `Erros:\n${errors.slice(0, 3).map(err => `• ${err}`).join('\n')}\n\n`
+            errorMessage += `Erros:\n${errors.slice(0, 5).map(err => `• ${err}`).join('\n')}\n\n`
+          } else {
+            errorMessage += `A IA processou a lista mas não encontrou produtos Apple válidos.\n\n`
           }
+          
           if (warnings.length > 0) {
-            errorMessage += `Avisos:\n${warnings.slice(0, 2).map(warn => `• ${warn}`).join('\n')}\n\n`
+            errorMessage += `Avisos:\n${warnings.slice(0, 3).map(warn => `• ${warn}`).join('\n')}\n\n`
           }
+          
           if (suggestions.length > 0) {
-            errorMessage += `${suggestions.slice(0, 2).map(sugg => `💡 ${sugg}`).join('\n')}\n\n`
+            errorMessage += `Sugestões:\n${suggestions.slice(0, 3).map(sugg => `💡 ${sugg}`).join('\n')}\n\n`
+          } else {
+            errorMessage += `💡 Verifique se a lista contém produtos Apple válidos (iPhone, iPad, MacBook, AirPods, etc.)\n`
+            errorMessage += `💡 Certifique-se de que os produtos têm preços especificados\n\n`
           }
           
           if (!isTemporaryError) {
-            errorMessage += 'Verifique se a lista contém produtos Apple válidos e tente novamente.'
+            errorMessage += 'Dica: Certifique-se de que a lista contém apenas produtos Apple com preços claramente especificados.'
           }
           
           alert(errorMessage)
