@@ -311,22 +311,33 @@ class AIService {
       
       // Prompt drasticamente simplificado para evitar erro 500 da OpenAI
       // Reduzido de ~280 linhas para ~15 linhas - mantém apenas o essencial
-      const prompt = `Extraia produtos Apple desta lista. REGRAS:
+      const prompt = `Extraia APENAS produtos Apple NOVOS desta lista. REGRAS CRÍTICAS:
 
-1. PRODUTOS: iPhone, iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
-2. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito
-3. PREÇO: Aceite R$, $, 💵, 💲, 🪙, números - normalize para numérico
-4. CORES: Extraia cores (azul, preto, branco, silver, rose, etc) incluindo emojis (🔵, ⚫, ⚪, etc)
-5. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB)
-6. CONDIÇÃO: SWAP/VITRINE/SEMINOVO= Seminovo; CPO/LACRADO/NOVO= Novo; condition_detail= original
-7. VARIANTE: eSIM/ANATEL/🇺🇸/🇯🇵/🇨🇳/JP/HN= variant
-8. FORMATO CRÍTICO: Se preço ANTES das cores (📍azul, ✅ Azul), cada cor = produto com mesmo preço
-9. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max")
+1. PRODUTOS: APENAS iPhone, iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
+2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
+3. IGNORE COMPLETAMENTE: SWAP, VITRINE, SEMINOVO, USADO, REcondicionado - NÃO EXTRAIA ESTES PRODUTOS
+4. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito
+5. PREÇO: Aceite R$, $, 💵, 💲, 🪙, números - normalize para numérico
+6. CORES: Extraia cores (azul, preto, branco, silver, rose, etc) incluindo emojis (🔵, ⚫, ⚪, etc)
+7. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB)
+8. CONDIÇÃO PADRONIZADA:
+   - NOVO, LACRADO, LACRADOS → condition: "Novo", condition_detail: "LACRADO" ou "NOVO"
+   - CPO → condition: "Novo", condition_detail: "CPO"
+   - Se não encontrar condição clara, assuma "Novo" apenas se produto Apple
+9. VARIANTE (CRÍTICO):
+   - CPO → variant: "CPO" (além de condition_detail: "CPO")
+   - ANATEL → variant: "ANATEL"
+   - eSIM/ESIM → variant: "E-SIM"
+   - 🇺🇸/🇯🇵/🇨🇳/JP/HN → variant: "AMERICANO"/"JAPONÊS"/"CHINÊS"
+10. FORMATO CRÍTICO: Se preço ANTES das cores (📍azul, ✅ Azul), cada cor = produto com mesmo preço
+11. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max")
+
+IMPORTANTE: Se um produto tem SWAP, VITRINE, SEMINOVO, USADO, REcondicionado na descrição, IGNORE completamente - NÃO o inclua no JSON de resposta.
 
 Lista:
 ${rawListText}
 
-Retorne JSON válido com todos os produtos Apple encontrados:
+Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 {
   "valid": true,
   "errors": [],
@@ -338,8 +349,8 @@ Retorne JSON válido com todos os produtos Apple encontrados:
       "model": "modelo_extraído", 
       "color": "cor_extraída_ou_vazio",
       "storage": "armazenamento_extraído_ou_vazio",
-      "condition": "Novo|Seminovo|Usado|Recondicionado",
-      "condition_detail": "SWAP|VITRINE|SEMINOVO|LACRADO|NOVO|CPO|USADO|RECONDICIONADO|\"\"",
+      "condition": "Novo",
+      "condition_detail": "LACRADO|NOVO|CPO|\"\"",
       "price": preço_numérico,
       "variant": "ANATEL|E-SIM|CHIP FÍSICO|CPO|CHINÊS|JAPONÊS|INDIANO|AMERICANO|CHIP VIRTUAL|\"\"",
       "validated": true,
@@ -359,6 +370,54 @@ Retorne JSON válido com todos os produtos Apple encontrados:
 
       const parsedResponse = this.parseAIResponse(outputText);
       
+      // FILTRAR APENAS PRODUTOS NOVOS (NOVO, LACRADO, CPO)
+      // Ignorar produtos com SWAP, VITRINE, SEMINOVO, USADO, REcondicionado
+      if (parsedResponse.validated_products && parsedResponse.validated_products.length > 0) {
+        const produtosNovos = parsedResponse.validated_products.filter(product => {
+          // Verificar condition - deve ser "Novo"
+          if (product.condition && product.condition.toLowerCase() !== 'novo') {
+            return false;
+          }
+          
+          // Verificar condition_detail - deve ser LACRADO, NOVO, CPO ou vazio
+          const detail = (product.condition_detail || '').toUpperCase();
+          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'USADO', 'RECONDICIONADO'];
+          if (detail && condicoesInvalidas.some(invalida => detail.includes(invalida))) {
+            return false;
+          }
+          
+          // Verificar variant - se tiver SWAP, VITRINE no variant, ignorar
+          const variant = (product.variant || '').toUpperCase();
+          if (condicoesInvalidas.some(invalida => variant.includes(invalida))) {
+            return false;
+          }
+          
+          return true;
+        });
+        
+        // Atualizar a resposta com apenas produtos novos
+        parsedResponse.validated_products = produtosNovos;
+        
+        // Se todos foram filtrados, marcar como inválido
+        if (produtosNovos.length === 0 && parsedResponse.validated_products.length > 0) {
+          parsedResponse.valid = false;
+          if (!parsedResponse.errors) parsedResponse.errors = [];
+          parsedResponse.errors.push('Nenhum produto NOVO encontrado. Apenas produtos NOVOS, LACRADOS ou CPO são aceitos.');
+        }
+      }
+      
+      // Garantir que produtos com CPO tenham variant correto
+      if (parsedResponse.validated_products) {
+        parsedResponse.validated_products.forEach(product => {
+          // Se condition_detail é CPO, garantir que variant também seja CPO
+          if (product.condition_detail && product.condition_detail.toUpperCase() === 'CPO') {
+            if (!product.variant || product.variant.toUpperCase() !== 'CPO') {
+              product.variant = 'CPO';
+            }
+          }
+        });
+      }
+      
       // Calcular tokens e custo
       const cost = aiDashboardService.calculateCost(tokensUsed);
       
@@ -366,7 +425,8 @@ Retorne JSON válido com todos os produtos Apple encontrados:
       const lineCount = rawListText.split('\n').length;
       await aiDashboardService.logAIUsage('validate_product_list', {
         input_count: lineCount,
-        validation_result: parsedResponse
+        validation_result: parsedResponse,
+        filtered_to_novos_only: true
       }, tokensUsed, cost);
 
       // Garantir que a resposta tenha a estrutura esperada
