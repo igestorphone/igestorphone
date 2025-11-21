@@ -607,9 +607,10 @@ Responda APENAS em JSON válido:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple. Você SEMPRE retorna JSON válido e bem formatado. Nunca inclua vírgulas extras ou elementos malformados. Certifique-se de que todos os arrays e objetos estão corretamente fechados. REGRA CRÍTICA DE PRECISÃO: Extraia modelos EXATAMENTE como aparecem no texto. Se o texto diz "iPhone 17 256GB", extraia EXATAMENTE isso, NUNCA adicione "Pro" ou "Pro Max" se não estiver explícito. NUNCA assuma variantes (Pro, Pro Max, Plus, Mini, Air, SE) - apenas extraia o que está escrito. Quando encontrar um formato onde o preço aparece ANTES das cores, extraia cada cor como um produto separado com o mesmo preço.',
+          'Você é um assistente especializado em produtos Apple. Retorne APENAS JSON válido. REGRAS: 1) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 2) Se preço está ANTES das cores, cada cor = produto separado com mesmo preço. 3) Condições: SWAP/VITRINE/SEMINOVO= Seminovo; CPO/LACRADO/NOVO= Novo. 4) Cores: aceite português/inglês/emojis. 5) Armazenamento: normalize para GB/TB (ex: "256" = "256GB"). 6) Variantes: eSIM/ANATEL/🇺🇸/🇯🇵/🇨🇳 = variant. Ignore não-Apple.',
         userPrompt: prompt,
-        temperature: 0.3
+        temperature: 0.2, // Reduzido para ser mais determinístico
+        maxOutputTokens: 4000 // Limite de tokens de saída
       });
 
       const parsedResponse = this.parseAIResponse(outputText);
