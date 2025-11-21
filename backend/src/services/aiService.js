@@ -52,8 +52,9 @@ class AIService {
       model: this.model,
       input,
       temperature,
-      max_output_tokens: adjustedMaxTokens,
-      timeout: 60000 // 60 segundos de timeout
+      max_output_tokens: adjustedMaxTokens
+      // Nota: timeout não é um parâmetro aceito pela API da OpenAI
+      // O timeout deve ser configurado no cliente OpenAI, não no payload
     };
 
     let response;
