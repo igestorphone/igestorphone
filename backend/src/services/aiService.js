@@ -298,29 +298,39 @@ class AIService {
       
       // Remover linhas que são apenas marcadores de seção (sem produtos)
       const lines = cleanedList.split('\n');
+      let foundSeminovoSection = false;
       const filteredLines = lines.filter((line, index) => {
         const trimmedLine = line.trim();
         
-        // Se a linha é um marcador de seção de seminovos, ignorar ela e tudo depois (se estiver no final)
-        // Mas manter se tiver produtos Apple antes
+        // Se já encontrou seção de seminovos, ignorar tudo depois
+        if (foundSeminovoSection) {
+          return false;
+        }
+        
+        // Verificar se a linha é um marcador de seção de seminovos
         if (seminovoMarkers.some(marker => marker.test(trimmedLine))) {
           // Verificar se há produtos Apple ANTES desta linha
           const beforeThisLine = lines.slice(0, index).join('\n');
           const hasAppleProductsBefore = /iphone|ipad|macbook|airpods|apple watch/i.test(beforeThisLine);
           
-          // Se não tem produtos antes, ou se é claramente um marcador de seção, ignorar
-          if (!hasAppleProductsBefore || /💎.*💎/.test(trimmedLine)) {
+          // Se tem produtos antes, esta é uma nova seção de seminovos - marcar e ignorar tudo depois
+          if (hasAppleProductsBefore) {
+            foundSeminovoSection = true;
             return false;
           }
+          
+          // Se não tem produtos antes, ignorar esta linha também
+          return false;
         }
         
         // Ignorar linhas vazias excessivas e separadores
         if (trimmedLine === '' || /^[-=_]{3,}$/.test(trimmedLine)) {
-          return false;
+          // Não contar linha vazia como início de seção de seminovos
+          return true; // Manter algumas linhas vazias para formatação
         }
         
         return true;
-      });
+      }).filter(line => line.trim() !== ''); // Remover linhas vazias no final
       
       cleanedList = filteredLines.join('\n');
       
@@ -408,7 +418,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple. Retorne APENAS JSON válido. REGRAS: 1) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 2) Se preço está ANTES das cores, cada cor = produto separado com mesmo preço. 3) Condições: SWAP/VITRINE/SEMINOVO= Seminovo; CPO/LACRADO/NOVO= Novo. 4) Cores: aceite português/inglês/emojis. 5) Armazenamento: normalize para GB/TB (ex: "256" = "256GB"). 6) Variantes: eSIM/ANATEL/🇺🇸/🇯🇵/🇨🇳 = variant. Ignore não-Apple.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO) - IGNORE completamente SWAP, VITRINE, SEMINOVO, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) LACRADO = NOVO sempre. 3) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 4) Se preço está ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço. 5) CPO → condition_detail: "CPO" E variant: "CPO". 6) ANATEL/🇧🇷 → variant: "ANATEL". 7) eSIM/CHIP VIRTUAL → variant: "E-SIM". 8) CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 9) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural). 10) Armazenamento: normalize (256=256GB, 1T=1TB). 11) Preços: remova pontos, vírgulas, espaços - normalize para número puro. 12) Ignore produtos não-Apple e produtos usados/seminovos.',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída
