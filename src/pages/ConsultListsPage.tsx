@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Package, Loader2, AlertCircle, Calendar } from 'lucide-react'
+import { Package, Loader2, AlertCircle, Calendar, Construction } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { fornecedoresApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -39,12 +39,35 @@ export default function ConsultListsPage() {
   const selectedSupplier = suppliers.find(s => s.id.toString() === selectedSupplierId)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Banner de Página em Desenvolvimento */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-xl shadow-2xl p-6 md:p-8 border-2 border-yellow-400/50 relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-400/10 rounded-full -ml-12 -mb-12"></div>
+        <div className="relative z-10 flex items-center justify-center gap-4 flex-col md:flex-row">
+          <div className="flex items-center justify-center w-16 h-16 bg-yellow-500/30 rounded-full border-2 border-yellow-400/50">
+            <Construction className="w-8 h-8 text-yellow-300 animate-pulse" />
+          </div>
+          <div className="text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              Página em Desenvolvimento
+            </h2>
+            <p className="text-white/90 text-base md:text-lg">
+              Esta funcionalidade está sendo aprimorada. Em breve estará disponível!
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Header com gradiente */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg p-6 md:p-8 text-center"
+        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-xl shadow-lg p-6 md:p-8 text-center opacity-50 pointer-events-none"
       >
         <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Consultar Listas</h1>
         <p className="text-white/90 text-sm md:text-base">
@@ -57,7 +80,7 @@ export default function ConsultListsPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20"
+        className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20 opacity-50 pointer-events-none"
       >
         <label className="block text-white font-semibold mb-3">
           Selecione um Fornecedor
@@ -90,7 +113,7 @@ export default function ConsultListsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-8 md:p-12 text-center border border-white/20"
+          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-8 md:p-12 text-center border border-white/20 opacity-50 pointer-events-none"
         >
           <Package className="w-16 h-16 text-white/30 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white/70 mb-2">Selecione um Fornecedor</h3>
@@ -104,7 +127,7 @@ export default function ConsultListsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20"
+          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20 opacity-50 pointer-events-none"
         >
           {isLoadingRawList ? (
             <div className="flex items-center justify-center py-12">

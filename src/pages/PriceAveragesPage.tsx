@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, BarChart3, TrendingUp, Smartphone, DollarSign, Download, Filter, X, Sparkles, Palette, Package, TrendingDown } from 'lucide-react'
+import { Search, BarChart3, TrendingUp, Smartphone, DollarSign, Download, Filter, X, Sparkles, Palette, Package, TrendingDown, Construction } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
@@ -247,13 +247,36 @@ export default function PriceAveragesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* Banner de Página em Desenvolvimento */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-xl shadow-2xl p-6 md:p-8 border-2 border-yellow-400/50 relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full -mr-16 -mt-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-400/10 rounded-full -ml-12 -mb-12"></div>
+        <div className="relative z-10 flex items-center justify-center gap-4 flex-col md:flex-row">
+          <div className="flex items-center justify-center w-16 h-16 bg-yellow-500/30 rounded-full border-2 border-yellow-400/50">
+            <Construction className="w-8 h-8 text-yellow-300 animate-pulse" />
+          </div>
+          <div className="text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+              Página em Desenvolvimento
+            </h2>
+            <p className="text-white/90 text-base md:text-lg">
+              Esta funcionalidade está sendo aprimorada. Em breve estará disponível!
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
       {/* Header com gradiente */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
+        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20 opacity-50 pointer-events-none"
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-32 -mt-32"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-10 rounded-full -ml-24 -mb-24"></div>
@@ -271,7 +294,7 @@ export default function PriceAveragesPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
-        className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20"
+        className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20 opacity-50 pointer-events-none"
       >
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-300" />
@@ -291,7 +314,7 @@ export default function PriceAveragesPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.3 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20"
+          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20 opacity-50 pointer-events-none"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -434,7 +457,7 @@ export default function PriceAveragesPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 opacity-50 pointer-events-none"
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -512,7 +535,7 @@ export default function PriceAveragesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="space-y-4"
+          className="space-y-4 opacity-50 pointer-events-none"
         >
           {sortedGroups.length > 0 ? (
             // Quando todos os filtros estão aplicados, mostrar apenas UM resultado
@@ -684,7 +707,7 @@ export default function PriceAveragesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20"
+          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-6 border border-white/20 opacity-50 pointer-events-none"
         >
           <div className="text-center">
             <BarChart3 className="w-16 h-16 text-blue-400 mx-auto mb-4" />
