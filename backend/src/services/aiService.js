@@ -63,8 +63,8 @@ class AIService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         if (attempt > 0) {
-          // Aguardar antes de tentar novamente (backoff exponencial)
-          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
+          // Aguardar antes de tentar novamente (backoff exponencial mais longo para erro 500)
+          const waitTime = Math.min(3000 * attempt, 10000); // 3s, 6s, 9s (max 10s)
           console.log(`🔄 Tentativa ${attempt + 1}/${maxRetries + 1} após ${waitTime}ms...`);
           await new Promise(resolve => setTimeout(resolve, waitTime));
         }
@@ -279,8 +279,8 @@ class AIService {
   async validateProductListFromText(rawListText) {
     try {
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
-      const MAX_LIST_SIZE = 10000; // caracteres
-      const MAX_LINES = 200; // linhas
+      const MAX_LIST_SIZE = 8000; // caracteres (reduzido para ser mais conservador)
+      const MAX_LINES = 150; // linhas (reduzido para ser mais conservador)
       
       const listSize = rawListText.length;
       const listLines = rawListText.split('\n').length;
@@ -289,18 +289,23 @@ class AIService {
       
       // Se a lista for muito grande, avisar o usuário
       if (listSize > MAX_LIST_SIZE || listLines > MAX_LINES) {
-        console.warn(`⚠️ Lista muito grande (${listSize} chars, ${listLines} linhas). Processando apenas as primeiras ${MAX_LINES} linhas...`);
-        
-        // Truncar para as primeiras linhas
-        const truncatedList = rawListText.split('\n').slice(0, MAX_LINES).join('\n');
+        console.warn(`⚠️ Lista muito grande (${listSize} chars, ${listLines} linhas). Limite: ${MAX_LIST_SIZE} chars ou ${MAX_LINES} linhas.`);
         
         return {
           valid: false,
-          errors: [`Lista muito grande (${listLines} linhas, ${listSize} caracteres). Por favor, divida em partes menores.`],
-          warnings: ['Processe listas com até 200 linhas ou 10.000 caracteres por vez.'],
-          suggestions: ['Divida a lista em partes menores e processe cada parte separadamente.'],
+          errors: [`Lista muito grande (${listLines} linhas, ${listSize} caracteres).`],
+          warnings: [`O limite recomendado é ${MAX_LINES} linhas ou ${MAX_LIST_SIZE.toLocaleString()} caracteres por vez para evitar erros.`],
+          suggestions: [
+            `Divida a lista em partes menores (máximo ${MAX_LINES} linhas por vez) e processe cada parte separadamente.`,
+            'Ou remova linhas desnecessárias (anúncios, textos de aviso, etc) e mantenha apenas os produtos.'
+          ],
           validated_products: []
         };
+      }
+      
+      // Avisar se a lista está próxima do limite
+      if (listSize > MAX_LIST_SIZE * 0.8 || listLines > MAX_LINES * 0.8) {
+        console.warn(`⚠️ Lista grande (${Math.round(listSize/MAX_LIST_SIZE*100)}% do limite). Pode ter problemas.`);
       }
       
       const prompt = `
