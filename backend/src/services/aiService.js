@@ -280,8 +280,8 @@ class AIService {
   async validateProductListFromText(rawListText) {
     try {
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
-      const MAX_LIST_SIZE = 8000; // caracteres (reduzido para ser mais conservador)
-      const MAX_LINES = 150; // linhas (reduzido para ser mais conservador)
+      const MAX_LIST_SIZE = 20000; // caracteres (aumentado para listas maiores)
+      const MAX_LINES = 300; // linhas (aumentado para listas maiores)
       
       const listSize = rawListText.length;
       const listLines = rawListText.split('\n').length;
@@ -298,7 +298,7 @@ class AIService {
           warnings: [`O limite recomendado é ${MAX_LINES} linhas ou ${MAX_LIST_SIZE.toLocaleString()} caracteres por vez para evitar erros.`],
           suggestions: [
             `Divida a lista em partes menores (máximo ${MAX_LINES} linhas por vez) e processe cada parte separadamente.`,
-            'Ou remova linhas desnecessárias (anúncios, textos de aviso, etc) e mantenha apenas os produtos.'
+            'Ou remova linhas desnecessárias (anúncios, textos de aviso, etc) e mantenha apenas os produtos Apple.'
           ],
           validated_products: []
         };
