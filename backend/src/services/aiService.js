@@ -43,32 +43,70 @@ class AIService {
     };
 
     let response;
-    try {
-      response = await openai.responses.create(requestPayload);
-    } catch (apiError) {
-      // Capturar erros da API da OpenAI e formatar mensagem mais amigável
-      console.error('❌ Erro na API da OpenAI:', apiError);
-      
-      let errorMessage = 'Erro temporário no serviço de IA';
-      
-      // Verificar tipo de erro
-      if (apiError.status === 500 || apiError.message?.includes('500')) {
-        errorMessage = 'Erro temporário no serviço de IA. Por favor, tente novamente em alguns segundos.';
-      } else if (apiError.status === 429 || apiError.message?.includes('rate limit') || apiError.message?.includes('quota')) {
-        errorMessage = 'Limite de uso da IA atingido temporariamente. Por favor, aguarde alguns minutos.';
-      } else if (apiError.message?.includes('timeout')) {
-        errorMessage = 'Tempo de processamento excedido. A lista pode estar muito grande.';
-      } else if (apiError.message) {
-        // Remover Request ID e outras informações técnicas
-        const cleanMessage = apiError.message.split('request ID')[0].trim();
-        if (cleanMessage && cleanMessage.length < 200) {
-          errorMessage = `Erro no serviço de IA: ${cleanMessage}`;
+    const maxRetries = 2; // Tentar até 2 vezes adicionalmente (total 3 tentativas)
+    let lastError;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Aguardar antes de tentar novamente (backoff exponencial)
+          const waitTime = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
+          console.log(`🔄 Tentativa ${attempt + 1}/${maxRetries + 1} após ${waitTime}ms...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        }
+        
+        response = await openai.responses.create(requestPayload);
+        // Se chegou aqui, deu certo!
+        if (attempt > 0) {
+          console.log(`✅ Sucesso na tentativa ${attempt + 1}`);
+        }
+        break; // Sair do loop se deu certo
+      } catch (apiError) {
+        lastError = apiError;
+        
+        // Capturar erros da API da OpenAI e formatar mensagem mais amigável
+        console.error(`❌ Erro na API da OpenAI (tentativa ${attempt + 1}/${maxRetries + 1}):`, apiError);
+        console.error(`❌ Status: ${apiError.status}, Code: ${apiError.code}, Type: ${apiError.type}`);
+        
+        // Se não for erro 500 (server_error), não fazer retry
+        if (apiError.status !== 500 && apiError.code !== 'server_error') {
+          let errorMessage = 'Erro no serviço de IA';
+          
+          if (apiError.status === 429 || apiError.message?.includes('rate limit') || apiError.message?.includes('quota')) {
+            errorMessage = 'Limite de uso da IA atingido temporariamente. Por favor, aguarde alguns minutos.';
+          } else if (apiError.message?.includes('timeout')) {
+            errorMessage = 'Tempo de processamento excedido. A lista pode estar muito grande. Tente dividir a lista em partes menores.';
+          } else if (apiError.message) {
+            const cleanMessage = apiError.message.split('request ID')[0].trim();
+            if (cleanMessage && cleanMessage.length < 200) {
+              errorMessage = `Erro no serviço de IA: ${cleanMessage}`;
+            }
+          }
+          
+          const formattedError = new Error(errorMessage);
+          formattedError.originalError = apiError;
+          throw formattedError;
+        }
+        
+        // Se for a última tentativa, lançar erro
+        if (attempt === maxRetries) {
+          console.error(`❌ Todas as ${maxRetries + 1} tentativas falharam`);
+          let errorMessage = 'Erro temporário no serviço de IA após várias tentativas.';
+          errorMessage += '\n\nSugestões:';
+          errorMessage += '\n• A lista pode estar muito grande - tente dividir em partes menores';
+          errorMessage += '\n• Aguarde alguns minutos e tente novamente';
+          errorMessage += '\n• Se o problema persistir, entre em contato com o suporte';
+          
+          const formattedError = new Error(errorMessage);
+          formattedError.originalError = apiError;
+          throw formattedError;
         }
       }
-      
-      const formattedError = new Error(errorMessage);
-      formattedError.originalError = apiError;
-      throw formattedError;
+    }
+    
+    if (!response) {
+      // Isso não deveria acontecer, mas por segurança...
+      throw lastError || new Error('Erro desconhecido ao chamar a API da OpenAI');
     }
 
     let outputText = response.output_text ? response.output_text.trim() : '';
