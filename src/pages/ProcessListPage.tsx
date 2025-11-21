@@ -19,6 +19,19 @@ export default function ProcessListPage() {
   const [processedData, setProcessedData] = useState(null)
   const [showCreateSupplier, setShowCreateSupplier] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
+  // Debug: Verificar configuração da API ao carregar a página
+  useEffect(() => {
+    console.log('🔍 ProcessListPage - Configuração da API:')
+    console.log('🔍 - VITE_API_URL:', import.meta.env.VITE_API_URL)
+    console.log('🔍 - RAW_API_BASE:', RAW_API_BASE)
+    console.log('🔍 - API_BASE_URL:', API_BASE_URL)
+    console.log('🔍 - URL completa (validate-list):', buildApiUrl('/ai/validate-list'))
+    
+    if (!import.meta.env.VITE_API_URL) {
+      console.warn('⚠️ AVISO: VITE_API_URL não está configurada! Usando padrão:', RAW_API_BASE)
+    }
+  }, [])
   const [newSupplier, setNewSupplier] = useState({
     nome: '',
     whatsapp: '',
