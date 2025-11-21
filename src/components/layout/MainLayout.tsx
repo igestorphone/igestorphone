@@ -68,7 +68,7 @@ export default function MainLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-visible">
         <Header />
-        <main className="flex-1 p-6 overflow-visible">
+        <main className="flex-1 p-3 sm:p-4 md:p-5 lg:p-6 overflow-visible">
           <Outlet />
         </main>
       </div>

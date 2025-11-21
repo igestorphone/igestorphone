@@ -252,19 +252,19 @@ export default function PriceAveragesPage() {
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-xl shadow-2xl p-6 md:p-8 border-2 border-yellow-400/50 relative overflow-hidden"
+        className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 backdrop-blur-lg rounded-xl shadow-2xl p-4 sm:p-5 md:p-6 lg:p-8 border-2 border-yellow-400/50 relative overflow-hidden"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-400/10 rounded-full -mr-16 -mt-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-orange-400/10 rounded-full -ml-12 -mb-12"></div>
-        <div className="relative z-10 flex items-center justify-center gap-4 flex-col md:flex-row">
-          <div className="flex items-center justify-center w-16 h-16 bg-yellow-500/30 rounded-full border-2 border-yellow-400/50">
-            <Construction className="w-8 h-8 text-yellow-300 animate-pulse" />
+        <div className="absolute top-0 right-0 w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-yellow-400/10 rounded-full -mr-12 sm:-mr-14 md:-mr-16 -mt-12 sm:-mt-14 md:-mt-16"></div>
+        <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 bg-orange-400/10 rounded-full -ml-8 sm:-ml-10 md:-ml-12 -mb-8 sm:-mb-10 md:-mb-12"></div>
+        <div className="relative z-10 flex items-center justify-center gap-3 sm:gap-4 flex-col md:flex-row">
+          <div className="flex items-center justify-center w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-yellow-500/30 rounded-full border-2 border-yellow-400/50 flex-shrink-0">
+            <Construction className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-yellow-300 animate-pulse" />
           </div>
-          <div className="text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
+          <div className="text-center md:text-left flex-1">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-1 sm:mb-2 leading-tight px-2 sm:px-0">
               Página em Desenvolvimento
             </h2>
-            <p className="text-white/90 text-base md:text-lg">
+            <p className="text-white/90 text-sm sm:text-base md:text-lg leading-relaxed px-2 sm:px-0">
               Esta funcionalidade está sendo aprimorada. Em breve estará disponível!
             </p>
           </div>
