@@ -664,25 +664,53 @@ Responda APENAS em JSON válido:
     } catch (error) {
       console.error('❌ Erro na validação de lista a partir de texto:', error);
       console.error('❌ Stack trace:', error.stack);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error status:', error.status);
+      console.error('❌ Original error:', error.originalError);
       
       // Tratar erros da OpenAI de forma mais amigável
       let errorMessage = 'Erro temporário ao processar lista com IA.';
       let suggestion = 'Por favor, tente novamente em alguns segundos.';
       
       // Verificar se é erro da OpenAI
-      if (error.message && error.message.includes('500')) {
-        errorMessage = 'Erro temporário no serviço de IA.';
-        suggestion = 'O serviço está temporariamente indisponível. Por favor, tente novamente em alguns segundos.';
-      } else if (error.message && (error.message.includes('rate limit') || error.message.includes('quota'))) {
-        errorMessage = 'Limite de uso da IA atingido temporariamente.';
-        suggestion = 'Por favor, aguarde alguns minutos e tente novamente.';
-      } else if (error.message && error.message.includes('timeout')) {
-        errorMessage = 'Tempo de processamento excedido.';
-        suggestion = 'A lista pode estar muito grande. Tente dividir em partes menores ou tente novamente.';
-      } else if (error.message && error.message.includes('Request ID')) {
-        // Erro da OpenAI com Request ID - simplificar mensagem
-        errorMessage = 'Erro temporário no serviço de IA.';
-        suggestion = 'Por favor, tente novamente. Se o problema persistir, entre em contato com o suporte.';
+      if (error.originalError) {
+        const originalError = error.originalError;
+        console.error('❌ Original error status:', originalError.status);
+        console.error('❌ Original error message:', originalError.message);
+        
+        if (originalError.status === 500 || error.message?.includes('500')) {
+          errorMessage = 'Erro temporário no serviço de IA (erro 500).';
+          suggestion = 'O serviço da OpenAI está temporariamente indisponível. Por favor, tente novamente em alguns segundos.';
+        } else if (originalError.status === 429 || error.message?.includes('rate limit') || error.message?.includes('quota')) {
+          errorMessage = 'Limite de uso da IA atingido temporariamente.';
+          suggestion = 'Por favor, aguarde alguns minutos e tente novamente.';
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = 'Tempo de processamento excedido.';
+          suggestion = 'A lista pode estar muito grande. Tente dividir em partes menores ou tente novamente.';
+        } else if (error.message?.includes('Request ID')) {
+          // Erro da OpenAI com Request ID - simplificar mensagem
+          errorMessage = 'Erro temporário no serviço de IA.';
+          suggestion = 'Por favor, tente novamente. Se o problema persistir, verifique se a chave da OpenAI está configurada corretamente.';
+        } else if (originalError.message) {
+          // Usar mensagem do erro original se disponível
+          const cleanMessage = originalError.message.split('request ID')[0].split('Request ID')[0].trim();
+          if (cleanMessage && cleanMessage.length < 150) {
+            errorMessage = `Erro no serviço de IA: ${cleanMessage}`;
+          }
+        }
+      } else if (error.message) {
+        // Verificar mensagem do erro direto
+        if (error.message.includes('500')) {
+          errorMessage = 'Erro temporário no serviço de IA (erro 500).';
+          suggestion = 'O serviço da OpenAI está temporariamente indisponível. Por favor, tente novamente em alguns segundos.';
+        } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+          errorMessage = 'Limite de uso da IA atingido temporariamente.';
+          suggestion = 'Por favor, aguarde alguns minutos e tente novamente.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Tempo de processamento excedido.';
+          suggestion = 'A lista pode estar muito grande. Tente dividir em partes menores ou tente novamente.';
+        }
       }
       
       // Retornar resposta válida mesmo em caso de erro
