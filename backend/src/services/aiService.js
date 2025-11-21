@@ -35,11 +35,25 @@ class AIService {
       });
     }
 
+    // Calcular tamanho aproximado do prompt (1 token ≈ 4 caracteres)
+    const promptSize = JSON.stringify(input).length;
+    const estimatedTokens = Math.ceil(promptSize / 4);
+    console.log(`📊 Tamanho do prompt: ~${estimatedTokens} tokens (${promptSize} caracteres)`);
+    
+    // Limitar tokens de saída baseado no tamanho do prompt
+    // Se o prompt for muito grande, reduzir tokens de saída
+    let adjustedMaxTokens = maxOutputTokens || this.maxTokens;
+    if (estimatedTokens > 30000) {
+      adjustedMaxTokens = Math.max(2000, adjustedMaxTokens * 0.5);
+      console.log(`⚠️ Prompt muito grande, reduzindo max_output_tokens para ${adjustedMaxTokens}`);
+    }
+    
     const requestPayload = {
       model: this.model,
       input,
       temperature,
-      max_output_tokens: maxOutputTokens || this.maxTokens
+      max_output_tokens: adjustedMaxTokens,
+      timeout: 60000 // 60 segundos de timeout
     };
 
     let response;
@@ -264,6 +278,31 @@ class AIService {
   // Validação inteligente de listas de produtos a partir de texto bruto
   async validateProductListFromText(rawListText) {
     try {
+      // Limitar tamanho da lista para evitar erros 500 da OpenAI
+      const MAX_LIST_SIZE = 10000; // caracteres
+      const MAX_LINES = 200; // linhas
+      
+      const listSize = rawListText.length;
+      const listLines = rawListText.split('\n').length;
+      
+      console.log(`📊 Lista recebida: ${listSize} caracteres, ${listLines} linhas`);
+      
+      // Se a lista for muito grande, avisar o usuário
+      if (listSize > MAX_LIST_SIZE || listLines > MAX_LINES) {
+        console.warn(`⚠️ Lista muito grande (${listSize} chars, ${listLines} linhas). Processando apenas as primeiras ${MAX_LINES} linhas...`);
+        
+        // Truncar para as primeiras linhas
+        const truncatedList = rawListText.split('\n').slice(0, MAX_LINES).join('\n');
+        
+        return {
+          valid: false,
+          errors: [`Lista muito grande (${listLines} linhas, ${listSize} caracteres). Por favor, divida em partes menores.`],
+          warnings: ['Processe listas com até 200 linhas ou 10.000 caracteres por vez.'],
+          suggestions: ['Divida a lista em partes menores e processe cada parte separadamente.'],
+          validated_products: []
+        };
+      }
+      
       const prompt = `
 Você é um especialista em produtos Apple. Analise esta lista BAGUNÇADA e identifique APENAS produtos Apple.
 
