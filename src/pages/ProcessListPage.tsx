@@ -62,7 +62,10 @@ export default function ProcessListPage() {
         })
 
         if (!response.ok) {
-          console.error('Erro ao buscar fornecedores:', response.status)
+          // Não logar erro 404 silenciosamente, apenas se for outro erro
+          if (response.status !== 404) {
+            console.error('Erro ao buscar fornecedores:', response.status)
+          }
           setFornecedores([])
           return
         }
@@ -118,12 +121,15 @@ export default function ProcessListPage() {
           throw new Error('Token inválido')
         }
 
+      const apiUrl = buildApiUrl('/ai/validate-list')
       console.log('🔍 ProcessList - Enviando lista BRUTA para IA processar')
+      console.log('🔍 ProcessList - URL da API:', apiUrl)
       console.log('🔍 ProcessList - Tamanho da lista:', rawList.length, 'caracteres')
       console.log('🔍 ProcessList - Primeiras linhas:', rawList.split('\n').slice(0, 5))
+      console.log('🔍 ProcessList - Token disponível:', token ? 'Sim' : 'Não')
 
       // Enviar lista BRUTA para IA processar tudo
-      const response = await fetch(buildApiUrl('/ai/validate-list'), {
+      const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -131,17 +137,27 @@ export default function ProcessListPage() {
           },
         body: JSON.stringify({ rawListText: rawList })
         })
+      
+      console.log('🔍 ProcessList - Response status:', response.status)
+      console.log('🔍 ProcessList - Response ok:', response.ok)
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.error('❌ ProcessList - Erro na API:', errorText)
+          console.error('❌ ProcessList - Erro na API:', response.status)
+          console.error('❌ ProcessList - Error text:', errorText)
+          console.error('❌ ProcessList - Response headers:', Object.fromEntries(response.headers.entries()))
+          
           let errorMessage = 'Erro ao processar lista com IA'
           
-          try {
-            const errorJson = JSON.parse(errorText)
-            
-            // Verificar se é erro 500 (erro temporário da OpenAI)
-            if (response.status === 500) {
+          // Verificar se é erro 404 (endpoint não encontrado)
+          if (response.status === 404) {
+            errorMessage = 'Endpoint da API não encontrado.\n\n'
+            errorMessage += `Verifique se o backend está rodando e a URL está correta:\n${apiUrl}\n\n`
+            errorMessage += 'Se estiver em produção, verifique a variável de ambiente VITE_API_URL.'
+          } else if (response.status === 500) {
+            // Erro 500 (erro temporário da OpenAI)
+            try {
+              const errorJson = JSON.parse(errorText)
               errorMessage = 'Erro temporário no serviço de IA.\n\n'
               errorMessage += 'Por favor, tente novamente em alguns segundos.\n'
               errorMessage += 'Se o problema persistir, verifique se a lista contém produtos Apple válidos.'
@@ -153,8 +169,16 @@ export default function ProcessListPage() {
                   errorMessage += `\n\nDetalhes: ${errorMsg}`
                 }
               }
-            } else {
-              // Outros erros
+            } catch (e) {
+              errorMessage = 'Erro temporário no serviço de IA. Por favor, tente novamente em alguns segundos.'
+            }
+          } else if (response.status === 401 || response.status === 403) {
+            errorMessage = 'Erro de autenticação.\n\n'
+            errorMessage += 'Por favor, faça login novamente.'
+          } else {
+            // Outros erros
+            try {
+              const errorJson = JSON.parse(errorText)
               if (errorJson.message) {
                 errorMessage = errorJson.message
               }
@@ -164,13 +188,11 @@ export default function ProcessListPage() {
                   errorMessage += `\n\n${cleanError}`
                 }
               }
-            }
-          } catch (e) {
-            // Se não conseguir parsear, usar mensagem genérica
-            if (response.status === 500) {
-              errorMessage = 'Erro temporário no serviço de IA. Por favor, tente novamente em alguns segundos.'
-            } else {
+            } catch (e) {
               errorMessage += ` (Erro ${response.status})`
+              if (errorText && errorText.length < 200) {
+                errorMessage += `\n\n${errorText}`
+              }
             }
           }
           
@@ -338,16 +360,32 @@ export default function ProcessListPage() {
         name: error.name
       })
       
-      // Mostrar mensagem de erro mais detalhada
+      // Detectar tipo de erro
       let errorMessage = 'Erro ao processar lista.\n\n'
-      if (error.message) {
+      
+      // Erro de conexão/rede
+      if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError') || error.name === 'TypeError') {
+        errorMessage = '❌ Erro de conexão com o servidor.\n\n'
+        errorMessage += 'Verifique:\n'
+        errorMessage += '• Se o backend está rodando\n'
+        errorMessage += '• Se a URL da API está correta\n'
+        errorMessage += `• URL atual: ${buildApiUrl('/ai/validate-list')}\n\n`
+        errorMessage += 'Se estiver em produção, verifique se:\n'
+        errorMessage += '• A variável de ambiente VITE_API_URL está configurada corretamente\n'
+        errorMessage += '• O backend está deployado e acessível\n'
+      } else if (error.message) {
         errorMessage += `Detalhes: ${error.message}\n\n`
       }
-      errorMessage += 'Verifique:\n'
-      errorMessage += '• Se a chave da API da OpenAI está configurada\n'
-      errorMessage += '• Se o backend está rodando\n'
-      errorMessage += '• Se você tem permissões de administrador\n\n'
-      errorMessage += 'Consulte o console do navegador (F12) para mais detalhes.'
+      
+      // Adicionar instruções gerais
+      if (!errorMessage.includes('Erro de conexão')) {
+        errorMessage += 'Verifique:\n'
+        errorMessage += '• Se a chave da API da OpenAI está configurada\n'
+        errorMessage += '• Se o backend está rodando\n'
+        errorMessage += '• Se você tem permissões de administrador\n'
+      }
+      
+      errorMessage += '\nConsulte o console do navegador (F12) para mais detalhes.'
       
       alert(errorMessage)
     } finally {
