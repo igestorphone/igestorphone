@@ -99,7 +99,7 @@ export default function BugReportsPage() {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: 'pending' | 'in_progress' | 'resolved' | 'rejected' }) =>
       bugReportsApi.updateStatus(id, status),
-    onSuccess: (data: any, variables: { id: number; status: string }) => {
+    onSuccess: (_data: any, variables: { id: number; status: 'pending' | 'in_progress' | 'resolved' | 'rejected' }) => {
       queryClient.invalidateQueries({ queryKey: ['bug-reports'] })
       
       if (variables.status === 'rejected') {
