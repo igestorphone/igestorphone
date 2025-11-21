@@ -279,14 +279,56 @@ class AIService {
   // Validação inteligente de listas de produtos a partir de texto bruto
   async validateProductListFromText(rawListText) {
     try {
+      // Limpar lista: remover seções de "semi novo", "swap", "vitrine" que podem confundir a IA
+      // Remover linhas que contenham apenas esses termos ou seções marcadas
+      let cleanedList = rawListText;
+      
+      // Remover seções de seminovos que podem estar no final ou meio da lista
+      const seminovoMarkers = [
+        /💎\s*[Ss]emi\s*[Nn]ovo.*💎/gi,
+        /.*[Ss]emi\s*[Nn]ovo\s*americano.*/gi,
+        /.*[Ss]wap.*/gi,
+        /.*[Vv]itrine.*/gi,
+        /.*[Ss]eminovo.*/gi
+      ];
+      
+      // Remover linhas que são apenas marcadores de seção (sem produtos)
+      const lines = cleanedList.split('\n');
+      const filteredLines = lines.filter((line, index) => {
+        const trimmedLine = line.trim();
+        
+        // Se a linha é um marcador de seção de seminovos, ignorar ela e tudo depois (se estiver no final)
+        // Mas manter se tiver produtos Apple antes
+        if (seminovoMarkers.some(marker => marker.test(trimmedLine))) {
+          // Verificar se há produtos Apple ANTES desta linha
+          const beforeThisLine = lines.slice(0, index).join('\n');
+          const hasAppleProductsBefore = /iphone|ipad|macbook|airpods|apple watch/i.test(beforeThisLine);
+          
+          // Se não tem produtos antes, ou se é claramente um marcador de seção, ignorar
+          if (!hasAppleProductsBefore || /💎.*💎/.test(trimmedLine)) {
+            return false;
+          }
+        }
+        
+        // Ignorar linhas vazias excessivas e separadores
+        if (trimmedLine === '' || /^[-=_]{3,}$/.test(trimmedLine)) {
+          return false;
+        }
+        
+        return true;
+      });
+      
+      cleanedList = filteredLines.join('\n');
+      
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
       const MAX_LIST_SIZE = 20000; // caracteres (aumentado para listas maiores)
       const MAX_LINES = 300; // linhas (aumentado para listas maiores)
       
-      const listSize = rawListText.length;
-      const listLines = rawListText.split('\n').length;
+      const listSize = cleanedList.length;
+      const listLines = cleanedList.split('\n').length;
       
-      console.log(`📊 Lista recebida: ${listSize} caracteres, ${listLines} linhas`);
+      console.log(`📊 Lista recebida: ${rawListText.length} caracteres originais, ${rawListText.split('\n').length} linhas originais`);
+      console.log(`📊 Lista limpa: ${listSize} caracteres, ${listLines} linhas após limpeza`);
       
       // Se a lista for muito grande, avisar o usuário
       if (listSize > MAX_LIST_SIZE || listLines > MAX_LINES) {
