@@ -287,9 +287,13 @@ class AIService {
       const seminovoMarkers = [
         /💎\s*[Ss]emi\s*[Nn]ovo.*💎/gi,
         /.*[Ss]emi\s*[Nn]ovo\s*americano.*/gi,
+        /.*[Ss]wap\s*\([Vv]itrine\).*/gi,
         /.*[Ss]wap.*/gi,
         /.*[Vv]itrine.*/gi,
-        /.*[Ss]eminovo.*/gi
+        /.*[Ss]eminovo.*/gi,
+        /.*30\s*[Dd]ias\s*de\s*[Gg]arantia.*/gi,
+        /.*80%\s*[—-]>\s*100%.*/gi,
+        /.*SEM\s*SELO.*/gi
       ];
       
       // Remover linhas que são apenas marcadores de seção (sem produtos)
