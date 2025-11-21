@@ -135,19 +135,45 @@ export default function ProcessListPage() {
         if (!response.ok) {
           const errorText = await response.text()
           console.error('❌ ProcessList - Erro na API:', errorText)
-          let errorMessage = `Erro na validação com IA: ${response.status}`
+          let errorMessage = 'Erro ao processar lista com IA'
+          
           try {
             const errorJson = JSON.parse(errorText)
-            if (errorJson.message) {
-              errorMessage = errorJson.message
-            }
-            if (errorJson.error) {
-              errorMessage += `\n${errorJson.error}`
+            
+            // Verificar se é erro 500 (erro temporário da OpenAI)
+            if (response.status === 500) {
+              errorMessage = 'Erro temporário no serviço de IA.\n\n'
+              errorMessage += 'Por favor, tente novamente em alguns segundos.\n'
+              errorMessage += 'Se o problema persistir, verifique se a lista contém produtos Apple válidos.'
+              
+              // Adicionar mensagem técnica apenas se disponível e relevante
+              if (errorJson.error && !errorJson.error.includes('Request ID')) {
+                const errorMsg = errorJson.error.split('request ID')[0].trim()
+                if (errorMsg && errorMsg.length < 100) {
+                  errorMessage += `\n\nDetalhes: ${errorMsg}`
+                }
+              }
+            } else {
+              // Outros erros
+              if (errorJson.message) {
+                errorMessage = errorJson.message
+              }
+              if (errorJson.error && !errorJson.error.includes('Request ID')) {
+                const cleanError = errorJson.error.split('request ID')[0].trim()
+                if (cleanError && cleanError.length < 150) {
+                  errorMessage += `\n\n${cleanError}`
+                }
+              }
             }
           } catch (e) {
-            // Se não conseguir parsear, usar o texto original
-            errorMessage += `\n${errorText}`
+            // Se não conseguir parsear, usar mensagem genérica
+            if (response.status === 500) {
+              errorMessage = 'Erro temporário no serviço de IA. Por favor, tente novamente em alguns segundos.'
+            } else {
+              errorMessage += ` (Erro ${response.status})`
+            }
           }
+          
           throw new Error(errorMessage)
         }
 
@@ -162,14 +188,33 @@ export default function ProcessListPage() {
         if (validProducts.length === 0) {
           const errors = validationResult.validation?.errors || []
           const warnings = validationResult.validation?.warnings || []
-          let errorMessage = '⚠️ Nenhum produto válido encontrado na lista.\n\n'
+          const suggestions = validationResult.validation?.suggestions || []
+          
+          // Verificar se é erro temporário da IA
+          const isTemporaryError = errors.some(err => 
+            err.includes('temporário') || 
+            err.includes('temporariamente') || 
+            err.includes('tente novamente')
+          )
+          
+          let errorMessage = isTemporaryError 
+            ? '⚠️ Erro temporário ao processar lista\n\n'
+            : '⚠️ Nenhum produto válido encontrado na lista.\n\n'
+          
           if (errors.length > 0) {
-            errorMessage += `Erros: ${errors.slice(0, 3).join(', ')}\n\n`
+            errorMessage += `Erros:\n${errors.slice(0, 3).map(err => `• ${err}`).join('\n')}\n\n`
           }
           if (warnings.length > 0) {
-            errorMessage += `Avisos: ${warnings.slice(0, 3).join(', ')}\n\n`
+            errorMessage += `Avisos:\n${warnings.slice(0, 2).map(warn => `• ${warn}`).join('\n')}\n\n`
           }
-          errorMessage += 'Verifique se a lista contém produtos Apple válidos e tente novamente.'
+          if (suggestions.length > 0) {
+            errorMessage += `${suggestions.slice(0, 2).map(sugg => `💡 ${sugg}`).join('\n')}\n\n`
+          }
+          
+          if (!isTemporaryError) {
+            errorMessage += 'Verifique se a lista contém produtos Apple válidos e tente novamente.'
+          }
+          
           alert(errorMessage)
           setIsProcessing(false)
           return

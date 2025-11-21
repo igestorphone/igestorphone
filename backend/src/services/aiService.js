@@ -42,7 +42,34 @@ class AIService {
       max_output_tokens: maxOutputTokens || this.maxTokens
     };
 
-    const response = await openai.responses.create(requestPayload);
+    let response;
+    try {
+      response = await openai.responses.create(requestPayload);
+    } catch (apiError) {
+      // Capturar erros da API da OpenAI e formatar mensagem mais amigável
+      console.error('❌ Erro na API da OpenAI:', apiError);
+      
+      let errorMessage = 'Erro temporário no serviço de IA';
+      
+      // Verificar tipo de erro
+      if (apiError.status === 500 || apiError.message?.includes('500')) {
+        errorMessage = 'Erro temporário no serviço de IA. Por favor, tente novamente em alguns segundos.';
+      } else if (apiError.status === 429 || apiError.message?.includes('rate limit') || apiError.message?.includes('quota')) {
+        errorMessage = 'Limite de uso da IA atingido temporariamente. Por favor, aguarde alguns minutos.';
+      } else if (apiError.message?.includes('timeout')) {
+        errorMessage = 'Tempo de processamento excedido. A lista pode estar muito grande.';
+      } else if (apiError.message) {
+        // Remover Request ID e outras informações técnicas
+        const cleanMessage = apiError.message.split('request ID')[0].trim();
+        if (cleanMessage && cleanMessage.length < 200) {
+          errorMessage = `Erro no serviço de IA: ${cleanMessage}`;
+        }
+      }
+      
+      const formattedError = new Error(errorMessage);
+      formattedError.originalError = apiError;
+      throw formattedError;
+    }
 
     let outputText = response.output_text ? response.output_text.trim() : '';
 
@@ -638,12 +665,32 @@ Responda APENAS em JSON válido:
       console.error('❌ Erro na validação de lista a partir de texto:', error);
       console.error('❌ Stack trace:', error.stack);
       
+      // Tratar erros da OpenAI de forma mais amigável
+      let errorMessage = 'Erro temporário ao processar lista com IA.';
+      let suggestion = 'Por favor, tente novamente em alguns segundos.';
+      
+      // Verificar se é erro da OpenAI
+      if (error.message && error.message.includes('500')) {
+        errorMessage = 'Erro temporário no serviço de IA.';
+        suggestion = 'O serviço está temporariamente indisponível. Por favor, tente novamente em alguns segundos.';
+      } else if (error.message && (error.message.includes('rate limit') || error.message.includes('quota'))) {
+        errorMessage = 'Limite de uso da IA atingido temporariamente.';
+        suggestion = 'Por favor, aguarde alguns minutos e tente novamente.';
+      } else if (error.message && error.message.includes('timeout')) {
+        errorMessage = 'Tempo de processamento excedido.';
+        suggestion = 'A lista pode estar muito grande. Tente dividir em partes menores ou tente novamente.';
+      } else if (error.message && error.message.includes('Request ID')) {
+        // Erro da OpenAI com Request ID - simplificar mensagem
+        errorMessage = 'Erro temporário no serviço de IA.';
+        suggestion = 'Por favor, tente novamente. Se o problema persistir, entre em contato com o suporte.';
+      }
+      
       // Retornar resposta válida mesmo em caso de erro
       return {
         valid: false,
-        errors: ['Erro ao processar lista com IA: ' + error.message],
+        errors: [errorMessage],
         warnings: ['Não foi possível processar a lista completamente'],
-        suggestions: ['Verifique se a lista contém produtos Apple válidos e tente novamente'],
+        suggestions: [suggestion],
         validated_products: []
       };
     }
