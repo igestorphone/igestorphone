@@ -377,7 +377,7 @@ class AIService {
 IMPORTANTE: Se um produto tem SWAP, VITRINE, SEMINOVO, USADO, REcondicionado na descrição, IGNORE completamente - NÃO o inclua no JSON de resposta.
 
 Lista:
-${rawListText}
+${cleanedList}
 
 Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 {
