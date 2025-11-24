@@ -113,8 +113,8 @@ const formatTime = (date: Date) =>
 export default function SearchCheapestIPhonePage() {
   const queryClient = useQueryClient()
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [searchQuery, setSearchQuery] = useState('iPhone')
+  const [debouncedSearch, setDebouncedSearch] = useState('iPhone')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedConditionType, setSelectedConditionType] = useState('')
@@ -125,7 +125,8 @@ export default function SearchCheapestIPhonePage() {
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), 400)
+    const trimmed = searchQuery.trim()
+    const timer = setTimeout(() => setDebouncedSearch(trimmed || 'iPhone'), 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
