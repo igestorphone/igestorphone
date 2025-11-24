@@ -74,17 +74,20 @@ router.get('/', [
       const trimmedSearch = search.trim();
       const searchLower = trimmedSearch.toLowerCase();
       
-      // Se busca tem mais de uma palavra, manter busca específica (ex: "iphone 16", "iphone 15 pro")
+      // Se busca tem mais de uma palavra, fazer busca específica (ex: "iphone 16", "iphone 15 pro")
       // Se busca é genérica (uma palavra só), fazer busca ampla
-      const hasMultipleWords = searchLower.split(/\s+/).length > 1;
+      const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
+      const hasMultipleWords = searchWords.length > 1;
       
       if (hasMultipleWords) {
         // Busca específica: usar o termo completo como está (ex: "iphone 16", "iphone 15 pro max")
+        // Buscar no model para encontrar correspondência exata ou parcial do modelo
         whereClause += ` AND (
           LOWER(p.name) LIKE $${paramCount} 
           OR LOWER(p.model) LIKE $${paramCount}
           OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
         )`;
+        // Usar busca que contenha o termo (ex: "iphone 16" encontra "iPhone 16", "iPhone 16 Pro", etc)
         values.push(`%${searchLower}%`);
         paramCount++;
       } else {
