@@ -284,6 +284,7 @@ class AIService {
       let cleanedList = rawListText;
       
       // Remover seções de seminovos que podem estar no final ou meio da lista
+      // NOTA: Não remover linhas com "(DESATIVADO)" se estiverem em seção de LACRADOS
       const seminovoMarkers = [
         /💎\s*[Ss]emi\s*[Nn]ovo.*💎/gi,
         /.*[Ss]emi\s*[Nn]ovo\s*americano.*/gi,
@@ -294,10 +295,7 @@ class AIService {
         /.*[Ss]emi\s*[Nn]ovo.*/gi,
         /.*30\s*[Dd]ias\s*de\s*[Gg]arantia.*/gi,
         /.*80%\s*[—-]>\s*100%.*/gi,
-        /.*SEM\s*SELO.*/gi,
-        /.*\(DESATIVADO\).*/gi,
-        /.*desativado.*/gi,
-        /.*3\s*meses\s*garantia\s*pela\s*loja.*/gi
+        /.*SEM\s*SELO.*/gi
       ];
       
       // Remover linhas que são apenas marcadores de seção (sem produtos)
@@ -378,7 +376,8 @@ class AIService {
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
-5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria, (DESATIVADO), "desativado", "3 meses garantia pela loja" (sem garantia Apple) - NÃO EXTRAIA ESTES PRODUTOS
+5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
+   - IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
 7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e todas variações. IMPORTANTE: Se encontrar "iPhone 13", "iPhone 15", "iPhone 14" na lista, EXTRAIA esses produtos normalmente - eles são válidos e devem ser processados.
 8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
@@ -407,8 +406,8 @@ class AIService {
    - Se cor vem DEPOIS do modelo com hífen longo (—), cada cor = produto separado
 14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
 15. IGNORAR PRODUTOS:
-   - (DESATIVADO) → IGNORE completamente
-   - Produtos com garantia reduzida mencionando "3 meses garantia pela loja" em vez de garantia Apple → IGNORE se não for novo
+   - Se produto está em seção de LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" - pode ser apenas nota da lista
+   - Produtos com "3 meses garantia pela loja" APENAS se NÃO estiverem em seção LACRADOS/NOVOS
 
 IMPORTANTE: 
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
@@ -461,17 +460,10 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
             return false;
           }
           
-          // Verificar se produto está desativado
-          const productName = (product.name || '').toUpperCase();
-          const productModel = (product.model || '').toUpperCase();
-          const productNotes = (product.notes || '').toUpperCase();
-          if (productName.includes('DESATIVADO') || productModel.includes('DESATIVADO') || productNotes.includes('DESATIVADO')) {
-            return false;
-          }
-          
           // Verificar condition_detail - deve ser LACRADO, NOVO, CPO ou vazio
+          // NOTA: Não ignorar produtos com "(DESATIVADO)" se forem LACRADOS/NOVOS - pode ser apenas nota da lista
           const detail = (product.condition_detail || '').toUpperCase();
-          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO', 'DESATIVADO'];
+          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
           if (detail && condicoesInvalidas.some(invalida => detail.includes(invalida))) {
             return false;
           }
