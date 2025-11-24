@@ -444,7 +444,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) LACRADO = NOVO sempre. 5) Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações (Pro, Max, Air). 6) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 7) Se preço está ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço. 8) CPO → condition_detail: "CPO" E variant: "CPO". 9) ANATEL/🇧🇷 → variant: "ANATEL". 10) eSIM/CHIP VIRTUAL → variant: "E-SIM". 11) CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 12) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 13) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural). 14) Armazenamento: normalize (256=256GB, 1T=1TB). 15) Preços: remova pontos, vírgulas, espaços - normalize para número puro. 16) Ignore produtos não-Apple e produtos usados/seminovos.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, (DESATIVADO), produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "(DESATIVADO)", "desativado", "3 meses garantia pela loja" → IGNORAR. 4) LACRADO = NOVO sempre. 5) Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações (Pro, Max, Air). 6) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 7) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 8) CPO → condition_detail: "CPO" E variant: "CPO". 9) ANATEL/🇧🇷 → variant: "ANATEL". 10) eSIM/CHIP VIRTUAL → variant: "E-SIM". 11) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 12) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 13) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 14) Armazenamento: normalize (256=256GB, 1T=1TB). 15) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 16) Ignore produtos não-Apple, produtos usados/seminovos e produtos (DESATIVADO).',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída
@@ -453,7 +453,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
       const parsedResponse = this.parseAIResponse(outputText);
       
       // FILTRAR APENAS PRODUTOS NOVOS (NOVO, LACRADO, CPO)
-      // Ignorar produtos com SWAP, VITRINE, SEMINOVO, USADO, REcondicionado
+      // Ignorar produtos com SWAP, VITRINE, SEMINOVO, USADO, REcondicionado, DESATIVADO
       if (parsedResponse.validated_products && parsedResponse.validated_products.length > 0) {
         const produtosNovos = parsedResponse.validated_products.filter(product => {
           // Verificar condition - deve ser "Novo"
@@ -461,9 +461,17 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
             return false;
           }
           
+          // Verificar se produto está desativado
+          const productName = (product.name || '').toUpperCase();
+          const productModel = (product.model || '').toUpperCase();
+          const productNotes = (product.notes || '').toUpperCase();
+          if (productName.includes('DESATIVADO') || productModel.includes('DESATIVADO') || productNotes.includes('DESATIVADO')) {
+            return false;
+          }
+          
           // Verificar condition_detail - deve ser LACRADO, NOVO, CPO ou vazio
           const detail = (product.condition_detail || '').toUpperCase();
-          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
+          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO', 'DESATIVADO'];
           if (detail && condicoesInvalidas.some(invalida => detail.includes(invalida))) {
             return false;
           }
