@@ -371,6 +371,7 @@ class AIService {
 
 1. PRODUTOS: APENAS iPhone (12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
+   - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
@@ -380,6 +381,7 @@ class AIService {
 9. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
 10. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
 11. CONDIÇÃO PADRONIZADA:
+   - iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS → condition: "Novo", condition_detail: "LACRADO" ou "NOVO"
    - LACRADO, LACRADOS, "IPHONE LACRADO", "1 ANO DE GARANTIA APPLE" → condition: "Novo", condition_detail: "LACRADO"
    - NOVO → condition: "Novo", condition_detail: "NOVO"
    - CPO → condition: "Novo", condition_detail: "CPO"
@@ -462,6 +464,26 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           }
           
           return true;
+        }).map(product => {
+          // GARANTIR que iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS
+          const productName = (product.name || '').toLowerCase();
+          const productModel = (product.model || '').toLowerCase();
+          
+          const isAlwaysNewProduct = 
+            productName.includes('ipad') || productModel.includes('ipad') ||
+            productName.includes('macbook') || productModel.includes('macbook') ||
+            productName.includes('airpod') || productModel.includes('airpod') ||
+            productName.includes('apple watch') || productName.includes('watch') || productModel.includes('watch');
+          
+          if (isAlwaysNewProduct) {
+            // Forçar condition: "Novo" para esses produtos
+            product.condition = 'Novo';
+            if (!product.condition_detail || product.condition_detail === '') {
+              product.condition_detail = 'LACRADO';
+            }
+          }
+          
+          return product;
         });
         
         // Atualizar a resposta com apenas produtos novos
