@@ -74,48 +74,63 @@ router.get('/', [
       const trimmedSearch = search.trim();
       const searchLower = trimmedSearch.toLowerCase();
       
-      // Normalizar busca: identificar tipo de produto baseado em termos parciais
-      let searchPattern = '';
+      // Se busca tem mais de uma palavra, manter busca específica (ex: "iphone 16", "iphone 15 pro")
+      // Se busca é genérica (uma palavra só), fazer busca ampla
+      const hasMultipleWords = searchLower.split(/\s+/).length > 1;
       
-      // Mapear termos de busca parciais para produtos Apple (aceita qualquer entrada)
-      if (searchLower === 'i' || searchLower === 'ip' || searchLower.startsWith('iphone') || searchLower.startsWith('ipho')) {
-        // Buscar iPhone (aceita: i, ip, iph, ipho, iphon, iphone, iPhone, etc)
-        searchPattern = '%iphone%';
-      } else if (searchLower.startsWith('mac')) {
-        // Buscar MacBook (aceita: mac, macb, macbo, macboo, macbook, MacBook, etc)
-        searchPattern = '%macbook%';
-      } else if (searchLower === 'ipad') {
-        // Buscar iPad (aceita: ipad, iPad, etc)
-        searchPattern = '%ipad%';
-      } else if (searchLower.startsWith('airpod')) {
-        // Buscar AirPods (aceita: airpod, airpods, AirPods, etc)
-        searchPattern = '%airpod%';
-      } else if (searchLower.includes('watch')) {
-        // Buscar Apple Watch (aceita: watch, apple watch, etc)
-        searchPattern = '%watch%';
-      } else {
-        // Busca genérica: usar o termo como está (case-insensitive, parcial)
-        searchPattern = `%${searchLower}%`;
-      }
-      
-      // Aplicar busca em name e model (busca simples e direta)
-      whereClause += ` AND (
-        LOWER(p.name) LIKE $${paramCount} 
-        OR LOWER(p.model) LIKE $${paramCount}
-        OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
-      )`;
-      values.push(searchPattern);
-      paramCount++;
-      
-      // Se busca é apenas "i" ou "ip", buscar também iPad
-      if (searchLower === 'i' || searchLower === 'ip') {
-        whereClause += ` OR (
+      if (hasMultipleWords) {
+        // Busca específica: usar o termo completo como está (ex: "iphone 16", "iphone 15 pro max")
+        whereClause += ` AND (
           LOWER(p.name) LIKE $${paramCount} 
           OR LOWER(p.model) LIKE $${paramCount}
           OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
         )`;
-        values.push('%ipad%');
+        values.push(`%${searchLower}%`);
         paramCount++;
+      } else {
+        // Busca genérica de uma palavra: identificar tipo de produto
+        let searchPattern = '';
+        
+        // Mapear termos de busca parciais para produtos Apple
+        if (searchLower === 'i' || searchLower === 'ip' || searchLower.startsWith('iphone') || searchLower.startsWith('ipho')) {
+          // Buscar iPhone (aceita: i, ip, iph, ipho, iphon, iphone, iPhone, etc)
+          searchPattern = '%iphone%';
+        } else if (searchLower.startsWith('mac')) {
+          // Buscar MacBook (aceita: mac, macb, macbo, macboo, macbook, MacBook, etc)
+          searchPattern = '%macbook%';
+        } else if (searchLower === 'ipad') {
+          // Buscar iPad (aceita: ipad, iPad, etc)
+          searchPattern = '%ipad%';
+        } else if (searchLower.startsWith('airpod')) {
+          // Buscar AirPods (aceita: airpod, airpods, AirPods, etc)
+          searchPattern = '%airpod%';
+        } else if (searchLower.includes('watch')) {
+          // Buscar Apple Watch (aceita: watch, apple watch, etc)
+          searchPattern = '%watch%';
+        } else {
+          // Busca genérica: usar o termo como está (case-insensitive, parcial)
+          searchPattern = `%${searchLower}%`;
+        }
+        
+        // Aplicar busca em name e model
+        whereClause += ` AND (
+          LOWER(p.name) LIKE $${paramCount} 
+          OR LOWER(p.model) LIKE $${paramCount}
+          OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
+        )`;
+        values.push(searchPattern);
+        paramCount++;
+        
+        // Se busca é apenas "i" ou "ip", buscar também iPad
+        if (searchLower === 'i' || searchLower === 'ip') {
+          whereClause += ` OR (
+            LOWER(p.name) LIKE $${paramCount} 
+            OR LOWER(p.model) LIKE $${paramCount}
+            OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
+          )`;
+          values.push('%ipad%');
+          paramCount++;
+        }
       }
     }
 
