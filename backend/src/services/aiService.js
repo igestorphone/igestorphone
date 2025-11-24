@@ -370,13 +370,14 @@ class AIService {
       const prompt = `Extraia APENAS produtos Apple NOVOS desta lista. REGRAS CRÍTICAS:
 
 1. PRODUTOS: APENAS iPhone (12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
+   - CRÍTICO: Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e variações. NÃO IGNORE iPhone 12, 13, 14, 15 só porque são mais antigos.
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
-7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
+7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e todas variações. IMPORTANTE: Se encontrar "iPhone 13", "iPhone 15", "iPhone 14" na lista, EXTRAIA esses produtos normalmente - eles são válidos e devem ser processados.
 8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
 9. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
 10. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
