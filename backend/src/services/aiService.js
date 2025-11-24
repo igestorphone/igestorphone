@@ -405,6 +405,7 @@ IMPORTANTE:
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
 - Se houver seção "SWAP", "Vitrine", "Seminovo" → IGNORE apenas produtos DENTRO dessa seção
 - "americano" como variante de produto NOVO → PROCESSAR. "seminovo americano" ou "americano" em seção SWAP/VITRINE → IGNORAR
+- EXTRAIA TODOS os modelos iPhone encontrados: 12, 13, 14, 15, 16, 17 e variações. Não ignore modelos mais antigos (12, 13, 14, 15). Todos são válidos se forem NOVOS.
 
 Lista:
 ${cleanedList}
