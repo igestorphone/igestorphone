@@ -294,7 +294,10 @@ class AIService {
         /.*[Ss]emi\s*[Nn]ovo.*/gi,
         /.*30\s*[Dd]ias\s*de\s*[Gg]arantia.*/gi,
         /.*80%\s*[—-]>\s*100%.*/gi,
-        /.*SEM\s*SELO.*/gi
+        /.*SEM\s*SELO.*/gi,
+        /.*\(DESATIVADO\).*/gi,
+        /.*desativado.*/gi,
+        /.*3\s*meses\s*garantia\s*pela\s*loja.*/gi
       ];
       
       // Remover linhas que são apenas marcadores de seção (sem produtos)
@@ -375,7 +378,7 @@ class AIService {
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
-5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
+5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria, (DESATIVADO), "desativado", "3 meses garantia pela loja" (sem garantia Apple) - NÃO EXTRAIA ESTES PRODUTOS
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
 7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e todas variações. IMPORTANTE: Se encontrar "iPhone 13", "iPhone 15", "iPhone 14" na lista, EXTRAIA esses produtos normalmente - eles são válidos e devem ser processados.
 8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
@@ -398,8 +401,14 @@ class AIService {
    - Formato 1: 📲17 PRO MAX 1TB → depois 🚦AZUL 💲10600 → produto separado por cor
    - Formato 2: 🌐IPHONE 17 PROMAX 1T 💰11,000 💰 → depois cores → produto com preço único para todas cores
    - Formato 3: 📲17 PRO MAX 256G → depois 📲AZUL 💲8650 → produto com cor e preço na linha seguinte
+   - Formato 4: IPHONE 17 PRO MAX 1TB LL/A → depois  LARANJA — R$ 10.850,00 → produto com modelo completo e cor separada por hífen longo (—)
+   - Formato 5: IPHONE 13 128GB LZ/A → depois  BRANCO — R$ 2.770,00 → modelo com código LZ/A, cor separada por hífen
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
+   - Se cor vem DEPOIS do modelo com hífen longo (—), cada cor = produto separado
 14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
+15. IGNORAR PRODUTOS:
+   - (DESATIVADO) → IGNORE completamente
+   - Produtos com garantia reduzida mencionando "3 meses garantia pela loja" em vez de garantia Apple → IGNORE se não for novo
 
 IMPORTANTE: 
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
