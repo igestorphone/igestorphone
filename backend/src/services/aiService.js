@@ -291,6 +291,7 @@ class AIService {
         /.*[Ss]wap.*/gi,
         /.*[Vv]itrine.*/gi,
         /.*[Ss]eminovo.*/gi,
+        /.*[Ss]emi\s*[Nn]ovo.*/gi,
         /.*30\s*[Dd]ias\s*de\s*[Gg]arantia.*/gi,
         /.*80%\s*[—-]>\s*100%.*/gi,
         /.*SEM\s*SELO.*/gi
@@ -368,32 +369,39 @@ class AIService {
       // Prompt simplificado mas completo para listas de produtos Apple NOVOS
       const prompt = `Extraia APENAS produtos Apple NOVOS desta lista. REGRAS CRÍTICAS:
 
-1. PRODUTOS: APENAS iPhone, iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
+1. PRODUTOS: APENAS iPhone (12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
-3. IGNORE COMPLETAMENTE: SWAP, VITRINE, SEMINOVO, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
-4. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
-5. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito
-6. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
-7. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
-8. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
-9. CONDIÇÃO PADRONIZADA:
-   - LACRADO, LACRADOS, "IPHONE LACRADO" → condition: "Novo", condition_detail: "LACRADO"
+3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
+4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
+5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
+6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
+7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
+8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
+9. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
+10. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
+11. CONDIÇÃO PADRONIZADA:
+   - LACRADO, LACRADOS, "IPHONE LACRADO", "1 ANO DE GARANTIA APPLE" → condition: "Novo", condition_detail: "LACRADO"
+   - NOVO → condition: "Novo", condition_detail: "NOVO"
    - CPO → condition: "Novo", condition_detail: "CPO"
-   - Se não encontrar condição clara, mas está em seção de LACRADOS, assuma condition_detail: "LACRADO"
-10. VARIANTE (CRÍTICO):
+   - Se não encontrar condição clara, mas está em seção de LACRADOS/NOVOS, assuma condition_detail: "LACRADO"
+12. VARIANTE (CRÍTICO):
    - ANATEL, 🇧🇷 → variant: "ANATEL"
    - CPO → variant: "CPO" (além de condition_detail: "CPO")
    - eSIM/ESIM/E-SIM/CHIP VIRTUAL → variant: "E-SIM"
    - CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS, 🇮🇳=INDIANO)
    - 🇺🇸/🇯🇵/🇮🇳/🇨🇳/JP/HN/JA → variant: "AMERICANO"/"JAPONÊS"/"INDIANO"/"CHINÊS"
-11. FORMATOS DE LISTA:
+   - IMPORTANTE: "americano" como variante de produto NOVO → OK. "americano" em contexto de SWAP/VITRINE/SEMINOVO → IGNORAR
+13. FORMATOS DE LISTA:
    - Formato 1: 📲17 PRO MAX 1TB → depois 🚦AZUL 💲10600 → produto separado por cor
    - Formato 2: 🌐IPHONE 17 PROMAX 1T 💰11,000 💰 → depois cores → produto com preço único para todas cores
    - Formato 3: 📲17 PRO MAX 256G → depois 📲AZUL 💲8650 → produto com cor e preço na linha seguinte
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
-12. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max")
+14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
 
-IMPORTANTE: Se um produto tem SWAP, VITRINE, SEMINOVO, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente. Se houver seção "SWAP", "Vitrine" → IGNORE apenas produtos DENTRO dessa seção.
+IMPORTANTE: 
+- Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
+- Se houver seção "SWAP", "Vitrine", "Seminovo" → IGNORE apenas produtos DENTRO dessa seção
+- "americano" como variante de produto NOVO → PROCESSAR. "seminovo americano" ou "americano" em seção SWAP/VITRINE → IGNORAR
 
 Lista:
 ${cleanedList}
@@ -423,7 +431,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO) - IGNORE completamente SWAP, VITRINE, SEMINOVO, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) LACRADO = NOVO sempre. 3) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 4) Se preço está ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço. 5) CPO → condition_detail: "CPO" E variant: "CPO". 6) ANATEL/🇧🇷 → variant: "ANATEL". 7) eSIM/CHIP VIRTUAL → variant: "E-SIM". 8) CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 9) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural). 10) Armazenamento: normalize (256=256GB, 1T=1TB). 11) Preços: remova pontos, vírgulas, espaços - normalize para número puro. 12) Ignore produtos não-Apple e produtos usados/seminovos.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) LACRADO = NOVO sempre. 5) Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações (Pro, Max, Air). 6) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 7) Se preço está ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço. 8) CPO → condition_detail: "CPO" E variant: "CPO". 9) ANATEL/🇧🇷 → variant: "ANATEL". 10) eSIM/CHIP VIRTUAL → variant: "E-SIM". 11) CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 12) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 13) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural). 14) Armazenamento: normalize (256=256GB, 1T=1TB). 15) Preços: remova pontos, vírgulas, espaços - normalize para número puro. 16) Ignore produtos não-Apple e produtos usados/seminovos.',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída
@@ -442,7 +450,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           
           // Verificar condition_detail - deve ser LACRADO, NOVO, CPO ou vazio
           const detail = (product.condition_detail || '').toUpperCase();
-          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'USADO', 'RECONDICIONADO'];
+          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
           if (detail && condicoesInvalidas.some(invalida => detail.includes(invalida))) {
             return false;
           }
