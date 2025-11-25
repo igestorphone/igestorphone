@@ -625,9 +625,11 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
         }, tokensUsed, cost);
       } catch (logError) {
         // Ignorar erro se tabela não existir (não é crítico)
-        if (!logError.message?.includes('does not exist')) {
+        const errorMsg = logError?.message || logError?.toString() || '';
+        if (!errorMsg.includes('does not exist') && !errorMsg.includes('relation') && !errorMsg.includes('42P01')) {
           console.error('Erro ao registrar uso da IA:', logError);
         }
+        // Não bloquear o fluxo principal se o log falhar
       }
 
       // Garantir que a resposta tenha a estrutura esperada
