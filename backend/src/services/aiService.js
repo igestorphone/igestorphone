@@ -609,13 +609,20 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
       // Calcular tokens e custo
       const cost = aiDashboardService.calculateCost(tokensUsed);
       
-      // Log da validação com tracking real
+      // Log da validação com tracking real (ignorar erro se tabela não existir)
       const lineCount = rawListText.split('\n').length;
-      await aiDashboardService.logAIUsage('validate_product_list', {
-        input_count: lineCount,
-        validation_result: parsedResponse,
-        filtered_to_novos_only: true
-      }, tokensUsed, cost);
+      try {
+        await aiDashboardService.logAIUsage('validate_product_list', {
+          input_count: lineCount,
+          validation_result: parsedResponse,
+          filtered_to_novos_only: true
+        }, tokensUsed, cost);
+      } catch (logError) {
+        // Ignorar erro se tabela não existir (não é crítico)
+        if (!logError.message?.includes('does not exist')) {
+          console.error('Erro ao registrar uso da IA:', logError);
+        }
+      }
 
       // Garantir que a resposta tenha a estrutura esperada
       if (!parsedResponse || typeof parsedResponse !== 'object') {
