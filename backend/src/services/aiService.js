@@ -347,13 +347,23 @@ class AIService {
         
         // Verificar outros marcadores de seminovos (mas não se estiver em seção de LACRADOS)
         const beforeThisLine = lines.slice(0, index).join('\n');
+        const afterThisLine = lines.slice(index + 1).join('\n');
         const isInLacradoSection = /LACRADO.*GARANTIA.*APPLE/i.test(beforeThisLine) || 
                                    /LACRADO.*COM.*GARANTIA/i.test(beforeThisLine);
+        
+        // Verificar se há seção de LACRADOS DEPOIS desta linha (importante!)
+        const hasLacradoSectionAfter = /LACRADO.*GARANTIA.*APPLE|LACRADO.*COM.*GARANTIA/i.test(afterThisLine);
         
         if (seminovoMarkers.some(marker => marker.test(trimmedLine))) {
           // Se estamos em seção de LACRADOS, não ignorar ainda
           if (isInLacradoSection && !isVitrineMarker) {
             // Continuar processando produtos LACRADOS
+            return true;
+          }
+          
+          // Se há seção de LACRADOS DEPOIS, não cortar - precisa processar os LACRADOS
+          if (hasLacradoSectionAfter) {
+            console.log('✅ Seção LACRADOS detectada DEPOIS - mantendo linha para processar LACRADOS:', trimmedLine.substring(0, 50));
             return true;
           }
           
@@ -369,8 +379,8 @@ class AIService {
           // Verificar se há produtos Apple ANTES desta linha
           const hasAppleProductsBefore = /iphone|ipad|macbook|airpods|apple watch/i.test(beforeThisLine);
           
-          // Se tem produtos antes e não está em seção LACRADOS, esta é uma nova seção de seminovos
-          if (hasAppleProductsBefore && !isInLacradoSection && !hasLacradoProductsBefore) {
+          // Se tem produtos antes e não está em seção LACRADOS e não tem LACRADOS depois, esta é uma nova seção de seminovos
+          if (hasAppleProductsBefore && !isInLacradoSection && !hasLacradoProductsBefore && !hasLacradoSectionAfter) {
             console.log('🚫 Seção de seminovos detectada na linha', index + 1, '- cortando');
             foundSeminovoSection = true;
             return false;
@@ -441,8 +451,8 @@ class AIService {
       }
       
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
-      const MAX_LIST_SIZE = 20000; // caracteres (aumentado para listas maiores)
-      const MAX_LINES = 300; // linhas (aumentado para listas maiores)
+      const MAX_LIST_SIZE = 30000; // caracteres (aumentado para listas maiores)
+      const MAX_LINES = 700; // linhas (aumentado para listas maiores que podem ter seção LACRADOS depois)
       
       const listSize = cleanedList.length;
       const listLines = cleanedList.split('\n').length;
