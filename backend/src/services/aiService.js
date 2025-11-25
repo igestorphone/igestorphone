@@ -314,7 +314,8 @@ class AIService {
         // Verificar se a linha é um marcador de seção de seminovos/vitrine
         // IMPORTANTE: Ignorar avisos sobre SWAP antes da seção de LACRADOS
         const isAvisoSwap = /.*SWAP.*TÁ.*BAIXO.*LACRADO.*/gi.test(trimmedLine) ||
-                           /.*IPHONE\s*SWAP.*TÁ.*EM\s*BAIXO.*/gi.test(trimmedLine);
+                           /.*IPHONE\s*SWAP.*TÁ.*EM\s*BAIXO.*/gi.test(trimmedLine) ||
+                           /.*SWAP.*EM.*BAIXO.*LACRADO.*/gi.test(trimmedLine);
         
         // Se for apenas um aviso sobre SWAP estar abaixo, não ignorar
         if (isAvisoSwap) {
@@ -322,10 +323,12 @@ class AIService {
         }
         
         // Verificar se a linha é um marcador específico de seção VITRINE
-        const isVitrineMarker = /.*IPHONE\s*VITRINE.*/gi.test(trimmedLine);
+        const isVitrineMarker = /.*IPHONE\s*VITRINE.*/gi.test(trimmedLine) ||
+                               /.*VITRINE.*SOMENTE.*APARELHO.*/gi.test(trimmedLine);
         
         if (isVitrineMarker) {
           // Esta é claramente uma seção de VITRINE - marcar e ignorar tudo depois
+          console.log('🚫 Seção VITRINE encontrada na linha', index + 1, '- ignorando tudo depois');
           foundSeminovoSection = true;
           return false;
         }
