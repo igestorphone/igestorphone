@@ -295,7 +295,9 @@ class AIService {
         /.*[Ss]emi\s*[Nn]ovo.*/gi,
         /.*30\s*[Dd]ias\s*de\s*[Gg]arantia.*/gi,
         /.*80%\s*[—-]>\s*100%.*/gi,
-        /.*SEM\s*SELO.*/gi
+        /.*SEM\s*SELO.*/gi,
+        /.*garantia\s*6\s*meses\s*pela\s*loja.*/gi,
+        /.*garantia.*meses.*pela.*loja.*/gi
       ];
       
       // Remover linhas que são apenas marcadores de seção (sem produtos)
@@ -309,7 +311,19 @@ class AIService {
           return false;
         }
         
-        // Verificar se a linha é um marcador de seção de seminovos
+        // Verificar se a linha é um marcador de seção de seminovos/vitrine
+        // IMPORTANTE: Verificar marcadores específicos de VITRINE/SWAP primeiro
+        const isVitrineMarker = /.*IPHONE\s*VITRINE.*/gi.test(trimmedLine) || 
+                                /.*SWAP.*/gi.test(trimmedLine) ||
+                                /.*IPHONE\s*SWAP.*/gi.test(trimmedLine);
+        
+        if (isVitrineMarker) {
+          // Esta é claramente uma seção de VITRINE/SWAP - marcar e ignorar tudo depois
+          foundSeminovoSection = true;
+          return false;
+        }
+        
+        // Verificar outros marcadores de seminovos
         if (seminovoMarkers.some(marker => marker.test(trimmedLine))) {
           // Verificar se há produtos Apple ANTES desta linha
           const beforeThisLine = lines.slice(0, index).join('\n');
