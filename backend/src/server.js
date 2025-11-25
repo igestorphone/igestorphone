@@ -136,7 +136,12 @@ app.get('/api/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(join(__dirname, '../../dist')));
   
-  app.get('*', (req, res) => {
+  // Apenas servir index.html para rotas que não são da API
+  app.get('*', (req, res, next) => {
+    // Se for uma rota da API, não servir o index.html
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
     res.sendFile(join(__dirname, '../../dist/index.html'));
   });
 }
