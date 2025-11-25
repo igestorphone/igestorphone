@@ -323,11 +323,23 @@ class AIService {
         }
         
         // Verificar se a linha é um marcador específico de seção VITRINE
+        // IMPORTANTE: Só ignorar se já tivermos produtos LACRADOS processados antes
         const isVitrineMarker = /.*IPHONE\s*VITRINE.*/gi.test(trimmedLine) ||
                                /.*VITRINE.*SOMENTE.*APARELHO.*/gi.test(trimmedLine);
         
         if (isVitrineMarker) {
-          // Esta é claramente uma seção de VITRINE - marcar e ignorar tudo depois
+          // Verificar se há produtos LACRADOS antes desta linha
+          const beforeThisLine = lines.slice(0, index).join('\n');
+          const hasLacradoProducts = /⚫️.*LACRADO|⚫️.*CPO|LACRADO.*GARANTIA|LACRADO.*UM.*ANO/i.test(beforeThisLine);
+          const hasLacradoSection = /LACRADO.*GARANTIA.*APPLE|LACRADO.*COM.*GARANTIA|LACRADO.*UM.*ANO/i.test(beforeThisLine);
+          
+          // Se não tem produtos LACRADOS antes, não é seção VITRINE válida ainda
+          if (!hasLacradoProducts && !hasLacradoSection) {
+            console.log('⚠️ Marcador VITRINE encontrado mas sem produtos LACRADOS antes - mantendo');
+            return true;
+          }
+          
+          // Esta é claramente uma seção de VITRINE após produtos LACRADOS - marcar e ignorar tudo depois
           console.log('🚫 Seção VITRINE encontrada na linha', index + 1, '- ignorando tudo depois');
           foundSeminovoSection = true;
           return false;
