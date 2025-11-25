@@ -357,11 +357,21 @@ class AIService {
             return true;
           }
           
+          // Verificar se há produtos LACRADOS antes desta linha
+          const hasLacradoProductsBefore = /⚫️.*LACRADO|⚫️.*CPO|LACRADO.*GARANTIA|LACRADO.*UM.*ANO|LACRADO.*COM.*GARANTIA/i.test(beforeThisLine);
+          
+          // Se tem produtos LACRADOS antes, não cortar ainda
+          if (hasLacradoProductsBefore) {
+            console.log('✅ Produtos LACRADOS detectados antes - mantendo linha:', trimmedLine.substring(0, 50));
+            return true;
+          }
+          
           // Verificar se há produtos Apple ANTES desta linha
           const hasAppleProductsBefore = /iphone|ipad|macbook|airpods|apple watch/i.test(beforeThisLine);
           
           // Se tem produtos antes e não está em seção LACRADOS, esta é uma nova seção de seminovos
-          if (hasAppleProductsBefore && !isInLacradoSection) {
+          if (hasAppleProductsBefore && !isInLacradoSection && !hasLacradoProductsBefore) {
+            console.log('🚫 Seção de seminovos detectada na linha', index + 1, '- cortando');
             foundSeminovoSection = true;
             return false;
           }
@@ -406,8 +416,10 @@ class AIService {
         
         // Se removemos mais de 80% do conteúdo, algo está errado - usar lista original
         const reductionPercent = ((rawListText.length - cleanedList.length) / rawListText.length) * 100;
+        console.log('📊 Percentual de redução:', reductionPercent.toFixed(2), '%');
+        
         if (reductionPercent > 80) {
-          console.error('❌ ERRO CRÍTICO: Mais de 80% da lista foi removida!');
+          console.error('❌ ERRO CRÍTICO: Mais de 80% da lista foi removida! (', reductionPercent.toFixed(2), '%)');
           console.error('❌ Revertendo para lista original (removendo apenas seção VITRINE explícita)...');
           // Se removemos demais, usar lista original e remover apenas seções explícitas de VITRINE
           cleanedList = rawListText;
@@ -415,9 +427,15 @@ class AIService {
           const vitrineIndex = cleanedList.search(/IPHONE\s*VITRINE.*/gi);
           if (vitrineIndex > 0) {
             cleanedList = cleanedList.substring(0, vitrineIndex);
-            console.log('📝 Removida seção VITRINE da lista original');
+            console.log('📝 Removida seção VITRINE da lista original. Nova posição:', vitrineIndex);
+          } else {
+            console.log('📝 Nenhuma seção VITRINE encontrada na lista original');
           }
           console.log('📝 Usando lista original após correção. Tamanho:', cleanedList.length, 'caracteres');
+          
+          // Recalcular hasAppleProducts após correção
+          const hasAppleProductsAfter = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(cleanedList);
+          console.log('📝 Produtos Apple após correção?', hasAppleProductsAfter);
         }
       }
       
