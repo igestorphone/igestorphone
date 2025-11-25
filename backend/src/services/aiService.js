@@ -330,14 +330,23 @@ class AIService {
           return false;
         }
         
-        // Verificar outros marcadores de seminovos
+        // Verificar outros marcadores de seminovos (mas não se estiver em seção de LACRADOS)
+        const beforeThisLine = lines.slice(0, index).join('\n');
+        const isInLacradoSection = /LACRADO.*GARANTIA.*APPLE/i.test(beforeThisLine) || 
+                                   /LACRADO.*COM.*GARANTIA/i.test(beforeThisLine);
+        
         if (seminovoMarkers.some(marker => marker.test(trimmedLine))) {
+          // Se estamos em seção de LACRADOS, não ignorar ainda
+          if (isInLacradoSection && !isVitrineMarker) {
+            // Continuar processando produtos LACRADOS
+            return true;
+          }
+          
           // Verificar se há produtos Apple ANTES desta linha
-          const beforeThisLine = lines.slice(0, index).join('\n');
           const hasAppleProductsBefore = /iphone|ipad|macbook|airpods|apple watch/i.test(beforeThisLine);
           
-          // Se tem produtos antes, esta é uma nova seção de seminovos - marcar e ignorar tudo depois
-          if (hasAppleProductsBefore) {
+          // Se tem produtos antes e não está em seção LACRADOS, esta é uma nova seção de seminovos
+          if (hasAppleProductsBefore && !isInLacradoSection) {
             foundSeminovoSection = true;
             return false;
           }
