@@ -366,6 +366,17 @@ class AIService {
       
       cleanedList = filteredLines.join('\n');
       
+      // Log para debug - ver o que está sendo enviado para a IA
+      console.log('📝 Lista após limpeza:', cleanedList.substring(0, 500));
+      console.log('📝 Total de linhas após filtro:', filteredLines.length);
+      console.log('📝 Seção de seminovos encontrada?', foundSeminovoSection);
+      
+      // Verificar se há produtos Apple na lista limpa
+      const hasAppleProducts = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(cleanedList);
+      if (!hasAppleProducts) {
+        console.warn('⚠️ AVISO: Nenhum produto Apple detectado na lista após limpeza!');
+      }
+      
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
       const MAX_LIST_SIZE = 20000; // caracteres (aumentado para listas maiores)
       const MAX_LINES = 300; // linhas (aumentado para listas maiores)
