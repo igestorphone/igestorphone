@@ -477,8 +477,8 @@ class AIService {
       // Prompt simplificado mas completo para listas de produtos Apple NOVOS
       const prompt = `Extraia APENAS produtos Apple NOVOS desta lista. REGRAS CRÍTICAS:
 
-1. PRODUTOS: APENAS iPhone (12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil
-   - CRÍTICO: Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e variações. NÃO IGNORE iPhone 12, 13, 14, 15 só porque são mais antigos.
+1. PRODUTOS: APENAS iPhone (11, 12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air/Plus), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil, AirTag
+   - CRÍTICO: Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e variações). NÃO IGNORE modelos mais antigos (11, 12, 13, 14, 15) só porque são mais antigos - todos são válidos se forem LACRADOS/NOVOS.
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
@@ -486,7 +486,7 @@ class AIService {
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
    - IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
-7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e todas variações. IMPORTANTE: Se encontrar "iPhone 13", "iPhone 15", "iPhone 14" na lista, EXTRAIA esses produtos normalmente - eles são válidos e devem ser processados.
+7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações). IMPORTANTE: Se encontrar "iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16", "iPhone 17" na lista LACRADOS/NOVOS, EXTRAIA esses produtos normalmente - todos são válidos se forem LACRADOS/NOVOS.
 8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰, 💸 - normalize para numérico puro (remova pontos, vírgulas, espaços). Preço pode vir na mesma linha que a cor ou em linha separada. Ex: "Laranja 8300,00" ou "* Laranja" depois "💸4250,00"
 9. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
 10. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
@@ -516,7 +516,7 @@ class AIService {
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
    - Se cor vem DEPOIS do modelo com hífen longo (—) ou asterisco (*), cada cor = produto separado
    - Preço pode vir com 💸, 💵, 💲, 💰, R$ em linha separada ou na mesma linha
-14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
+14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações) se forem LACRADOS/NOVOS.
 15. IGNORAR PRODUTOS:
    - Se produto está em seção de LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" - pode ser apenas nota da lista
    - Produtos com "garantia 6 meses pela loja", "3 meses garantia pela loja" APENAS se NÃO estiverem em seção LACRADOS/NOVOS
@@ -526,7 +526,7 @@ IMPORTANTE:
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
 - Se houver seção "SWAP", "Vitrine", "Seminovo" → IGNORE apenas produtos DENTRO dessa seção
 - "americano" como variante de produto NOVO → PROCESSAR. "seminovo americano" ou "americano" em seção SWAP/VITRINE → IGNORAR
-- EXTRAIA TODOS os modelos iPhone encontrados: 12, 13, 14, 15, 16, 17 e variações. Não ignore modelos mais antigos (12, 13, 14, 15). Todos são válidos se forem NOVOS.
+- EXTRAIA TODOS os modelos iPhone encontrados: 11, 12, 13, 14, 15, 16, 17 e variações. Não ignore modelos mais antigos (11, 12, 13, 14, 15). Todos são válidos se forem LACRADOS/NOVOS.
 
 Lista:
 ${cleanedList}
@@ -556,7 +556,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações (Pro, Max, Air). 7) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 8) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 9) CPO → condition_detail: "CPO" E variant: "CPO". 10) ANATEL/🇧🇷 → variant: "ANATEL". 11) eSIM/CHIP VIRTUAL → variant: "E-SIM". 12) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 13) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 14) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 15) Armazenamento: normalize (256=256GB, 1T=1TB). 16) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 17) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações Pro, Max, Air, Plus) se forem LACRADOS/NOVOS. NÃO IGNORE modelos mais antigos. 7) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 8) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 9) CPO → condition_detail: "CPO" E variant: "CPO". 10) ANATEL/🇧🇷 → variant: "ANATEL". 11) eSIM/CHIP VIRTUAL → variant: "E-SIM". 12) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 13) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 14) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 15) Armazenamento: normalize (256=256GB, 1T=1TB). 16) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 17) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída
