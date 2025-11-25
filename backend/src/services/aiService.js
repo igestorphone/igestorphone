@@ -416,12 +416,16 @@ class AIService {
    - Formato 3: 📲17 PRO MAX 256G → depois 📲AZUL 💲8650 → produto com cor e preço na linha seguinte
    - Formato 4: IPHONE 17 PRO MAX 1TB LL/A → depois  LARANJA — R$ 10.850,00 → produto com modelo completo e cor separada por hífen longo (—)
    - Formato 5: IPHONE 13 128GB LZ/A → depois  BRANCO — R$ 2.770,00 → modelo com código LZ/A, cor separada por hífen
+   - Formato 6: ⚫️  17 pro max 256G LACRADO → depois * Laranja 8300,00 → produto com emoji ⚫️, modelo e condição na mesma linha, cor com asterisco (*) e preço
+   - Formato 7: ⚫️  14 pro max 128G CPO → depois * preto → depois 💸4250,00 → produto com CPO, cor em linha separada, preço com 💸 em linha separada
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
-   - Se cor vem DEPOIS do modelo com hífen longo (—), cada cor = produto separado
+   - Se cor vem DEPOIS do modelo com hífen longo (—) ou asterisco (*), cada cor = produto separado
+   - Preço pode vir com 💸, 💵, 💲, 💰, R$ em linha separada ou na mesma linha
 14. EXATIDÃO: Se lista diz "iPhone 17 256GB" → model="iPhone 17 256GB" (NÃO "Pro Max"). Processe iPhone 12, 13, 14, 15, 16, 17 e todas variações
 15. IGNORAR PRODUTOS:
    - Se produto está em seção de LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" - pode ser apenas nota da lista
-   - Produtos com "3 meses garantia pela loja" APENAS se NÃO estiverem em seção LACRADOS/NOVOS
+   - Produtos com "garantia 6 meses pela loja", "3 meses garantia pela loja" APENAS se NÃO estiverem em seção LACRADOS/NOVOS
+   - Se encontrar marcador "IPHONE VITRINE", "IPHONE SWAP" → IGNORE completamente tudo DEPOIS desse marcador
 
 IMPORTANTE: 
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
