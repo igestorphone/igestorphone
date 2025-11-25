@@ -376,8 +376,21 @@ class AIService {
       
       // Verificar se há produtos Apple na lista limpa
       const hasAppleProducts = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(cleanedList);
+      const hasLacradoProducts = /lacrado|cpo|⚫️.*lacrado|⚫️.*cpo/i.test(cleanedList);
+      
+      console.log('📝 Produtos Apple detectados?', hasAppleProducts);
+      console.log('📝 Produtos LACRADOS/CPO detectados?', hasLacradoProducts);
+      
       if (!hasAppleProducts) {
         console.warn('⚠️ AVISO: Nenhum produto Apple detectado na lista após limpeza!');
+        console.warn('⚠️ Primeiras linhas da lista limpa:', filteredLines.slice(0, 10).join('\n'));
+      }
+      
+      // Se a lista ficou muito pequena após limpeza, pode ter removido demais
+      if (cleanedList.length < 100 && rawListText.length > 500) {
+        console.warn('⚠️ AVISO: Lista ficou muito pequena após limpeza! Pode ter removido produtos válidos.');
+        console.warn('⚠️ Lista original tinha', rawListText.length, 'caracteres');
+        console.warn('⚠️ Lista limpa tem apenas', cleanedList.length, 'caracteres');
       }
       
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
