@@ -401,7 +401,7 @@ class AIService {
    - IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
 7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone 12, 13, 14, 15, 16, 17 e todas variações. IMPORTANTE: Se encontrar "iPhone 13", "iPhone 15", "iPhone 14" na lista, EXTRAIA esses produtos normalmente - eles são válidos e devem ser processados.
-8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰 - normalize para numérico puro (remova pontos, vírgulas, espaços)
+8. PREÇO: Aceite R$, $, 💵, 💲, 🪙, 💰, 💸 - normalize para numérico puro (remova pontos, vírgulas, espaços). Preço pode vir na mesma linha que a cor ou em linha separada. Ex: "Laranja 8300,00" ou "* Laranja" depois "💸4250,00"
 9. CORES: Aceite cores em português (azul, preto, branco, rose, verde) e inglês (space black, jet black, midnight, starlight, desert, natural, silver, gold)
 10. ARMAZENAMENTO: Normalize (256=256GB, 1T=1TB, 2tb=2TB, 128GB=128GB, 64GB=64GB)
 11. CONDIÇÃO PADRONIZADA:
@@ -423,8 +423,10 @@ class AIService {
    - Formato 3: 📲17 PRO MAX 256G → depois 📲AZUL 💲8650 → produto com cor e preço na linha seguinte
    - Formato 4: IPHONE 17 PRO MAX 1TB LL/A → depois  LARANJA — R$ 10.850,00 → produto com modelo completo e cor separada por hífen longo (—)
    - Formato 5: IPHONE 13 128GB LZ/A → depois  BRANCO — R$ 2.770,00 → modelo com código LZ/A, cor separada por hífen
-   - Formato 6: ⚫️  17 pro max 256G LACRADO → depois * Laranja 8300,00 → produto com emoji ⚫️, modelo e condição na mesma linha, cor com asterisco (*) e preço
-   - Formato 7: ⚫️  14 pro max 128G CPO → depois * preto → depois 💸4250,00 → produto com CPO, cor em linha separada, preço com 💸 em linha separada
+   - Formato 6: ⚫️  17 pro max 256G LACRADO → depois * Laranja 8300,00 → produto com emoji ⚫️, modelo e condição na mesma linha, cor com asterisco (*) e preço na mesma linha
+   - Formato 7: ⚫️  14 pro max 128G CPO → depois * preto → depois 💸4250,00 → produto com CPO, cor em linha separada com asterisco (*), preço com 💸 em linha separada
+   - Formato 8: ⚫️  17 pro max 256G LACRADO❗️ → depois * Laranja 8300,00 → produto com emoji ⚫️ e ❗️, modelo, condição LACRADO, cor e preço
+   - IMPORTANTE: Se produto tem LACRADO, CPO na descrição OU está em seção "LACRADO COM GARANTIA APPLE", PROCESSAR como condition: "Novo", condition_detail: "LACRADO" ou "CPO"
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
    - Se cor vem DEPOIS do modelo com hífen longo (—) ou asterisco (*), cada cor = produto separado
    - Preço pode vir com 💸, 💵, 💲, 💰, R$ em linha separada ou na mesma linha
