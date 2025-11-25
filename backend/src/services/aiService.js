@@ -404,14 +404,20 @@ class AIService {
         console.warn('⚠️ Lista original tinha', rawListText.length, 'caracteres');
         console.warn('⚠️ Lista limpa tem apenas', cleanedList.length, 'caracteres');
         
-        // Se removemos mais de 80% do conteúdo e não encontramos produtos, algo está errado
+        // Se removemos mais de 80% do conteúdo, algo está errado - usar lista original
         const reductionPercent = ((rawListText.length - cleanedList.length) / rawListText.length) * 100;
-        if (reductionPercent > 80 && !hasAppleProducts) {
-          console.error('❌ ERRO CRÍTICO: Mais de 80% da lista foi removida e não há produtos Apple!');
-          console.error('❌ Revertendo para lista original para processar...');
-          // Se removemos demais, usar lista original (remover apenas seções explícitas de VITRINE)
-          cleanedList = rawListText.replace(/.*IPHONE\s*VITRINE.*[\s\S]*$/gi, '');
-          console.log('📝 Usando lista original após remover apenas seção VITRINE');
+        if (reductionPercent > 80) {
+          console.error('❌ ERRO CRÍTICO: Mais de 80% da lista foi removida!');
+          console.error('❌ Revertendo para lista original (removendo apenas seção VITRINE explícita)...');
+          // Se removemos demais, usar lista original e remover apenas seções explícitas de VITRINE
+          cleanedList = rawListText;
+          // Remover apenas a partir de "IPHONE VITRINE" em diante
+          const vitrineIndex = cleanedList.search(/IPHONE\s*VITRINE.*/gi);
+          if (vitrineIndex > 0) {
+            cleanedList = cleanedList.substring(0, vitrineIndex);
+            console.log('📝 Removida seção VITRINE da lista original');
+          }
+          console.log('📝 Usando lista original após correção. Tamanho:', cleanedList.length, 'caracteres');
         }
       }
       
