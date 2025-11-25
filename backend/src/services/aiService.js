@@ -460,20 +460,13 @@ class AIService {
       console.log(`📊 Lista recebida: ${rawListText.length} caracteres originais, ${rawListText.split('\n').length} linhas originais`);
       console.log(`📊 Lista limpa: ${listSize} caracteres, ${listLines} linhas após limpeza`);
       
-      // Se a lista for muito grande, avisar o usuário
+      // Se a lista for muito grande, avisar mas tentar processar mesmo assim
       if (listSize > MAX_LIST_SIZE || listLines > MAX_LINES) {
-        console.warn(`⚠️ Lista muito grande (${listSize} chars, ${listLines} linhas). Limite: ${MAX_LIST_SIZE} chars ou ${MAX_LINES} linhas.`);
+        console.warn(`⚠️ Lista grande (${listSize} chars, ${listLines} linhas). Limite recomendado: ${MAX_LIST_SIZE} chars ou ${MAX_LINES} linhas.`);
+        console.warn(`⚠️ Tentando processar mesmo assim (pode ter erros da IA)...`);
         
-        return {
-          valid: false,
-          errors: [`Lista muito grande (${listLines} linhas, ${listSize} caracteres).`],
-          warnings: [`O limite recomendado é ${MAX_LINES} linhas ou ${MAX_LIST_SIZE.toLocaleString()} caracteres por vez para evitar erros.`],
-          suggestions: [
-            `Divida a lista em partes menores (máximo ${MAX_LINES} linhas por vez) e processe cada parte separadamente.`,
-            'Ou remova linhas desnecessárias (anúncios, textos de aviso, etc) e mantenha apenas os produtos Apple.'
-          ],
-          validated_products: []
-        };
+        // Não bloquear completamente - tentar processar e ver se funciona
+        // Se der erro da IA, aí sim retornar erro ao usuário
       }
       
       // Avisar se a lista está próxima do limite
