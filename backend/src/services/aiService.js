@@ -403,6 +403,16 @@ class AIService {
         console.warn('⚠️ AVISO: Lista ficou muito pequena após limpeza! Pode ter removido produtos válidos.');
         console.warn('⚠️ Lista original tinha', rawListText.length, 'caracteres');
         console.warn('⚠️ Lista limpa tem apenas', cleanedList.length, 'caracteres');
+        
+        // Se removemos mais de 80% do conteúdo e não encontramos produtos, algo está errado
+        const reductionPercent = ((rawListText.length - cleanedList.length) / rawListText.length) * 100;
+        if (reductionPercent > 80 && !hasAppleProducts) {
+          console.error('❌ ERRO CRÍTICO: Mais de 80% da lista foi removida e não há produtos Apple!');
+          console.error('❌ Revertendo para lista original para processar...');
+          // Se removemos demais, usar lista original (remover apenas seções explícitas de VITRINE)
+          cleanedList = rawListText.replace(/.*IPHONE\s*VITRINE.*[\s\S]*$/gi, '');
+          console.log('📝 Usando lista original após remover apenas seção VITRINE');
+        }
       }
       
       // Limitar tamanho da lista para evitar erros 500 da OpenAI
