@@ -416,6 +416,61 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       return res.status(400).json({ message: 'Nenhum produto válido para salvar' });
     }
 
+    // FILTRO CRÍTICO: Remover produtos de vitrine/seminovos ANTES de salvar
+    // Mesmo que a IA tenha retornado, precisamos garantir que NENHUM produto de vitrine seja salvo
+    const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
+    const produtosValidos = validated_products.filter(product => {
+      // Verificar condition - deve ser "Novo"
+      if (product.condition && product.condition.toLowerCase() !== 'novo') {
+        console.log(`🚫 Produto rejeitado (condition inválida): ${product.name} - condition: ${product.condition}`);
+        return false;
+      }
+      
+      // Verificar condition_detail
+      const detail = (product.condition_detail || '').toUpperCase();
+      if (condicoesInvalidas.some(invalida => detail.includes(invalida))) {
+        console.log(`🚫 Produto rejeitado (condition_detail vitrine): ${product.name} - condition_detail: ${detail}`);
+        return false;
+      }
+      
+      // Verificar variant
+      const variant = (product.variant || '').toUpperCase();
+      if (condicoesInvalidas.some(invalida => variant.includes(invalida))) {
+        console.log(`🚫 Produto rejeitado (variant vitrine): ${product.name} - variant: ${variant}`);
+        return false;
+      }
+      
+      // Verificar name e model
+      const name = (product.name || '').toUpperCase();
+      const model = (product.model || '').toUpperCase();
+      const notes = (product.notes || '').toUpperCase();
+      
+      if (condicoesInvalidas.some(invalida => 
+        name.includes(invalida) || 
+        model.includes(invalida) || 
+        notes.includes(invalida)
+      )) {
+        console.log(`🚫 Produto rejeitado (vitrine no nome/modelo): ${product.name} - name: ${name}, model: ${model}`);
+        return false;
+      }
+      
+      return true;
+    });
+
+    if (produtosValidos.length === 0) {
+      return res.status(400).json({ 
+        message: 'Nenhum produto válido para salvar. Todos os produtos foram filtrados (apenas produtos NOVOS, LACRADOS ou CPO são aceitos).',
+        filtered_count: validated_products.length
+      });
+    }
+
+    if (produtosValidos.length < validated_products.length) {
+      console.log(`⚠️ ${validated_products.length - produtosValidos.length} produtos de vitrine/seminovos foram filtrados antes de salvar`);
+    }
+
+    // Usar apenas produtos válidos
+    const validated_products_filtered = produtosValidos;
+
     let finalSupplierId = supplier_id;
 
     // Se não tem supplier_id, criar ou buscar fornecedor pelo nome
@@ -538,9 +593,10 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     const savedProducts = [];
     const saveErrors = [];
 
-    console.log(`📦 Processando ${validated_products.length} produtos para o fornecedor ${finalSupplierId}...`);
+    console.log(`📦 Processando ${validated_products_filtered.length} produtos válidos para o fornecedor ${finalSupplierId}...`);
+    console.log(`🚫 ${validated_products.length - validated_products_filtered.length} produtos de vitrine foram filtrados antes de salvar`);
 
-    for (const product of validated_products) {
+    for (const product of validated_products_filtered) {
       try {
         console.log(`  🔍 Processando produto: ${product.name} (${product.model || 'sem modelo'}) - R$ ${product.price}`);
         // Padronizar condição
@@ -749,7 +805,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       'products_bulk_created',
       JSON.stringify({
         supplier_id: finalSupplierId,
-        total_products: validated_products.length,
+        total_products: validated_products_filtered.length,
+        filtered_vitrine_count: validated_products.length - validated_products_filtered.length,
         saved_products: savedProducts.length,
         errors: saveErrors.length
       }),
@@ -785,7 +842,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     res.json({
       message: 'Lista processada e salva com sucesso',
       summary: {
-        total_products: validated_products.length,
+        total_products: validated_products_filtered.length,
+        filtered_vitrine_count: validated_products.length - validated_products_filtered.length,
         saved_products: savedProducts.length,
         errors: saveErrors.length,
         average_price: Math.round(avgPrice)
