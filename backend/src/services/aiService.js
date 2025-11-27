@@ -406,12 +406,59 @@ class AIService {
       console.log('📝 Total de linhas após filtro:', filteredLines.length);
       console.log('📝 Seção de seminovos encontrada?', foundSeminovoSection);
       
-      // Verificar se há produtos Apple na lista limpa
-      const hasAppleProducts = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(cleanedList);
-      const hasLacradoProducts = /lacrado|cpo|⚫️.*lacrado|⚫️.*cpo/i.test(cleanedList);
+      // Verificar ANTES da limpeza se a lista contém APENAS vitrine/seminovos
+      // Verificar na lista ORIGINAL para detectar antes de qualquer limpeza
+      const vitrineMarkersOriginal = /vitrine|swap|seminovo|semi\s*novo|usado|recondicionado|80%|85%|90%.*bateria/i;
+      const novoMarkersOriginal = /lacrado|cpo|novo|⚫️.*lacrado|⚫️.*cpo|garantia.*apple|1.*ano.*garantia|GARANTIA.*APPLE/i;
+      const hasAppleOriginal = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(rawListText);
+      const hasVitrineOriginal = vitrineMarkersOriginal.test(rawListText);
+      const hasNovoOriginal = novoMarkersOriginal.test(rawListText);
       
-      console.log('📝 Produtos Apple detectados?', hasAppleProducts);
-      console.log('📝 Produtos LACRADOS/CPO detectados?', hasLacradoProducts);
+      // Se tem produtos Apple, tem vitrine mas NÃO tem novos, é apenas vitrine
+      const isOnlyVitrineOriginal = hasAppleOriginal && hasVitrineOriginal && !hasNovoOriginal;
+      
+      // Verificar também na lista limpa
+      const hasAppleProducts = /iphone|ipad|macbook|airpods|apple watch|pencil|airtag/i.test(cleanedList);
+      const hasLacradoProducts = /lacrado|cpo|⚫️.*lacrado|⚫️.*cpo|garantia.*apple|1.*ano.*garantia/i.test(cleanedList);
+      const hasVitrineOnly = /vitrine|swap|seminovo|semi\s*novo|usado|recondicionado/i.test(cleanedList);
+      const hasOnlyVitrineMarkers = hasVitrineOnly && !hasLacradoProducts && !/novo|lacrado|cpo/i.test(cleanedList);
+      
+      console.log('📝 [ORIGINAL] Produtos Apple?', hasAppleOriginal, '| Vitrine?', hasVitrineOriginal, '| Novos?', hasNovoOriginal);
+      console.log('📝 [ORIGINAL] Lista contém apenas vitrine?', isOnlyVitrineOriginal);
+      console.log('📝 [LIMPA] Produtos Apple detectados?', hasAppleProducts);
+      console.log('📝 [LIMPA] Produtos LACRADOS/CPO detectados?', hasLacradoProducts);
+      console.log('📝 [LIMPA] Lista contém apenas vitrine/seminovos?', hasOnlyVitrineMarkers);
+      
+      // Se a lista ORIGINAL contém APENAS vitrine/seminovos, retornar 0 produtos sem processar pela IA
+      if (isOnlyVitrineOriginal || (hasOnlyVitrineMarkers && !hasLacradoProducts && cleanedList.length < rawListText.length * 0.3)) {
+        console.warn('🚫 LISTA IGNORADA: Contém apenas produtos de vitrine/seminovos. Retornando 0 produtos.');
+        console.warn('🚫 Lista original tinha', rawListText.length, 'caracteres');
+        
+        // Log sem usar IA (para não consumir tokens)
+        const lineCount = rawListText.split('\n').length;
+        try {
+          await aiDashboardService.logAIUsage('validate_product_list', {
+            input_count: lineCount,
+            validation_result: {
+              valid: true,
+              validated_products: []
+            },
+            filtered_to_novos_only: true,
+            skipped_vitrine_only: true
+          }, 0, 0); // 0 tokens, 0 custo
+        } catch (logError) {
+          // Ignorar erro de log
+        }
+        
+        return {
+          valid: true,
+          errors: [],
+          warnings: ['Lista contém apenas produtos de vitrine/seminovos. Apenas produtos NOVOS, LACRADOS ou CPO são processados.'],
+          suggestions: [],
+          validated_products: [],
+          raw_text: rawListText
+        };
+      }
       
       if (!hasAppleProducts) {
         console.warn('⚠️ AVISO: Nenhum produto Apple detectado na lista após limpeza!');
