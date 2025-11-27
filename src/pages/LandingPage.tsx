@@ -79,8 +79,8 @@ const testimonials = [
 
 const faqs = [
   {
-    question: 'O plano de R$ 79,99 inclui todos os módulos?',
-    answer: 'Sim. Você recebe IA para listas, painel de metas, gestão de fornecedores, notas, relatórios e suporte via WhatsApp.'
+    question: 'Os planos incluem todos os módulos?',
+    answer: 'Sim. Você recebe IA para listas, painel de metas, gestão de fornecedores, notas, relatórios e suporte via WhatsApp em todos os planos.'
   },
   {
     question: 'Consigo usar no celular?',
@@ -157,7 +157,7 @@ export default function LandingPage() {
                 {...fadeUp(0.1)}
                 className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl"
               >
-                Centralize fornecedores, listas e metas por{' '}
+                Centralize fornecedores, listas e metas a partir de{' '}
                 <span className="bg-gradient-to-r from-blue-400 to-emerald-300 bg-clip-text text-transparent">
                   R$ 79,99/mês
                 </span>
@@ -350,60 +350,155 @@ export default function LandingPage() {
               </p>
             </motion.div>
 
-            <motion.div
-              {...fadeUp(0.1)}
-              className="relative mt-12 overflow-hidden rounded-[40px] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 p-10 shadow-2xl"
-            >
-              <div className="absolute -right-24 -top-24 h-60 w-60 rounded-full bg-blue-500/10 blur-3xl" />
-              <div className="flex flex-col items-start gap-10 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
-                    Plano mensal
+            <div className="mt-12 grid gap-6 md:grid-cols-3">
+              {/* Plano Mensal */}
+              <motion.div
+                {...fadeUp(0.1)}
+                className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 p-8 shadow-2xl"
+              >
+                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="relative">
+                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
+                    Mensal
                   </span>
-                  <h3 className="mt-4 text-3xl font-semibold text-white">iGestorPhone Completo</h3>
-                  <p className="mt-3 max-w-xl text-white/60">
-                    Tudo incluso: processamento com IA, dashboard em tempo real, metas e notas,
-                    gestão de fornecedores, histórico de listas e suporte dedicado via WhatsApp.
+                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
+                  <p className="mt-2 text-sm text-white/60">
+                    Ideal para começar
                   </p>
-                  <ul className="mt-6 grid gap-3 text-white/70 sm:grid-cols-2">
+                  <div className="mt-6">
+                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento mensal</p>
+                    <p className="mt-2 text-4xl font-bold text-white">
+                      R$ <span className="text-blue-300">119</span>,99
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">por mês</p>
+                  </div>
+                  <ul className="mt-6 space-y-3 text-sm text-white/70">
                     {[
                       'Processamento ilimitado de listas com IA',
-                      'Metas, notas e alertas em um único painel',
-                      'Gestão de fornecedores com histórico completo',
-                      'Backups automáticos e infraestrutura em nuvem 24/7'
+                      'Metas, notas e alertas',
+                      'Gestão de fornecedores',
+                      'Suporte via WhatsApp'
                     ].map(item => (
-                      <li key={item} className="flex items-start space-x-2 text-sm">
-                        <Check className="mt-[3px] h-4 w-4 text-emerald-300" />
+                      <li key={item} className="flex items-start space-x-2">
+                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
                         <span>{item}</span>
                       </li>
                     ))}
                   </ul>
-                </div>
-                <div className="w-full max-w-xs rounded-3xl border border-white/10 bg-white/10 p-6 text-center backdrop-blur">
-                  <p className="text-sm uppercase tracking-wide text-white/60">Investimento mensal</p>
-                  <p className="mt-4 text-5xl font-bold text-white">
-                    R$ <span className="text-blue-300">79</span>,99
-                  </p>
-                  <p className="mt-2 text-xs uppercase tracking-wide text-white/50">Sem taxas escondidas • Cancelamento livre</p>
-                  <div className="mt-6 flex flex-col gap-3">
+                  <div className="mt-8">
                     <a
                       href={WHATSAPP_URL}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
+                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
                     >
                       Assinar agora
                     </a>
-                    <Link
-                      to="/login"
-                      className="inline-flex items-center justify-center rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white transition hover:border-white/50"
-                    >
-                      Já tenho acesso
-                    </Link>
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </motion.div>
+
+              {/* Plano Trimestral - Destaque */}
+              <motion.div
+                {...fadeUp(0.15)}
+                className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-slate-900 via-emerald-900/20 to-slate-950 p-8 shadow-2xl"
+              >
+                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-emerald-500/20 blur-3xl" />
+                <div className="absolute right-4 top-4">
+                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-950">
+                    Mais Popular
+                  </span>
+                </div>
+                <div className="relative">
+                  <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
+                    Trimestral
+                  </span>
+                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
+                  <p className="mt-2 text-sm text-white/60">
+                    Economia de 25%
+                  </p>
+                  <div className="mt-6">
+                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento trimestral</p>
+                    <p className="mt-2 text-4xl font-bold text-white">
+                      R$ <span className="text-emerald-300">89</span>,99
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">por mês</p>
+                    <p className="mt-2 text-xs text-emerald-300 line-through">R$ 119,99</p>
+                  </div>
+                  <ul className="mt-6 space-y-3 text-sm text-white/70">
+                    {[
+                      'Processamento ilimitado de listas com IA',
+                      'Metas, notas e alertas',
+                      'Gestão de fornecedores',
+                      'Suporte via WhatsApp'
+                    ].map(item => (
+                      <li key={item} className="flex items-start space-x-2">
+                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-8">
+                    <a
+                      href={WHATSAPP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
+                    >
+                      Assinar agora
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Plano Anual */}
+              <motion.div
+                {...fadeUp(0.2)}
+                className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 p-8 shadow-2xl"
+              >
+                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="relative">
+                  <span className="inline-flex items-center rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200">
+                    Anual
+                  </span>
+                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
+                  <p className="mt-2 text-sm text-white/60">
+                    Melhor economia - 33% off
+                  </p>
+                  <div className="mt-6">
+                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento anual</p>
+                    <p className="mt-2 text-4xl font-bold text-white">
+                      R$ <span className="text-blue-300">79</span>,99
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">por mês</p>
+                    <p className="mt-2 text-xs text-white/50 line-through">R$ 119,99</p>
+                  </div>
+                  <ul className="mt-6 space-y-3 text-sm text-white/70">
+                    {[
+                      'Processamento ilimitado de listas com IA',
+                      'Metas, notas e alertas',
+                      'Gestão de fornecedores',
+                      'Suporte via WhatsApp'
+                    ].map(item => (
+                      <li key={item} className="flex items-start space-x-2">
+                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-8">
+                    <a
+                      href={WHATSAPP_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
+                    >
+                      Assinar agora
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </section>
 
