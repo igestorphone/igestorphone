@@ -503,6 +503,36 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     `, [finalSupplierId, today]);
     
     console.log(`✅ ${deactivatedResult.rows.length} produtos desativados (serão reativados/atualizados se estiverem na nova lista)`);
+    
+    // IMPORTANTE: Desativar também produtos de vitrine/seminovos do mesmo fornecedor
+    // Isso garante que ao reprocessar uma lista, os produtos de vitrine que entraram anteriormente sejam removidos
+    const vitrineDeactivatedResult = await query(`
+      UPDATE products 
+      SET is_active = false 
+      WHERE supplier_id = $1 
+        AND is_active = true
+        AND (
+          condition_detail ILIKE '%VITRINE%' 
+          OR condition_detail ILIKE '%SWAP%' 
+          OR condition_detail ILIKE '%SEMINOVO%' 
+          OR condition_detail ILIKE '%USADO%'
+          OR condition_detail ILIKE '%RECONDICIONADO%'
+          OR variant ILIKE '%VITRINE%'
+          OR variant ILIKE '%SWAP%'
+          OR variant ILIKE '%SEMINOVO%'
+          OR name ILIKE '%VITRINE%'
+          OR name ILIKE '%SWAP%'
+          OR name ILIKE '%SEMINOVO%'
+          OR model ILIKE '%VITRINE%'
+          OR model ILIKE '%SWAP%'
+          OR model ILIKE '%SEMINOVO%'
+        )
+      RETURNING id
+    `, [finalSupplierId]);
+    
+    if (vitrineDeactivatedResult.rows.length > 0) {
+      console.log(`🚫 ${vitrineDeactivatedResult.rows.length} produtos de vitrine/seminovos desativados do fornecedor`);
+    }
 
     // Salvar produtos validados
     const savedProducts = [];
