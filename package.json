@@ -18,6 +18,7 @@
     "db:populate": "node backend/src/populate-database.js",
     "db:clean": "node backend/src/clean-database.js",
     "db:cleanup": "node backend/src/cleanup-old-data.js",
+    "db:cleanup-vitrine": "node backend/src/cleanup-vitrine-products.js",
     "db:reset": "node backend/src/reset.js"
   },
   "dependencies": {
