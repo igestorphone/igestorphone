@@ -635,6 +635,19 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
             return false;
           }
           
+          // Verificar nome e modelo - se mencionar vitrine/swap/seminovo, ignorar
+          const name = (product.name || '').toUpperCase();
+          const model = (product.model || '').toUpperCase();
+          const notes = (product.notes || '').toUpperCase();
+          
+          if (condicoesInvalidas.some(invalida => 
+            name.includes(invalida) || 
+            model.includes(invalida) || 
+            notes.includes(invalida)
+          )) {
+            return false;
+          }
+          
           return true;
         }).map(product => {
           // GARANTIR que iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS
@@ -661,11 +674,19 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
         // Atualizar a resposta com apenas produtos novos
         parsedResponse.validated_products = produtosNovos;
         
-        // Se todos foram filtrados, marcar como inválido
-        if (produtosNovos.length === 0 && parsedResponse.validated_products.length > 0) {
-          parsedResponse.valid = false;
-          if (!parsedResponse.errors) parsedResponse.errors = [];
-          parsedResponse.errors.push('Nenhum produto NOVO encontrado. Apenas produtos NOVOS, LACRADOS ou CPO são aceitos.');
+        // Se todos foram filtrados, significa que eram apenas vitrine/seminovos
+        if (produtosNovos.length === 0) {
+          if (parsedResponse.validated_products && parsedResponse.validated_products.length > 0) {
+            console.warn('🚫 Todos os produtos foram filtrados - eram apenas vitrine/seminovos');
+            parsedResponse.valid = true; // Mantém como válido, mas com 0 produtos
+            if (!parsedResponse.warnings) parsedResponse.warnings = [];
+            parsedResponse.warnings.push('Lista contém apenas produtos de vitrine/seminovos. Apenas produtos NOVOS, LACRADOS ou CPO são processados.');
+          } else {
+            // Nenhum produto foi retornado pela IA
+            parsedResponse.valid = true;
+            if (!parsedResponse.warnings) parsedResponse.warnings = [];
+            parsedResponse.warnings.push('Nenhum produto NOVO encontrado na lista. Apenas produtos NOVOS, LACRADOS ou CPO são aceitos.');
+          }
         }
       }
       
