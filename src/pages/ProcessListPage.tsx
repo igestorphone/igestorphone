@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X } from 'lucide-react'
+import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
@@ -19,6 +19,7 @@ export default function ProcessListPage() {
   const [processedData, setProcessedData] = useState(null)
   const [showCreateSupplier, setShowCreateSupplier] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [supplierSearch, setSupplierSearch] = useState('')
 
   // Debug: Verificar configuração da API ao carregar a página
   useEffect(() => {
@@ -43,6 +44,55 @@ export default function ProcessListPage() {
   // Estado local para fornecedores
   const [fornecedores, setFornecedores] = useState([])
   const [isLoadingSuppliers, setIsLoadingSuppliers] = useState(true)
+  
+  // Filtrar e ordenar fornecedores
+  const filteredAndSortedSuppliers = useMemo(() => {
+    let filtered = [...fornecedores]
+    
+    // Filtrar por busca
+    if (supplierSearch.trim()) {
+      const searchLower = supplierSearch.toLowerCase()
+      filtered = filtered.filter(f => {
+        const name = (f.name || f.nome || '').toLowerCase()
+        const whatsapp = (f.whatsapp || f.contact_phone || '').toLowerCase()
+        const cidade = (f.city || f.cidade || '').toLowerCase()
+        return name.includes(searchLower) || whatsapp.includes(searchLower) || cidade.includes(searchLower)
+      })
+    }
+    
+    // Ordenar: não processados hoje primeiro, depois processados no final (ordem alfabética dentro de cada grupo)
+    filtered.sort((a, b) => {
+      const aProcessedToday = a.processed_today === true || a.processed_today === 'true'
+      const bProcessedToday = b.processed_today === true || b.processed_today === 'true'
+      
+      // Se um foi processado hoje e o outro não, o não processado vem primeiro
+      if (aProcessedToday && !bProcessedToday) return 1
+      if (!aProcessedToday && bProcessedToday) return -1
+      
+      // Dentro do mesmo grupo (processados ou não processados), ordenar por nome
+      const aName = (a.name || a.nome || '').toLowerCase()
+      const bName = (b.name || b.nome || '').toLowerCase()
+      return aName.localeCompare(bName, 'pt-BR')
+    })
+    
+    return filtered
+  }, [fornecedores, supplierSearch])
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (isDropdownOpen && !target.closest('[data-supplier-dropdown]')) {
+        setIsDropdownOpen(false)
+        setSupplierSearch('')
+      }
+    }
+    
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isDropdownOpen])
 
   // Carregar fornecedores do banco de dados (não do localStorage)
   useEffect(() => {
@@ -77,7 +127,7 @@ export default function ProcessListPage() {
         if (!response.ok) {
           // Não logar erro 404 silenciosamente, apenas se for outro erro
           if (response.status !== 404) {
-            console.error('Erro ao buscar fornecedores:', response.status)
+          console.error('Erro ao buscar fornecedores:', response.status)
           }
           setFornecedores([])
           return
@@ -190,22 +240,22 @@ export default function ProcessListPage() {
             errorMessage += 'Por favor, faça login novamente.'
           } else {
             // Outros erros
-            try {
-              const errorJson = JSON.parse(errorText)
-              if (errorJson.message) {
-                errorMessage = errorJson.message
-              }
+          try {
+            const errorJson = JSON.parse(errorText)
+            if (errorJson.message) {
+              errorMessage = errorJson.message
+            }
               if (errorJson.error && !errorJson.error.includes('Request ID')) {
                 const cleanError = errorJson.error.split('request ID')[0].trim()
                 if (cleanError && cleanError.length < 150) {
                   errorMessage += `\n\n${cleanError}`
                 }
-              }
-            } catch (e) {
+            }
+          } catch (e) {
               errorMessage += ` (Erro ${response.status})`
               if (errorText && errorText.length < 200) {
                 errorMessage += `\n\n${errorText}`
-              }
+          }
             }
           }
           
@@ -403,9 +453,9 @@ export default function ProcessListPage() {
       
       // Adicionar instruções gerais
       if (!errorMessage.includes('Erro de conexão')) {
-        errorMessage += 'Verifique:\n'
-        errorMessage += '• Se a chave da API da OpenAI está configurada\n'
-        errorMessage += '• Se o backend está rodando\n'
+      errorMessage += 'Verifique:\n'
+      errorMessage += '• Se a chave da API da OpenAI está configurada\n'
+      errorMessage += '• Se o backend está rodando\n'
         errorMessage += '• Se você tem permissões de administrador\n'
       }
       
@@ -546,9 +596,45 @@ export default function ProcessListPage() {
         </div>
 
         {/* Dropdown de Fornecedores */}
-        <div className="relative mb-4">
+        <div className="relative mb-4" data-supplier-dropdown>
+          {/* Campo de busca de fornecedores */}
+          {isDropdownOpen && (
+            <div className="mb-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50 z-10" />
+                <input
+                  type="text"
+                  value={supplierSearch}
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    setSupplierSearch(e.target.value)
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  placeholder="Buscar fornecedor por nome, WhatsApp ou cidade..."
+                  className="w-full pl-10 pr-10 py-2.5 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500 focus:bg-white/15"
+                  autoFocus
+                />
+                {supplierSearch && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setSupplierSearch('')
+                    }}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <button
-            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            onClick={() => {
+              setIsDropdownOpen(!isDropdownOpen)
+              if (!isDropdownOpen) {
+                setSupplierSearch('')
+              }
+            }}
             className="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-left text-white hover:bg-white/15 transition-colors flex items-center justify-between"
           >
             <span className="flex items-center space-x-2">
@@ -575,16 +661,30 @@ export default function ProcessListPage() {
           </button>
           
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/98 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl z-50 max-h-80 overflow-y-auto">
-              {fornecedores.length === 0 ? (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900/98 backdrop-blur-lg border border-white/20 rounded-lg shadow-2xl z-50 max-h-96 overflow-hidden flex flex-col">
+              {filteredAndSortedSuppliers.length === 0 ? (
                 <div className="p-4 text-white/70 text-center">
-                  <Users className="w-8 h-8 mx-auto mb-2 text-white/40" />
-                  <p>Nenhum fornecedor cadastrado</p>
-                  <p className="text-sm mt-1">Clique em "Cadastrar Fornecedor" para adicionar</p>
+                  <Search className="w-8 h-8 mx-auto mb-2 text-white/40" />
+                  <p>Nenhum fornecedor encontrado</p>
+                  {supplierSearch && (
+                    <p className="text-sm mt-1">Tente buscar com outros termos</p>
+                  )}
                 </div>
               ) : (
-                <div className="divide-y divide-white/10">
-                  {fornecedores.map((fornecedor) => {
+                <>
+                  {/* Separadores: Não processados / Processados hoje */}
+                  {filteredAndSortedSuppliers.filter(f => !f.processed_today).length > 0 && filteredAndSortedSuppliers.filter(f => f.processed_today).length > 0 && (
+                    <div className="px-4 py-2 bg-blue-500/10 border-b border-white/10">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-blue-400 uppercase tracking-wide">
+                          Não processados hoje ({filteredAndSortedSuppliers.filter(f => !f.processed_today).length})
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  <div className="overflow-y-auto max-h-80">
+                    <div className="divide-y divide-white/10">
+                      {filteredAndSortedSuppliers.map((fornecedor) => {
                     const isSelected = selectedSupplier === fornecedor.id?.toString() || selectedSupplier === fornecedor.id
                     const whatsapp = fornecedor.whatsapp || fornecedor.contact_phone
                     const cidade = fornecedor.city || fornecedor.cidade
@@ -636,7 +736,8 @@ export default function ProcessListPage() {
                           const supplierId = fornecedor.id?.toString() || String(fornecedor.id || '')
                           if (supplierId) {
                             setSelectedSupplier(supplierId)
-                      setIsDropdownOpen(false)
+                            setIsDropdownOpen(false)
+                            setSupplierSearch('')
                           }
                         }}
                         className={`w-full p-4 text-left transition-colors ${
@@ -709,10 +810,33 @@ export default function ProcessListPage() {
                   </button>
                     )
                   })}
-                </div>
+                    </div>
+                  </div>
+                  {filteredAndSortedSuppliers.filter(f => f.processed_today).length > 0 && filteredAndSortedSuppliers.filter(f => !f.processed_today).length > 0 && (
+                    <div className="px-4 py-2 bg-gray-800/50 border-t border-white/10">
+                      <span className="text-xs font-semibold text-white/50 uppercase tracking-wide">
+                        Processados hoje ({filteredAndSortedSuppliers.filter(f => f.processed_today).length})
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
+        </div>
+        
+        {/* Aviso sobre listas de vitrine */}
+        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h4 className="text-yellow-400 font-semibold text-sm mb-1">⚠️ Aviso sobre Listas de Vitrine</h4>
+              <p className="text-white/70 text-sm">
+                Se o fornecedor enviar apenas produtos de <strong>vitrine, seminovos ou swap</strong>, a IA automaticamente <strong>desconsiderará toda a lista</strong> e retornará 0 produtos. 
+                Apenas produtos <strong>novos (lacrados)</strong> serão processados e salvos no banco de dados.
+              </p>
+            </div>
+          </div>
         </div>
         
         {/* Fornecedor Selecionado - Card */}
@@ -851,7 +975,7 @@ export default function ProcessListPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass rounded-xl p-6"
+          className="glass rounded-xl p-6 relative"
         >
           <h2 className="text-xl font-semibold text-white mb-4">2. Colar Lista do Fornecedor</h2>
           <div className="space-y-4">
@@ -1048,12 +1172,14 @@ export default function ProcessListPage() {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+          onClick={() => setShowCreateSupplier(false)}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="glass rounded-xl p-6 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-xl font-semibold text-white mb-4">Cadastrar Novo Fornecedor</h3>
             
