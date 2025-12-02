@@ -35,10 +35,34 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = frontendUrl
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+
+// Adicionar variações do domínio (com/sem www, com/sem https)
+const additionalOrigins = [];
+allowedOrigins.forEach(origin => {
+  try {
+    const url = new URL(origin);
+    const domain = url.hostname;
+    const protocol = url.protocol;
+    
+    // Adicionar versão sem www
+    if (domain.startsWith('www.')) {
+      additionalOrigins.push(`${protocol}//${domain.replace('www.', '')}`);
+    }
+    // Adicionar versão com www
+    else {
+      additionalOrigins.push(`${protocol}//www.${domain}`);
+    }
+  } catch (e) {
+    // Se não for URL válida, ignora
+  }
+});
+
+const allAllowedOrigins = [...allowedOrigins, ...additionalOrigins];
 
 // Configurar logger
 const logger = winston.createLogger({
@@ -61,12 +85,25 @@ const logger = winston.createLogger({
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir requisições sem origin (ex: Postman, mobile apps)
+    if (!origin) {
       return callback(null, true);
     }
+    
+    // Verificar se está na lista de origens permitidas
+    if (allAllowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
+      return callback(null, true);
+    }
+    
+    // Log para debug
+    console.log('🚫 CORS bloqueado para origem:', origin);
+    console.log('✅ Origens permitidas:', allAllowedOrigins);
+    
     return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting
