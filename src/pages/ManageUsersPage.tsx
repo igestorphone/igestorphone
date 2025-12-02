@@ -673,10 +673,20 @@ export default function ManageUsersPage() {
                           : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
                       }`}
                     >
-                      {days === 5 && '5 dias (Demo)'}
-                      {days === 30 && '30 dias'}
-                      {days === 90 && '90 dias'}
-                      {days === 365 && '1 ano'}
+                      <div className="text-center">
+                        <div className="font-semibold">
+                          {days === 5 && '5 dias'}
+                          {days === 30 && '1 mês'}
+                          {days === 90 && '3 meses'}
+                          {days === 365 && '1 ano'}
+                        </div>
+                        <div className="text-xs opacity-70 mt-1">
+                          {days === 5 && '(Demonstração)'}
+                          {days === 30 && '(30 dias)'}
+                          {days === 90 && '(90 dias)'}
+                          {days === 365 && '(365 dias)'}
+                        </div>
+                      </div>
                     </button>
                   ))}
                 </div>

@@ -330,7 +330,7 @@ export const registrationApi = {
     return response.data
   },
   
-  register: async (token: string, data: { name: string; email: string; password: string }) => {
+  register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string }) => {
     const response = await testApi.post(`/register/${token}`, data)
     return response.data
   },

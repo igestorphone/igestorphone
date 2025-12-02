@@ -29,8 +29,9 @@ router.post('/registration-links', authenticateToken, requireRole('admin'), asyn
     
     const registrationToken = result.rows[0];
     
-    // Gerar URL completa
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Gerar URL completa - pegar apenas a primeira URL se tiver múltiplas
+    const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
     const registrationUrl = `${frontendUrl}/register/${token}`;
     
     // Log da ação
@@ -80,7 +81,8 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
       ORDER BY rt.created_at DESC
     `);
     
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
     const links = result.rows.map(row => ({
       id: row.id,
       token: row.token,
@@ -145,7 +147,9 @@ router.get('/register/:token', async (req, res) => {
 router.post('/register/:token', [
   body('name').notEmpty().trim().withMessage('Nome é obrigatório'),
   body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
-  body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres')
+  body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
+  body('endereco').optional().trim(),
+  body('data_nascimento').optional().isISO8601().withMessage('Data de nascimento inválida')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -154,7 +158,7 @@ router.post('/register/:token', [
     }
     
     const { token } = req.params;
-    const { name, email, password } = req.body;
+    const { name, email, password, endereco, data_nascimento } = req.body;
     
     // Verificar token
     const tokenResult = await query(`
@@ -190,11 +194,11 @@ router.post('/register/:token', [
     // Criar usuário com status pendente
     const userResult = await query(`
       INSERT INTO users (
-        name, email, password_hash, tipo, is_active, approval_status
+        name, email, password_hash, tipo, is_active, approval_status, endereco, data_nascimento
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING id, name, email, tipo, approval_status, created_at
-    `, [name, email, passwordHash, 'user', false, 'pending']);
+    `, [name, email, passwordHash, 'user', false, 'pending', endereco || null, data_nascimento || null]);
     
     const user = userResult.rows[0];
     

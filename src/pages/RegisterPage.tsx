@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2, Calendar, MapPin } from 'lucide-react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { registrationApi } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -20,7 +20,13 @@ const registerSchema = z.object({
   password: z
     .string()
     .min(1, 'Senha é obrigatória')
-    .min(6, 'Senha deve ter pelo menos 6 caracteres')
+    .min(6, 'Senha deve ter pelo menos 6 caracteres'),
+  endereco: z
+    .string()
+    .min(1, 'Endereço é obrigatório'),
+  data_nascimento: z
+    .string()
+    .min(1, 'Data de nascimento é obrigatória')
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
@@ -74,7 +80,9 @@ export default function RegisterPage() {
       await registrationApi.register(token, {
         name: data.name,
         email: data.email,
-        password: data.password
+        password: data.password,
+        endereco: data.endereco,
+        data_nascimento: data.data_nascimento
       })
       
       setRegistered(true)
@@ -232,12 +240,83 @@ export default function RegisterPage() {
           )}
         </motion.div>
 
-        {/* Password field */}
+        {/* Endereço field */}
         <motion.div 
           className="space-y-2"
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
+        >
+          <label htmlFor="endereco" className="block text-sm font-medium text-white/90">
+            Endereço
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MapPin className="h-5 w-5 text-white/40" />
+            </div>
+            <input
+              {...register('endereco')}
+              type="text"
+              id="endereco"
+              className={`input-primary w-full pl-11 pr-4 py-3 text-base ${
+                errors.endereco ? 'input-error' : ''
+              }`}
+              placeholder="Seu endereço completo"
+            />
+          </div>
+          {errors.endereco && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.endereco.message}</span>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Data de nascimento field */}
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7, duration: 0.5 }}
+        >
+          <label htmlFor="data_nascimento" className="block text-sm font-medium text-white/90">
+            Data de Nascimento
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Calendar className="h-5 w-5 text-white/40" />
+            </div>
+            <input
+              {...register('data_nascimento')}
+              type="date"
+              id="data_nascimento"
+              className={`input-primary w-full pl-11 pr-4 py-3 text-base ${
+                errors.data_nascimento ? 'input-error' : ''
+              }`}
+            />
+          </div>
+          {errors.data_nascimento && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.data_nascimento.message}</span>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Password field */}
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.8, duration: 0.5 }}
         >
           <label htmlFor="password" className="block text-sm font-medium text-white/90">
             Senha

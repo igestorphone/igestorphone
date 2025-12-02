@@ -117,7 +117,9 @@ router.post('/login', loginValidation, async (req, res) => {
         subscription_status,
         subscription_expires_at,
         is_active,
-        last_login
+        last_login,
+        access_expires_at,
+        approval_status
       FROM users
       WHERE email = $1
     `, [email]);
@@ -128,9 +130,33 @@ router.post('/login', loginValidation, async (req, res) => {
 
     const user = result.rows[0];
 
+    // Verificar se usuário está aprovado
+    if (user.approval_status === 'pending') {
+      return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
+    }
+
     // Verificar se usuário está ativo
     if (!user.is_active) {
       return res.status(401).json({ message: 'Conta desativada' });
+    }
+
+    // Verificar se o acesso expirou
+    if (user.access_expires_at) {
+      const now = new Date();
+      const accessExpiresAt = new Date(user.access_expires_at);
+      
+      if (now > accessExpiresAt) {
+        // Desativar usuário automaticamente
+        await query(
+          'UPDATE users SET is_active = false WHERE id = $1',
+          [user.id]
+        );
+        
+        return res.status(403).json({ 
+          message: 'Seu período de acesso expirou. Entre em contato com o administrador.',
+          access_expired: true
+        });
+      }
     }
 
     // Verificar senha
