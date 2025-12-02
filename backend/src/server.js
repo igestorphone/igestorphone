@@ -90,8 +90,8 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // Verificar se está na lista de origens permitidas
-    if (allAllowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
+    // Verificar se está na lista de origens permitidas (match exato)
+    if (allAllowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
