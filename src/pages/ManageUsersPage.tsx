@@ -106,10 +106,15 @@ export default function ManageUsersPage() {
       console.log('🔍 Buscando usuários...');
       const response = await usersApi.getAll();
       console.log('📊 Resposta da API:', response);
-      console.log('👥 Usuários encontrados:', response.data?.users);
-      setUsers(response.data?.users || []);
-    } catch (error) {
+      
+      // Backend retorna { users: [...], pagination: {...} }
+      // apiClient retorna response.data diretamente
+      const users = (response as any).users || (response as any).data?.users || [];
+      console.log('👥 Usuários encontrados:', users);
+      setUsers(users);
+    } catch (error: any) {
       console.error('❌ Erro ao carregar usuários:', error);
+      toast.error(error.response?.data?.message || 'Erro ao carregar usuários');
     } finally {
       setLoading(false);
     }
@@ -153,10 +158,12 @@ export default function ManageUsersPage() {
     try {
       setPendingLoading(true);
       const response = await usersApi.getPending();
-      setPendingUsers(response.data?.users || []);
-    } catch (error) {
+      // Backend retorna { users: [...] } ou { data: { users: [...] } }
+      const users = (response as any).users || (response as any).data?.users || [];
+      setPendingUsers(users);
+    } catch (error: any) {
       console.error('Erro ao buscar usuários pendentes:', error);
-      toast.error('Erro ao carregar usuários pendentes');
+      toast.error(error.response?.data?.message || 'Erro ao carregar usuários pendentes');
     } finally {
       setPendingLoading(false);
     }
@@ -375,7 +382,18 @@ export default function ManageUsersPage() {
         <>
       {/* Users List */}
       <div className="space-y-4">
-        {filteredUsers.map((user) => (
+        {filteredUsers.length === 0 ? (
+          <div className="glass rounded-xl p-12 text-center">
+            <User className="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhum usuário encontrado</h3>
+            <p className="text-white/50">
+              {searchTerm || statusFilter 
+                ? 'Tente ajustar os filtros de busca.'
+                : 'Nenhum usuário cadastrado ainda.'}
+            </p>
+          </div>
+        ) : (
+          filteredUsers.map((user) => (
           <motion.div
             key={user.id}
             initial={{ opacity: 0, y: 20 }}
@@ -442,7 +460,8 @@ export default function ManageUsersPage() {
               </div>
             )}
           </motion.div>
-        ))}
+        ))
+        )}
       </div>
         </>
       )}

@@ -291,19 +291,19 @@ export const notesApi = {
 
 export const usersApi = {
   getAll: () =>
-    testApi.get<any[]>('/test/test-list'),
+    apiClient.get<any>('/users'),
   
   getById: (id: string) =>
     apiClient.get<any>(`/users/${id}`),
   
   create: (data: any) =>
-    testApi.post<any>('/test/create', data),
+    apiClient.post<any>('/users', data),
   
   update: (id: string, data: any) =>
     apiClient.put<any>(`/users/${id}`, data),
   
   delete: (id: string) =>
-    testApi.delete(`/test/test-delete/${id}`),
+    apiClient.delete<any>(`/users/${id}`),
   
   updatePermissions: (id: string, permissions: any) =>
     apiClient.patch<any>(`/users/${id}/permissions`, { permissions }),
