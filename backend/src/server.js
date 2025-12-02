@@ -41,28 +41,33 @@ const allowedOrigins = frontendUrl
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-// Adicionar variações do domínio (com/sem www, com/sem https)
+// Adicionar variações do domínio (com/sem www)
 const additionalOrigins = [];
 allowedOrigins.forEach(origin => {
   try {
     const url = new URL(origin);
-    const domain = url.hostname;
+    const hostname = url.hostname;
     const protocol = url.protocol;
     
-    // Adicionar versão sem www
-    if (domain.startsWith('www.')) {
-      additionalOrigins.push(`${protocol}//${domain.replace('www.', '')}`);
+    // Se não tem www, adicionar versão com www
+    if (!hostname.startsWith('www.')) {
+      additionalOrigins.push(`${protocol}//www.${hostname}`);
     }
-    // Adicionar versão com www
+    // Se tem www, adicionar versão sem www
     else {
-      additionalOrigins.push(`${protocol}//www.${domain}`);
+      additionalOrigins.push(`${protocol}//${hostname.replace(/^www\./, '')}`);
     }
   } catch (e) {
-    // Se não for URL válida, ignora
+    console.warn('⚠️  Erro ao processar origem para CORS:', origin, e.message);
   }
 });
 
-const allAllowedOrigins = [...allowedOrigins, ...additionalOrigins];
+const allAllowedOrigins = [...new Set([...allowedOrigins, ...additionalOrigins])];
+
+// Log para debug
+console.log('🌐 Configuração de CORS:');
+console.log('   FRONTEND_URL:', frontendUrl);
+console.log('   Origens permitidas:', allAllowedOrigins);
 
 // Configurar logger
 const logger = winston.createLogger({
