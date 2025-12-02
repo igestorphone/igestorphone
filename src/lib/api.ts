@@ -73,11 +73,18 @@ api.interceptors.response.use(
     console.error('❌ API Error - Status:', error.response?.status)
     console.error('❌ API Error - Data:', error.response?.data)
     
-    // Handle common errors
+    // Handle common errors - apenas para rotas protegidas
     if (error.response?.status === 401) {
-      // Unauthorized - clear auth and redirect to login
-      localStorage.removeItem('auth-storage')
-      window.location.href = '/login'
+      const url = error.config?.url || ''
+      // Não redirecionar se for uma rota pública de registro
+      if (!url.includes('/register/') && !url.includes('/auth/login')) {
+        // Unauthorized - clear auth and redirect to login
+        localStorage.removeItem('auth-storage')
+        // Só redirecionar se não estiver já na página de registro ou login
+        if (!window.location.pathname.includes('/register/') && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
+      }
     }
     
     return Promise.reject(error)
