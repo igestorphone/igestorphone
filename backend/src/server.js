@@ -20,6 +20,7 @@ import supplierSuggestionsRoutes from './routes/supplier-suggestions.js';
 import bugReportsRoutes from './routes/bug-reports.js';
 import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
+import registrationRoutes from './routes/registration.js';
 
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -104,6 +105,7 @@ app.use((req, res, next) => {
 
 // Rotas públicas
 app.use('/api/auth', authRoutes);
+app.use('/api', registrationRoutes); // Rotas de registro (algumas públicas, outras protegidas)
 
 // Rotas de teste (sem autenticação)
 app.use('/api/test', userRoutes);

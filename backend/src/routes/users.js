@@ -390,7 +390,8 @@ router.get('/', requireRole('admin'), async (req, res) => {
     // Buscar usuários
     const usersResult = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
+             approval_status, access_expires_at, access_duration_days
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC
@@ -927,6 +928,123 @@ router.get('/:id/permissions', requireRole('admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao buscar permissões:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Listar usuários pendentes de aprovação (apenas admin)
+router.get('/pending', requireRole('admin'), async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        id, email, name, tipo, created_at, approval_status, 
+        access_expires_at, access_duration_days
+      FROM users 
+      WHERE approval_status = 'pending'
+      ORDER BY created_at DESC
+    `);
+    
+    res.json({ 
+      data: { 
+        users: result.rows 
+      } 
+    });
+  } catch (error) {
+    console.error('Erro ao listar usuários pendentes:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Aprovar usuário e definir período de acesso (apenas admin)
+router.post('/:id/approve', requireRole('admin'), [
+  body('durationDays').isIn([5, 30, 90, 365]).withMessage('Período inválido. Use: 5, 30, 90 ou 365 dias')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    
+    const { id } = req.params;
+    const { durationDays } = req.body;
+    const adminId = req.user.id;
+    
+    // Verificar se usuário existe e está pendente
+    const userResult = await query(`
+      SELECT id, email, name, approval_status
+      FROM users
+      WHERE id = $1
+    `, [id]);
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+    
+    const user = userResult.rows[0];
+    
+    if (user.approval_status !== 'pending') {
+      return res.status(400).json({ 
+        message: `Usuário já está com status: ${user.approval_status}` 
+      });
+    }
+    
+    // Calcular data de expiração
+    const accessExpiresAt = new Date();
+    accessExpiresAt.setDate(accessExpiresAt.getDate() + durationDays);
+    
+    // Atualizar usuário: aprovar, ativar e definir período
+    await query(`
+      UPDATE users
+      SET 
+        approval_status = 'approved',
+        is_active = true,
+        access_expires_at = $1,
+        access_duration_days = $2
+      WHERE id = $3
+    `, [accessExpiresAt, durationDays, id]);
+    
+    // Garantir permissões padrão
+    const defaultPermissions = ['consultar_listas', 'medias_preco', 'buscar_iphone_barato'];
+    for (const permission of defaultPermissions) {
+      await query(`
+        INSERT INTO user_permissions (user_id, permission_name, granted)
+        VALUES ($1, $2, true)
+        ON CONFLICT (user_id, permission_name) DO UPDATE SET granted = true
+      `, [id, permission]);
+    }
+    
+    // Log da ação
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      adminId,
+      'user_approved',
+      JSON.stringify({ 
+        approved_user_id: id, 
+        approved_user_email: user.email,
+        duration_days: durationDays,
+        expires_at: accessExpiresAt
+      }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+    
+    res.json({
+      message: 'Usuário aprovado com sucesso',
+      data: {
+        user: {
+          id: id,
+          email: user.email,
+          name: user.name,
+          approvalStatus: 'approved',
+          accessExpiresAt: accessExpiresAt,
+          durationDays: durationDays
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao aprovar usuário:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });

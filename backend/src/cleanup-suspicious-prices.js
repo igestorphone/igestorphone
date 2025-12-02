@@ -109,3 +109,6 @@ cleanupSuspiciousPrices()
     process.exit(1);
   });
 
+
+
+

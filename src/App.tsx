@@ -27,6 +27,7 @@ import BugReportsPage from '@/pages/BugReportsPage'
 import GoalsPage from '@/pages/GoalsPage'
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import RegisterPage from '@/pages/RegisterPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -41,6 +42,15 @@ function App() {
           ) : (
             <AuthLayout>
               <LoginPage />
+            </AuthLayout>
+          )
+        } />
+        <Route path="/register/:token" element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AuthLayout>
+              <RegisterPage />
             </AuthLayout>
           )
         } />

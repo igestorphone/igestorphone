@@ -124,3 +124,8 @@ Deve retornar: `{"status":"ok"}`
      - Screenshot das variáveis de ambiente (ocultando valores sensíveis)
      - Mensagem de erro completa
 
+
+
+
+
+

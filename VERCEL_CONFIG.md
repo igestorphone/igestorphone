@@ -120,3 +120,8 @@ Se o backend ainda não está em produção, você precisa deployar ele primeiro
    - F12 → Console → Veja os logs detalhados
    - F12 → Network → Veja as requisições falhando
 
+
+
+
+
+

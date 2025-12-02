@@ -316,4 +316,32 @@ export const usersApi = {
   
   getPermissions: (id: string) =>
     apiClient.get<any>(`/users/${id}/permissions`),
+  
+  getPending: () =>
+    apiClient.get<any>('/users/pending'),
+  
+  approve: (id: string, durationDays: number) =>
+    apiClient.post<any>(`/users/${id}/approve`, { durationDays }),
+}
+
+export const registrationApi = {
+  verifyToken: async (token: string) => {
+    const response = await testApi.get(`/register/${token}`)
+    return response.data
+  },
+  
+  register: async (token: string, data: { name: string; email: string; password: string }) => {
+    const response = await testApi.post(`/register/${token}`, data)
+    return response.data
+  },
+  
+  generateLink: async (expiresInDays?: number) => {
+    const response = await api.post('/registration-links', { expiresInDays })
+    return response.data
+  },
+  
+  getAllLinks: async () => {
+    const response = await api.get('/registration-links')
+    return response.data
+  },
 }
