@@ -523,26 +523,36 @@ export default function ManageUsersPage() {
                     Link de Cadastro:
                   </label>
                   <div className="flex items-center justify-between gap-4">
-                    <a
-                      href={activeLink.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-400 hover:text-blue-300 break-all underline flex-1"
-                    >
-                      {activeLink.url}
-                    </a>
-                    <button
-                      onClick={() => handleCopyLink(activeLink.url)}
-                      className="p-2 text-white/50 hover:text-blue-400 hover:bg-white/5 rounded-lg transition-colors flex-shrink-0"
-                      title="Copiar link"
-                    >
-                      {copiedLink === activeLink.url ? (
-                        <Check className="w-5 h-5 text-green-400" />
-                      ) : (
-                        <Copy className="w-5 h-5" />
-                      )}
-                    </button>
+                    <div className="flex-1 bg-white/5 rounded-lg p-3">
+                      <code className="text-sm text-white/90 break-all">{activeLink.url}</code>
+                    </div>
+                    <div className="flex gap-2">
+                      <a
+                        href={activeLink.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary flex items-center space-x-2"
+                        title="Abrir link em nova aba"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                        <span>Testar Link</span>
+                      </a>
+                      <button
+                        onClick={() => handleCopyLink(activeLink.url)}
+                        className="p-2 text-white/50 hover:text-blue-400 hover:bg-white/5 rounded-lg transition-colors flex-shrink-0"
+                        title="Copiar link"
+                      >
+                        {copiedLink === activeLink.url ? (
+                          <Check className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <Copy className="w-5 h-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
+                  <p className="text-white/50 text-xs mt-3">
+                    Copie este link e envie para a pessoa que deseja cadastrar. Quando ela clicar, será redirecionada para a tela de cadastro.
+                  </p>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-6 text-sm">
