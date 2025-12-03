@@ -120,12 +120,8 @@ router.get('/register/:token', async (req, res) => {
     
     const tokenData = result.rows[0];
     
-    // Verificar se já foi usado
-    if (tokenData.is_used) {
-      return res.status(400).json({ message: 'Este link já foi utilizado' });
-    }
-    
-    // Verificar se expirou
+    // Removido: não verificar mais se foi usado (permite múltiplos cadastros)
+    // Apenas verificar se expirou
     if (new Date(tokenData.expires_at) < new Date()) {
       return res.status(400).json({ message: 'Este link expirou' });
     }
@@ -181,10 +177,8 @@ router.post('/register/:token', [
     
     const tokenData = tokenResult.rows[0];
     
-    if (tokenData.is_used) {
-      return res.status(400).json({ message: 'Este link já foi utilizado' });
-    }
-    
+    // Removido: não verificar mais se foi usado (permite múltiplos cadastros)
+    // Apenas verificar se expirou
     if (new Date(tokenData.expires_at) < new Date()) {
       return res.status(400).json({ message: 'Este link expirou' });
     }
@@ -228,12 +222,8 @@ router.post('/register/:token', [
     
     const user = userResult.rows[0];
     
-    // Marcar token como usado
-    await query(`
-      UPDATE registration_tokens
-      SET is_used = true, used_at = CURRENT_TIMESTAMP, used_by = $1
-      WHERE id = $2
-    `, [user.id, tokenData.id]);
+    // Removido: não marcar token como usado (permite múltiplos cadastros com o mesmo link)
+    // Apenas registrar o uso no log para histórico
     
     // Log da ação
     await query(`
