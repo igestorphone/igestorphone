@@ -724,7 +724,7 @@ router.put('/:id', requireRole('admin'), [
     const { id } = req.params;
     const { 
       nome, email, senha, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, isActive,
-      subscription, permissions
+      subscription, permissions, renewAccess, durationDays
     } = req.body;
 
     // Verificar se usuário existe
@@ -811,6 +811,61 @@ router.put('/:id', requireRole('admin'), [
     if (isActive !== undefined) {
       updates.push(`is_active = $${paramCount++}`);
       values.push(isActive);
+    }
+
+    // Renovar/perlongar acesso se solicitado
+    if (renewAccess && durationDays) {
+      // Verificar se durationDays é válido
+      if (![5, 30, 90, 365].includes(durationDays)) {
+        return res.status(400).json({ message: 'Período inválido. Use: 5, 30, 90 ou 365 dias' });
+      }
+      
+      // Buscar data de expiração atual do usuário
+      const currentUserResult = await query(`
+        SELECT access_expires_at, is_active
+        FROM users 
+        WHERE id = $1
+      `, [id]);
+      
+      if (currentUserResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+      
+      const currentUser = currentUserResult.rows[0];
+      let newExpiresAt;
+      
+      // Se já tem data de expiração e ainda não expirou, prolongar a partir dela
+      // Se não tem ou já expirou, calcular a partir de agora
+      if (currentUser.access_expires_at) {
+        const currentExpiresAt = new Date(currentUser.access_expires_at);
+        const now = new Date();
+        
+        if (currentExpiresAt > now) {
+          // Prolongar a partir da data atual de expiração
+          newExpiresAt = new Date(currentExpiresAt);
+          newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
+        } else {
+          // Renovar a partir de agora (já expirou)
+          newExpiresAt = new Date();
+          newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
+        }
+      } else {
+        // Primeira vez definindo período
+        newExpiresAt = new Date();
+        newExpiresAt.setDate(newExpiresAt.getDate() + durationDays);
+      }
+      
+      updates.push(`access_expires_at = $${paramCount++}`);
+      values.push(newExpiresAt);
+      
+      updates.push(`access_duration_days = $${paramCount++}`);
+      values.push(durationDays);
+      
+      // Ativar usuário se estava inativo (renovação)
+      if (!currentUser.is_active) {
+        updates.push(`is_active = $${paramCount++}`);
+        values.push(true);
+      }
     }
 
     if (updates.length > 0) {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2 } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { usersApi } from '@/lib/api';
 
 interface UserFormData {
@@ -24,6 +25,9 @@ const EditUserPage: React.FC = () => {
   const [loadingUser, setLoadingUser] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [accessExpiresAt, setAccessExpiresAt] = useState<string | null>(null);
+  const [renewAccess, setRenewAccess] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(30);
   
   const [formData, setFormData] = useState<UserFormData>({
     nome: '',
@@ -67,6 +71,9 @@ const EditUserPage: React.FC = () => {
         isActive: user.is_active !== false,
         permissions: user.tipo === 'admin' ? (user.permissions || []) : ['consultar_listas', 'medias_preco', 'buscar_iphone_barato']
       });
+      
+      // Carregar data de expiração do acesso
+      setAccessExpiresAt(user.access_expires_at || null);
     } catch (error: any) {
       console.error('Erro ao carregar usuário:', error);
       setErrors({ submit: error.response?.data?.message || 'Erro ao carregar dados do usuário' });
@@ -140,8 +147,15 @@ const EditUserPage: React.FC = () => {
       if (formData.senha) {
         updateData.senha = formData.senha;
       }
+      
+      // Incluir renovação de acesso se solicitada
+      if (renewAccess) {
+        updateData.renewAccess = true;
+        updateData.durationDays = selectedDuration;
+      }
 
       await usersApi.update(id!, updateData);
+      toast.success('Usuário atualizado com sucesso!');
       navigate('/manage-users');
     } catch (error: any) {
       console.error('Erro ao atualizar usuário:', error);
@@ -371,6 +385,88 @@ const EditUserPage: React.FC = () => {
             </div>
           </motion.div>
 
+          {/* Renovar Acesso */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.1 }}
+          >
+            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-purple-400" />
+              Renovar/Prolongar Acesso
+            </h3>
+            <div className="glass rounded-lg p-6 border border-white/10 space-y-4">
+              {accessExpiresAt && (
+                <div className="flex items-center space-x-2 text-white/70 mb-4">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">
+                    {new Date(accessExpiresAt) > new Date() ? (
+                      <>Acesso válido até: <strong className="text-white">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
+                    ) : (
+                      <>Acesso expirado em: <strong className="text-red-400">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
+                    )}
+                  </span>
+                </div>
+              )}
+              
+              <div className="flex items-center space-x-3 mb-4">
+                <input
+                  type="checkbox"
+                  id="renewAccess"
+                  checked={renewAccess}
+                  onChange={(e) => setRenewAccess(e.target.checked)}
+                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="renewAccess" className="text-white font-medium cursor-pointer">
+                  Renovar/Prolongar período de acesso
+                </label>
+              </div>
+              
+              {renewAccess && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-4"
+                >
+                  <p className="text-white/70 text-sm">
+                    {accessExpiresAt && new Date(accessExpiresAt) > new Date() 
+                      ? 'O período será prolongado a partir da data de expiração atual.'
+                      : 'O período será calculado a partir de hoje.'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[5, 30, 90, 365].map((days) => (
+                      <button
+                        key={days}
+                        type="button"
+                        onClick={() => setSelectedDuration(days as 5 | 30 | 90 | 365)}
+                        className={`p-4 rounded-lg border transition-colors ${
+                          selectedDuration === days
+                            ? 'bg-purple-500/20 border-purple-500 text-white'
+                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="font-semibold text-lg">
+                            {days === 5 && '5 dias'}
+                            {days === 30 && '30 dias'}
+                            {days === 90 && '90 dias'}
+                            {days === 365 && '1 ano'}
+                          </div>
+                          <div className="text-xs opacity-70 mt-1">
+                            {days === 5 && '(Demonstração)'}
+                            {days === 30 && '(1 mês)'}
+                            {days === 90 && '(3 meses)'}
+                            {days === 365 && '(Anual)'}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          </motion.div>
 
           {/* Status */}
           <motion.div
