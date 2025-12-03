@@ -938,15 +938,30 @@ router.get('/:id/permissions', requireRole('admin'), async (req, res) => {
 // Listar usuários pendentes de aprovação (apenas admin)
 router.get('/pending', requireRole('admin'), async (req, res) => {
   try {
-    const result = await query(`
-      SELECT 
-        id, email, name, tipo, created_at, 
-        COALESCE(approval_status, 'pending') as approval_status,
-        access_expires_at, access_duration_days
-      FROM users 
-      WHERE COALESCE(approval_status, 'pending') = 'pending'
-      ORDER BY created_at DESC
+    // Verificar se a coluna approval_status existe
+    const columnCheck = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'approval_status'
     `);
+    
+    let result;
+    if (columnCheck.rows.length > 0) {
+      // Coluna existe, buscar usuários pendentes
+      result = await query(`
+        SELECT 
+          id, email, name, tipo, created_at, 
+          COALESCE(approval_status, 'pending') as approval_status,
+          access_expires_at, access_duration_days
+        FROM users 
+        WHERE COALESCE(approval_status, 'pending') = 'pending'
+        ORDER BY created_at DESC
+      `);
+    } else {
+      // Coluna não existe ainda, retornar array vazio
+      console.warn('⚠️ Coluna approval_status não existe no banco. Execute a migração add-registration-system.js');
+      result = { rows: [] };
+    }
     
     res.json({ 
       data: { 
