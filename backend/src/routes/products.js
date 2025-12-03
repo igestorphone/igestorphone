@@ -8,7 +8,7 @@ const router = express.Router();
 // Buscar produtos com filtros
 router.get('/', [
   queryValidator('page').optional().isInt({ min: 1 }),
-  queryValidator('limit').optional().isInt({ min: 1, max: 1000 }), // Aumentar limite para 1000
+  queryValidator('limit').optional().isInt({ min: 1, max: 10000 }), // Limite aumentado para 10.000 produtos
   queryValidator('search').optional().trim(),
   queryValidator('supplier_id').optional().custom((value) => {
     // Aceitar string vazia ou número inteiro

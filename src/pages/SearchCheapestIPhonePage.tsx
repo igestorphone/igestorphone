@@ -187,7 +187,7 @@ export default function SearchCheapestIPhonePage() {
         date: selectedDate || undefined,
         sort_by: 'price',
         sort_order: 'asc',
-        limit: 500
+        limit: 5000
       }),
     enabled: shouldFetchProducts,
     staleTime: 10000,

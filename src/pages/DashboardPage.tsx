@@ -55,7 +55,7 @@ export default function DashboardPage() {
 
       // Buscar dados de produtos
       try {
-        const productsResponse = await api.get('/products', { params: { limit: 1000 } })
+        const productsResponse = await api.get('/products', { params: { limit: 5000 } })
         // A resposta pode vir como { products: [...], pagination: {...} } ou { data: { products: [...] } }
         const productPayload = productsResponse.data?.products || productsResponse.data || []
 

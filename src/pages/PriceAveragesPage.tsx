@@ -41,7 +41,7 @@ export default function PriceAveragesPage() {
     queryFn: async () => {
       const response = await api.get('/products', {
         params: {
-          limit: 1000,
+          limit: 5000,
           is_active: true
         }
       })
