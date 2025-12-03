@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, Shield, Eye, EyeOff, Save, ArrowLeft } from 'lucide-react';
 import { usersApi } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface UserFormData {
   nome: string;
@@ -87,7 +88,7 @@ const CreateUserPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await usersApi.create({
+      const response = await usersApi.create({
         nome: formData.nome,
         email: formData.email,
         senha: formData.senha,
@@ -97,6 +98,7 @@ const CreateUserPage: React.FC = () => {
         permissions: formData.permissions
       });
       
+      toast.success('Usuário criado com sucesso!');
       navigate('/manage-users');
     } catch (error: any) {
       console.error('Erro ao criar usuário:', error);
