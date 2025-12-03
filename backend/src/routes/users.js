@@ -426,10 +426,60 @@ router.get('/', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Listar usuários pendentes de aprovação (apenas admin)
+// IMPORTANTE: Esta rota deve vir ANTES da rota /:id para não capturar "pending" como ID
+router.get('/pending', requireRole('admin'), async (req, res) => {
+  try {
+    // Verificar se a coluna approval_status existe
+    const columnCheck = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'approval_status'
+    `);
+    
+    let result;
+    if (columnCheck.rows.length > 0) {
+      // Coluna existe, buscar usuários pendentes
+      result = await query(`
+        SELECT 
+          id, email, name, tipo, created_at, 
+          COALESCE(approval_status, 'pending') as approval_status,
+          access_expires_at, access_duration_days
+        FROM users 
+        WHERE COALESCE(approval_status, 'pending') = 'pending'
+        ORDER BY created_at DESC
+      `);
+    } else {
+      // Coluna não existe ainda, retornar array vazio
+      console.warn('⚠️ Coluna approval_status não existe no banco. Execute a migração add-registration-system.js');
+      result = { rows: [] };
+    }
+    
+    res.json({ 
+      data: { 
+        users: result.rows 
+      } 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao listar usuários pendentes:', error);
+    console.error('❌ Detalhes do erro:', error.message);
+    console.error('❌ Stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Erro ao buscar usuários pendentes',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Buscar usuário por ID
 router.get('/:id', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Verificar se não é "pending" (deve ter sido capturado pela rota acima)
+    if (id === 'pending') {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
 
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
@@ -934,49 +984,6 @@ router.get('/:id/permissions', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Listar usuários pendentes de aprovação (apenas admin)
-router.get('/pending', requireRole('admin'), async (req, res) => {
-  try {
-    // Verificar se a coluna approval_status existe
-    const columnCheck = await query(`
-      SELECT column_name 
-      FROM information_schema.columns 
-      WHERE table_name = 'users' AND column_name = 'approval_status'
-    `);
-    
-    let result;
-    if (columnCheck.rows.length > 0) {
-      // Coluna existe, buscar usuários pendentes
-      result = await query(`
-        SELECT 
-          id, email, name, tipo, created_at, 
-          COALESCE(approval_status, 'pending') as approval_status,
-          access_expires_at, access_duration_days
-        FROM users 
-        WHERE COALESCE(approval_status, 'pending') = 'pending'
-        ORDER BY created_at DESC
-      `);
-    } else {
-      // Coluna não existe ainda, retornar array vazio
-      console.warn('⚠️ Coluna approval_status não existe no banco. Execute a migração add-registration-system.js');
-      result = { rows: [] };
-    }
-    
-    res.json({ 
-      data: { 
-        users: result.rows 
-      } 
-    });
-  } catch (error) {
-    console.error('❌ Erro ao listar usuários pendentes:', error);
-    console.error('❌ Detalhes do erro:', error.message);
-    console.error('❌ Stack:', error.stack);
-    res.status(500).json({ 
-      message: 'Erro ao buscar usuários pendentes',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
 
 // Aprovar usuário e definir período de acesso (apenas admin)
 router.post('/:id/approve', requireRole('admin'), [
