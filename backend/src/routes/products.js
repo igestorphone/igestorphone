@@ -80,16 +80,68 @@ router.get('/', [
       const hasMultipleWords = searchWords.length > 1;
       
       if (hasMultipleWords) {
-        // Busca específica: usar o termo completo como está (ex: "iphone 16", "iphone 15 pro max")
-        // Buscar no model para encontrar correspondência exata ou parcial do modelo
+        // Busca específica e precisa: detectar variantes para evitar resultados incorretos
+        // Ex: "iphone 17 pro" não deve mostrar "iphone 17 pro max"
+        
+        // Detectar se busca contém "pro" mas não "max"
+        const hasPro = searchWords.includes('pro');
+        const hasMax = searchWords.includes('max');
+        const hasPlus = searchWords.includes('plus');
+        
+        // Construir busca precisa
+        // Buscar o termo completo no name ou model
         whereClause += ` AND (
           LOWER(p.name) LIKE $${paramCount} 
           OR LOWER(p.model) LIKE $${paramCount}
           OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
         )`;
-        // Usar busca que contenha o termo (ex: "iphone 16" encontra "iPhone 16", "iPhone 16 Pro", etc)
         values.push(`%${searchLower}%`);
         paramCount++;
+        
+        // Se busca "pro" sem "max", excluir resultados com "max"
+        if (hasPro && !hasMax) {
+          whereClause += ` AND (
+            LOWER(p.name) NOT LIKE '%max%'
+            AND LOWER(p.model) NOT LIKE '%max%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%max%'
+          )`;
+        }
+        
+        // Se busca "pro" e "max", garantir que ambos estejam presentes
+        if (hasPro && hasMax) {
+          whereClause += ` AND (
+            LOWER(p.name) LIKE '%max%'
+            OR LOWER(p.model) LIKE '%max%'
+            OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE '%max%'
+          )`;
+        }
+        
+        // Se busca tem "plus" mas não "pro", excluir "pro" e "max"
+        if (hasPlus && !hasPro) {
+          whereClause += ` AND (
+            LOWER(p.name) NOT LIKE '%pro%'
+            AND LOWER(p.model) NOT LIKE '%pro%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%pro%'
+            AND LOWER(p.name) NOT LIKE '%max%'
+            AND LOWER(p.model) NOT LIKE '%max%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%max%'
+          )`;
+        }
+        
+        // Se busca tem número (ex: "17"), garantir que não mostre modelos diferentes
+        // Ex: "iphone 17" não deve mostrar "iphone 16"
+        const numberMatch = searchLower.match(/(\d+)/);
+        if (numberMatch) {
+          const number = numberMatch[1];
+          // Garantir que o número esteja presente
+          whereClause += ` AND (
+            LOWER(p.name) LIKE $${paramCount}
+            OR LOWER(p.model) LIKE $${paramCount}
+            OR LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) LIKE $${paramCount}
+          )`;
+          values.push(`%${number}%`);
+          paramCount++;
+        }
       } else {
         // Busca genérica de uma palavra: identificar tipo de produto
         let searchPattern = '';
