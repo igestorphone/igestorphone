@@ -208,6 +208,36 @@ export default function ManageUsersPage() {
     }
   };
 
+  const fetchExpiringUsers = async () => {
+    try {
+      setExpiringLoading(true);
+      const response = await usersApi.getExpiring();
+      console.log('📅 Resposta da API getExpiring:', response);
+      
+      // Backend retorna { data: { expired: [], expiring_3_days: [], ... } }
+      // apiClient.get retorna response.data
+      const data = (response as any).data || {};
+      setExpiringUsers({
+        expired: data.expired || [],
+        expiring_3_days: data.expiring_3_days || [],
+        expiring_7_days: data.expiring_7_days || [],
+        expiring_30_days: data.expiring_30_days || []
+      });
+      
+      console.log('📅 Usuários próximos do vencimento carregados:', {
+        expired: data.expired?.length || 0,
+        expiring_3_days: data.expiring_3_days?.length || 0,
+        expiring_7_days: data.expiring_7_days?.length || 0,
+        expiring_30_days: data.expiring_30_days?.length || 0
+      });
+    } catch (error: any) {
+      console.error('❌ Erro ao buscar usuários próximos do vencimento:', error);
+      toast.error(error.response?.data?.message || 'Erro ao carregar usuários próximos do vencimento');
+    } finally {
+      setExpiringLoading(false);
+    }
+  };
+
   const handleGenerateLink = async () => {
     try {
       const response = await registrationApi.generateLink(7);
