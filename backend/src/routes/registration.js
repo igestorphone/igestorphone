@@ -149,7 +149,10 @@ router.post('/register/:token', [
   body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
   body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
   body('endereco').optional().trim(),
-  body('data_nascimento').optional().isISO8601().withMessage('Data de nascimento inválida')
+  body('data_nascimento').optional().isISO8601().withMessage('Data de nascimento inválida'),
+  body('whatsapp').notEmpty().trim().withMessage('WhatsApp é obrigatório'),
+  body('nome_loja').notEmpty().trim().withMessage('Nome da loja é obrigatório'),
+  body('cnpj').optional().trim()
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -158,7 +161,12 @@ router.post('/register/:token', [
     }
     
     const { token } = req.params;
-    const { name, email, password, endereco, data_nascimento } = req.body;
+    const { name, email, password, endereco, data_nascimento, whatsapp, nome_loja, cnpj } = req.body;
+    
+    // Verificar se CNPJ tem 14 dígitos (se fornecido)
+    if (cnpj && cnpj.replace(/\D/g, '').length !== 14) {
+      return res.status(400).json({ message: 'CNPJ inválido. Deve ter 14 dígitos.' });
+    }
     
     // Verificar token
     const tokenResult = await query(`
@@ -191,14 +199,32 @@ router.post('/register/:token', [
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(password, saltRounds);
     
+    // Adicionar colunas se não existirem (executar individualmente para evitar erro)
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`).catch(() => {});
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nome_loja VARCHAR(255)`).catch(() => {});
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`).catch(() => {});
+    
     // Criar usuário com status pendente
     const userResult = await query(`
       INSERT INTO users (
-        name, email, password_hash, tipo, is_active, approval_status, endereco, data_nascimento
+        name, email, password_hash, tipo, is_active, approval_status, 
+        endereco, data_nascimento, whatsapp, nome_loja, cnpj
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id, name, email, tipo, approval_status, created_at
-    `, [name, email, passwordHash, 'user', false, 'pending', endereco || null, data_nascimento || null]);
+    `, [
+      name, 
+      email, 
+      passwordHash, 
+      'user', 
+      false, 
+      'pending', 
+      endereco || null, 
+      data_nascimento || null,
+      whatsapp || null,
+      nome_loja || null,
+      cnpj ? cnpj.replace(/\D/g, '') : null
+    ]);
     
     const user = userResult.rows[0];
     

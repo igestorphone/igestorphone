@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2, Calendar, MapPin } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2, Calendar, MapPin, Phone, Building2, FileText } from 'lucide-react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { registrationApi } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -26,7 +26,21 @@ const registerSchema = z.object({
     .min(1, 'Endereço é obrigatório'),
   data_nascimento: z
     .string()
-    .min(1, 'Data de nascimento é obrigatória')
+    .min(1, 'Data de nascimento é obrigatória'),
+  whatsapp: z
+    .string()
+    .min(1, 'WhatsApp é obrigatório')
+    .regex(/^[0-9\s\(\)\-\+]+$/, 'Formato de WhatsApp inválido'),
+  nome_loja: z
+    .string()
+    .min(1, 'Nome da loja é obrigatório')
+    .min(2, 'Nome da loja deve ter pelo menos 2 caracteres'),
+  cnpj: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.replace(/\D/g, '').length === 14, {
+      message: 'CNPJ inválido (deve ter 14 dígitos)'
+    })
 })
 
 type RegisterForm = z.infer<typeof registerSchema>
@@ -82,11 +96,13 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         endereco: data.endereco,
-        data_nascimento: data.data_nascimento
+        data_nascimento: data.data_nascimento,
+        whatsapp: data.whatsapp,
+        nome_loja: data.nome_loja,
+        cnpj: data.cnpj || null
       })
       
       setRegistered(true)
-      toast.success('Cadastro realizado! Aguarde aprovação do administrador.')
     } catch (error: any) {
       const message = error.response?.data?.message || 'Erro ao realizar cadastro'
       toast.error(message)
@@ -139,15 +155,20 @@ export default function RegisterPage() {
           className="glass rounded-2xl p-8 max-w-md w-full text-center"
         >
           <CheckCircle2 className="w-16 h-16 text-green-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Cadastro Realizado!</h2>
-          <p className="text-white/70 mb-6">
-            Seu cadastro foi realizado com sucesso. Aguarde a aprovação do administrador para acessar o sistema.
-          </p>
+          <h2 className="text-2xl font-bold text-white mb-2">Cadastro Concluído com Sucesso!</h2>
+          <div className="space-y-3 mb-6">
+            <p className="text-white/90 font-medium">
+              Seu cadastro foi enviado para aprovação do administrador.
+            </p>
+            <p className="text-white/70 text-sm">
+              Você receberá um e-mail assim que sua conta for aprovada. Aguarde a confirmação para acessar o sistema.
+            </p>
+          </div>
           <Link
             to="/login"
             className="btn-primary inline-block"
           >
-            Ir para Login
+            Voltar para Login
           </Link>
         </motion.div>
       </div>
@@ -307,6 +328,114 @@ export default function RegisterPage() {
             >
               <AlertCircle className="w-4 h-4" />
               <span>{errors.data_nascimento.message}</span>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* WhatsApp field */}
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.75, duration: 0.5 }}
+        >
+          <label htmlFor="whatsapp" className="block text-sm font-medium text-white/90">
+            WhatsApp *
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Phone className="h-5 w-5 text-white/40" />
+            </div>
+            <input
+              {...register('whatsapp')}
+              type="tel"
+              id="whatsapp"
+              className={`input-primary w-full pl-11 pr-4 py-3 text-base ${
+                errors.whatsapp ? 'input-error' : ''
+              }`}
+              placeholder="(11) 99999-9999"
+            />
+          </div>
+          {errors.whatsapp && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.whatsapp.message}</span>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* Nome da Loja field */}
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.77, duration: 0.5 }}
+        >
+          <label htmlFor="nome_loja" className="block text-sm font-medium text-white/90">
+            Nome da Loja *
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Building2 className="h-5 w-5 text-white/40" />
+            </div>
+            <input
+              {...register('nome_loja')}
+              type="text"
+              id="nome_loja"
+              className={`input-primary w-full pl-11 pr-4 py-3 text-base ${
+                errors.nome_loja ? 'input-error' : ''
+              }`}
+              placeholder="Nome da sua loja"
+            />
+          </div>
+          {errors.nome_loja && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.nome_loja.message}</span>
+            </motion.div>
+          )}
+        </motion.div>
+
+        {/* CNPJ field (opcional) */}
+        <motion.div 
+          className="space-y-2"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.79, duration: 0.5 }}
+        >
+          <label htmlFor="cnpj" className="block text-sm font-medium text-white/90">
+            CNPJ <span className="text-white/50">(opcional)</span>
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FileText className="h-5 w-5 text-white/40" />
+            </div>
+            <input
+              {...register('cnpj')}
+              type="text"
+              id="cnpj"
+              className={`input-primary w-full pl-11 pr-4 py-3 text-base ${
+                errors.cnpj ? 'input-error' : ''
+              }`}
+              placeholder="00.000.000/0000-00"
+            />
+          </div>
+          {errors.cnpj && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center space-x-2 text-red-400 text-sm"
+            >
+              <AlertCircle className="w-4 h-4" />
+              <span>{errors.cnpj.message}</span>
             </motion.div>
           )}
         </motion.div>
