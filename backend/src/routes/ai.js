@@ -533,61 +533,12 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       return res.status(400).json({ message: 'Fornecedor não encontrado ou inativo' });
     }
 
-    // IMPORTANTE: Antes de salvar novos produtos, desativar produtos do mesmo fornecedor processados HOJE
-    // Isso garante que ao reprocessar a lista no mesmo dia, os produtos antigos sejam substituídos pelos novos
-    // MAS: Buscar produtos existentes ANTES de desativar, para poder reativá-los depois
+    // NOVA LÓGICA: Não desativar produtos existentes
+    // Apenas atualizar/adicionar produtos da lista atual
+    // Produtos que não estão na lista permanecem ativos
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     console.log(`🔄 Preparando para processar lista do fornecedor ${finalSupplierId} (${today})...`);
-    
-    // Buscar IDs dos produtos que serão processados hoje (para reativá-los depois)
-    const todayProductsResult = await query(`
-      SELECT id FROM products 
-      WHERE supplier_id = $1 
-        AND DATE(updated_at) = $2
-        AND is_active = true
-    `, [finalSupplierId, today]);
-    
-    // Desativar produtos do mesmo fornecedor processados HOJE
-    const deactivatedResult = await query(`
-      UPDATE products 
-      SET is_active = false 
-      WHERE supplier_id = $1 
-        AND DATE(updated_at) = $2
-        AND is_active = true
-      RETURNING id
-    `, [finalSupplierId, today]);
-    
-    console.log(`✅ ${deactivatedResult.rows.length} produtos desativados (serão reativados/atualizados se estiverem na nova lista)`);
-    
-    // IMPORTANTE: Desativar também produtos de vitrine/seminovos do mesmo fornecedor
-    // Isso garante que ao reprocessar uma lista, os produtos de vitrine que entraram anteriormente sejam removidos
-    const vitrineDeactivatedResult = await query(`
-      UPDATE products 
-      SET is_active = false 
-      WHERE supplier_id = $1 
-        AND is_active = true
-        AND (
-          condition_detail ILIKE '%VITRINE%' 
-          OR condition_detail ILIKE '%SWAP%' 
-          OR condition_detail ILIKE '%SEMINOVO%' 
-          OR condition_detail ILIKE '%USADO%'
-          OR condition_detail ILIKE '%RECONDICIONADO%'
-          OR variant ILIKE '%VITRINE%'
-          OR variant ILIKE '%SWAP%'
-          OR variant ILIKE '%SEMINOVO%'
-          OR name ILIKE '%VITRINE%'
-          OR name ILIKE '%SWAP%'
-          OR name ILIKE '%SEMINOVO%'
-          OR model ILIKE '%VITRINE%'
-          OR model ILIKE '%SWAP%'
-          OR model ILIKE '%SEMINOVO%'
-        )
-      RETURNING id
-    `, [finalSupplierId]);
-    
-    if (vitrineDeactivatedResult.rows.length > 0) {
-      console.log(`🚫 ${vitrineDeactivatedResult.rows.length} produtos de vitrine/seminovos desativados do fornecedor`);
-    }
+    console.log(`ℹ️  Produtos existentes não serão desativados. Apenas serão atualizados os que estão na nova lista.`);
 
     // Salvar produtos validados
     const savedProducts = [];
