@@ -365,8 +365,93 @@ router.put('/change-password', [
   }
 });
 
+// Criar novo usuário (apenas admin)
+router.post('/', authenticateToken, requireRole('admin'), [
+  body('nome').notEmpty().trim().withMessage('Nome é obrigatório'),
+  body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
+  body('senha').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
+  body('tipo').optional().isIn(['admin', 'manager', 'user', 'viewer']).withMessage('Tipo inválido')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { 
+      nome, email, senha, tipo = 'user', telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
+      subscription, permissions, is_active = true
+    } = req.body;
+
+    // Verificar se email já existe
+    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'Email já está em uso' });
+    }
+
+    // Hash da senha
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const passwordHash = await bcrypt.hash(senha, saltRounds);
+
+    // Criar usuário
+    const userResult = await query(`
+      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      RETURNING id, name, email, tipo, created_at, is_active
+    `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+
+    const user = userResult.rows[0];
+
+    // Criar assinatura se fornecida
+    if (subscription) {
+      const { planType, durationMonths, price, autoRenew } = subscription;
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + durationMonths);
+
+      await query(`
+        INSERT INTO subscriptions (user_id, plan_name, status, plan_type, duration_months, price, start_date, end_date, auto_renew)
+        VALUES ($1, $2, 'active', $3, $4, $5, $6, $7, $8)
+      `, [user.id, planType, planType, durationMonths, price, startDate, endDate, autoRenew]);
+    }
+
+    // Definir permissões
+    const defaultPermissions = ['consultar_listas', 'medias_preco', 'buscar_iphone_barato'];
+    const userPermissions = permissions && permissions.length > 0 ? permissions : defaultPermissions;
+    
+    for (const permission of userPermissions) {
+      await query(`
+        INSERT INTO user_permissions (user_id, permission_name, granted)
+        VALUES ($1, $2, true)
+        ON CONFLICT (user_id, permission_name) DO UPDATE SET granted = true
+      `, [user.id, permission]);
+    }
+
+    // Log da ação
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      req.user.id,
+      'user_created_by_admin',
+      JSON.stringify({ created_user_id: user.id, email: user.email }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+
+    res.status(201).json({ 
+      message: 'Usuário criado com sucesso',
+      user 
+    });
+
+  } catch (error) {
+    console.error('Erro ao criar usuário:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 // Listar todos os usuários (apenas admin)
-router.get('/', requireRole('admin'), async (req, res) => {
+router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const { page = 1, limit = 100, search = '', status = '' } = req.query; // Aumentar limite para ver mais usuários
     const offset = (page - 1) * limit;

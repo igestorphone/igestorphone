@@ -72,11 +72,42 @@ export default function RegisterPage() {
       }
 
       try {
-        const response = await registrationApi.verifyToken(token)
+        console.log('🔍 Verificando token:', token)
+        
+        // Timeout de 15 segundos para evitar travamento
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout: A verificação do token está demorando muito.')), 15000)
+        )
+        
+        const verifyPromise = registrationApi.verifyToken(token)
+        const response = await Promise.race([verifyPromise, timeoutPromise]) as any
+        
+        console.log('✅ Token válido:', response)
         setTokenValid(true)
       } catch (error: any) {
-        const message = error.response?.data?.message || 'Token inválido ou expirado'
-        toast.error(message)
+        console.error('❌ Erro ao verificar token:', error)
+        console.error('❌ Response:', error.response)
+        console.error('❌ Status:', error.response?.status)
+        console.error('❌ Data:', error.response?.data)
+        console.error('❌ Message:', error.message)
+        
+        let message = 'Token inválido ou expirado'
+        
+        if (error.message?.includes('Timeout')) {
+          message = 'A verificação do link está demorando muito. Tente novamente ou verifique sua conexão.'
+        } else if (error.response?.status === 404) {
+          message = 'Link de cadastro inválido. Verifique se copiou o link completo.'
+        } else if (error.response?.status === 400) {
+          message = error.response?.data?.message || 'Este link expirou. Gere um novo link.'
+        } else if (error.response?.status === 500) {
+          message = 'Erro no servidor. Tente novamente mais tarde ou entre em contato com o suporte.'
+        } else if (!error.response) {
+          message = 'Não foi possível conectar ao servidor. Verifique sua conexão e a URL da API.'
+        } else {
+          message = error.response?.data?.message || message
+        }
+        
+        toast.error(message, { duration: 8000 })
         setTokenValid(false)
       } finally {
         setTokenChecking(false)
