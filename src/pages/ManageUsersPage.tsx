@@ -63,7 +63,7 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'pending'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'expiring'>('users');
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
@@ -91,10 +91,26 @@ export default function ManageUsersPage() {
     );
   }
 
+  const [expiringUsers, setExpiringUsers] = useState<{
+    expired: any[];
+    expiring_3_days: any[];
+    expiring_7_days: any[];
+    expiring_30_days: any[];
+  }>({
+    expired: [],
+    expiring_3_days: [],
+    expiring_7_days: [],
+    expiring_30_days: []
+  });
+  const [expiringLoading, setExpiringLoading] = useState(false);
+
   useEffect(() => {
     fetchUsers();
     if (activeTab === 'pending') {
       fetchPendingUsers();
+    }
+    if (activeTab === 'expiring') {
+      fetchExpiringUsers();
     }
     // Carregar link atual se não tiver
     if (!currentRegistrationLink) {
@@ -369,6 +385,23 @@ export default function ManageUsersPage() {
             </span>
           )}
         </button>
+        <button
+          onClick={() => setActiveTab('expiring')}
+          className={`px-4 py-2 font-medium transition-colors relative ${
+            activeTab === 'expiring'
+              ? 'text-white border-b-2 border-blue-500'
+              : 'text-white/60 hover:text-white/80'
+          }`}
+        >
+          Renovações
+          {(expiringUsers.expired.length > 0 || 
+            expiringUsers.expiring_3_days.length > 0 || 
+            expiringUsers.expiring_7_days.length > 0) && (
+            <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {expiringUsers.expired.length + expiringUsers.expiring_3_days.length + expiringUsers.expiring_7_days.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Filters */}
@@ -569,6 +602,222 @@ export default function ManageUsersPage() {
                 </div>
               </motion.div>
             ))
+          )}
+        </div>
+      )}
+
+      {/* Expiring Users Tab */}
+      {activeTab === 'expiring' && (
+        <div className="space-y-6">
+          {expiringLoading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <p className="text-white/70">Carregando usuários próximos do vencimento...</p>
+            </div>
+          ) : (
+            <>
+              {/* Expired Users */}
+              {expiringUsers.expired.length > 0 && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <AlertCircle className="w-5 h-5 text-red-400" />
+                    <h3 className="text-lg font-semibold text-white">Expirados ({expiringUsers.expired.length})</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {expiringUsers.expired.map((user) => (
+                      <motion.div
+                        key={user.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass rounded-xl p-4 border-l-4 border-red-500"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                                Expirado
+                              </span>
+                            </div>
+                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-white/50">
+                              <span>Expirou há {Math.abs(Math.round(user.days_expired || 0))} dias</span>
+                              {user.access_expires_at && (
+                                <span>
+                                  {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="btn-secondary text-sm px-3 py-1"
+                          >
+                            Renovar
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expiring in 3 days */}
+              {expiringUsers.expiring_3_days.length > 0 && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <AlertCircle className="w-5 h-5 text-orange-400" />
+                    <h3 className="text-lg font-semibold text-white">Expirando em até 3 dias ({expiringUsers.expiring_3_days.length})</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {expiringUsers.expiring_3_days.map((user) => (
+                      <motion.div
+                        key={user.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass rounded-xl p-4 border-l-4 border-orange-500"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                                Urgente
+                              </span>
+                            </div>
+                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-white/50">
+                              <span className="text-orange-400 font-semibold">
+                                {Math.round(user.days_remaining || 0)} dias restantes
+                              </span>
+                              {user.access_expires_at && (
+                                <span>
+                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="btn-primary text-sm px-3 py-1"
+                          >
+                            Renovar
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expiring in 7 days */}
+              {expiringUsers.expiring_7_days.length > 0 && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Clock className="w-5 h-5 text-yellow-400" />
+                    <h3 className="text-lg font-semibold text-white">Expirando em até 7 dias ({expiringUsers.expiring_7_days.length})</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {expiringUsers.expiring_7_days.map((user) => (
+                      <motion.div
+                        key={user.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass rounded-xl p-4 border-l-4 border-yellow-500"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                Atenção
+                              </span>
+                            </div>
+                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-white/50">
+                              <span className="text-yellow-400 font-semibold">
+                                {Math.round(user.days_remaining || 0)} dias restantes
+                              </span>
+                              {user.access_expires_at && (
+                                <span>
+                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="btn-secondary text-sm px-3 py-1"
+                          >
+                            Renovar
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Expiring in 30 days */}
+              {expiringUsers.expiring_30_days.length > 0 && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-4">
+                    <Calendar className="w-5 h-5 text-blue-400" />
+                    <h3 className="text-lg font-semibold text-white">Expirando em até 30 dias ({expiringUsers.expiring_30_days.length})</h3>
+                  </div>
+                  <div className="space-y-3">
+                    {expiringUsers.expiring_30_days.map((user) => (
+                      <motion.div
+                        key={user.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="glass rounded-xl p-4 border-l-4 border-blue-500"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-3 mb-2">
+                              <h4 className="text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                                Em breve
+                              </span>
+                            </div>
+                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-white/50">
+                              <span className="text-blue-400">
+                                {Math.round(user.days_remaining || 0)} dias restantes
+                              </span>
+                              {user.access_expires_at && (
+                                <span>
+                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleEditUser(user.id)}
+                            className="btn-secondary text-sm px-3 py-1"
+                          >
+                            Renovar
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {expiringUsers.expired.length === 0 &&
+               expiringUsers.expiring_3_days.length === 0 &&
+               expiringUsers.expiring_7_days.length === 0 &&
+               expiringUsers.expiring_30_days.length === 0 && (
+                <div className="glass rounded-xl p-12 text-center">
+                  <CheckCircle2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhum usuário próximo do vencimento</h3>
+                  <p className="text-white/50">Todos os usuários estão com acesso válido.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -471,6 +471,111 @@ router.get('/pending', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Listar usuários próximos do vencimento (apenas admin)
+// IMPORTANTE: Esta rota deve vir ANTES da rota /:id para não capturar "expiring" como ID
+router.get('/expiring', requireRole('admin'), async (req, res) => {
+  try {
+    // Verificar se a coluna access_expires_at existe
+    const columnCheck = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'access_expires_at'
+    `);
+    
+    if (columnCheck.rows.length === 0) {
+      return res.json({ 
+        data: { 
+          expired: [],
+          expiring_3_days: [],
+          expiring_7_days: [],
+          expiring_30_days: []
+        } 
+      });
+    }
+    
+    const now = new Date();
+    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    
+    // Usuários já expirados
+    const expiredResult = await query(`
+      SELECT 
+        id, email, name, tipo, created_at, is_active,
+        access_expires_at, access_duration_days,
+        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_expired
+      FROM users 
+      WHERE access_expires_at IS NOT NULL
+        AND access_expires_at < NOW()
+        AND is_active = true
+        AND COALESCE(approval_status, 'approved') = 'approved'
+      ORDER BY access_expires_at ASC
+    `);
+    
+    // Usuários expirando em até 3 dias
+    const expiring3DaysResult = await query(`
+      SELECT 
+        id, email, name, tipo, created_at, is_active,
+        access_expires_at, access_duration_days,
+        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
+      FROM users 
+      WHERE access_expires_at IS NOT NULL
+        AND access_expires_at >= NOW()
+        AND access_expires_at <= $1
+        AND is_active = true
+        AND COALESCE(approval_status, 'approved') = 'approved'
+      ORDER BY access_expires_at ASC
+    `, [in3Days]);
+    
+    // Usuários expirando em até 7 dias
+    const expiring7DaysResult = await query(`
+      SELECT 
+        id, email, name, tipo, created_at, is_active,
+        access_expires_at, access_duration_days,
+        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
+      FROM users 
+      WHERE access_expires_at IS NOT NULL
+        AND access_expires_at > $1
+        AND access_expires_at <= $2
+        AND is_active = true
+        AND COALESCE(approval_status, 'approved') = 'approved'
+      ORDER BY access_expires_at ASC
+    `, [in3Days, in7Days]);
+    
+    // Usuários expirando em até 30 dias
+    const expiring30DaysResult = await query(`
+      SELECT 
+        id, email, name, tipo, created_at, is_active,
+        access_expires_at, access_duration_days,
+        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
+      FROM users 
+      WHERE access_expires_at IS NOT NULL
+        AND access_expires_at > $1
+        AND access_expires_at <= $2
+        AND is_active = true
+        AND COALESCE(approval_status, 'approved') = 'approved'
+      ORDER BY access_expires_at ASC
+    `, [in7Days, in30Days]);
+    
+    res.json({ 
+      data: { 
+        expired: expiredResult.rows,
+        expiring_3_days: expiring3DaysResult.rows,
+        expiring_7_days: expiring7DaysResult.rows,
+        expiring_30_days: expiring30DaysResult.rows
+      } 
+    });
+  } catch (error) {
+    console.error('❌ Erro ao listar usuários próximos do vencimento:', error);
+    console.error('❌ Detalhes do erro:', error.message);
+    console.error('❌ Stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Erro ao buscar usuários próximos do vencimento',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // Buscar usuário por ID
 router.get('/:id', requireRole('admin'), async (req, res) => {
   try {

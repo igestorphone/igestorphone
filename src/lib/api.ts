@@ -327,6 +327,9 @@ export const usersApi = {
   getPending: () =>
     apiClient.get<any>('/users/pending'),
   
+  getExpiring: () =>
+    apiClient.get<any>('/users/expiring'),
+  
   approve: (id: string, durationDays: number) =>
     apiClient.post<any>(`/users/${id}/approve`, { durationDays }),
 }
