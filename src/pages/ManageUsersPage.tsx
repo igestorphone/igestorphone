@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Search, Filter, MoreVertical, Calendar, CreditCard, Mail, Phone, Link as LinkIcon, Copy, Check, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Search, Filter, MoreVertical, Calendar, CreditCard, Mail, Phone, Link as LinkIcon, Copy, Check, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
