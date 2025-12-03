@@ -368,15 +368,15 @@ router.put('/change-password', [
 // Listar todos os usuários (apenas admin)
 router.get('/', requireRole('admin'), async (req, res) => {
   try {
-    const { page = 1, limit = 10, search = '', status = '' } = req.query;
+    const { page = 1, limit = 100, search = '', status = '' } = req.query; // Aumentar limite para ver mais usuários
     const offset = (page - 1) * limit;
-
+    
     let whereClause = 'WHERE 1=1';
     const values = [];
     let paramCount = 1;
 
-    // Não mostrar usuários pendentes na lista geral (eles aparecem apenas na aba Pendentes)
-    whereClause += ` AND (approval_status IS NULL OR approval_status != 'pending')`;
+    // Temporariamente mostrar todos os usuários até a migração ser executada
+    // Depois que a migração for executada, podemos adicionar o filtro de volta
     
     if (search) {
       whereClause += ` AND (name ILIKE $${paramCount} OR email ILIKE $${paramCount})`;
@@ -390,11 +390,10 @@ router.get('/', requireRole('admin'), async (req, res) => {
       paramCount++;
     }
 
-    // Buscar usuários
+    // Buscar usuários - usar campos básicos que sempre existem
     const usersResult = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
-             approval_status, access_expires_at, access_duration_days
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC
