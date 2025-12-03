@@ -63,7 +63,8 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [activeTab, setActiveTab] = useState<'users' | 'links' | 'pending'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'pending'>('users');
+  const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [registrationLinks, setRegistrationLinks] = useState<RegistrationLink[]>([]);
@@ -92,13 +93,27 @@ export default function ManageUsersPage() {
 
   useEffect(() => {
     fetchUsers();
-    if (activeTab === 'links') {
-      fetchRegistrationLinks();
-    }
     if (activeTab === 'pending') {
       fetchPendingUsers();
     }
+    // Carregar link atual se não tiver
+    if (!currentRegistrationLink) {
+      loadCurrentLink();
+    }
   }, [activeTab]);
+
+  const loadCurrentLink = async () => {
+    try {
+      const response = await registrationApi.getAllLinks();
+      const links = response.data?.links || [];
+      const activeLink = links.find((link: RegistrationLink) => link.isValid);
+      if (activeLink) {
+        setCurrentRegistrationLink(activeLink.url);
+      }
+    } catch (error) {
+      // Silenciar erro, não é crítico
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -171,14 +186,27 @@ export default function ManageUsersPage() {
 
   const handleGenerateLink = async () => {
     try {
-      const response = await registrationApi.generateLink(linkExpiresIn);
-      toast.success('Link gerado com sucesso!');
+      const response = await registrationApi.generateLink(7);
+      const linkUrl = response.data?.url;
+      if (linkUrl) {
+        setCurrentRegistrationLink(linkUrl);
+        // Copiar automaticamente
+        navigator.clipboard.writeText(linkUrl);
+        toast.success('Link gerado e copiado!');
+      }
       setShowGenerateLinkModal(false);
-      setLinkExpiresIn(7);
-      await fetchRegistrationLinks();
     } catch (error: any) {
       const message = error.response?.data?.message || 'Erro ao gerar link';
       toast.error(message);
+    }
+  };
+
+  const handleCopyRegistrationLink = () => {
+    if (currentRegistrationLink) {
+      navigator.clipboard.writeText(currentRegistrationLink);
+      toast.success('Link copiado!');
+    } else {
+      setShowGenerateLinkModal(true);
     }
   };
 
@@ -285,23 +313,23 @@ export default function ManageUsersPage() {
           <p className="text-white/70 mt-1">Gerencie usuários e suas permissões</p>
         </div>
         <div className="flex items-center space-x-3">
-          {activeTab === 'links' && (
-            <button
-              onClick={() => setShowGenerateLinkModal(true)}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <LinkIcon className="w-4 h-4" />
-              <span>Gerar Link</span>
-            </button>
-          )}
           {activeTab === 'users' && (
-            <button
-              onClick={handleCreateUser}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Criar Usuário</span>
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={handleCopyRegistrationLink}
+                className="btn-primary flex items-center space-x-2"
+              >
+                <LinkIcon className="w-4 h-4" />
+                <span>{currentRegistrationLink ? 'Copiar Link para Cadastro' : 'Convidar Novo Usuário'}</span>
+              </button>
+              <button
+                onClick={handleCreateUser}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Criar Usuário</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -317,16 +345,6 @@ export default function ManageUsersPage() {
           }`}
         >
           Usuários
-        </button>
-        <button
-          onClick={() => setActiveTab('links')}
-          className={`px-4 py-2 font-medium transition-colors relative ${
-            activeTab === 'links'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60 hover:text-white/80'
-          }`}
-        >
-          Links de Cadastro
         </button>
         <button
           onClick={() => setActiveTab('pending')}
@@ -380,6 +398,35 @@ export default function ManageUsersPage() {
       {/* Content based on active tab */}
       {activeTab === 'users' && (
         <>
+      {/* Current Registration Link Card */}
+      {currentRegistrationLink && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass rounded-xl p-6 mb-6"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-white mb-2">Link de Cadastro Ativo</h3>
+              <div className="bg-white/5 rounded-lg p-3 mb-2">
+                <code className="text-sm text-white/90 break-all">{currentRegistrationLink}</code>
+              </div>
+              <p className="text-white/50 text-xs">Copie este link e envie para convidar novos usuários</p>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(currentRegistrationLink);
+                toast.success('Link copiado!');
+              }}
+              className="btn-primary ml-4 flex items-center space-x-2"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Copiar</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
+
       {/* Users List */}
       <div className="space-y-4">
         {filteredUsers.length === 0 ? (
@@ -466,110 +513,6 @@ export default function ManageUsersPage() {
         </>
       )}
 
-      {/* Registration Links Tab */}
-      {activeTab === 'links' && (
-        <div className="space-y-4">
-          {linksLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-white/70">Carregando link...</p>
-            </div>
-          ) : (() => {
-            // Encontrar o link mais recente e válido
-            const activeLink = registrationLinks.find(link => link.isValid) || registrationLinks[0];
-            
-            return !activeLink ? (
-              <div className="glass rounded-xl p-12 text-center">
-                <LinkIcon className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                <p className="text-white/70 mb-6">Nenhum link de cadastro gerado ainda.</p>
-                <button
-                  onClick={() => setShowGenerateLinkModal(true)}
-                  className="btn-primary"
-                >
-                  Gerar Link de Cadastro
-                </button>
-              </div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-xl p-8"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center space-x-3">
-                    <LinkIcon className="w-6 h-6 text-blue-400" />
-                    <h3 className="text-xl font-semibold text-white">Link de Cadastro Ativo</h3>
-                    {activeLink.isValid ? (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30">
-                        Válido
-                      </span>
-                    ) : (
-                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
-                        {activeLink.isUsed ? 'Usado' : 'Expirado'}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setShowGenerateLinkModal(true)}
-                    className="btn-primary flex items-center space-x-2"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                    <span>Gerar Novo Link</span>
-                  </button>
-                </div>
-                
-                <div className="bg-white/5 rounded-lg p-6 mb-6">
-                  <label className="block text-sm font-medium text-white/70 mb-2">
-                    Link de Cadastro:
-                  </label>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex-1 bg-white/5 rounded-lg p-3">
-                      <code className="text-sm text-white/90 break-all">{activeLink.url}</code>
-                    </div>
-                    <div className="flex gap-2">
-                      <a
-                        href={activeLink.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-primary flex items-center space-x-2"
-                        title="Abrir link em nova aba"
-                      >
-                        <LinkIcon className="w-4 h-4" />
-                        <span>Testar Link</span>
-                      </a>
-                      <button
-                        onClick={() => handleCopyLink(activeLink.url)}
-                        className="p-2 text-white/50 hover:text-blue-400 hover:bg-white/5 rounded-lg transition-colors flex-shrink-0"
-                        title="Copiar link"
-                      >
-                        {copiedLink === activeLink.url ? (
-                          <Check className="w-5 h-5 text-green-400" />
-                        ) : (
-                          <Copy className="w-5 h-5" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <p className="text-white/50 text-xs mt-3">
-                    Copie este link e envie para a pessoa que deseja cadastrar. Quando ela clicar, será redirecionada para a tela de cadastro.
-                  </p>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-6 text-sm">
-                  <div>
-                    <span className="text-white/50 block mb-1">Criado em:</span>
-                    <p className="text-white/80">{new Date(activeLink.createdAt).toLocaleString('pt-BR')}</p>
-                  </div>
-                  <div>
-                    <span className="text-white/50 block mb-1">Expira em:</span>
-                    <p className="text-white/80">{new Date(activeLink.expiresAt).toLocaleString('pt-BR')}</p>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })()}
-        </div>
-      )}
 
       {/* Pending Users Tab */}
       {activeTab === 'pending' && (
@@ -697,16 +640,21 @@ export default function ManageUsersPage() {
 
       {/* Approve User Modal */}
       {showApproveModal && userToApprove && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" style={{ zIndex: 9999 }}>
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="glass rounded-xl p-6 w-full max-w-md relative"
+            style={{ background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)' }}
           >
             <h3 className="text-xl font-bold text-white mb-4">Aprovar Usuário</h3>
-            <p className="text-white/70 mb-6">
-              Aprovar <strong>{userToApprove.name}</strong> e definir período de acesso:
+            <p className="text-white/70 mb-4">
+              Aprovar <strong className="text-white">{userToApprove.name}</strong> e definir período de acesso:
             </p>
+            <div className="text-sm text-white/60 mb-6">
+              <p>Email: {userToApprove.email}</p>
+            </div>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-white/90 mb-2">
@@ -726,15 +674,15 @@ export default function ManageUsersPage() {
                       <div className="text-center">
                         <div className="font-semibold">
                           {days === 5 && '5 dias'}
-                          {days === 30 && '1 mês'}
-                          {days === 90 && '3 meses'}
-                          {days === 365 && '1 ano'}
+                          {days === 30 && '30 dias'}
+                          {days === 90 && '90 dias'}
+                          {days === 365 && 'Anual'}
                         </div>
                         <div className="text-xs opacity-70 mt-1">
                           {days === 5 && '(Demonstração)'}
-                          {days === 30 && '(30 dias)'}
-                          {days === 90 && '(90 dias)'}
-                          {days === 365 && '(365 dias)'}
+                          {days === 30 && '(1 mês)'}
+                          {days === 90 && '(3 meses)'}
+                          {days === 365 && '(1 ano)'}
                         </div>
                       </div>
                     </button>
