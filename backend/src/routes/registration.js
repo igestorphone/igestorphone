@@ -32,7 +32,12 @@ router.post('/registration-links', authenticateToken, requireRole('admin'), asyn
     // Gerar URL completa - pegar apenas a primeira URL se tiver múltiplas
     const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
     const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
-    const registrationUrl = `${frontendUrl}/register/${token}`;
+    
+    // Usar rota alternativa mais simples para melhor compatibilidade com Vercel
+    // Opção 1: /r/:token (mais curta, melhor para Vercel)
+    // Opção 2: /cadastro/:token (alternativa em português)
+    // Mantém /register/:token também para compatibilidade
+    const registrationUrl = `${frontendUrl}/r/${token}`;
     
     // Log da ação
     await query(`
@@ -86,7 +91,7 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
     const links = result.rows.map(row => ({
       id: row.id,
       token: row.token,
-      url: `${frontendUrl}/register/${row.token}`,
+      url: `${frontendUrl}/r/${row.token}`,
       createdAt: row.created_at,
       expiresAt: row.expires_at,
       isUsed: row.is_used,

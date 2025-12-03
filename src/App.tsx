@@ -54,6 +54,24 @@ function App() {
             </AuthLayout>
           )
         } />
+        <Route path="/cadastro/:token" element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AuthLayout>
+              <RegisterPage />
+            </AuthLayout>
+          )
+        } />
+        <Route path="/r/:token" element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AuthLayout>
+              <RegisterPage />
+            </AuthLayout>
+          )
+        } />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <MainLayout />
