@@ -940,10 +940,11 @@ router.get('/pending', requireRole('admin'), async (req, res) => {
   try {
     const result = await query(`
       SELECT 
-        id, email, name, tipo, created_at, approval_status, 
+        id, email, name, tipo, created_at, 
+        COALESCE(approval_status, 'pending') as approval_status,
         access_expires_at, access_duration_days
       FROM users 
-      WHERE approval_status = 'pending'
+      WHERE COALESCE(approval_status, 'pending') = 'pending'
       ORDER BY created_at DESC
     `);
     
@@ -953,8 +954,13 @@ router.get('/pending', requireRole('admin'), async (req, res) => {
       } 
     });
   } catch (error) {
-    console.error('Erro ao listar usuários pendentes:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    console.error('❌ Erro ao listar usuários pendentes:', error);
+    console.error('❌ Detalhes do erro:', error.message);
+    console.error('❌ Stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Erro ao buscar usuários pendentes',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
