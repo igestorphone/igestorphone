@@ -173,11 +173,19 @@ export default function ManageUsersPage() {
     try {
       setPendingLoading(true);
       const response = await usersApi.getPending();
-      // Backend retorna { users: [...] } ou { data: { users: [...] } }
-      const users = (response as any).users || (response as any).data?.users || [];
+      console.log('📋 Resposta da API getPending:', response);
+      
+      // Backend retorna { data: { users: [...] } }
+      // apiClient.get retorna response.data, então temos { data: { users: [...] } }
+      const users = (response as any).data?.users || (response as any).users || [];
+      console.log('⏳ Usuários pendentes:', users);
       setPendingUsers(users);
+      
+      if (users.length === 0) {
+        console.log('ℹ️ Nenhum usuário pendente encontrado');
+      }
     } catch (error: any) {
-      console.error('Erro ao buscar usuários pendentes:', error);
+      console.error('❌ Erro ao buscar usuários pendentes:', error);
       toast.error(error.response?.data?.message || 'Erro ao carregar usuários pendentes');
     } finally {
       setPendingLoading(false);

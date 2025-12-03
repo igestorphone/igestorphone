@@ -375,6 +375,9 @@ router.get('/', requireRole('admin'), async (req, res) => {
     const values = [];
     let paramCount = 1;
 
+    // Não mostrar usuários pendentes na lista geral (eles aparecem apenas na aba Pendentes)
+    whereClause += ` AND (approval_status IS NULL OR approval_status != 'pending')`;
+    
     if (search) {
       whereClause += ` AND (name ILIKE $${paramCount} OR email ILIKE $${paramCount})`;
       values.push(`%${search}%`);

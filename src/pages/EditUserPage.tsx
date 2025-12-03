@@ -46,7 +46,16 @@ const EditUserPage: React.FC = () => {
     try {
       setLoadingUser(true);
       const response = await usersApi.getById(id!);
-      const user = response.data;
+      console.log('📥 Resposta da API getById:', response);
+      
+      // Backend retorna { user: {...} } diretamente
+      // apiClient.get retorna response.data, então temos { user: {...} }
+      const user = (response as any).user || (response as any).data?.user || (response as any).data;
+      console.log('👤 Usuário carregado:', user);
+      
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
       
       setFormData({
         nome: user.name || '',
@@ -58,9 +67,9 @@ const EditUserPage: React.FC = () => {
         isActive: user.is_active !== false,
         permissions: user.tipo === 'admin' ? (user.permissions || []) : ['consultar_listas', 'medias_preco', 'buscar_iphone_barato']
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar usuário:', error);
-      setErrors({ submit: 'Erro ao carregar dados do usuário' });
+      setErrors({ submit: error.response?.data?.message || 'Erro ao carregar dados do usuário' });
     } finally {
       setLoadingUser(false);
     }
