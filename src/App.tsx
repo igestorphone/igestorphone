@@ -45,6 +45,16 @@ function App() {
             </AuthLayout>
           )
         } />
+        <Route path="/register" element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AuthLayout>
+              <RegisterPage />
+            </AuthLayout>
+          )
+        } />
+        {/* Rotas antigas mantidas para compatibilidade */}
         <Route path="/register/:token" element={
           isAuthenticated ? (
             <Navigate to="/dashboard" />

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2, Calendar, MapPin, Phone, Building2, FileText } from 'lucide-react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { registrationApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -46,7 +46,12 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  const { token } = useParams<{ token: string }>()
+  // Tentar pegar token de path parameter primeiro, depois query string
+  const { token: tokenFromPath } = useParams<{ token: string }>()
+  const [searchParams] = useSearchParams()
+  const tokenFromQuery = searchParams.get('token')
+  const token = tokenFromPath || tokenFromQuery
+  
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
