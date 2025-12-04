@@ -247,12 +247,14 @@ router.get('/', [
     // Se especificado, mostrar produtos daquela data específica
     if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
-      whereClause += ` AND DATE(p.updated_at) = $${paramCount}`;
+      // Considerar tanto updated_at quanto created_at
+      whereClause += ` AND (DATE(p.updated_at AT TIME ZONE 'America/Sao_Paulo') = $${paramCount} OR DATE(p.created_at AT TIME ZONE 'America/Sao_Paulo') = $${paramCount})`;
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar apenas produtos atualizados hoje
-      whereClause += ` AND DATE(p.updated_at) = CURRENT_DATE`;
+      // Por padrão, mostrar produtos de hoje (considerando timezone Brasil)
+      // Incluir produtos atualizados HOJE ou criados HOJE
+      whereClause += ` AND (DATE(p.updated_at AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE OR DATE(p.created_at AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE)`;
     }
 
     // Buscar produtos
