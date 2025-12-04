@@ -130,8 +130,8 @@ router.post('/login', loginValidation, async (req, res) => {
 
     const user = result.rows[0];
 
-    // Verificar se usuário está aprovado
-    if (user.approval_status === 'pending') {
+    // Verificar se usuário está aprovado (apenas se a coluna existir e não for nula)
+    if (user.approval_status && user.approval_status === 'pending') {
       return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
     }
 

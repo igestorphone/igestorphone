@@ -393,12 +393,28 @@ router.post('/', authenticateToken, requireRole('admin'), [
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(senha, saltRounds);
 
-    // Criar usuário
-    const userResult = await query(`
-      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING id, name, email, tipo, created_at, is_active
-    `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+    // Criar usuário - quando criado pelo admin, deve estar aprovado e ativo por padrão
+    // Primeiro, tentar adicionar approval_status se não existir (execução silenciosa)
+    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(50)`).catch(() => {});
+    
+    // Criar usuário - se approval_status existir, definir como 'approved', senão criar sem ele
+    let userResult;
+    try {
+      // Tentar criar com approval_status
+      userResult = await query(`
+        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, approval_status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'approved')
+        RETURNING id, name, email, tipo, created_at, is_active
+      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+    } catch (error) {
+      // Se der erro (coluna não existe), criar sem approval_status
+      console.log('⚠️ Coluna approval_status não existe, criando usuário sem ela');
+      userResult = await query(`
+        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        RETURNING id, name, email, tipo, created_at, is_active
+      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+    }
 
     const user = userResult.rows[0];
 
