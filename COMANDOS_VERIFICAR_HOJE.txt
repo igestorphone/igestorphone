@@ -1,0 +1,49 @@
+✅ Ótimo! Você tem 4449 produtos ATIVOS no banco!
+
+Agora vamos verificar se esses produtos aparecem como "de hoje":
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Produtos ATIVOS de HOJE (atualizados ou criados hoje):
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ativos_hoje
+FROM products
+WHERE is_active = true
+  AND (
+    DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+    OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Ver data/hora atual no Brasil:
+
+psql $DATABASE_URL -c "
+SELECT NOW() AT TIME ZONE 'America/Sao_Paulo' as agora_brasil,
+       CURRENT_DATE as data_atual;
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Se os produtos não aparecem como "de hoje", pode ser problema
+   de timezone. Vamos ver produtos das últimas 24 horas:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ultimas_24h
+FROM products
+WHERE is_active = true
+  AND updated_at >= NOW() - INTERVAL '24 hours';
+"
+
+═══════════════════════════════════════════════════════════
+
+Sobre o ERRO NA LATERAL:
+- Onde aparece o erro? (sidebar, console do navegador, modal?)
+- Qual é a mensagem de erro exata?
+- Tire um print se possível!
+
+Se os produtos estão ativos mas não aparecem, o problema é
+provavelmente no filtro de data do frontend/backend.
+
