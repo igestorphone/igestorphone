@@ -252,9 +252,15 @@ router.get('/', [
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar produtos de hoje (considerando timezone Brasil)
-      // Incluir produtos atualizados HOJE ou criados HOJE
-      whereClause += ` AND (DATE(p.updated_at AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE OR DATE(p.created_at AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE)`;
+      // Por padrão, mostrar produtos de hoje (03/12/2025)
+      // Incluir produtos atualizados hoje OU criados hoje
+      // Usar data específica para evitar problemas de timezone
+      whereClause += ` AND (
+        DATE(p.updated_at) = CURRENT_DATE 
+        OR DATE(p.created_at) = CURRENT_DATE
+        OR (p.updated_at >= CURRENT_DATE::timestamp AND p.updated_at < (CURRENT_DATE + INTERVAL '1 day')::timestamp)
+        OR (p.created_at >= CURRENT_DATE::timestamp AND p.created_at < (CURRENT_DATE + INTERVAL '1 day')::timestamp)
+      )`;
     }
 
     // Buscar produtos
