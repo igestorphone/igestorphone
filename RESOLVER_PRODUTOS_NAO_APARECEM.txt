@@ -1,0 +1,62 @@
+🔧 SOLUÇÃO PARA FAZER OS PRODUTOS APARECEREM
+
+Execute estes comandos no Render Shell:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ DIAGNOSTICAR: Ver quantos produtos aparecem na query do backend:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_visiveis
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Se o número for menor que 1039, pode ser que fornecedores
+   estejam inativos. Vamos ativar fornecedores com produtos de hoje:
+
+psql $DATABASE_URL -c "
+UPDATE suppliers
+SET is_active = true
+WHERE id IN (
+  SELECT DISTINCT p.supplier_id
+  FROM products p
+  WHERE p.is_active = true
+    AND (
+      DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+      OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    )
+);
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Verificar resultado:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_agora_visiveis
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+Execute o primeiro comando e me diga o resultado!
+
+Se ainda não aparecer, pode ser problema de cache no frontend.
+Tente fazer um hard refresh (Ctrl+Shift+R ou Cmd+Shift+R).
+

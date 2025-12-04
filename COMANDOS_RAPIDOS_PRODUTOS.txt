@@ -1,0 +1,61 @@
+🚀 COMANDOS RÁPIDOS PARA FAZER OS PRODUTOS APARECEREM
+
+Execute no Render Shell, um por vez:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Ver quantos produtos aparecem COM fornecedor ativo:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_visiveis
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Se o número for menor que 1039, ativar fornecedores inativos
+   que têm produtos de hoje:
+
+psql $DATABASE_URL -c "
+UPDATE suppliers
+SET is_active = true
+WHERE id IN (
+  SELECT DISTINCT s.id
+  FROM products p
+  JOIN suppliers s ON p.supplier_id = s.id
+  WHERE p.is_active = true
+    AND (
+      DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+      OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    )
+    AND s.is_active = false
+);
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Verificar resultado final:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_agora_visiveis
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+Execute o primeiro comando e me diga quantos produtos aparecem!
+
