@@ -1,0 +1,58 @@
+🔍 TESTAR O QUE A API ESTÁ RETORNANDO
+
+Execute este comando no Render Shell para ver o que a API retorna:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Testar a query que o backend usa (simular o que a API faz):
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as total_produtos
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Ver alguns produtos que devem aparecer:
+
+psql $DATABASE_URL -c "
+SELECT p.id, p.name, p.model, p.price, 
+       DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_atualizada,
+       DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_criada,
+       s.name as fornecedor, s.is_active as fornecedor_ativo
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  )
+ORDER BY p.price ASC
+LIMIT 5;
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Ver qual é a data de hoje no timezone do Brasil:
+
+psql $DATABASE_URL -c "
+SELECT 
+  DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) as data_hoje_brasil,
+  NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' as hora_agora_brasil,
+  NOW() AT TIME ZONE 'UTC' as hora_agora_utc;
+"
+
+═══════════════════════════════════════════════════════════
+
+Execute esses 3 comandos e me diga os resultados!
+
+Isso vai ajudar a identificar se o problema está no filtro de data ou em outra coisa.
+

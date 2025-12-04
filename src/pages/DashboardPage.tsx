@@ -56,23 +56,30 @@ export default function DashboardPage() {
       // Buscar dados de produtos
       try {
         const productsResponse = await api.get('/products', { params: { limit: 5000 } })
+        
+        console.log('📊 Dashboard - Resposta completa da API:', productsResponse.data)
+        
         // A resposta pode vir como { products: [...], pagination: {...} } ou { data: { products: [...] } }
         
         // Priorizar pagination.total se existir (mais preciso)
         if (productsResponse.data?.pagination?.total !== undefined) {
           totalProducts = parseInt(productsResponse.data.pagination.total) || 0
+          console.log('📊 Dashboard - Usando pagination.total:', totalProducts)
         } else {
           const productPayload = productsResponse.data?.products || productsResponse.data || []
           if (Array.isArray(productPayload)) {
             totalProducts = productPayload.length
+            console.log('📊 Dashboard - Usando array length:', totalProducts)
           } else {
             totalProducts = 0
+            console.log('📊 Dashboard - Payload não é array, totalProducts = 0')
           }
         }
 
-        console.log('📊 Dashboard - Total de produtos:', totalProducts)
+        console.log('📊 Dashboard - Total de produtos final:', totalProducts)
       } catch (error) {
-        console.error('Erro ao buscar produtos:', error)
+        console.error('❌ Erro ao buscar produtos:', error)
+        console.error('❌ Erro completo:', JSON.stringify(error, null, 2))
       }
 
       // Buscar dados de usuários
