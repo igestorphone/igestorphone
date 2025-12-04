@@ -1,0 +1,37 @@
+🚨 COMANDOS URGENTES PARA RESTAURAR PRODUTOS 🚨
+
+Execute no Render Shell, UM POR VEZ:
+
+1️⃣ PRIMEIRO: Diagnosticar a situação
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as desativados_24h
+FROM products
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours';
+"
+
+2️⃣ SEGUNDO: Ver exemplos do que será restaurado
+psql $DATABASE_URL -c "
+SELECT id, name, model, updated_at
+FROM products
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours'
+ORDER BY updated_at DESC
+LIMIT 10;
+"
+
+3️⃣ TERCEIRO: RESTAURAR TUDO das últimas 24 horas
+psql $DATABASE_URL -c "
+UPDATE products 
+SET is_active = true, updated_at = NOW()
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours';
+"
+
+4️⃣ QUARTO: Verificar resultado
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ativos
+FROM products
+WHERE is_active = true;
+"
+
