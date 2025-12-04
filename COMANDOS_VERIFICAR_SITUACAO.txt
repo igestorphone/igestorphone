@@ -1,0 +1,52 @@
+🔍 COMANDOS PARA VERIFICAR A SITUAÇÃO REAL DOS PRODUTOS
+
+Execute estes comandos no Render Shell para entender o que aconteceu:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Total de produtos ATIVOS agora:
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as total_ativos FROM products WHERE is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Total de produtos INATIVOS:
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as total_inativos FROM products WHERE is_active = false;"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Produtos ATIVOS que foram atualizados/criados HOJE:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ativos_hoje
+FROM products
+WHERE is_active = true
+  AND (
+    DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+    OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+4️⃣ Ver últimos 10 produtos atualizados:
+
+psql $DATABASE_URL -c "
+SELECT id, name, model, is_active, 
+       DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_br
+FROM products
+ORDER BY updated_at DESC
+LIMIT 10;
+"
+
+═══════════════════════════════════════════════════════════
+
+5️⃣ Ver data/hora atual no Brasil:
+
+psql $DATABASE_URL -c "SELECT NOW() AT TIME ZONE 'America/Sao_Paulo' as agora_brasil;"
+
+═══════════════════════════════════════════════════════════
+
+Execute o primeiro comando e me diga quantos produtos ATIVOS existem agora!
+

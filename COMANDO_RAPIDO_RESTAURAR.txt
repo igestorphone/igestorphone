@@ -1,0 +1,27 @@
+🚨 COMANDO RÁPIDO - Execute no Render Shell:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Ver quantos produtos ATIVOS existem agora:
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as produtos_ativos FROM products WHERE is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Se o número estiver baixo, restaurar produtos das últimas 48 horas:
+
+psql $DATABASE_URL -c "UPDATE products SET is_active = true, updated_at = NOW() WHERE is_active = false AND updated_at >= NOW() - INTERVAL '48 hours';"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Verificar quantos foram restaurados:
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as produtos_ativos_agora FROM products WHERE is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+Sobre o erro na lateral:
+- Pode ser um erro do console do navegador
+- Ou um erro de API no frontend
+- Me diga qual é a mensagem de erro exata que aparece!
+

@@ -1,0 +1,64 @@
+🚨 SOLUÇÃO PARA RESTAURAR PRODUTOS RESETADOS 🚨
+
+O comando anterior retornou UPDATE 0, então vamos diagnosticar primeiro.
+
+Execute estes comandos no Render Shell, UM POR VEZ:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ DIAGNOSTICAR: Ver produtos desativados nas últimas 24h
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as desativados_24h
+FROM products
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours';
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ VER EXEMPLOS: Ver quais produtos foram desativados
+
+psql $DATABASE_URL -c "
+SELECT id, name, model, price, 
+       DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_br,
+       updated_at
+FROM products
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours'
+ORDER BY updated_at DESC
+LIMIT 10;
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ RESTAURAR TUDO: Restaurar produtos das últimas 24 horas
+
+psql $DATABASE_URL -c "
+UPDATE products 
+SET is_active = true, updated_at = NOW()
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '24 hours';
+"
+
+═══════════════════════════════════════════════════════════
+
+4️⃣ VERIFICAR: Ver quantos produtos estão ativos agora
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ativos
+FROM products
+WHERE is_active = true;
+"
+
+═══════════════════════════════════════════════════════════
+
+Se ainda não funcionar, tente restaurar das últimas 48 horas:
+
+psql $DATABASE_URL -c "
+UPDATE products 
+SET is_active = true, updated_at = NOW()
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '48 hours';
+"
+

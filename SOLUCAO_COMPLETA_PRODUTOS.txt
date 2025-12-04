@@ -1,0 +1,58 @@
+🔍 DIAGNÓSTICO COMPLETO - Execute estes comandos:
+
+1️⃣ Quantos produtos ATIVOS existem agora?
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as total_ativos FROM products WHERE is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Produtos ativos que foram atualizados/criados HOJE:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_ativos_hoje
+FROM products
+WHERE is_active = true
+  AND (
+    DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+    OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Se os produtos estão ativos mas não aparecem no frontend,
+   pode ser problema de filtro. Vamos verificar o que o frontend
+   está buscando. 
+
+   Execute este comando para ver se há produtos ativos de HOJE:
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as total
+FROM products p
+WHERE p.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+4️⃣ Se não houver produtos de hoje, vamos restaurar TODOS os
+   produtos inativos das últimas 48 horas:
+
+psql $DATABASE_URL -c "
+UPDATE products 
+SET is_active = true, updated_at = NOW()
+WHERE is_active = false
+  AND updated_at >= NOW() - INTERVAL '48 hours';
+"
+
+═══════════════════════════════════════════════════════════
+
+ME DIGA:
+- Quantos produtos ATIVOS existem agora? (comando 1)
+- Quantos produtos ATIVOS de HOJE existem? (comando 2)
+
+Com essas informações, vou saber exatamente o que fazer!
+
