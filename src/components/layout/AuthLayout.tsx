@@ -76,7 +76,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
                 }
               }}
             />
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* Auth Form */}
