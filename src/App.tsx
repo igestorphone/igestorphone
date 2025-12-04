@@ -46,16 +46,7 @@ function App() {
             </AuthLayout>
           )
         } />
-        <Route path="/register" element={
-          isAuthenticated ? (
-            <Navigate to="/dashboard" />
-          ) : (
-            <AuthLayout>
-              <RegisterPage />
-            </AuthLayout>
-          )
-        } />
-        {/* Rotas antigas mantidas para compatibilidade */}
+        {/* Rotas de registro - IMPORTANTE: /register/:token DEVE vir ANTES de /register */}
         <Route path="/register/:token" element={
           isAuthenticated ? (
             <Navigate to="/dashboard" />
@@ -75,6 +66,16 @@ function App() {
           )
         } />
         <Route path="/r/:token" element={
+          isAuthenticated ? (
+            <Navigate to="/dashboard" />
+          ) : (
+            <AuthLayout>
+              <RegisterPage />
+            </AuthLayout>
+          )
+        } />
+        {/* Rota /register sem token (deve vir DEPOIS das rotas com token) */}
+        <Route path="/register" element={
           isAuthenticated ? (
             <Navigate to="/dashboard" />
           ) : (

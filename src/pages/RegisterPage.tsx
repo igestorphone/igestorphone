@@ -46,11 +46,30 @@ const registerSchema = z.object({
 type RegisterForm = z.infer<typeof registerSchema>
 
 export default function RegisterPage() {
-  // Tentar pegar token de path parameter primeiro, depois query string
+  // Tentar pegar token de path parameter primeiro, depois query string, depois da URL direta
   const { token: tokenFromPath } = useParams<{ token: string }>()
   const [searchParams] = useSearchParams()
   const tokenFromQuery = searchParams.get('token')
-  const token = tokenFromPath || tokenFromQuery
+  
+  // Se não vier nos params, tentar extrair da URL diretamente
+  const getTokenFromUrl = () => {
+    const pathname = window.location.pathname
+    // Formato: /register/TOKEN ou /cadastro/TOKEN ou /r/TOKEN
+    // Token pode ter 64 caracteres hexadecimais
+    const match = pathname.match(/^\/(register|cadastro|r)\/([a-f0-9]{32,128})$/i)
+    if (match && match[2]) {
+      return match[2]
+    }
+    // Também tentar pegar qualquer string após /register/
+    const parts = pathname.split('/').filter(Boolean)
+    if (parts.length === 2 && (parts[0] === 'register' || parts[0] === 'cadastro' || parts[0] === 'r')) {
+      return parts[1]
+    }
+    return null
+  }
+  
+  const tokenFromUrl = getTokenFromUrl()
+  const token = tokenFromPath || tokenFromQuery || tokenFromUrl
   
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
