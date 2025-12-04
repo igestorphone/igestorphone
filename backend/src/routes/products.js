@@ -248,18 +248,20 @@ router.get('/', [
     if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
       // Considerar tanto updated_at quanto created_at
-      whereClause += ` AND (DATE(p.updated_at AT TIME ZONE 'America/Sao_Paulo') = $${paramCount} OR DATE(p.created_at AT TIME ZONE 'America/Sao_Paulo') = $${paramCount})`;
+      // Converter para timezone do Brasil ao comparar
+      whereClause += ` AND (
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
+      )`;
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar produtos de hoje (03/12/2025)
-      // Incluir produtos atualizados hoje OU criados hoje
-      // Usar data específica para evitar problemas de timezone
+      // Por padrão, mostrar produtos de hoje no timezone do Brasil (America/Sao_Paulo)
+      // O banco está em UTC, então precisamos converter para o horário do Brasil ao filtrar
+      // Usar CURRENT_DATE no timezone do Brasil
       whereClause += ` AND (
-        DATE(p.updated_at) = CURRENT_DATE 
-        OR DATE(p.created_at) = CURRENT_DATE
-        OR (p.updated_at >= CURRENT_DATE::timestamp AND p.updated_at < (CURRENT_DATE + INTERVAL '1 day')::timestamp)
-        OR (p.created_at >= CURRENT_DATE::timestamp AND p.created_at < (CURRENT_DATE + INTERVAL '1 day')::timestamp)
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
       )`;
     }
 
