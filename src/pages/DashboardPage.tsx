@@ -57,12 +57,17 @@ export default function DashboardPage() {
       try {
         const productsResponse = await api.get('/products', { params: { limit: 5000 } })
         // A resposta pode vir como { products: [...], pagination: {...} } ou { data: { products: [...] } }
-        const productPayload = productsResponse.data?.products || productsResponse.data || []
-
-        if (Array.isArray(productPayload)) {
-          totalProducts = productPayload.length
+        
+        // Priorizar pagination.total se existir (mais preciso)
+        if (productsResponse.data?.pagination?.total !== undefined) {
+          totalProducts = parseInt(productsResponse.data.pagination.total) || 0
         } else {
-          totalProducts = productsResponse.data?.pagination?.total || 0
+          const productPayload = productsResponse.data?.products || productsResponse.data || []
+          if (Array.isArray(productPayload)) {
+            totalProducts = productPayload.length
+          } else {
+            totalProducts = 0
+          }
         }
 
         console.log('📊 Dashboard - Total de produtos:', totalProducts)

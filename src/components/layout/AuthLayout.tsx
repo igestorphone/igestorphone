@@ -5,78 +5,12 @@ interface AuthLayoutProps {
   children: ReactNode
 }
 
-// Componente de neve
-const Snowflake = ({ delay, duration, left, screenHeight }: { delay: number; duration: number; left: string; screenHeight: number }) => {
-  return (
-    <motion.div
-      className="absolute text-white text-2xl pointer-events-none select-none"
-      style={{ left }}
-      initial={{ y: -50, opacity: 0 }}
-      animate={{ 
-        y: screenHeight + 50,
-        opacity: [0, 1, 1, 0],
-        x: [0, Math.random() * 50 - 25, Math.random() * 50 - 25, 0]
-      }}
-      transition={{
-        duration,
-        delay,
-        repeat: Infinity,
-        ease: "linear"
-      }}
-    >
-      ❄
-    </motion.div>
-  )
-}
-
-// Componente de neve caindo
-const Snowfall = () => {
-  const [snowflakes, setSnowflakes] = useState<Array<{ id: number; delay: number; duration: number; left: string }>>([])
-  const [screenHeight, setScreenHeight] = useState(1000)
-
-  useEffect(() => {
-    // Obter altura da tela
-    setScreenHeight(window.innerHeight)
-    
-    // Criar 50 flocos de neve
-    const flakes = Array.from({ length: 50 }, (_, i) => ({
-      id: i,
-      delay: Math.random() * 5,
-      duration: 3 + Math.random() * 4, // 3-7 segundos
-      left: `${Math.random() * 100}%`
-    }))
-    setSnowflakes(flakes)
-
-    // Atualizar altura quando a janela for redimensionada
-    const handleResize = () => {
-      setScreenHeight(window.innerHeight)
-    }
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [])
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {snowflakes.map((flake) => (
-        <Snowflake
-          key={flake.id}
-          delay={flake.delay}
-          duration={flake.duration}
-          left={flake.left}
-          screenHeight={screenHeight}
-        />
-      ))}
-    </div>
-  )
-}
+// Removido componente de neve para melhorar performance no mobile
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Neve caindo */}
-      <Snowfall />
-      
-      {/* Emojis natalinos espalhados */}
+      {/* Emojis natalinos simples (estáticos para melhor performance) */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
