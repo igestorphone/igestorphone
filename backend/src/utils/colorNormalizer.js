@@ -131,16 +131,5 @@ function getColorSearchConditions(normalizedColor) {
   return variants.map(v => `LOWER(p.color) LIKE '%${v}%'`).join(' OR ')
 }
 
-/**
- * Converte para CommonJS (module.exports) e também suporta ES modules
- */
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = {
-    normalizeColor,
-    getColorSearchConditions,
-    colorMap
-  }
-}
-
 export { normalizeColor, getColorSearchConditions, colorMap }
 

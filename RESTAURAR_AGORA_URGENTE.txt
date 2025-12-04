@@ -1,0 +1,18 @@
+🚨 COMANDO URGENTE PARA RESTAURAR PRODUTOS DE HOJE 🚨
+
+Execute este comando no Render Shell (terminal do backend):
+
+psql $DATABASE_URL -c "
+UPDATE products 
+SET is_active = true, updated_at = NOW()
+WHERE is_active = false
+  AND (
+    DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+    OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+  );
+"
+
+OU execute o script Node.js:
+
+cd backend && node --loader ./node_modules/.bin/esbuild-register src/scripts/restore-today-products.js
+
