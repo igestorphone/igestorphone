@@ -118,13 +118,27 @@ export default function ManageUsersPage() {
     }
   }, [activeTab]);
 
+  // Função para normalizar URL para sempre usar www.igestorphone.com.br
+  const normalizeLinkUrl = (url: string): string => {
+    if (!url) return url;
+    // Se for igestorphone.com.br sem www, adicionar www
+    if (url.includes('igestorphone.com.br') && !url.includes('www.')) {
+      return url.replace(/https?:\/\/(www\.)?igestorphone\.com\.br/, 'https://www.igestorphone.com.br');
+    }
+    // Garantir que use https
+    if (url.startsWith('http://')) {
+      return url.replace('http://', 'https://');
+    }
+    return url;
+  };
+
   const loadCurrentLink = async () => {
     try {
       const response = await registrationApi.getAllLinks();
       const links = response.data?.links || [];
       const activeLink = links.find((link: RegistrationLink) => link.isValid);
       if (activeLink) {
-        setCurrentRegistrationLink(activeLink.url);
+        setCurrentRegistrationLink(normalizeLinkUrl(activeLink.url));
       }
     } catch (error) {
       // Silenciar erro, não é crítico
@@ -243,9 +257,10 @@ export default function ManageUsersPage() {
       const response = await registrationApi.generateLink(7);
       const linkUrl = response.data?.url;
       if (linkUrl) {
-        setCurrentRegistrationLink(linkUrl);
-        // Copiar automaticamente
-        navigator.clipboard.writeText(linkUrl);
+        const normalizedUrl = normalizeLinkUrl(linkUrl);
+        setCurrentRegistrationLink(normalizedUrl);
+        // Copiar automaticamente o link normalizado
+        navigator.clipboard.writeText(normalizedUrl);
         toast.success('Link gerado e copiado!');
       }
       setShowGenerateLinkModal(false);
