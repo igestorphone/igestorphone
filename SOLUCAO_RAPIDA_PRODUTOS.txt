@@ -1,0 +1,66 @@
+🔧 SOLUÇÃO RÁPIDA PARA MOSTRAR OS PRODUTOS
+
+Os produtos estão no banco (1039 ativos de hoje), mas podem não aparecer porque:
+
+1. O JOIN com suppliers requer fornecedores ATIVOS
+2. O filtro de data pode estar muito restritivo
+
+Execute estes comandos para diagnosticar:
+
+═══════════════════════════════════════════════════════════
+
+1️⃣ Ver produtos COM fornecedor ativo (que aparecem):
+
+psql $DATABASE_URL -c "
+SELECT COUNT(*) as produtos_com_fornecedor_ativo
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND s.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  );
+"
+
+═══════════════════════════════════════════════════════════
+
+2️⃣ Se o número for menor que 1039, há produtos sem fornecedor ativo.
+   Nesse caso, vamos ver quais fornecedores estão inativos:
+
+psql $DATABASE_URL -c "
+SELECT DISTINCT s.id, s.name, s.is_active
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true
+  AND (
+    DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+  )
+  AND s.is_active = false;
+"
+
+═══════════════════════════════════════════════════════════
+
+3️⃣ Se houver fornecedores inativos, podemos ativá-los:
+
+psql $DATABASE_URL -c "
+UPDATE suppliers
+SET is_active = true
+WHERE id IN (
+  SELECT DISTINCT s.id
+  FROM products p
+  JOIN suppliers s ON p.supplier_id = s.id
+  WHERE p.is_active = true
+    AND (
+      DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+      OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    )
+    AND s.is_active = false
+);
+"
+
+═══════════════════════════════════════════════════════════
+
+Execute o primeiro comando e me diga quantos produtos aparecem!
+
