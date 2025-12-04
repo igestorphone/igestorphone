@@ -105,34 +105,46 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
   }
 });
 
-// Verificar se token é válido (público)
+// Função helper para verificar token (reutilizável)
+const verifyTokenHelper = async (token) => {
+  if (!token) {
+    return { valid: false, message: 'Token não fornecido' };
+  }
+  
+  const result = await query(`
+    SELECT id, token, expires_at, is_used
+    FROM registration_tokens
+    WHERE token = $1
+  `, [token]);
+  
+  if (result.rows.length === 0) {
+    return { valid: false, message: 'Token inválido' };
+  }
+  
+  const tokenData = result.rows[0];
+  
+  if (new Date(tokenData.expires_at) < new Date()) {
+    return { valid: false, message: 'Este link expirou' };
+  }
+  
+  return { valid: true, tokenData };
+};
+
+// Verificar se token é válido (público) - Path Parameter
 router.get('/register/:token', async (req, res) => {
   try {
     const { token } = req.params;
+    const verification = await verifyTokenHelper(token);
     
-    const result = await query(`
-      SELECT id, token, expires_at, is_used
-      FROM registration_tokens
-      WHERE token = $1
-    `, [token]);
-    
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Token inválido' });
-    }
-    
-    const tokenData = result.rows[0];
-    
-    // Removido: não verificar mais se foi usado (permite múltiplos cadastros)
-    // Apenas verificar se expirou
-    if (new Date(tokenData.expires_at) < new Date()) {
-      return res.status(400).json({ message: 'Este link expirou' });
+    if (!verification.valid) {
+      return res.status(verification.message.includes('inválido') ? 404 : 400).json({ message: verification.message });
     }
     
     res.json({
       message: 'Token válido',
       data: {
-        token: tokenData.token,
-        expiresAt: tokenData.expires_at
+        token: verification.tokenData.token,
+        expiresAt: verification.tokenData.expires_at
       }
     });
   } catch (error) {
@@ -141,7 +153,115 @@ router.get('/register/:token', async (req, res) => {
   }
 });
 
-// Registrar usuário via token (público)
+// Verificar se token é válido (público) - Query String
+router.get('/register', async (req, res) => {
+  try {
+    const token = req.query.token;
+    const verification = await verifyTokenHelper(token);
+    
+    if (!verification.valid) {
+      return res.status(verification.message.includes('inválido') ? 404 : 400).json({ message: verification.message });
+    }
+    
+    res.json({
+      message: 'Token válido',
+      data: {
+        token: verification.tokenData.token,
+        expiresAt: verification.tokenData.expires_at
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao verificar token:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Função helper para registrar usuário (reutilizável)
+const registerUserHelper = async (token, req) => {
+  const { name, email, password, endereco, data_nascimento, whatsapp, nome_loja, cnpj } = req.body;
+  
+  // Verificar se CNPJ tem 14 dígitos (se fornecido)
+  if (cnpj && cnpj.replace(/\D/g, '').length !== 14) {
+    return { success: false, status: 400, message: 'CNPJ inválido. Deve ter 14 dígitos.' };
+  }
+  
+  // Verificar token
+  const verification = await verifyTokenHelper(token);
+  if (!verification.valid) {
+    return { 
+      success: false, 
+      status: verification.message.includes('inválido') ? 404 : 400, 
+      message: verification.message 
+    };
+  }
+  
+  const tokenData = verification.tokenData;
+  
+  // Verificar se email já existe
+  const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+  if (existingUser.rows.length > 0) {
+    return { success: false, status: 400, message: 'Email já está em uso' };
+  }
+  
+  // Hash da senha
+  const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+  const passwordHash = await bcrypt.hash(password, saltRounds);
+  
+  // Adicionar colunas se não existirem (executar individualmente para evitar erro)
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`).catch(() => {});
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nome_loja VARCHAR(255)`).catch(() => {});
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`).catch(() => {});
+  
+  // Criar usuário com status pendente
+  const userResult = await query(`
+    INSERT INTO users (
+      name, email, password_hash, tipo, is_active, approval_status, 
+      endereco, data_nascimento, whatsapp, nome_loja, cnpj
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    RETURNING id, name, email, tipo, approval_status, created_at
+  `, [
+    name, 
+    email, 
+    passwordHash, 
+    'user', 
+    false, 
+    'pending', 
+    endereco || null, 
+    data_nascimento || null,
+    whatsapp || null,
+    nome_loja || null,
+    cnpj ? cnpj.replace(/\D/g, '') : null
+  ]);
+  
+  const user = userResult.rows[0];
+  
+  // Log da ação
+  await query(`
+    INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+    VALUES ($1, $2, $3, $4, $5)
+  `, [
+    user.id,
+    'user_registered_via_token',
+    JSON.stringify({ token_id: tokenData.id, email: user.email }),
+    req.ip,
+    req.get('User-Agent')
+  ]);
+  
+  return {
+    success: true,
+    data: {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        approvalStatus: user.approval_status
+      }
+    }
+  };
+};
+
+// Registrar usuário via token (público) - Path Parameter
 router.post('/register/:token', [
   body('name').notEmpty().trim().withMessage('Nome é obrigatório'),
   body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
@@ -159,96 +279,53 @@ router.post('/register/:token', [
     }
     
     const { token } = req.params;
-    const { name, email, password, endereco, data_nascimento, whatsapp, nome_loja, cnpj } = req.body;
+    const result = await registerUserHelper(token, req);
     
-    // Verificar se CNPJ tem 14 dígitos (se fornecido)
-    if (cnpj && cnpj.replace(/\D/g, '').length !== 14) {
-      return res.status(400).json({ message: 'CNPJ inválido. Deve ter 14 dígitos.' });
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.message });
     }
-    
-    // Verificar token
-    const tokenResult = await query(`
-      SELECT id, expires_at, is_used
-      FROM registration_tokens
-      WHERE token = $1
-    `, [token]);
-    
-    if (tokenResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Token inválido' });
-    }
-    
-    const tokenData = tokenResult.rows[0];
-    
-    // Removido: não verificar mais se foi usado (permite múltiplos cadastros)
-    // Apenas verificar se expirou
-    if (new Date(tokenData.expires_at) < new Date()) {
-      return res.status(400).json({ message: 'Este link expirou' });
-    }
-    
-    // Verificar se email já existe
-    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'Email já está em uso' });
-    }
-    
-    // Hash da senha
-    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-    
-    // Adicionar colunas se não existirem (executar individualmente para evitar erro)
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`).catch(() => {});
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nome_loja VARCHAR(255)`).catch(() => {});
-    await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`).catch(() => {});
-    
-    // Criar usuário com status pendente
-    const userResult = await query(`
-      INSERT INTO users (
-        name, email, password_hash, tipo, is_active, approval_status, 
-        endereco, data_nascimento, whatsapp, nome_loja, cnpj
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id, name, email, tipo, approval_status, created_at
-    `, [
-      name, 
-      email, 
-      passwordHash, 
-      'user', 
-      false, 
-      'pending', 
-      endereco || null, 
-      data_nascimento || null,
-      whatsapp || null,
-      nome_loja || null,
-      cnpj ? cnpj.replace(/\D/g, '') : null
-    ]);
-    
-    const user = userResult.rows[0];
-    
-    // Removido: não marcar token como usado (permite múltiplos cadastros com o mesmo link)
-    // Apenas registrar o uso no log para histórico
-    
-    // Log da ação
-    await query(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [
-      user.id,
-      'user_registered_via_token',
-      JSON.stringify({ token_id: tokenData.id, email: user.email }),
-      req.ip,
-      req.get('User-Agent')
-    ]);
     
     res.status(201).json({
       message: 'Cadastro realizado com sucesso! Aguarde aprovação do administrador.',
-      data: {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          approvalStatus: user.approval_status
-        }
-      }
+      data: result.data
+    });
+  } catch (error) {
+    console.error('Erro ao registrar usuário:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Registrar usuário via token (público) - Query String
+router.post('/register', [
+  body('name').notEmpty().trim().withMessage('Nome é obrigatório'),
+  body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
+  body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
+  body('endereco').optional().trim(),
+  body('data_nascimento').optional().isISO8601().withMessage('Data de nascimento inválida'),
+  body('whatsapp').notEmpty().trim().withMessage('WhatsApp é obrigatório'),
+  body('nome_loja').notEmpty().trim().withMessage('Nome da loja é obrigatório'),
+  body('cnpj').optional().trim()
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    
+    const token = req.query.token;
+    if (!token) {
+      return res.status(400).json({ message: 'Token não fornecido' });
+    }
+    
+    const result = await registerUserHelper(token, req);
+    
+    if (!result.success) {
+      return res.status(result.status).json({ message: result.message });
+    }
+    
+    res.status(201).json({
+      message: 'Cadastro realizado com sucesso! Aguarde aprovação do administrador.',
+      data: result.data
     });
   } catch (error) {
     console.error('Erro ao registrar usuário:', error);

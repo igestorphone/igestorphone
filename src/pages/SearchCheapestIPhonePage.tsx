@@ -812,7 +812,8 @@ export default function SearchCheapestIPhonePage() {
                   )}
                 </div>
 
-                <div className="overflow-x-auto">
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gradient-to-r from-purple-500/30 to-indigo-500/30 border-b-2 border-white/20">
                       <tr>
@@ -962,7 +963,7 @@ export default function SearchCheapestIPhonePage() {
                                     title="Contatar no WhatsApp"
                                   >
                                     <MessageCircle className="w-5 h-5" />
-                                    <span className="hidden sm:inline">WhatsApp</span>
+                                    <span>WhatsApp</span>
                                   </motion.button>
                                 ) : (
                                   <div className="text-xs text-gray-400 px-2 py-1">Sem WhatsApp</div>
@@ -989,6 +990,127 @@ export default function SearchCheapestIPhonePage() {
                       </AnimatePresence>
                     </tbody>
                   </table>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4 p-4">
+                  <AnimatePresence>
+                    {productsQuery.data.map((product: any, index: number) => (
+                      <motion.div
+                        key={`${product.id}-${index}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.2, delay: index * 0.02 }}
+                        className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20"
+                      >
+                        {/* Header with product name and badge */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {index === 0 && (
+                                <motion.span
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  transition={{ type: 'spring', stiffness: 200 }}
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold"
+                                >
+                                  1
+                                </motion.span>
+                              )}
+                              <h3 className="text-base font-bold text-white">
+                                {product.name || product.model || 'N/A'}
+                              </h3>
+                            </div>
+                            {product.model && product.model !== product.name && (
+                              <p className="text-xs text-gray-300">{product.model}</p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xl font-bold text-green-400">
+                              {formatPrice(product.price || 0)}
+                            </div>
+                            {index === 0 && (
+                              <motion.span
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', stiffness: 200 }}
+                                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30"
+                              >
+                                Mais Barato
+                              </motion.span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Info badges */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                            <BarChart3 className="w-3 h-3 mr-1" />
+                            {product.storage || 'N/A'}
+                          </span>
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                            <Palette className="w-3 h-3 mr-1" />
+                            {normalizeColor(product.color)}
+                          </span>
+                          {product.variant && (
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
+                                product.variant.toUpperCase() === 'ANATEL'
+                                  ? 'bg-amber-500/20 text-amber-200 border border-amber-400/40'
+                                  : 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
+                              }`}
+                            >
+                              {product.variant}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Supplier info */}
+                        <div className="flex items-center gap-2 mb-3 text-sm text-white/80">
+                          <ShoppingCart className="w-4 h-4" />
+                          <span>{product.supplier_name || 'N/A'}</span>
+                        </div>
+
+                        {/* Date */}
+                        {product.created_at && (
+                          <div className="text-xs text-gray-400 mb-3">
+                            {new Date(product.created_at).toLocaleDateString('pt-BR')}
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2 pt-3 border-t border-white/10">
+                          {product.whatsapp ? (
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleWhatsApp(product.whatsapp, product)}
+                              className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all shadow-lg"
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                              <span>WhatsApp</span>
+                            </motion.button>
+                          ) : (
+                            <div className="flex-1 text-xs text-gray-400 px-4 py-3 text-center">Sem WhatsApp</div>
+                          )}
+                          <motion.button
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A')}\n${
+                                product.variant ? `Variante: ${product.variant}\n` : ''
+                              }`
+                              navigator.clipboard.writeText(text)
+                              toast.success('Copiado para a área de transferência!')
+                            }}
+                            className="p-3 text-gray-300 hover:bg-white/20 rounded-lg transition-colors"
+                            title="Copiar informações"
+                          >
+                            <Copy className="w-5 h-5" />
+                          </motion.button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

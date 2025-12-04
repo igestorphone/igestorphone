@@ -336,13 +336,33 @@ export const usersApi = {
 
 export const registrationApi = {
   verifyToken: async (token: string) => {
-    const response = await testApi.get(`/register/${token}`)
-    return response.data
+    // Tentar primeiro path parameter (para links antigos)
+    try {
+      const response = await testApi.get(`/register/${token}`)
+      return response.data
+    } catch (error: any) {
+      // Se falhar, tentar query string
+      if (error.response?.status === 404) {
+        const response = await testApi.get(`/register?token=${token}`)
+        return response.data
+      }
+      throw error
+    }
   },
   
   register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string }) => {
-    const response = await testApi.post(`/register/${token}`, data)
-    return response.data
+    // Tentar primeiro path parameter (para links antigos)
+    try {
+      const response = await testApi.post(`/register/${token}`, data)
+      return response.data
+    } catch (error: any) {
+      // Se falhar, tentar query string
+      if (error.response?.status === 404) {
+        const response = await testApi.post(`/register?token=${token}`, data)
+        return response.data
+      }
+      throw error
+    }
   },
   
   generateLink: async (expiresInDays?: number) => {

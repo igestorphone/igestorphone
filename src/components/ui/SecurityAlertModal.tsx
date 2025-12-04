@@ -37,11 +37,11 @@ export default function SecurityAlertModal({ isOpen, onClose }: SecurityAlertMod
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative z-10 w-full max-w-lg"
+            className="relative z-10 w-full max-w-lg mx-2 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             style={{ position: 'relative', zIndex: 10 }}
           >
-            <div className="glass rounded-2xl p-6 shadow-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+            <div className="glass rounded-2xl p-4 sm:p-6 shadow-2xl border-2 border-yellow-500/50 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
               {/* Header */}
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center space-x-3">
@@ -114,10 +114,11 @@ export default function SecurityAlertModal({ isOpen, onClose }: SecurityAlertMod
               </div>
 
               {/* Footer */}
-              <div className="flex justify-end">
+              <div className="flex justify-center sm:justify-end pt-4">
                 <button
                   onClick={onClose}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold text-lg rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95 min-h-[56px] touch-manipulation"
+                  style={{ touchAction: 'manipulation' }}
                 >
                   Entendi, estou ciente
                 </button>
