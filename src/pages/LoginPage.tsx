@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import toast from 'react-hot-toast'
@@ -207,6 +207,19 @@ export default function LoginPage() {
             'Entrar'
           )}
         </motion.button>
+
+        {/* Link para cadastro */}
+        <div className="text-center mt-6">
+          <p className="text-white/60 text-sm">
+            Não tem conta?{' '}
+            <Link 
+              to="/register" 
+              className="text-white font-semibold hover:text-white/80 transition-colors underline"
+            >
+              Cadastre-se aqui
+            </Link>
+          </p>
+        </div>
 
       </form>
     </motion.div>

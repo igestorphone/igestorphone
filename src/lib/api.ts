@@ -353,7 +353,7 @@ export const registrationApi = {
     }
   },
   
-  register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string }) => {
+  register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string; whatsapp?: string; nome_loja?: string; cnpj?: string | null }) => {
     // Tentar primeiro path parameter (formato que funciona), depois query string como fallback
     try {
       const response = await testApi.post(`/register/${token}`, data)

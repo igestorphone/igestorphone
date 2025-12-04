@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, CheckCircle2, Loader2, Calendar, MapPin, Phone, Building2, FileText } from 'lucide-react'
-import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { useParams, Link, useSearchParams } from 'react-router-dom'
 import { registrationApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 
@@ -52,7 +52,6 @@ export default function RegisterPage() {
   const tokenFromQuery = searchParams.get('token')
   const token = tokenFromPath || tokenFromQuery
   
-  const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
@@ -187,7 +186,8 @@ export default function RegisterPage() {
     )
   }
 
-  if (tokenValid === false) {
+  if (tokenValid === false && token) {
+    // Token inválido ou expirado
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-primary p-4">
         <motion.div
@@ -198,7 +198,7 @@ export default function RegisterPage() {
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Link Inválido</h2>
           <p className="text-white/70 mb-6">
-            Este link de cadastro é inválido ou já foi utilizado.
+            Este link de cadastro é inválido, expirado ou já foi utilizado.
           </p>
           <Link
             to="/login"
@@ -206,6 +206,36 @@ export default function RegisterPage() {
           >
             Ir para Login
           </Link>
+        </motion.div>
+      </div>
+    )
+  }
+
+  if (!token) {
+    // Sem token - mostrar instruções para obter o link
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-primary p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="glass rounded-2xl p-8 max-w-md w-full text-center"
+        >
+          <User className="w-16 h-16 text-white/70 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-2">Link de Cadastro Necessário</h2>
+          <p className="text-white/70 mb-4">
+            Para se cadastrar no sistema, você precisa de um link de cadastro fornecido pelo administrador.
+          </p>
+          <p className="text-white/60 text-sm mb-6">
+            Se você já possui o link, copie e cole na barra de endereço do navegador ou clique diretamente nele.
+          </p>
+          <div className="space-y-3">
+            <Link
+              to="/login"
+              className="btn-primary inline-block w-full"
+            >
+              Voltar para Login
+            </Link>
+          </div>
         </motion.div>
       </div>
     )
