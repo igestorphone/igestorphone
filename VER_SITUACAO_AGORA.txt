@@ -1,0 +1,20 @@
+============================================
+VER SITUAÇÃO ATUAL DOS PRODUTOS
+============================================
+
+Execute ESTE comando primeiro para ver a distribuição de datas:
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as ativos FROM products GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC LIMIT 10;"
+
+============================================
+ISSO VAI MOSTRAR:
+============================================
+- Quantos produtos estão em cada data
+- Quantos estão ativos
+- Qual a distribuição real
+
+============================================
+DEPOIS ME MOSTRE O RESULTADO!
+
+============================================
+

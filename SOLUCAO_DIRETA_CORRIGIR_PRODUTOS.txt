@@ -1,0 +1,27 @@
+============================================
+SOLUÇÃO DIRETA: CORRIGIR TODOS OS PRODUTOS DE HOJE
+============================================
+
+Como o UPDATE retornou 0, vamos usar uma abordagem mais direta:
+
+1. Primeiro, vamos diagnosticar a situação:
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total FROM products WHERE is_active = true GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC LIMIT 5;"
+
+2. Depois, vamos atualizar TODOS os produtos ativos das últimas 24 horas:
+
+psql $DATABASE_URL -c "UPDATE products SET updated_at = NOW() WHERE is_active = true AND updated_at >= NOW() - INTERVAL '24 hours';"
+
+3. Verificar resultado:
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total FROM products WHERE is_active = true GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC LIMIT 5;"
+
+============================================
+EXPLICAÇÃO:
+============================================
+O comando #2 vai atualizar TODOS os produtos ativos que foram atualizados nas últimas 24 horas, colocando a data/hora atual neles.
+
+Isso vai garantir que todos os produtos processados recentemente apareçam como "de hoje" (03/12).
+
+============================================
+

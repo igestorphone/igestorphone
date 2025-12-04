@@ -14,8 +14,7 @@ export const authenticateToken = async (req, res, next) => {
     
     // Buscar usuário no banco para verificar se ainda está ativo
     const result = await query(`
-      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             is_active, access_expires_at, approval_status
+      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active
       FROM users WHERE id = $1
     `, [decoded.userId]);
 
@@ -27,25 +26,6 @@ export const authenticateToken = async (req, res, next) => {
 
     if (!user.is_active) {
       return res.status(401).json({ message: 'Conta desativada' });
-    }
-
-    // Verificar se o acesso expirou (sistema de período de acesso)
-    if (user.access_expires_at) {
-      const now = new Date();
-      const accessExpiresAt = new Date(user.access_expires_at);
-      
-      if (now > accessExpiresAt) {
-        // Desativar usuário automaticamente quando o acesso expirar
-        await query(
-          'UPDATE users SET is_active = false WHERE id = $1',
-          [user.id]
-        );
-        
-        return res.status(403).json({ 
-          message: 'Seu período de acesso expirou. Entre em contato com o administrador.',
-          access_expired: true
-        });
-      }
     }
 
     // Verificar se a assinatura não expirou

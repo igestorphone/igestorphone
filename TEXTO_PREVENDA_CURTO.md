@@ -2,36 +2,20 @@
 
 ---
 
-🚀 **SISTEMA PARA LOJISTAS DE IPHONE**
+🚀 **SISTEMA COM IA PARA LOJISTAS DE IPHONE**
 
-Chega de procurar iPhone lista por lista manualmente!
+Chega de perder tempo organizando listas manualmente!
 
-O **iGestorPhone** já processa mais de 60 fornecedores ativos diariamente. Você só busca o modelo que precisa e encontra o menor preço instantaneamente.
+O **iGestorPhone** processa suas listas automaticamente com IA, organiza fornecedores e mostra os melhores preços em tempo real.
 
 ---
-
-❌ **O PROBLEMA QUE RESOLVE:**
-• Para de perder tempo abrindo lista por lista
-• Para de procurar manualmente qual fornecedor tem o melhor preço
-• Para de anotar preços em papel ou planilha
 
 ✅ **O QUE VOCÊ GANHA:**
-• Busca o modelo que precisa e encontra o menor preço em segundos
-• Mais de 60 fornecedores ativos já processados e atualizados
-• Só produtos lacrados/novos (vitrine ignorada automaticamente)
-• Histórico de preços de cada fornecedor
-• Contato direto com o fornecedor (WhatsApp, cidade)
+• Processamento automático de listas (cole do WhatsApp, sistema organiza)
+• Gestão completa de fornecedores com histórico de preços
+• Comparação de preços em tempo real
+• Metas e notas por fornecedor
 • Acesso 24/7 na nuvem (celular, tablet, PC)
-
----
-
-🔄 **COMO FUNCIONA NA PRÁTICA:**
-1️⃣ Você busca o modelo que precisa (ex: iPhone 15 Pro Max 256GB Azul)
-2️⃣ Sistema mostra qual fornecedor tem o menor preço entre mais de 60 ativos
-3️⃣ Você vê o contato direto do fornecedor (WhatsApp, cidade)
-4️⃣ Você compra diretamente com o fornecedor
-
-Simples assim! Você não processa nada, não cadastra nada. Só busca e encontra.
 
 ---
 
@@ -40,7 +24,7 @@ Simples assim! Você não processa nada, não cadastra nada. Só busca e encontr
 📅 Trimestral: R$ 89,99/mês (economia 25%) ⭐ Mais Popular
 📅 Anual: R$ 79,99/mês (economia 33%)
 
-Todos incluem: acesso completo à busca, mais de 60 fornecedores ativos, atualização diária de preços e suporte WhatsApp.
+Todos incluem: processamento ilimitado, gestão de fornecedores, comparação de preços, metas, notas e suporte WhatsApp.
 
 ---
 
@@ -67,9 +51,6 @@ Estou fazendo pré-venda para confirmar quantos vão usar.
 ---
 
 ❓ **DÚVIDAS?**
-• Preciso processar listas? Não! Eu processo todas as listas diariamente
-• Preciso cadastrar fornecedores? Não! Já tem mais de 60 cadastrados
-• Só preciso buscar? Sim! Você busca, encontra o melhor preço e compra
 • Não precisa instalar nada (tudo na nuvem)
 • Funciona no celular
 • Pode cancelar quando quiser
@@ -77,7 +58,7 @@ Estou fazendo pré-venda para confirmar quantos vão usar.
 
 ---
 
-**Chega de perder tempo procurando iPhone lista por lista. Com o iGestorPhone você encontra o mais barato em segundos entre mais de 60 fornecedores!**
+**Quem já usa sabe: organizar listas manualmente é perda de tempo. O iGestorPhone faz em segundos com IA.**
 
 **Confirme seu interesse! 🚀**
 

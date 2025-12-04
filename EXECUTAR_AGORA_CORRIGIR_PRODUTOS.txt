@@ -1,0 +1,31 @@
+============================================
+COMANDO ÚNICO PARA CORRIGIR PRODUTOS DE HOJE
+============================================
+
+Execute ESTE comando no Render Shell:
+
+psql $DATABASE_URL -c "UPDATE products SET updated_at = NOW() WHERE is_active = true AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-02' AND updated_at >= NOW() - INTERVAL '30 hours';"
+
+============================================
+O QUE FAZ:
+============================================
+✅ Atualiza produtos de HOJE (03/12) que estão com data de 02/12
+✅ Corrige o problema de timezone
+✅ Produtos de hoje vão aparecer corretamente
+
+============================================
+DEPOIS VERIFICAR:
+============================================
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total FROM products WHERE is_active = true GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC LIMIT 5;"
+
+============================================
+SOBRE O RESET À MEIA-NOITE:
+============================================
+✅ A lógica já está correta
+✅ Não há processo desativando produtos antes da meia-noite
+✅ Produtos só desaparecem quando a data muda naturalmente (00h)
+✅ O filtro usa timezone do Brasil corretamente
+
+============================================
+

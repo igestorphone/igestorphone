@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { useAuthStore } from '@/stores/authStore'
 
 // Layouts
@@ -216,6 +217,7 @@ function App() {
           <Route index element={<SupportPage />} />
         </Route>
       </Routes>
+      <Analytics />
     </div>
   )
 }

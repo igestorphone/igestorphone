@@ -1,0 +1,41 @@
+============================================
+DIAGNOSTICAR SITUAÇÃO DOS PRODUTOS
+============================================
+
+O UPDATE retornou 0, vamos ver o que está acontecendo:
+
+============================================
+1. VER DISTRIBUIÇÃO DE PRODUTOS POR DATA:
+============================================
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total, COUNT(*) FILTER (WHERE is_active = true) as ativos FROM products GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC LIMIT 10;"
+
+============================================
+2. VER PRODUTOS DE HOJE (03/12):
+============================================
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as produtos_hoje FROM products WHERE is_active = true AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-03';"
+
+============================================
+3. VER PRODUTOS DE ONTEM (02/12):
+============================================
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as produtos_ontem FROM products WHERE is_active = true AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-02';"
+
+============================================
+4. VER PRODUTOS ATUALIZADOS NAS ÚLTIMAS 30H:
+============================================
+
+psql $DATABASE_URL -c "SELECT DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, COUNT(*) as total FROM products WHERE is_active = true AND updated_at >= NOW() - INTERVAL '30 hours' GROUP BY DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') ORDER BY data_brasil DESC;"
+
+============================================
+5. VER ALGUNS PRODUTOS ESPECÍFICOS:
+============================================
+
+psql $DATABASE_URL -c "SELECT id, name, DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') as data_brasil, updated_at FROM products WHERE is_active = true AND updated_at >= NOW() - INTERVAL '30 hours' ORDER BY updated_at DESC LIMIT 5;"
+
+============================================
+ME ENVIE OS RESULTADOS PARA IDENTIFICAR O PROBLEMA!
+
+============================================
+
