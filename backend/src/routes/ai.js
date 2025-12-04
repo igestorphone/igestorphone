@@ -4,6 +4,7 @@ import aiService from '../services/aiService.js';
 import aiDashboardService from '../services/aiDashboardService.js';
 import { authenticateToken, requireSubscription } from '../middleware/auth.js';
 import { query } from '../config/database.js';
+import { normalizeColor } from '../utils/colorNormalizer.js';
 
 const router = express.Router();
 
@@ -577,7 +578,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         
         // Normalizar valores para comparação
         const normalizedModel = product.model ? product.model.trim() : null;
-        const normalizedColor = product.color ? product.color.trim().toLowerCase() : null;
+        // Normalizar cor usando a função de normalização
+        const normalizedColorRaw = product.color ? product.color.trim() : null;
+        const normalizedColor = normalizedColorRaw ? normalizeColor(normalizedColorRaw, normalizedModel) : null;
         const normalizedStorage = product.storage ? product.storage.trim().toLowerCase() : null;
         const normalizedName = product.name ? product.name.trim().toLowerCase() : null;
         const normalizedVariant = detectVariant(product);
@@ -666,7 +669,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             product.price,
             product.name,
             product.model || null,
-            product.color || null,
+            normalizedColor || product.color || null, // Salvar cor normalizada
             product.storage || null,
             normalizedVariant,
             conditionDetail || null,
@@ -709,7 +712,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             finalSupplierId,
             product.name,
             product.model || null,
-            product.color || null,
+            normalizedColor || product.color || null, // Salvar cor normalizada
             product.storage || null,
             condition,
             conditionDetail || null,

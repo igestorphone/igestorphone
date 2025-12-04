@@ -30,50 +30,92 @@ import toast from 'react-hot-toast'
 import SecurityAlertModal from '@/components/ui/SecurityAlertModal'
 
 const colorMap: Record<string, string> = {
+  // Preto
   black: 'Preto',
+  'space black': 'Preto',
+  'jet black': 'Preto',
+  preto: 'Preto',
+  
+  // Branco
   white: 'Branco',
+  branco: 'Branco',
+  starlight: 'Branco',
+  'titanium white': 'Branco',
+  
+  // Azul
   blue: 'Azul',
+  azul: 'Azul',
+  'deep blue': 'Azul',
+  'titanium blue': 'Azul',
+  midnight: 'Azul',
+  
+  // Laranja
+  orange: 'Laranja',
+  laranja: 'Laranja',
+  'cosmic orange': 'Laranja',
+  cosmic: 'Laranja',
+  
+  // Prata (para iPhone 17 Pro/Pro Max = Branco)
+  silver: 'Branco',
+  prata: 'Branco',
+  
+  // Outras cores
   red: 'Vermelho',
+  vermelho: 'Vermelho',
   green: 'Verde',
+  verde: 'Verde',
   yellow: 'Amarelo',
+  amarelo: 'Amarelo',
   purple: 'Roxo',
+  roxo: 'Roxo',
   pink: 'Rosa',
+  rosa: 'Rosa',
   rose: 'Rosa',
   gold: 'Dourado',
-  silver: 'Prata',
+  dourado: 'Dourado',
   gray: 'Cinza',
   grey: 'Cinza',
-  orange: 'Laranja',
-  midnight: 'Midnight',
-  starlight: 'Starlight',
+  cinza: 'Cinza',
   natural: 'Natural',
   desert: 'Desert',
   lilac: 'Lilás',
   lilas: 'Lilás',
   titanium: 'Titânio',
-  'titanium blue': 'Azul Titânio',
-  'titanium black': 'Preto Titânio',
-  'titanium white': 'Branco Titânio',
-  'titanium natural': 'Natural Titânio',
-  preto: 'Preto',
-  branco: 'Branco',
-  azul: 'Azul',
-  vermelho: 'Vermelho',
-  verde: 'Verde',
-  amarelo: 'Amarelo',
-  roxo: 'Roxo',
-  rosa: 'Rosa',
-  dourado: 'Dourado',
-  prata: 'Prata',
-  cinza: 'Cinza',
-  laranja: 'Laranja'
+  'titanium black': 'Preto',
+  'titanium natural': 'Natural'
 }
 
-const normalizeColor = (color: string): string => {
+const normalizeColor = (color: string, model?: string): string => {
   if (!color) return 'N/A'
   const lower = color.toLowerCase().trim()
-  const mapped = colorMap[lower] || colorMap[lower.split(' ')[0]]
-  return mapped || lower.charAt(0).toUpperCase() + lower.slice(1)
+  
+  // Para iPhone 17 Pro/Pro Max, Prata = Branco
+  if (model && (model.includes('17 Pro') || model.includes('17 Pro Max'))) {
+    if (lower === 'prata' || lower === 'silver') {
+      return 'Branco'
+    }
+  }
+  
+  // Tentar mapeamento completo primeiro
+  if (colorMap[lower]) {
+    return colorMap[lower]
+  }
+  
+  // Tentar por palavras individuais
+  const words = lower.split(/\s+/)
+  for (const word of words) {
+    if (colorMap[word]) {
+      return colorMap[word]
+    }
+  }
+  
+  // Tentar primeira palavra
+  if (words.length > 0 && colorMap[words[0]]) {
+    return colorMap[words[0]]
+  }
+  
+  // Se não encontrar, retornar capitalizado
+  return lower.charAt(0).toUpperCase() + lower.slice(1)
 }
 
 const formatPrice = (price: number) =>
@@ -226,7 +268,7 @@ export default function SearchCheapestIPhonePage() {
     const categories = new Set<string>()
 
     products.forEach((product: any) => {
-      if (product.color) colors.add(normalizeColor(product.color))
+      if (product.color) colors.add(normalizeColor(product.color, product.model))
       if (product.storage) storages.add(product.storage)
       if (product.supplier_name) suppliers.add(product.supplier_name)
       if (product.model) {
