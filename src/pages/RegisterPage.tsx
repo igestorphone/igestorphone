@@ -52,22 +52,23 @@ export default function RegisterPage() {
   const tokenFromQuery = searchParams.get('token')
   const token = tokenFromPath || tokenFromQuery
   
-  // Debug: log para ver qual token está sendo usado
-  useEffect(() => {
-    console.log('🔑 Token extraído:', {
-      tokenFromPath,
-      tokenFromQuery,
-      finalToken: token,
-      url: window.location.href
-    })
-  }, [tokenFromPath, tokenFromQuery, token])
-  
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [tokenChecking, setTokenChecking] = useState(true)
   const [registered, setRegistered] = useState(false)
+  
+  // Debug: log para ver qual token está sendo usado
+  useEffect(() => {
+    console.log('🔑 RegisterPage - Token extraído:', {
+      tokenFromPath,
+      tokenFromQuery,
+      finalToken: token,
+      url: window.location.href,
+      pathname: window.location.pathname
+    })
+  }, [tokenFromPath, tokenFromQuery, token])
 
   const {
     register,
@@ -79,8 +80,16 @@ export default function RegisterPage() {
 
   // Verificar se token é válido ao carregar
   useEffect(() => {
+    let isMounted = true
+    
     const checkToken = async () => {
+      // Pequeno delay para garantir que o componente está montado
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      if (!isMounted) return
+      
       if (!token) {
+        console.warn('⚠️ Nenhum token encontrado na URL')
         setTokenValid(false)
         setTokenChecking(false)
         return
@@ -88,18 +97,24 @@ export default function RegisterPage() {
 
       try {
         console.log('🔍 Verificando token:', token)
+        console.log('🔍 URL completa:', window.location.href)
         
-        // Timeout de 15 segundos para evitar travamento
+        // Timeout reduzido para 10 segundos
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout: A verificação do token está demorando muito.')), 15000)
+          setTimeout(() => reject(new Error('Timeout: A verificação do token está demorando muito.')), 10000)
         )
         
         const verifyPromise = registrationApi.verifyToken(token)
         const response = await Promise.race([verifyPromise, timeoutPromise]) as any
         
+        if (!isMounted) return
+        
         console.log('✅ Token válido:', response)
         setTokenValid(true)
+        setTokenChecking(false)
       } catch (error: any) {
+        if (!isMounted) return
+        
         console.error('❌ Erro ao verificar token:', error)
         console.error('❌ Response:', error.response)
         console.error('❌ Status:', error.response?.status)
@@ -124,12 +139,15 @@ export default function RegisterPage() {
         
         toast.error(message, { duration: 8000 })
         setTokenValid(false)
-      } finally {
         setTokenChecking(false)
       }
     }
 
     checkToken()
+    
+    return () => {
+      isMounted = false
+    }
   }, [token])
 
   const onSubmit = async (data: RegisterForm) => {
@@ -163,6 +181,7 @@ export default function RegisterPage() {
         <div className="text-center">
           <Loader2 className="w-12 h-12 text-white/70 animate-spin mx-auto mb-4" />
           <p className="text-white/70">Verificando link de cadastro...</p>
+          <p className="text-white/50 text-sm mt-2">Se esta tela persistir, verifique se o link está correto</p>
         </div>
       </div>
     )
