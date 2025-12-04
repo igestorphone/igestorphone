@@ -29,11 +29,19 @@ router.post('/registration-links', authenticateToken, requireRole('admin'), asyn
     
     const registrationToken = result.rows[0];
     
-    // Gerar URL completa - pegar apenas a primeira URL se tiver múltiplas
+    // Gerar URL completa - garantir formato correto: https://www.igestorphone.com.br/register/TOKEN
     const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
+    let frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
     
-    // Usar path parameter - formato que funciona perfeitamente
+    // Garantir que use www.igestorphone.com.br (formato que funciona)
+    if (frontendUrl.includes('igestorphone.com.br') && !frontendUrl.includes('www.')) {
+      frontendUrl = frontendUrl.replace('igestorphone.com.br', 'www.igestorphone.com.br');
+    }
+    
+    // Remover barra final se houver
+    frontendUrl = frontendUrl.replace(/\/+$/, '');
+    
+    // Usar path parameter - formato que funciona perfeitamente: /register/TOKEN
     const registrationUrl = `${frontendUrl}/register/${token}`;
     
     // Log da ação
@@ -84,7 +92,16 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
     `);
     
     const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
+    let frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
+    
+    // Garantir que use www.igestorphone.com.br (formato que funciona)
+    if (frontendUrl.includes('igestorphone.com.br') && !frontendUrl.includes('www.')) {
+      frontendUrl = frontendUrl.replace('igestorphone.com.br', 'www.igestorphone.com.br');
+    }
+    
+    // Remover barra final se houver
+    frontendUrl = frontendUrl.replace(/\/+$/, '');
+    
     const links = result.rows.map(row => ({
       id: row.id,
       token: row.token,
