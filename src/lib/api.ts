@@ -336,32 +336,38 @@ export const usersApi = {
 
 export const registrationApi = {
   verifyToken: async (token: string) => {
-    // Tentar primeiro path parameter (para links antigos)
+    // Tentar primeiro path parameter (formato que funciona), depois query string como fallback
     try {
       const response = await testApi.get(`/register/${token}`)
       return response.data
     } catch (error: any) {
-      // Se falhar, tentar query string
-      if (error.response?.status === 404) {
+      // Se falhar com path parameter, tentar query string (fallback)
+      console.log('⚠️ Path parameter falhou, tentando query string:', error.response?.status)
+      try {
         const response = await testApi.get(`/register?token=${token}`)
         return response.data
+      } catch (queryError: any) {
+        // Se ambos falharem, retornar o erro original
+        throw error
       }
-      throw error
     }
   },
   
   register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string }) => {
-    // Tentar primeiro path parameter (para links antigos)
+    // Tentar primeiro path parameter (formato que funciona), depois query string como fallback
     try {
       const response = await testApi.post(`/register/${token}`, data)
       return response.data
     } catch (error: any) {
-      // Se falhar, tentar query string
-      if (error.response?.status === 404) {
+      // Se falhar com path parameter, tentar query string (fallback)
+      console.log('⚠️ Path parameter falhou, tentando query string:', error.response?.status)
+      try {
         const response = await testApi.post(`/register?token=${token}`, data)
         return response.data
+      } catch (queryError: any) {
+        // Se ambos falharem, retornar o erro original
+        throw error
       }
-      throw error
     }
   },
   

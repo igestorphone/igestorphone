@@ -52,6 +52,16 @@ export default function RegisterPage() {
   const tokenFromQuery = searchParams.get('token')
   const token = tokenFromPath || tokenFromQuery
   
+  // Debug: log para ver qual token está sendo usado
+  useEffect(() => {
+    console.log('🔑 Token extraído:', {
+      tokenFromPath,
+      tokenFromQuery,
+      finalToken: token,
+      url: window.location.href
+    })
+  }, [tokenFromPath, tokenFromQuery, token])
+  
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)

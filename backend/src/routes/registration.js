@@ -33,8 +33,8 @@ router.post('/registration-links', authenticateToken, requireRole('admin'), asyn
     const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
     const frontendUrl = frontendUrlRaw.split(',')[0].trim(); // Pega apenas a primeira URL
     
-    // Usar query string - mais compatível com Vercel e não precisa de roteamento especial
-    const registrationUrl = `${frontendUrl}/register?token=${token}`;
+    // Usar path parameter - formato que funciona perfeitamente
+    const registrationUrl = `${frontendUrl}/register/${token}`;
     
     // Log da ação
     await query(`
@@ -88,7 +88,7 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
     const links = result.rows.map(row => ({
       id: row.id,
       token: row.token,
-      url: `${frontendUrl}/register?token=${row.token}`,
+      url: `${frontendUrl}/register/${row.token}`,
       createdAt: row.created_at,
       expiresAt: row.expires_at,
       isUsed: row.is_used,
