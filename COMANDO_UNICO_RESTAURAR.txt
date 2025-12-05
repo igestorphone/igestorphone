@@ -1,0 +1,25 @@
+🚀 COMANDO ÚNICO - Execute no Render Shell:
+
+═══════════════════════════════════════════════════════════
+
+Cole e execute este comando completo:
+
+psql $DATABASE_URL -c "
+-- 1. Atualizar data de TODOS os produtos ativos para HOJE
+UPDATE products SET updated_at = NOW() WHERE is_active = true;
+
+-- 2. Ativar TODOS os fornecedores que têm produtos ativos
+UPDATE suppliers SET is_active = true WHERE id IN (SELECT DISTINCT supplier_id FROM products WHERE is_active = true);
+
+-- 3. Verificar resultado
+SELECT COUNT(*) as produtos_visiveis FROM products p JOIN suppliers s ON p.supplier_id = s.id WHERE p.is_active = true AND s.is_active = true;
+"
+
+═══════════════════════════════════════════════════════════
+
+Depois de executar:
+1. Faça refresh no navegador (F5 ou Cmd+R)
+2. Os produtos devem aparecer!
+
+Se ainda não aparecer, me avise e vamos verificar os logs!
+

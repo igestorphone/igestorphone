@@ -524,10 +524,25 @@ class AIService {
       // Prompt simplificado mas completo para listas de produtos Apple NOVOS
       const prompt = `Extraia APENAS produtos Apple NOVOS desta lista. REGRAS CRÍTICAS:
 
+⚠️ ATENÇÃO CRÍTICA - ESTES PRODUTOS SÃO SEMPRE NOVOS/LACRADOS:
+- APPLE WATCH (Ultra, Series, SE, todas variações) → SEMPRE NOVO/LACRADO → PROCESSAR TODOS
+- MACBOOK (M1, M2, M3, M4, Air, Pro, todas configurações) → SEMPRE NOVO/LACRADO → PROCESSAR TODOS  
+- IPAD (Air, Pro, A16, M1, M2, M3, todas variações) → SEMPRE NOVO/LACRADO → PROCESSAR TODOS
+- AIRPODS (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3) → SEMPRE NOVO/LACRADO → PROCESSAR TODOS
+
+NÃO IGNORE ESTES PRODUTOS! Se encontrar na lista, EXTRAIA TODOS!
+
+REGRAS CRÍTICAS:
+
 1. PRODUTOS: APENAS iPhone (11, 12, 13, 14, 15, 16, 17 e todas variações Pro/Max/Air/Plus), iPad, MacBook, AirPods, Apple Watch, Magic Keyboard, Apple Pencil, AirTag
    - CRÍTICO: Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e variações). NÃO IGNORE modelos mais antigos (11, 12, 13, 14, 15) só porque são mais antigos - todos são válidos se forem LACRADOS/NOVOS.
+   - CRÍTICO: Processe TODOS os Apple Watch encontrados (Series, Ultra, SE e todas variações de tamanho: 40mm, 42mm, 44mm, 45mm, 46mm, 49mm, etc.)
+   - CRÍTICO: Processe TODOS os MacBook encontrados (M1, M2, M3, M4, Air, Pro, 13", 14", 16", todas configurações de RAM/armazenamento)
+   - CRÍTICO: Processe TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, todas variações de tamanho: 11", 12.9", etc.)
+   - CRÍTICO: Processe TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3, etc.)
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
-   - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo"
+   - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo" e condition_detail: "LACRADO"
+   - REGRA CRÍTICA: Se encontrar "Apple Watch", "MacBook", "iPad", "AirPods" na lista SEM qualificação de "usado" ou "seminovo", ASSUMA que é NOVO/LACRADO e PROCESSAR
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
@@ -559,7 +574,12 @@ class AIService {
    - Formato 6: ⚫️  17 pro max 256G LACRADO → depois * Laranja 8300,00 → produto com emoji ⚫️, modelo e condição na mesma linha, cor com asterisco (*) e preço na mesma linha
    - Formato 7: ⚫️  14 pro max 128G CPO → depois * preto → depois 💸4250,00 → produto com CPO, cor em linha separada com asterisco (*), preço com 💸 em linha separada
    - Formato 8: ⚫️  17 pro max 256G LACRADO❗️ → depois * Laranja 8300,00 → produto com emoji ⚫️ e ❗️, modelo, condição LACRADO, cor e preço
+   - Formato 9 (APPLE WATCH): "⌚ Apple Watch" ou "Apple Watch Ultra 3" → depois "• Black — R$ 4.900" → cada cor/preço = produto separado
+   - Formato 10 (MACBOOK): "💻 MacBook" ou "MacBook M4 — 16GB / 256GB — 13"" → depois "• ⚫ Midnight — R$ 6.100" → cada cor/preço = produto separado
+   - Formato 11 (IPAD): "📱 iPad" ou "iPad Air M3 — 11"" → depois "• Azul — R$ 3.650" → cada cor/preço = produto separado
+   - Formato 12 (AIRPODS): "🎧 AirPods" ou "AirPods Pro 3 — Original Apple" → depois "• ⚪ Novo lacrado — R$ 1.750" → produto com condição na descrição
    - IMPORTANTE: Se produto tem LACRADO, CPO na descrição OU está em seção "LACRADO COM GARANTIA APPLE", PROCESSAR como condition: "Novo", condition_detail: "LACRADO" ou "CPO"
+   - IMPORTANTE: Apple Watch, MacBook, iPad, AirPods que aparecem em listas são SEMPRE NOVOS/LACRADOS - PROCESSAR TODOS encontrados
    - Se preço ANTES das cores (🚦, 📲, 📍, ✅), cada cor = produto separado com mesmo preço
    - Se cor vem DEPOIS do modelo com hífen longo (—) ou asterisco (*), cada cor = produto separado
    - Preço pode vir com 💸, 💵, 💲, 💰, R$ em linha separada ou na mesma linha
@@ -569,11 +589,19 @@ class AIService {
    - Produtos com "garantia 6 meses pela loja", "3 meses garantia pela loja" APENAS se NÃO estiverem em seção LACRADOS/NOVOS
    - Se encontrar marcador "IPHONE VITRINE", "IPHONE SWAP" → IGNORE completamente tudo DEPOIS desse marcador
 
+16. EXEMPLOS ESPECÍFICOS DE PRODUTOS:
+   - APPLE WATCH: "Apple Watch Ultra 3" → "• Black — R$ 4.900" → Extrair: name="Apple Watch Ultra 3", model="Apple Watch Ultra 3", color="Black", price=4900, condition="Novo", condition_detail="LACRADO"
+   - APPLE WATCH: "Apple Watch Series 11 (42mm)" → "• Preto — R$ 2.500" → Extrair: name="Apple Watch Series 11", model="Apple Watch Series 11 42mm", color="Preto", price=2500, condition="Novo", condition_detail="LACRADO"
+   - MACBOOK: "MacBook M4 — 16GB / 256GB — 13"" → "• ⚫ Midnight — R$ 6.100" → Extrair: name="MacBook M4 13"", model="MacBook M4 16GB 256GB 13"", color="Midnight", storage="256GB", price=6100, condition="Novo", condition_detail="LACRADO"
+   - IPAD: "iPad Air M3 — 11"" → "• Azul — R$ 3.650" → Extrair: name="iPad Air M3", model="iPad Air M3 11"", color="Azul", price=3650, condition="Novo", condition_detail="LACRADO"
+   - AIRPODS: "AirPods Pro 3 — Original Apple" → "• ⚪ Novo lacrado — R$ 1.750" → Extrair: name="AirPods Pro 3", model="AirPods Pro 3", price=1750, condition="Novo", condition_detail="LACRADO"
+
 IMPORTANTE: 
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
 - Se houver seção "SWAP", "Vitrine", "Seminovo" → IGNORE apenas produtos DENTRO dessa seção
 - "americano" como variante de produto NOVO → PROCESSAR. "seminovo americano" ou "americano" em seção SWAP/VITRINE → IGNORAR
 - EXTRAIA TODOS os modelos iPhone encontrados: 11, 12, 13, 14, 15, 16, 17 e variações. Não ignore modelos mais antigos (11, 12, 13, 14, 15). Todos são válidos se forem LACRADOS/NOVOS.
+- EXTRAIA TODOS os Apple Watch, MacBook, iPad e AirPods encontrados na lista - são SEMPRE NOVOS/LACRADOS quando aparecem em listas de preços
 
 Lista:
 ${cleanedList}
@@ -603,7 +631,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações Pro, Max, Air, Plus) se forem LACRADOS/NOVOS. NÃO IGNORE modelos mais antigos. 7) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 8) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 9) CPO → condition_detail: "CPO" E variant: "CPO". 10) ANATEL/🇧🇷 → variant: "ANATEL". 11) eSIM/CHIP VIRTUAL → variant: "E-SIM". 12) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 13) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 14) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 15) Armazenamento: normalize (256=256GB, 1T=1TB). 16) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 17) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações Pro, Max, Air, Plus) se forem LACRADOS/NOVOS. NÃO IGNORE modelos mais antigos. 7) EXTRAIA TODOS os Apple Watch encontrados (Ultra, Series, SE e todas variações de tamanho: 40mm, 42mm, 44mm, 45mm, 46mm, 49mm) - são SEMPRE NOVOS/LACRADOS. 8) EXTRAIA TODOS os MacBook encontrados (M1, M2, M3, M4, Air, Pro, 13", 14", 16", todas configurações) - são SEMPRE NOVOS/LACRADOS. 9) EXTRAIA TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, 11", 12.9") - são SEMPRE NOVOS/LACRADOS. 10) EXTRAIA TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3) - são SEMPRE NOVOS/LACRADOS. 11) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 12) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 13) CPO → condition_detail: "CPO" E variant: "CPO". 14) ANATEL/🇧🇷 → variant: "ANATEL". 15) eSIM/CHIP VIRTUAL → variant: "E-SIM". 16) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 17) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 18) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 19) Armazenamento: normalize (256=256GB, 1T=1TB). 20) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 21) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída
@@ -658,7 +686,8 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
             productName.includes('ipad') || productModel.includes('ipad') ||
             productName.includes('macbook') || productModel.includes('macbook') ||
             productName.includes('airpod') || productModel.includes('airpod') ||
-            productName.includes('apple watch') || productName.includes('watch') || productModel.includes('watch');
+            productName.includes('apple watch') || productName.includes('watch') || productModel.includes('watch') ||
+            productModel.includes('apple watch') || productModel.includes('ultra') || productModel.includes('series');
           
           if (isAlwaysNewProduct) {
             // Forçar condition: "Novo" para esses produtos
@@ -666,6 +695,8 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
             if (!product.condition_detail || product.condition_detail === '') {
               product.condition_detail = 'LACRADO';
             }
+            // Garantir que produtos sempre novos NÃO sejam filtrados
+            console.log(`✅ Produto sempre novo detectado: ${product.name || product.model} - condition forçada para "Novo"`);
           }
           
           return product;

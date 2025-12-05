@@ -1,0 +1,19 @@
+🚀 COMANDO ÚNICO - Execute no Render Shell:
+
+═══════════════════════════════════════════════════════════
+
+Execute este comando para corrigir TUDO de uma vez:
+
+psql $DATABASE_URL -c "UPDATE products SET updated_at = NOW() WHERE is_active = true; UPDATE suppliers SET is_active = true WHERE id IN (SELECT DISTINCT supplier_id FROM products WHERE is_active = true); SELECT COUNT(*) as produtos_visiveis FROM products p JOIN suppliers s ON p.supplier_id = s.id WHERE p.is_active = true AND s.is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+Este comando faz 3 coisas:
+1. Atualiza a data de TODOS os produtos ativos para HOJE
+2. Ativa TODOS os fornecedores que têm produtos ativos
+3. Mostra quantos produtos aparecem agora
+
+Depois de executar, faça refresh no navegador (F5)!
+
+Os produtos devem aparecer imediatamente! 🎉
+

@@ -1,0 +1,28 @@
+🚀 SOLUÇÃO RÁPIDA - Execute no Render Shell:
+
+═══════════════════════════════════════════════════════════
+
+PASSO 1 - Ativar todos os fornecedores com produtos:
+
+psql $DATABASE_URL -c "UPDATE suppliers SET is_active = true WHERE id IN (SELECT DISTINCT supplier_id FROM products WHERE is_active = true);"
+
+═══════════════════════════════════════════════════════════
+
+PASSO 2 - Atualizar data de todos os produtos ativos para HOJE:
+
+psql $DATABASE_URL -c "UPDATE products SET updated_at = NOW() WHERE is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+PASSO 3 - Verificar quantos produtos aparecem:
+
+psql $DATABASE_URL -c "SELECT COUNT(*) as produtos_visiveis FROM products p JOIN suppliers s ON p.supplier_id = s.id WHERE p.is_active = true AND s.is_active = true;"
+
+═══════════════════════════════════════════════════════════
+
+Depois de executar os 3 passos:
+1. Faça refresh no navegador (F5)
+2. Os produtos devem aparecer!
+
+Execute o PASSO 1 primeiro e me diga o resultado!
+

@@ -1,0 +1,44 @@
+🔧 SOLUÇÃO TEMPORÁRIA - TESTAR SEM FILTRO DE DATA
+
+Se os produtos ainda não aparecerem, podemos testar temporariamente
+sem o filtro de data para ver se o problema está no filtro.
+
+═══════════════════════════════════════════════════════════
+
+**OPÇÃO 1: Testar direto no navegador**
+
+1. Abra o Console do navegador (F12)
+2. Cole este código e pressione Enter:
+
+```javascript
+fetch('https://igestorphone.onrender.com/api/products?limit=5000')
+  .then(r => r.json())
+  .then(data => {
+    console.log('📦 Total de produtos:', data.pagination?.total || data.products?.length || 0);
+    console.log('📦 Produtos retornados:', data.products?.length || 0);
+    console.log('📦 Resposta completa:', data);
+  });
+```
+
+Isso vai mostrar exatamente o que a API está retornando!
+
+═══════════════════════════════════════════════════════════
+
+**OPÇÃO 2: Verificar logs do backend**
+
+No Render Shell, veja os logs mais recentes:
+
+```
+tail -n 50 logs/app.log | grep "GET /api/produtos"
+```
+
+Ou veja todos os logs recentes:
+
+```
+tail -n 100 logs/app.log
+```
+
+═══════════════════════════════════════════════════════════
+
+Execute a OPÇÃO 1 primeiro e me diga o que aparece!
+

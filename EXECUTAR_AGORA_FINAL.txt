@@ -1,0 +1,40 @@
+✅ COMANDO FINAL - Execute no Render Shell (cole tudo de uma vez):
+
+═══════════════════════════════════════════════════════════
+
+psql $DATABASE_URL << 'EOF'
+
+-- 1. Ativar TODOS os fornecedores que têm produtos ativos
+UPDATE suppliers 
+SET is_active = true 
+WHERE id IN (
+  SELECT DISTINCT supplier_id 
+  FROM products 
+  WHERE is_active = true
+);
+
+-- 2. Atualizar data de TODOS os produtos ativos para HOJE
+UPDATE products 
+SET updated_at = NOW() 
+WHERE is_active = true;
+
+-- 3. Verificar quantos produtos aparecem agora
+SELECT 
+  COUNT(*) as produtos_visiveis,
+  COUNT(DISTINCT p.supplier_id) as fornecedores_com_produtos
+FROM products p
+JOIN suppliers s ON p.supplier_id = s.id
+WHERE p.is_active = true 
+  AND s.is_active = true;
+
+EOF
+
+═══════════════════════════════════════════════════════════
+
+Depois de executar:
+1. Aguarde ver o resultado (quantos produtos aparecem)
+2. Faça refresh no navegador (F5 ou Cmd+R)
+3. Os produtos devem aparecer agora!
+
+Me diga quantos produtos apareceram no resultado!
+
