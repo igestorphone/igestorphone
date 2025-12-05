@@ -12,7 +12,7 @@ import {
   Zap
 } from 'lucide-react'
 
-const WHATSAPP_URL = 'https://wa.me/5511982645501?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
+const WHATSAPP_URL = 'https://wa.me/5511983132474?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
 const LOGO_URL = '/assets/images/logo.png'
 
 const heroStats = [
