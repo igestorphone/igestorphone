@@ -616,23 +616,6 @@ export default function SearchCheapestIPhonePage() {
 
             <div className="relative">
               <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Package className="w-4 h-4 mr-1" />
-                Tipo de Condição
-              </label>
-              <select
-                value={selectedConditionType}
-                onChange={(e) => setSelectedConditionType(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
-              >
-                <option value="">Todos</option>
-                <option value="lacrados_novos">Lacrados/Novos</option>
-                <option value="seminovos">Seminovos (SWAP/VITRINE/SEMINOVO)</option>
-              </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-            </div>
-
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
                 <Palette className="w-4 h-4 mr-1" />
                 Cor
               </label>
@@ -698,66 +681,6 @@ export default function SearchCheapestIPhonePage() {
               <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
                         </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Building2 className="w-4 h-4 mr-1" />
-                Fornecedor
-              </label>
-              <select
-                value={selectedSupplier}
-                onChange={(e) => setSelectedSupplier(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
-              >
-                <option value="">Todos</option>
-                {suppliers.length > 0 ? (
-                  suppliers.map((supplier: any) => (
-                    <option key={supplier.id} value={supplier.id}>
-                      {supplier.name}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="São Paulo">São Paulo</option>
-                    <option value="Rio de Janeiro">Rio de Janeiro</option>
-                    <option value="Belo Horizonte">Belo Horizonte</option>
-                    <option value="Brasília">Brasília</option>
-                    <option value="Salvador">Salvador</option>
-                    <option value="Curitiba">Curitiba</option>
-                    <option value="Fortaleza">Fortaleza</option>
-                    <option value="Manaus">Manaus</option>
-                    <option value="São Luís">São Luís</option>
-                    <option value="Porto Alegre">Porto Alegre</option>
-                    <option value="Recife">Recife</option>
-                    <option value="Goiânia">Goiânia</option>
-                    <option value="Campo Grande">Campo Grande</option>
-                    <option value="Maceió">Maceió</option>
-                    <option value="João Pessoa">João Pessoa</option>
-                    <option value="Florianópolis">Florianópolis</option>
-                    <option value="Cuiabá">Cuiabá</option>
-                    <option value="Vitoria">Vitoria</option>
-                    <option value="Belém">Belém</option>
-                    <option value="Macapá">Macapá</option>
-                    <option value="Boa Vista">Boa Vista</option>
-                    <option value="Palmas">Palmas</option>
-                    <option value="Aracaju">Aracaju</option>
-                    <option value="São Gonçalo">São Gonçalo</option>
-                    <option value="Duque de Caxias">Duque de Caxias</option>
-                    <option value="Niterói">Niterói</option>
-                    <option value="São José dos Campos">São José dos Campos</option>
-                    <option value="Santo André">Santo André</option>
-                    <option value="Ribeirão Preto">Ribeirão Preto</option>
-                    <option value="Sorocaba">Sorocaba</option>
-                    <option value="Jundiaí">Jundiaí</option>
-                    <option value="São Bernardo do Campo">São Bernardo do Campo</option>
-                    <option value="Santos">Santos</option>
-                    <option value="Mauá">Mauá</option>
-                    <option value="Diadema">Diadema</option>
-                    <option value="São Caetano do Sul">São Caetano do Sul</option>
-                  </>
-                )}
-              </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-            </div>
           </div>
         </motion.div>
 
@@ -988,11 +911,6 @@ export default function SearchCheapestIPhonePage() {
                                   </motion.span>
                                 )}
                               </div>
-                              {product.created_at && (
-                                <div className="text-xs text-gray-400 mt-1">
-                                  {new Date(product.created_at).toLocaleDateString('pt-BR')}
-                            </div>
-                              )}
                             </td>
                             <td className="px-4 py-4 whitespace-nowrap text-center">
                               <div className="flex items-center justify-center space-x-2">
@@ -1113,13 +1031,6 @@ export default function SearchCheapestIPhonePage() {
                           <ShoppingCart className="w-4 h-4" />
                           <span>{product.supplier_name || 'N/A'}</span>
                         </div>
-
-                        {/* Date */}
-                        {product.created_at && (
-                          <div className="text-xs text-gray-400 mb-3">
-                            {new Date(product.created_at).toLocaleDateString('pt-BR')}
-                          </div>
-                        )}
 
                         {/* Actions */}
                         <div className="flex gap-2 pt-3 border-t border-white/10">
