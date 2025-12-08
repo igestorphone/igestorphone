@@ -243,8 +243,8 @@ router.get('/', [
       paramCount++;
     }
 
-    // Filtro de data: se não especificado, mostrar apenas produtos do dia atual
-    // Se especificado, mostrar produtos daquela data específica
+    // Filtro de data: se especificado, mostrar produtos daquela data específica
+    // Se não especificado, mostrar TODOS os produtos ativos (sem filtro de data)
     if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
       // Considerar tanto updated_at quanto created_at
@@ -255,15 +255,8 @@ router.get('/', [
       )`;
       values.push(cleanDate);
       paramCount++;
-    } else {
-      // Por padrão, mostrar produtos de hoje no timezone do Brasil (America/Sao_Paulo)
-      // O banco está em UTC, então precisamos converter para o horário do Brasil ao filtrar
-      // Usar CURRENT_DATE no timezone do Brasil
-      whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-      )`;
     }
+    // Se não houver filtro de data, mostrar TODOS os produtos ativos (sem restrição de data)
 
     // Buscar produtos
     const productsResult = await query(`
