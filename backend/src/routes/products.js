@@ -256,11 +256,11 @@ router.get('/', [
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar produtos atualizados nas últimas 24h
-      // Isso garante que sempre há produtos visíveis e prioriza produtos mais recentes
+      // Por padrão, mostrar produtos de HOJE no timezone do Brasil
+      // Usar CURRENT_DATE que sempre usa o timezone do banco corretamente
       whereClause += ` AND (
-        p.updated_at >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' - INTERVAL '24 hours')
-        OR p.created_at >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' - INTERVAL '24 hours')
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
       )`;
     }
 
