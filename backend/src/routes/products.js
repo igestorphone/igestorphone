@@ -257,10 +257,11 @@ router.get('/', [
       paramCount++;
     } else {
       // Por padrão, mostrar produtos de HOJE no timezone do Brasil
-      // Usar CURRENT_DATE que sempre usa o timezone do banco corretamente
+      // Garantir que ambos os lados da comparação usam o mesmo timezone do Brasil
+      const todayBrasil = `DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))`;
       whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = CURRENT_DATE
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
       )`;
     }
 
