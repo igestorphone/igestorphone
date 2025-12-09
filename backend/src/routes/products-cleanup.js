@@ -4,42 +4,44 @@ import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Rota para desativar produtos antigos apenas à meia-noite (00h)
+// Rota para desativar produtos antigos apenas à meia-noite (00h) horário de Brasília
 // Deve ser chamada por um cron job ou agendamento
 router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
+    // OBTER HORÁRIO DE BRASÍLIA (America/Sao_Paulo) - CRÍTICO
+    const nowBrasil = await query(`
+      SELECT 
+        NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' as agora_brasil,
+        EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) as hora_brasil,
+        EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) as minuto_brasil
+    `);
     
-    // Verificar se é meia-noite (00h) - com tolerância de 5 minutos
-    if (currentHour !== 0 || currentMinute > 5) {
+    const horaBrasil = parseInt(nowBrasil.rows[0].hora_brasil);
+    const minutoBrasil = parseInt(nowBrasil.rows[0].minuto_brasil);
+    const agoraBrasil = nowBrasil.rows[0].agora_brasil;
+    
+    console.log(`🕐 Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}`);
+    
+    // Verificar se é meia-noite (00h) em Brasília - com tolerância de 5 minutos
+    if (horaBrasil !== 0 || minutoBrasil > 5) {
       return res.status(400).json({ 
-        message: `Esta operação só pode ser executada à meia-noite (00h). Horário atual: ${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}` 
+        message: `Esta operação só pode ser executada à meia-noite (00h) horário de Brasília. Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}` 
       });
     }
     
-    // Calcular data de ontem (antes da meia-noite de hoje)
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0); // Começo do dia de ontem
+    console.log('🕛 Iniciando limpeza de produtos à meia-noite (horário de Brasília)...');
+    console.log(`   Data/hora em Brasília: ${agoraBrasil}`);
     
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0); // Começo do dia de hoje (meia-noite)
-    
-    console.log('🕛 Iniciando limpeza de produtos à meia-noite...');
-    console.log(`   Data de referência: ${yesterday.toISOString().split('T')[0]}`);
-    
-    // Desativar produtos que não foram atualizados desde ontem (antes da meia-noite de hoje)
-    // Apenas produtos que foram atualizados ANTES de hoje à meia-noite
+    // Desativar produtos que não foram atualizados HOJE (no horário de Brasília)
+    // Produtos atualizados ANTES de hoje à meia-noite em Brasília serão desativados
     const result = await query(`
       UPDATE products 
       SET is_active = false,
           updated_at = NOW()
       WHERE is_active = true
-        AND updated_at < $1
-        AND DATE(updated_at) < DATE(NOW())
-    `, [todayStart]);
+        AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
+            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    `);
     
     const deactivatedCount = result.rowCount || 0;
     
@@ -103,4 +105,13 @@ router.post('/restore-products', authenticateToken, requireRole('admin'), async 
 });
 
 export default router;
+
+// NOTA IMPORTANTE:
+// Para garantir que os produtos só sejam desativados às 00h horário de Brasília,
+// configure um cron job no Render (ou outro serviço) para executar:
+// 
+// node backend/src/scripts/cleanup-products-midnight-brasil.js
+// 
+// O cron deve ser configurado para rodar às 03:00 UTC (que é 00:00 em Brasília durante horário padrão)
+// OU usar um serviço que suporte timezone do Brasil diretamente
 
