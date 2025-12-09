@@ -37,6 +37,7 @@ router.get('/', [
 ], async (req, res) => {
   try {
     console.log('📥 GET /api/produtos - Query params:', req.query);
+    console.log('📅 Data de hoje no Brasil:', new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }));
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.error('❌ Erros de validação:', JSON.stringify(errors.array(), null, 2));
@@ -263,6 +264,7 @@ router.get('/', [
         DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
         OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
       )`;
+      console.log('📊 Filtro aplicado: produtos de HOJE no timezone do Brasil');
     }
 
     // Buscar produtos
@@ -285,6 +287,8 @@ router.get('/', [
 
     const total = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(total / limit);
+
+    console.log(`📊 Total de produtos encontrados: ${total} (página ${page} de ${totalPages})`);
 
     res.json({
       products: productsResult.rows,
