@@ -848,7 +848,7 @@ export default function SearchCheapestIPhonePage() {
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 200 }}
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/30 text-green-200 border border-green-400/30"
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30"
                                   >
                                     Mais Barato
                                   </motion.span>
