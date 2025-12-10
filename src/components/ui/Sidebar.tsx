@@ -146,10 +146,18 @@ export default function Sidebar({ onClose }: SidebarProps) {
   }
 
   const NavItem = ({ item, onClick }: { item: any; onClick: () => void }) => {
+    const handleClick = () => {
+      // No mobile, fecha o sidebar ao clicar em um link
+      if (window.innerWidth < 1024) {
+        onClose()
+      }
+      onClick()
+    }
+
     return (
       <NavLink
         to={item.href}
-        onClick={onClick}
+        onClick={handleClick}
         className={({ isActive }) =>
           `flex items-center ${sidebarCollapsed ? 'justify-center px-3' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-200 group ${
             isActive
@@ -291,7 +299,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </button>
             <NavLink
               to="/support"
-              onClick={onClose}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  onClose()
+                }
+              }}
               className={({ isActive }) =>
                 `flex items-center justify-center px-3 py-3 rounded-lg transition-all duration-200 group ${
                   isActive
@@ -369,7 +381,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
             <button
               onClick={() => {
                 navigate('/profile')
-                onClose()
+                if (window.innerWidth < 1024) {
+                  onClose()
+                }
               }}
               className="w-full px-4 py-2 text-sm text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors text-left"
             >

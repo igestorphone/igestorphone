@@ -50,7 +50,11 @@ export default function MainLayout() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: -300, opacity: 0 }}
             transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="lg:hidden fixed inset-y-0 left-0 z-50 w-64"
+            className="lg:hidden fixed inset-y-0 left-0 z-[50] w-64"
+            onClick={(e) => {
+              // Previne que o clique dentro do sidebar feche ele
+              e.stopPropagation()
+            }}
           >
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </motion.div>
@@ -64,8 +68,9 @@ export default function MainLayout() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-black/50 z-40"
+            className="lg:hidden fixed inset-0 bg-black/50 z-[45]"
             onClick={() => setSidebarOpen(false)}
+            onTouchStart={() => setSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
