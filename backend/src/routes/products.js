@@ -67,7 +67,8 @@ router.get('/', [
     const offset = (page - 1) * limit;
 
     // Construir query dinamicamente
-    let whereClause = 'WHERE p.is_active = true AND s.is_active = true';
+    // Filtrar produtos com preço 0 ou NULL (produtos inválidos)
+    let whereClause = 'WHERE p.is_active = true AND s.is_active = true AND (p.price > 0 AND p.price IS NOT NULL)';
     const values = [];
     let paramCount = 1;
 
