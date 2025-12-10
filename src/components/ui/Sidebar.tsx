@@ -268,7 +268,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                 {/* Fale Conosco */}
                 <NavLink
                   to="/support"
-                  onClick={onClose}
+                  onClick={() => {
+                    if (window.innerWidth < 1024) {
+                      onClose()
+                    }
+                  }}
                   className={({ isActive }) =>
                     `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
                       isActive
@@ -341,7 +345,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    onClick={onClose}
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        onClose()
+                      }
+                    }}
                     className={({ isActive }) =>
                       `flex items-center ${sidebarCollapsed ? 'justify-center px-3' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-200 group ${
                         isActive
