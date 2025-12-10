@@ -65,7 +65,7 @@ type AppStore = AppState & AppActions
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // Initial state
-  sidebarOpen: true,
+  sidebarOpen: false, // Inicia fechado (especialmente importante no mobile)
   sidebarCollapsed: false,
   theme: 'dark',
   notifications: [],

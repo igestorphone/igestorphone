@@ -11,12 +11,17 @@ export default function MainLayout() {
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024)
+      const isDesktopSize = window.innerWidth >= 1024
+      setIsDesktop(isDesktopSize)
+      // No mobile, garante que o sidebar está fechado ao redimensionar
+      if (!isDesktopSize && sidebarOpen) {
+        setSidebarOpen(false)
+      }
     }
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [sidebarOpen, setSidebarOpen])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200 overflow-x-hidden">
