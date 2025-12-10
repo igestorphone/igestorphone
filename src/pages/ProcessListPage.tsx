@@ -359,7 +359,8 @@ export default function ProcessListPage() {
           ? validProducts.reduce((sum, p) => sum + p.price, 0) / validProducts.length 
           : 0)
 
-        const processedData = {
+        // Dados completos para uso imediato (não salvar no localStorage)
+        const processedDataFull = {
           id: Date.now().toString(),
           fornecedor: supplierName,
           fornecedorId: saveResult.supplier_id || selectedSupplier,
@@ -385,37 +386,64 @@ export default function ProcessListPage() {
           warnings: validationResult.validation.warnings || [],
           suggestions: validationResult.validation.suggestions || [],
           dataProcessamento: new Date().toISOString(),
-          // Não salvar a lista original completa para economizar espaço
-          // listaOriginal: rawList, // Removido para evitar exceder quota do localStorage
-          listaOriginalLength: rawList.length, // Salvar apenas o tamanho
+          listaOriginal: rawList,
           modo: 'ai'
         }
 
-        // Salvar no localStorage com limite e tratamento de erro
+        // Versão otimizada para localStorage (apenas dados essenciais)
+        const processedDataOptimized = {
+          id: processedDataFull.id,
+          fornecedor: supplierName,
+          fornecedorId: saveResult.supplier_id || selectedSupplier,
+          totalProdutos,
+          produtosValidos,
+          produtosInvalidos,
+          precoMedio: Math.round(precoMedio),
+          produtosSalvos: saveResult.summary?.saved_products || 0,
+          dataProcessamento: new Date().toISOString(),
+          modo: 'ai',
+          // Apenas contadores de erros/warnings (não os textos completos)
+          totalErrors: validationResult.validation.errors?.length || 0,
+          totalWarnings: validationResult.validation.warnings?.length || 0,
+          totalSuggestions: validationResult.validation.suggestions?.length || 0,
+          listaOriginalLength: rawList.length
+        }
+
+        // Salvar no localStorage com limite otimizado e tratamento de erro
         try {
           const existingProcessamentos = JSON.parse(localStorage.getItem('processamentos') || '[]')
           
           // Adicionar novo processamento no início
-          existingProcessamentos.unshift(processedData)
+          existingProcessamentos.unshift(processedDataOptimized)
           
-          // Limitar a 30 processamentos mais recentes para evitar exceder quota
-          const limitedProcessamentos = existingProcessamentos.slice(0, 30)
+          // Limitar a 200 processamentos mais recentes (suficiente para ~2 dias de trabalho)
+          // Como os dados estão otimizados, 200 cabe facilmente no localStorage
+          const limitedProcessamentos = existingProcessamentos.slice(0, 200)
           
           // Tentar salvar
           localStorage.setItem('processamentos', JSON.stringify(limitedProcessamentos))
-          console.log('✅ Processamento salvo no localStorage')
+          console.log('✅ Processamento salvo no localStorage (otimizado)')
         } catch (storageError: any) {
-          // Se der erro de quota, tentar limpar dados antigos e salvar apenas o mais recente
+          // Se der erro de quota, tentar reduzir para 100 e depois 50
           if (storageError.message?.includes('quota') || storageError.message?.includes('QuotaExceededError')) {
-            console.warn('⚠️ Quota do localStorage excedida. Limpando dados antigos...')
+            console.warn('⚠️ Quota do localStorage excedida. Tentando reduzir histórico...')
             try {
-              // Limpar todos os processamentos antigos
-              localStorage.removeItem('processamentos')
-              // Salvar apenas o processamento atual
-              localStorage.setItem('processamentos', JSON.stringify([processedData]))
-              console.log('✅ Processamento salvo após limpeza de dados antigos')
+              const existingProcessamentos = JSON.parse(localStorage.getItem('processamentos') || '[]')
+              existingProcessamentos.unshift(processedDataOptimized)
+              
+              // Tentar com 100 primeiro
+              try {
+                const reduced100 = existingProcessamentos.slice(0, 100)
+                localStorage.setItem('processamentos', JSON.stringify(reduced100))
+                console.log('✅ Processamento salvo com histórico reduzido para 100')
+              } catch {
+                // Se ainda der erro, tentar com 50
+                const reduced50 = existingProcessamentos.slice(0, 50)
+                localStorage.setItem('processamentos', JSON.stringify(reduced50))
+                console.log('✅ Processamento salvo com histórico reduzido para 50')
+              }
             } catch (retryError) {
-              console.error('❌ Erro ao salvar no localStorage mesmo após limpeza:', retryError)
+              console.error('❌ Erro ao salvar no localStorage mesmo após redução:', retryError)
               // Não mostrar erro ao usuário, pois o processamento foi bem-sucedido
             }
           } else {
@@ -438,7 +466,7 @@ export default function ProcessListPage() {
           setFornecedores(suppliers)
         }
 
-        setProcessedData(processedData)
+        setProcessedData(processedDataFull)
         alert(`✅ Lista processada com IA!\n\n📊 Resumo:\n• Total de produtos: ${totalProdutos}\n• Produtos válidos: ${produtosValidos}\n• Produtos salvos: ${saveResult.summary?.saved_products || 0}\n• Produtos inválidos: ${produtosInvalidos}\n• Preço médio: R$ ${Math.round(precoMedio)}\n\n✅ A lista foi salva no banco de dados e alimentará o sistema de busca e médias.`)
     } catch (error) {
       console.error('❌ Erro no processamento:', error)
