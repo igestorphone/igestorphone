@@ -6,6 +6,22 @@ import { Toaster } from 'react-hot-toast'
 import App from './App.tsx'
 import './index.css'
 
+// Initialize theme before React renders
+import { useAppStore } from './stores/appStore'
+
+// Apply initial theme to document
+const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
+const theme = savedTheme || 'dark'
+const root = document.documentElement
+if (theme === 'light') {
+  root.classList.remove('dark')
+  root.classList.add('light')
+} else {
+  root.classList.remove('light')
+  root.classList.add('dark')
+}
+useAppStore.setState({ theme })
+
 // Create a client
 const queryClient = new QueryClient({
   defaultOptions: {

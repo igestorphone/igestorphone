@@ -74,10 +74,10 @@ export default function ProfilePage() {
         >
           <User className="w-10 h-10 text-white" />
         </motion.div>
-        <h1 className="text-4xl font-bold text-white mb-2">
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Meu Perfil
         </h1>
-        <p className="text-white/70 text-lg">
+        <p className="text-gray-600 dark:text-white/70 text-lg">
           Gerencie suas informações pessoais e configurações
         </p>
       </motion.div>
@@ -91,17 +91,17 @@ export default function ProfilePage() {
           className="lg:col-span-1 space-y-6"
         >
           {/* Profile Card */}
-          <div className="glass rounded-2xl p-8 text-center">
+          <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-8 text-center">
             <motion.div
               whileHover={{ scale: 1.05 }}
               className="w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
             >
               <User className="w-16 h-16 text-white" />
             </motion.div>
-            <h2 className="text-2xl font-bold text-white mb-2">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               {user?.nome || user?.name || 'Usuário'}
             </h2>
-            <p className="text-white/70 mb-6">{user?.email}</p>
+            <p className="text-gray-600 dark:text-white/70 mb-6">{user?.email}</p>
             <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
               user?.tipo === 'admin' 
                 ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
@@ -113,27 +113,27 @@ export default function ProfilePage() {
           </div>
 
           {/* Account Info */}
-          <div className="glass rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+          <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
               <Calendar className="w-5 h-5 mr-2 text-blue-400" />
               Informações da Conta
             </h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-white/70 text-sm">Status</span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+                <span className="text-gray-600 dark:text-white/70 text-sm">Status</span>
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-600 dark:text-green-400">
                   Ativa
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/70 text-sm">Último Login</span>
-                <span className="text-white text-sm">
+                <span className="text-gray-600 dark:text-white/70 text-sm">Último Login</span>
+                <span className="text-gray-900 dark:text-white text-sm">
                   {user?.last_login ? formatDateTime(user.last_login) : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-white/70 text-sm">Membro desde</span>
-                <span className="text-white text-sm">
+                <span className="text-gray-600 dark:text-white/70 text-sm">Membro desde</span>
+                <span className="text-gray-900 dark:text-white text-sm">
                   {user?.created_at ? formatDateTime(user.created_at) : 'N/A'}
                 </span>
               </div>
@@ -148,9 +148,9 @@ export default function ProfilePage() {
           transition={{ delay: 0.4 }}
           className="lg:col-span-2"
         >
-          <div className="glass rounded-2xl p-8">
+          <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-8">
             <div className="flex items-center justify-between mb-8">
-              <h3 className="text-2xl font-semibold text-white flex items-center">
+              <h3 className="text-2xl font-semibold text-gray-900 dark:text-white flex items-center">
                 <User className="w-6 h-6 mr-3 text-blue-400" />
                 Informações Pessoais
               </h3>
@@ -176,7 +176,7 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-3 flex items-center">
                   <User className="w-4 h-4 mr-2 text-blue-400" />
                   Nome Completo
                 </label>
@@ -185,11 +185,11 @@ export default function ProfilePage() {
                     type="text"
                     value={formData.nome}
                     onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                    className="w-full px-4 py-4 bg-white/10 border border-white/20 text-white placeholder-white/60 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 text-lg"
+                    className="w-full px-4 py-4 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 rounded-xl focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-200 text-lg"
                     placeholder="Digite seu nome completo"
                   />
                 ) : (
-                  <div className="text-white py-4 px-4 bg-white/5 rounded-xl text-lg">
+                  <div className="text-gray-900 dark:text-white py-4 px-4 bg-gray-50 dark:bg-white/5 rounded-xl text-lg">
                     {formData.nome || 'Não informado'}
                   </div>
                 )}
@@ -201,7 +201,7 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-3 flex items-center">
                   <Mail className="w-4 h-4 mr-2 text-green-400" />
                   Email
                 </label>
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                     placeholder="Digite seu email"
                   />
                 ) : (
-                  <div className="text-white py-4 px-4 bg-white/5 rounded-xl text-lg">
+                  <div className="text-gray-900 dark:text-white py-4 px-4 bg-gray-50 dark:bg-white/5 rounded-xl text-lg">
                     {formData.email || 'Não informado'}
                   </div>
                 )}
@@ -226,7 +226,7 @@ export default function ProfilePage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.7 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-3 flex items-center">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-3 flex items-center">
                   <Phone className="w-4 h-4 mr-2 text-purple-400" />
                   Telefone
                 </label>
@@ -239,7 +239,7 @@ export default function ProfilePage() {
                     placeholder="(11) 99999-9999"
                   />
                 ) : (
-                  <div className="text-white py-4 px-4 bg-white/5 rounded-xl text-lg">
+                  <div className="text-gray-900 dark:text-white py-4 px-4 bg-gray-50 dark:bg-white/5 rounded-xl text-lg">
                     {formData.telefone || 'Não informado'}
                   </div>
                 )}

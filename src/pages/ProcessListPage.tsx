@@ -553,9 +553,9 @@ export default function ProcessListPage() {
         className="text-center mb-8"
       >
         <div className="text-center mb-4">
-            <h1 className="text-3xl font-bold text-white mb-2">Processar Lista Apple</h1>
-          <p className="text-white/70">Cole a lista do fornecedor e a IA processará automaticamente todos os produtos Apple</p>
-          <p className="text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Processar Lista Apple</h1>
+          <p className="text-gray-600 dark:text-white/70">Cole a lista do fornecedor e a IA processará automaticamente todos os produtos Apple</p>
+          <p className="text-gray-500 dark:text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
         </div>
       </motion.div>
 
@@ -564,10 +564,10 @@ export default function ProcessListPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="glass rounded-xl p-6"
+        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-white">1. Selecionar Fornecedor</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">1. Selecionar Fornecedor</h2>
           <motion.button
             onClick={() => setShowCreateSupplier(true)}
             whileHover={{ scale: 1.05 }}
@@ -582,18 +582,18 @@ export default function ProcessListPage() {
         {/* Campo de busca SEMPRE visível */}
         <div className="mb-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
             <input
               type="text"
               value={supplierSearch}
               onChange={(e) => setSupplierSearch(e.target.value)}
               placeholder="Buscar fornecedor por nome, WhatsApp ou cidade..."
-              className="w-full pl-10 pr-10 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500 focus:bg-white/15"
+              className="w-full pl-10 pr-10 py-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500 focus:bg-white dark:focus:bg-white/15"
             />
             {supplierSearch && (
               <button
                 onClick={() => setSupplierSearch('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -605,11 +605,11 @@ export default function ProcessListPage() {
         {isLoadingSuppliers ? (
           <div className="text-center py-8">
             <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-white/70">Carregando fornecedores...</p>
+            <p className="text-gray-600 dark:text-white/70">Carregando fornecedores...</p>
           </div>
         ) : filteredAndSortedSuppliers.length === 0 ? (
-          <div className="text-center py-8 text-white/70">
-            <Search className="w-12 h-12 mx-auto mb-3 text-white/40" />
+          <div className="text-center py-8 text-gray-600 dark:text-white/70">
+            <Search className="w-12 h-12 mx-auto mb-3 text-gray-400 dark:text-white/40" />
             <p>Nenhum fornecedor encontrado</p>
             {supplierSearch && (
               <p className="text-sm mt-2">Tente buscar com outros termos</p>
@@ -641,10 +641,10 @@ export default function ProcessListPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-white truncate">{fornecedor.name || fornecedor.nome}</span>
+                        <span className="font-semibold text-gray-900 dark:text-white truncate">{fornecedor.name || fornecedor.nome}</span>
                         {isSelected && <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />}
                       </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-white/60">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-white/60">
                         {whatsapp && (
                           <span className="flex items-center gap-1">
                             <Phone className="w-3 h-3" />
@@ -720,7 +720,7 @@ export default function ProcessListPage() {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg p-4"
+              className="mt-4 bg-blue-50 dark:bg-gradient-to-r dark:from-blue-500/20 dark:to-purple-500/20 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -731,7 +731,7 @@ export default function ProcessListPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-white text-lg truncate">
+                      <h4 className="font-semibold text-gray-900 dark:text-white text-lg truncate">
                         {fornecedorSelecionado.name || fornecedorSelecionado.nome}
                       </h4>
                       {processedToday && (
@@ -743,13 +743,13 @@ export default function ProcessListPage() {
                     </div>
                     <div className="flex flex-wrap items-center gap-2 mb-2">
                       {cidade && (
-                        <span className="text-white/70 text-sm flex items-center space-x-1">
+                        <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                           <MapPin className="w-3 h-3" />
                           <span>{cidade}</span>
                         </span>
                       )}
                       {whatsapp && (
-                        <span className="text-white/70 text-sm flex items-center space-x-1">
+                        <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                           <Phone className="w-3 h-3" />
                           <span>{whatsapp}</span>
                         </span>
@@ -775,7 +775,7 @@ export default function ProcessListPage() {
                       </div>
                     )}
                     {!processedToday && lastProcessedAt && (
-                      <div className="text-sm text-white/50">
+                      <div className="text-sm text-gray-500 dark:text-white/50">
                         Último processamento: {lastProcessedText}
                       </div>
                     )}
@@ -791,7 +791,7 @@ export default function ProcessListPage() {
                     setSelectedSupplier('')
                     setIsDropdownOpen(false)
                   }}
-                  className="flex-shrink-0 text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded"
+                  className="flex-shrink-0 text-gray-600 dark:text-white/70 dark:hover:text-white transition-colors p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded"
                   title="Remover seleção"
                 >
                   <X className="w-5 h-5" />
@@ -808,9 +808,9 @@ export default function ProcessListPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="glass rounded-xl p-6 relative"
+          className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 relative"
         >
-          <h2 className="text-xl font-semibold text-white mb-4">2. Colar Lista do Fornecedor</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">2. Colar Lista do Fornecedor</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-white/70 text-sm mb-2">
@@ -820,12 +820,12 @@ export default function ProcessListPage() {
                 value={rawList}
                 onChange={(e) => setRawList(e.target.value)}
                 placeholder="Exemplo:&#10;R$1950&#10;AIRPODS PRO 02 R$1150&#10;PENCIL USBC R$600&#10;iPhone 17 Pro Max 256GB Azul R$ 4.500,00&#10;Apple Watch Series 9 45mm Preto R$ 2.800,00&#10;&#10;A IA identificará automaticamente: cores, GB, tamanhos (MM), preços, condições, etc."
-                className="w-full h-48 p-4 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full h-48 p-4 bg-gray-50 dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-purple-500 resize-none"
               />
             </div>
             
             <div className="flex items-center justify-between">
-              <div className="text-sm text-white/70">
+              <div className="text-sm text-gray-600 dark:text-white/70">
                 {rawList.length} caracteres
               </div>
               <motion.button
@@ -862,10 +862,10 @@ export default function ProcessListPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="glass rounded-xl p-6"
+          className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
         >
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white">Resultados do Processamento</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Resultados do Processamento</h2>
             <motion.button
               onClick={handleExportProcessedData}
               whileHover={{ scale: 1.05 }}
@@ -880,7 +880,7 @@ export default function ProcessListPage() {
           {/* Estatísticas */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-white">{processedData.totalProdutos}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{processedData.totalProdutos}</h3>
               <p className="text-white/70">Total de Produtos</p>
             </div>
             <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4 text-center">
@@ -1011,42 +1011,42 @@ export default function ProcessListPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-semibold text-white mb-4">Cadastrar Novo Fornecedor</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Cadastrar Novo Fornecedor</h3>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-white/70 text-sm mb-2">Nome do Fornecedor *</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Nome do Fornecedor *</label>
                 <input
                   type="text"
                   value={newSupplier.nome}
                   onChange={(e) => setNewSupplier({...newSupplier, nome: e.target.value})}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="Ex: TechStore SP"
                 />
               </div>
               
               
               <div>
-                <label className="block text-white/70 text-sm mb-2">WhatsApp *</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">WhatsApp *</label>
                 <input
                   type="text"
                   value={newSupplier.whatsapp}
                   onChange={(e) => setNewSupplier({...newSupplier, whatsapp: e.target.value})}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="(11) 99999-9999"
                 />
               </div>
               
               <div>
-                <label className="block text-white/70 text-sm mb-2">Cidade</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Cidade</label>
                 <input
                   type="text"
                   value={newSupplier.cidade}
                   onChange={(e) => setNewSupplier({...newSupplier, cidade: e.target.value})}
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="São Paulo"
                 />
               </div>

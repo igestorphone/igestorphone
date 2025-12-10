@@ -19,8 +19,8 @@ export default function BugReportsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem visualizar bugs reportados.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem visualizar bugs reportados.</p>
         </div>
       </div>
     )
@@ -161,13 +161,13 @@ export default function BugReportsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'resolved':
-        return 'bg-green-500/20 text-green-400 border-green-400/30'
+        return 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 border-green-300 dark:border-green-400/30'
       case 'rejected':
-        return 'bg-red-500/20 text-red-400 border-red-400/30'
+        return 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-300 dark:border-red-400/30'
       case 'in_progress':
-        return 'bg-blue-500/20 text-blue-400 border-blue-400/30'
+        return 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-400/30'
       default:
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30'
+        return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-400/30'
     }
   }
 
@@ -200,13 +200,13 @@ export default function BugReportsPage() {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-500/20 text-red-400 border-red-400/30'
+        return 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-300 dark:border-red-400/30'
       case 'high':
-        return 'bg-orange-500/20 text-orange-400 border-orange-400/30'
+        return 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-300 dark:border-orange-400/30'
       case 'medium':
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30'
+        return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-400/30'
       default:
-        return 'bg-blue-500/20 text-blue-400 border-blue-400/30'
+        return 'bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-400/30'
     }
   }
 
@@ -221,7 +221,7 @@ export default function BugReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -244,12 +244,12 @@ export default function BugReportsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20"
+          className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-gray-200 dark:border-white/20"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-300" />
-              <h2 className="text-lg font-semibold text-white">Filtros</h2>
+              <Filter className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Filtros</h2>
             </div>
             {/* Toggle para Finalizados */}
             <button
@@ -259,8 +259,8 @@ export default function BugReportsPage() {
               }}
               className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                 showResolved
-                  ? 'bg-green-600 text-white'
-                  : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  ? 'bg-green-600 dark:bg-green-600 text-white'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'
               }`}
             >
               <CheckCircle className="w-4 h-4" />
@@ -275,7 +275,7 @@ export default function BugReportsPage() {
           {!showResolved && (
             <div className="flex items-center gap-4 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Status:</span>
+                <span className="text-gray-700 dark:text-white font-medium text-sm">Status:</span>
                 <div className="flex gap-2 flex-wrap">
                   {(['all', 'pending', 'in_progress'] as const).map((status) => (
                     <button
@@ -283,8 +283,8 @@ export default function BugReportsPage() {
                       onClick={() => setStatusFilter(status)}
                       className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${
                         statusFilter === status
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          ? 'bg-purple-600 dark:bg-purple-600 text-white'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'
                       }`}
                     >
                       {status === 'all' ? 'Todos' : status === 'pending' ? 'Pendentes' : 'Em Progresso'}
@@ -303,7 +303,7 @@ export default function BugReportsPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-white font-medium text-sm">Severidade:</span>
+                <span className="text-gray-700 dark:text-white font-medium text-sm">Severidade:</span>
                 <div className="flex gap-2 flex-wrap">
                   {(['all', 'low', 'medium', 'high', 'critical'] as const).map((severity) => (
                     <button
@@ -311,8 +311,8 @@ export default function BugReportsPage() {
                       onClick={() => setSeverityFilter(severity)}
                       className={`px-3 py-1.5 rounded-lg font-medium text-sm transition-all ${
                         severityFilter === severity
-                          ? 'bg-orange-600 text-white'
-                          : 'bg-white/10 text-white/70 hover:bg-white/20'
+                          ? 'bg-orange-600 dark:bg-orange-600 text-white'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'
                       }`}
                     >
                       {severity === 'all' ? 'Todas' : severity === 'low' ? 'Baixa' : severity === 'medium' ? 'Média' : severity === 'high' ? 'Alta' : 'Crítica'}
@@ -329,7 +329,7 @@ export default function BugReportsPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg overflow-hidden border border-white/20"
+          className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg overflow-hidden border border-gray-200 dark:border-white/20"
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
@@ -338,40 +338,40 @@ export default function BugReportsPage() {
           ) : error ? (
             <div className="text-center py-16">
               <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <p className="text-white text-lg font-semibold mb-2">Erro ao carregar bugs</p>
-              <p className="text-white/70 text-sm mb-4">
+              <p className="text-gray-900 dark:text-white text-lg font-semibold mb-2">Erro ao carregar bugs</p>
+              <p className="text-gray-600 dark:text-white/70 text-sm mb-4">
                 {(error as any)?.message || 'Erro desconhecido'}
               </p>
-              <p className="text-white/50 text-xs">
+              <p className="text-gray-500 dark:text-white/50 text-xs">
                 Verifique se você está autenticado como administrador.
               </p>
             </div>
           ) : bugReports.length === 0 ? (
             <div className="text-center py-16">
               <Bug className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-white text-lg">
+              <p className="text-gray-900 dark:text-white text-lg">
                 {showResolved ? 'Nenhum bug finalizado encontrado' : 'Nenhum bug ativo encontrado'}
               </p>
               {showResolved && (
-                <p className="text-white/70 text-sm mt-2">
+                <p className="text-gray-600 dark:text-white/70 text-sm mt-2">
                   Histórico de bugs corrigidos aparecerá aqui
                 </p>
               )}
             </div>
           ) : (
-            <div className="divide-y divide-white/10">
+            <div className="divide-y divide-gray-200 dark:divide-white/10">
               {bugReports.map((bug: any) => (
                 <motion.div
                   key={bug.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-6 hover:bg-white/5 transition-colors"
+                  className="p-6 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     {/* Informações principais */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <h3 className="text-xl font-bold text-white">{bug.title}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">{bug.title}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 ${getStatusColor(bug.status)}`}>
                           {getStatusIcon(bug.status)}
                           {getStatusLabel(bug.status)}
@@ -384,7 +384,7 @@ export default function BugReportsPage() {
 
                       {/* Informações do usuário */}
                       {bug.user_name && (
-                        <div className="flex items-center gap-2 text-sm text-white/70 mb-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/70 mb-2">
                           <User className="w-4 h-4" />
                           <span>{bug.user_name}</span>
                           {bug.user_email && (
@@ -397,12 +397,12 @@ export default function BugReportsPage() {
                       )}
 
                       {/* Descrição */}
-                      <div className="mt-3 p-3 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-sm text-white/80 whitespace-pre-wrap">{bug.description}</p>
+                      <div className="mt-3 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
+                        <p className="text-sm text-gray-700 dark:text-white/80 whitespace-pre-wrap">{bug.description}</p>
                       </div>
 
                       {/* Data */}
-                      <div className="flex items-center gap-2 text-xs text-white/50 mt-3">
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-white/50 mt-3">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Reportado em {formatDate(bug.created_at)}</span>
                         {bug.resolved_at && (

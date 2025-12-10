@@ -8,7 +8,6 @@ import MainLayout from '@/components/layout/MainLayout'
 import ProtectedRoute from '@/components/ui/ProtectedRoute'
 
 // Pages
-import DashboardPage from '@/pages/DashboardPage'
 import ConsultListsPage from '@/pages/ConsultListsPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import SearchCheapestIPhonePage from '@/pages/SearchCheapestIPhonePage'
@@ -29,17 +28,21 @@ import GoalsPage from '@/pages/GoalsPage'
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
+import SubscriptionPage from '@/pages/SubscriptionPage'
+import PreferencesPage from '@/pages/PreferencesPage'
+import FAQPage from '@/pages/FAQPage'
+import RankingPage from '@/pages/RankingPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
 
   return (
-    <div className="min-h-screen bg-gradient-primary">
+    <div className="min-h-screen">
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" /> : <LandingPage />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to="/search-cheapest-iphone" /> : <LandingPage />} />
         <Route path="/login" element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" />
+            <Navigate to="/search-cheapest-iphone" />
           ) : (
             <AuthLayout>
               <LoginPage />
@@ -49,7 +52,7 @@ function App() {
         {/* Rotas de registro - IMPORTANTE: /register/:token DEVE vir ANTES de /register */}
         <Route path="/register/:token" element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" />
+            <Navigate to="/search-cheapest-iphone" />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -58,7 +61,7 @@ function App() {
         } />
         <Route path="/cadastro/:token" element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" />
+            <Navigate to="/search-cheapest-iphone" />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -67,7 +70,7 @@ function App() {
         } />
         <Route path="/r/:token" element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" />
+            <Navigate to="/search-cheapest-iphone" />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -77,20 +80,19 @@ function App() {
         {/* Rota /register sem token (deve vir DEPOIS das rotas com token) */}
         <Route path="/register" element={
           isAuthenticated ? (
-            <Navigate to="/dashboard" />
+            <Navigate to="/search-cheapest-iphone" />
           ) : (
             <AuthLayout>
               <RegisterPage />
             </AuthLayout>
           )
         } />
+        {/* Dashboard redireciona direto para buscar iPhone mais barato */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <MainLayout />
+            <Navigate to="/search-cheapest-iphone" replace />
           </ProtectedRoute>
-        }>
-          <Route index element={<DashboardPage />} />
-        </Route>
+        } />
         <Route path="/consult-lists" element={
           <ProtectedRoute>
             <MainLayout />
@@ -216,6 +218,34 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<SupportPage />} />
+        </Route>
+        <Route path="/subscription" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<SubscriptionPage />} />
+        </Route>
+        <Route path="/preferences" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<PreferencesPage />} />
+        </Route>
+        <Route path="/faq" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<FAQPage />} />
+        </Route>
+        <Route path="/ranking" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<RankingPage />} />
         </Route>
       </Routes>
       <Analytics />

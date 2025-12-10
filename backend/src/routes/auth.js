@@ -113,7 +113,7 @@ router.post('/login', loginValidation, async (req, res) => {
         email,
         password_hash,
         name,
-        COALESCE(role, role_old, 'user') AS role,
+        COALESCE(tipo, 'user') AS role,
         subscription_status,
         subscription_expires_at,
         is_active,

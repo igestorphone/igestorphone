@@ -4,6 +4,7 @@ import { Fornecedor, Produto, StatisticsResponse } from '@/types'
 interface AppState {
   // UI State
   sidebarOpen: boolean
+  sidebarCollapsed: boolean
   theme: 'light' | 'dark'
   notifications: Array<{
     id: string
@@ -30,6 +31,8 @@ interface AppActions {
   // UI Actions
   toggleSidebar: () => void
   setSidebarOpen: (open: boolean) => void
+  toggleSidebarCollapsed: () => void
+  setSidebarCollapsed: (collapsed: boolean) => void
   setTheme: (theme: 'light' | 'dark') => void
   addNotification: (notification: Omit<AppState['notifications'][0], 'id'>) => void
   removeNotification: (id: string) => void
@@ -62,7 +65,8 @@ type AppStore = AppState & AppActions
 
 export const useAppStore = create<AppStore>((set, get) => ({
   // Initial state
-  sidebarOpen: false,
+  sidebarOpen: true,
+  sidebarCollapsed: false,
   theme: 'dark',
   notifications: [],
   fornecedores: [],
@@ -80,6 +84,14 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setSidebarOpen: (open: boolean) => {
     set({ sidebarOpen: open })
+  },
+
+  toggleSidebarCollapsed: () => {
+    set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }))
+  },
+
+  setSidebarCollapsed: (collapsed: boolean) => {
+    set({ sidebarCollapsed: collapsed })
   },
 
   setTheme: (theme: 'light' | 'dark') => {
@@ -190,12 +202,33 @@ export const useAppStore = create<AppStore>((set, get) => ({
   }
 }))
 
-// Initialize theme from localStorage
+// Apply theme to document root
+const applyThemeToDocument = (theme: 'light' | 'dark') => {
+  const root = document.documentElement
+  if (theme === 'light') {
+    root.classList.remove('dark')
+    root.classList.add('light')
+  } else {
+    root.classList.remove('light')
+    root.classList.add('dark')
+  }
+}
+
+// Override setTheme to also apply to document
+const originalSetTheme = useAppStore.getState().setTheme
+useAppStore.setState({
+  setTheme: (theme: 'light' | 'dark') => {
+    originalSetTheme(theme)
+    applyThemeToDocument(theme)
+  }
+})
+
+// Initialize theme from localStorage and apply to document
 const initializeTheme = () => {
   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
-  if (savedTheme) {
-    useAppStore.getState().setTheme(savedTheme)
-  }
+  const theme = savedTheme || 'dark' // Default to dark
+  applyThemeToDocument(theme)
+  useAppStore.setState({ theme })
 }
 
 // Call initialization

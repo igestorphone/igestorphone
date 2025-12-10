@@ -35,8 +35,8 @@ const AIPage: React.FC = () => {
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Brain className="w-8 h-8 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem acessar o painel de IA.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem acessar o painel de IA.</p>
         </div>
       </div>
     );
@@ -135,7 +135,7 @@ const AIPage: React.FC = () => {
           <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
             <Brain className="w-8 h-8 text-purple-400" />
           </div>
-          <p className="text-white/70 text-lg">Carregando dados da IA...</p>
+          <p className="text-gray-600 dark:text-white/70 text-lg">Carregando dados da IA...</p>
         </div>
       </div>
     );
@@ -148,8 +148,8 @@ const AIPage: React.FC = () => {
           <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Brain className="w-8 h-8 text-red-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Erro ao Carregar</h2>
-          <p className="text-white/70 mb-4">{error}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Erro ao Carregar</h2>
+          <p className="text-gray-600 dark:text-white/70 mb-4">{error}</p>
           <button 
             onClick={fetchAIStats}
             className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors"
@@ -181,8 +181,8 @@ const AIPage: React.FC = () => {
         <div className="flex items-center justify-center mb-4">
           <Brain className="w-16 h-16 text-purple-400 mr-4" />
           <div>
-            <h1 className="text-4xl font-bold text-white">Painel de IA - Admin</h1>
-            <p className="text-white/70 text-lg">Dashboard de gastos e status da Inteligência Artificial</p>
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Painel de IA - Admin</h1>
+            <p className="text-gray-600 dark:text-white/70 text-lg">Dashboard de gastos e status da Inteligência Artificial</p>
           </div>
         </div>
       </div>
@@ -209,7 +209,7 @@ const AIPage: React.FC = () => {
               }`}>
                 {isConnected ? 'IA Conectada' : 'IA Desconectada'}
               </h3>
-              <p className="text-white/70 text-sm">
+              <p className="text-gray-600 dark:text-white/70 text-sm">
                 {isConnected 
                   ? `Última verificação: ${lastCheck ? lastCheck.toLocaleTimeString() : 'N/A'}${responseTime ? ` (${responseTime}ms)` : ''}`
                   : statusError || 'Erro de conexão com a IA'
@@ -234,58 +234,58 @@ const AIPage: React.FC = () => {
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <Activity className="w-8 h-8 text-purple-400" />
             <div className="text-right">
               <div className="text-3xl font-bold text-purple-400">
                 {stats.total_requests.toLocaleString()}
               </div>
-              <div className="text-white/70 text-sm">Total de Requisições</div>
+              <div className="text-gray-600 dark:text-white/70 text-sm">Total de Requisições</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <DollarSign className="w-8 h-8 text-green-400" />
             <div className="text-right">
               <div className="text-3xl font-bold text-green-400">
                 R$ {stats.total_cost.toFixed(2)}
               </div>
-              <div className="text-white/70 text-sm">Custo Total IA</div>
+              <div className="text-gray-600 dark:text-white/70 text-sm">Custo Total IA</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <CheckCircle className="w-8 h-8 text-blue-400" />
             <div className="text-right">
               <div className="text-3xl font-bold text-blue-400">
                 {stats.lists_processed}
               </div>
-              <div className="text-white/70 text-sm">Listas Processadas</div>
+              <div className="text-gray-600 dark:text-white/70 text-sm">Listas Processadas</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/5 rounded-xl p-6 border border-white/10">
+        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <Activity className="w-8 h-8 text-yellow-400" />
             <div className="text-right">
               <div className="text-3xl font-bold text-yellow-400">
                 {stats.success_rate}%
               </div>
-              <div className="text-white/70 text-sm">Taxa de Sucesso</div>
+              <div className="text-gray-600 dark:text-white/70 text-sm">Taxa de Sucesso</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Resumo de Economia */}
-      <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/20">
-        <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+      <div className="bg-green-50 dark:bg-gradient-to-r dark:from-green-500/10 dark:to-blue-500/10 rounded-xl p-6 border border-green-200 dark:border-green-500/20">
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
           <DollarSign className="w-6 h-6 mr-2 text-green-400" />
           Resumo de Economia com IA
         </h3>
@@ -294,22 +294,22 @@ const AIPage: React.FC = () => {
             <div className="text-3xl font-bold text-green-400 mb-2">
               {stats.products_validated.toLocaleString()}
             </div>
-            <div className="text-white/70">Produtos Validados</div>
-            <div className="text-white/50 text-sm mt-1">Economia: ~40h de trabalho manual</div>
+            <div className="text-gray-600 dark:text-white/70">Produtos Validados</div>
+            <div className="text-gray-500 dark:text-white/50 text-sm mt-1">Economia: ~40h de trabalho manual</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-blue-400 mb-2">
               R$ {(stats.total_cost * 0.3).toFixed(2)}
             </div>
-            <div className="text-white/70">Economia Estimada</div>
-            <div className="text-white/50 text-sm mt-1">Comparado a validação manual</div>
+            <div className="text-gray-600 dark:text-white/70">Economia Estimada</div>
+            <div className="text-gray-500 dark:text-white/50 text-sm mt-1">Comparado a validação manual</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-purple-400 mb-2">
               {stats.average_response_time}s
             </div>
-            <div className="text-white/70">Tempo Médio de Resposta</div>
-            <div className="text-white/50 text-sm mt-1">Processamento instantâneo</div>
+            <div className="text-gray-600 dark:text-white/70">Tempo Médio de Resposta</div>
+            <div className="text-gray-500 dark:text-white/50 text-sm mt-1">Processamento instantâneo</div>
           </div>
         </div>
       </div>

@@ -18,7 +18,7 @@ export default function ProtectedRoute({ children, requiredPermission }: Protect
 
   // Check if user has required permission
   if (requiredPermission && !user.permissoes[requiredPermission]) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/search-cheapest-iphone" replace />
   }
 
   return <>{children}</>

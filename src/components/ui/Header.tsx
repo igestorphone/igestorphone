@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Settings, LogOut, User, Smartphone, UserPlus, Bug } from 'lucide-react'
+import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
@@ -9,15 +9,18 @@ import ReportBugModal from '@/components/forms/ReportBugModal'
 
 export default function Header() {
   const { user, logout } = useAuthStore()
-  const { sidebarOpen, setSidebarOpen } = useAppStore()
+  const { sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showSuggestModal, setShowSuggestModal] = useState(false)
   const [showBugModal, setShowBugModal] = useState(false)
-  const [logoError, setLogoError] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userButtonRef = useRef<HTMLButtonElement>(null)
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }
 
   // Calcular posição do dropdown quando abrir
   useEffect(() => {
@@ -52,76 +55,49 @@ export default function Header() {
     setShowUserMenu(false)
   }
 
-  const handleLogoClick = () => {
-    navigate('/dashboard')
-  }
-
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
   return (
-    <header className="bg-gradient-to-r from-slate-900/95 via-blue-900/95 to-indigo-900/95 backdrop-blur-xl border-b border-white/10 shadow-2xl relative z-50">
+    <header className="bg-white dark:bg-black backdrop-blur-xl border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl relative z-50">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 relative">
           {/* Left side */}
           <div className="flex items-center space-x-4">
-            {/* Mobile menu button */}
+            {/* Mobile menu button - apenas no mobile */}
             <button
               onClick={toggleSidebar}
-              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 lg:hidden group"
+              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group"
             >
               <motion.div
                 animate={{ rotate: sidebarOpen ? 90 : 0 }}
                 transition={{ duration: 0.2 }}
               >
                 {sidebarOpen ? (
-                  <X className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                  <X className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
                 ) : (
-                  <Menu className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+                  <Menu className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
                 )}
               </motion.div>
             </button>
-
-            {/* Desktop menu button */}
-            <button
-              onClick={toggleSidebar}
-              className="hidden lg:flex p-2.5 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 group"
-            >
-              <Menu className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
-            </button>
-
-            {/* Logo Principal - CLICÁVEL */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              onClick={handleLogoClick}
-              className="relative w-24 h-24 flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
-            >
-              {!logoError ? (
-                <img 
-                  src="/assets/images/logo.png" 
-                  alt="iGestorPhone Logo" 
-                  className="w-full h-full object-contain drop-shadow-2xl filter brightness-120 contrast-120 hover:brightness-140 transition-all duration-200"
-                  style={{
-                    maxWidth: '96px',
-                    maxHeight: '96px',
-                    width: 'auto',
-                    height: 'auto'
-                  }}
-                  onError={() => setLogoError(true)}
-                />
-              ) : (
-                <div className="w-full h-full bg-gradient-to-br from-blue-500 via-purple-600 to-pink-500 rounded-2xl flex items-center justify-center shadow-2xl">
-                  <Smartphone className="w-12 h-12 text-white" />
-                </div>
-              )}
-            </motion.button>
           </div>
 
           {/* Right side */}
           <div className="flex items-center space-x-3">
+            {/* Toggle Theme Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
+              title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
+              ) : (
+                <Moon className="w-5 h-5 text-gray-800 group-hover:scale-110 transition-transform" />
+              )}
+            </button>
+
             {/* Botão Indicar Fornecedor */}
             <button
               onClick={() => setShowSuggestModal(true)}
@@ -134,7 +110,7 @@ export default function Header() {
             {/* Botão Reportar Bug */}
             <button
               onClick={() => setShowBugModal(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 hover:from-red-500 hover:via-orange-500 hover:to-yellow-500 rounded-xl text-white font-medium transition-all shadow-lg hover:shadow-xl"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-gradient-to-r dark:from-red-600 dark:via-orange-600 dark:to-yellow-600 dark:hover:from-red-500 dark:hover:via-orange-500 dark:hover:to-yellow-500 rounded-xl text-white font-medium transition-all shadow-lg hover:shadow-xl"
             >
               <Bug className="w-4 h-4" />
               <span>Bug</span>
@@ -151,10 +127,10 @@ export default function Header() {
                   <User className="w-5 h-5 text-white" />
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-white group-hover:text-blue-200 transition-colors">
-                    {user?.nome?.split(' ')[0] || user?.name?.split(' ')[0] || 'Usuário'}
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                    {user?.nome?.split(' ')[0] || 'Usuário'}
                   </p>
-                  <p className="text-xs text-white/70 font-medium capitalize">
+                  <p className="text-xs text-gray-600 dark:text-white/70 font-medium capitalize">
                     {user?.tipo || 'user'}
                   </p>
                 </div>
@@ -168,7 +144,7 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed w-56 bg-gray-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl z-[99999]"
+                    className="fixed w-56 bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999]"
                     style={{
                       top: `${dropdownPosition.top}px`,
                       right: `${dropdownPosition.right}px`,
@@ -178,9 +154,9 @@ export default function Header() {
                   >
                     <div className="py-2">
                       {/* User Info */}
-                      <div className="px-4 py-3 border-b border-white/10">
-                        <p className="text-sm font-semibold text-white">{user?.nome?.split(' ')[0] || user?.name?.split(' ')[0] || 'Usuário'}</p>
-                        <p className="text-xs text-white/70 capitalize">{user?.tipo || 'user'}</p>
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.nome?.split(' ')[0] || 'Usuário'}</p>
+                        <p className="text-xs text-gray-600 dark:text-white/70 capitalize">{user?.tipo || 'user'}</p>
                       </div>
                       
                       {/* Menu Items */}
@@ -190,19 +166,19 @@ export default function Header() {
                             navigate('/profile')
                             setShowUserMenu(false)
                           }}
-                          className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/10 transition-colors flex items-center space-x-3 group"
+                          className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group"
                         >
                           <User className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Meu Perfil</span>
                         </button>
-                        <button className="w-full px-4 py-3 text-left text-sm text-white hover:bg-white/10 transition-colors flex items-center space-x-3 group">
+                        <button className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group">
                           <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Configurações</span>
                         </button>
-                        <hr className="my-2 border-white/10" />
+                        <hr className="my-2 border-gray-200 dark:border-white/10" />
                         <button
                           onClick={handleLogout}
-                          className="w-full px-4 py-3 text-left text-sm text-red-400 hover:bg-red-500/10 transition-colors flex items-center space-x-3 group"
+                          className="w-full px-4 py-3 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center space-x-3 group"
                         >
                           <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Sair da Conta</span>

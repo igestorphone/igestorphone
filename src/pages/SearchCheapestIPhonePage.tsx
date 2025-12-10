@@ -16,15 +16,12 @@ import {
   TrendingUp,
   DollarSign,
   Package,
-  Sparkles,
-  Filter,
-  X,
   Wifi,
   Clock,
   AlertTriangle
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { produtosApi, fornecedoresApi, utilsApi } from '@/lib/api'
+import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import SecurityAlertModal from '@/components/ui/SecurityAlertModal'
@@ -159,10 +156,8 @@ export default function SearchCheapestIPhonePage() {
   const [debouncedSearch, setDebouncedSearch] = useState('iPhone')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [selectedConditionType, setSelectedConditionType] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
-  const [selectedSupplier, setSelectedSupplier] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
 
@@ -187,25 +182,14 @@ export default function SearchCheapestIPhonePage() {
     return () => clearInterval(timer)
   }, [])
 
-  // Mostrar alerta de segurança sempre que acessar a página
-  useEffect(() => {
-    setShowSecurityAlert(true)
-  }, [])
 
-  const suppliersQuery = useQuery({
-    queryKey: ['fornecedores'],
-    queryFn: () => fornecedoresApi.getAll(),
-    select: (response: any) => response?.data || []
-  })
 
   const shouldFetchProducts =
     debouncedSearch.length >= 1 ||
     !!selectedDate ||
     !!selectedCategory ||
-    !!selectedConditionType ||
     !!selectedStorage ||
-    !!selectedColor ||
-    !!selectedSupplier
+    !!selectedColor
 
   const productsQuery = useQuery({
     queryKey: [
@@ -213,19 +197,15 @@ export default function SearchCheapestIPhonePage() {
       debouncedSearch,
       selectedDate,
       selectedCategory,
-      selectedConditionType,
       selectedStorage,
-      selectedColor,
-      selectedSupplier
+      selectedColor
     ],
     queryFn: () =>
       produtosApi.getAll({
         search: debouncedSearch,
         condition: selectedCategory,
-        condition_type: selectedConditionType || undefined,
         storage: selectedStorage,
         color: selectedColor,
-        supplier_id: selectedSupplier,
         date: selectedDate || undefined,
         sort_by: 'price',
         sort_order: 'asc',
@@ -385,194 +365,128 @@ export default function SearchCheapestIPhonePage() {
   const dollarChangePercent = previousRate > 0 ? ((dollarChange / previousRate) * 100).toFixed(2) : '0.00'
 
   const availableDates = buildAvailableDates()
-  const suppliers = suppliersQuery.data || []
-
-  const clearFilters = () => {
-    setSelectedDate('')
-    setSelectedCategory('')
-    setSelectedConditionType('')
-    setSelectedStorage('')
-    setSelectedColor('')
-    setSelectedSupplier('')
-  }
-
-  const hasActiveFilters =
-    !!selectedDate ||
-    !!selectedCategory ||
-    !!selectedConditionType ||
-    !!selectedStorage ||
-    !!selectedColor ||
-    !!selectedSupplier
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Status bar */}
-      <motion.div
-          initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-lg rounded-lg shadow-lg p-2 md:p-2.5 border border-white/20 flex items-center justify-between flex-wrap gap-2 text-xs"
-        >
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-yellow-400" />
-            <span className="text-white font-semibold">R$ {dollarRate.toFixed(2)}</span>
-            {dollarChange === 0 ? null : (
-              <span
-                className={`flex items-center gap-0.5 text-xs ${
-                  dollarChange < 0 ? 'text-green-400' : 'text-red-400'
-                }`}
-              >
-                {dollarChange < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                {Math.abs(parseFloat(dollarChangePercent))}%
-              </span>
-            )}
-          </div>
-          
-          <div className="h-4 w-px bg-white/20" />
-
-          <div className="flex items-center gap-1.5">
-            {serverStatusQuery.data?.status === 'OK' ? (
-              <>
-                <Wifi className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400 font-medium">ONLINE</span>
-              </>
-            ) : (
-              <>
-                <Wifi className="w-3.5 h-3.5 text-red-400" />
-                <span className="text-red-400 font-medium">OFFLINE</span>
-              </>
-            )}
-          </div>
-
-          <div className="h-4 w-px bg-white/20" />
-
-          <div className="flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5 text-blue-400" />
-            <span className="text-white font-semibold">{formatTime(currentTime)}</span>
-        </div>
-      </motion.div>
-
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
+      <div className="space-y-4 p-4 md:p-6">
+        {/* Status bar - Barra superior com informações */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
+          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 flex items-center justify-between flex-wrap gap-4"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -mr-32 -mt-32" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white opacity-10 rounded-full -ml-24 -mb-24" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <Sparkles className="w-8 h-8 text-yellow-300" />
-              <h1 className="text-3xl md:text-4xl font-bold">Buscar iPhone Mais Barato</h1>
+          {/* Left side - Statistics */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <Package className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                {productsQuery.data?.length || 0} produtos
+              </span>
             </div>
-            <p className="text-blue-100 text-lg">
-              Encontre os melhores preços e todos os fornecedores disponíveis
-            </p>
+            <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                {stats.suppliersCount} fornecedores
+              </span>
+            </div>
+            <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                R$ {dollarRate.toFixed(2)}
+              </span>
+              {dollarChange !== 0 && (
+                <span
+                  className={`flex items-center gap-0.5 text-xs ${
+                    dollarChange < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  {dollarChange < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                  {Math.abs(parseFloat(dollarChangePercent))}%
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right side - Status and time */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              {serverStatusQuery.data?.status === 'OK' ? (
+                <>
+                  <Wifi className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-400">ONLINE</span>
+                </>
+              ) : (
+                <>
+                  <Wifi className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <span className="text-sm font-medium text-red-700 dark:text-red-400">OFFLINE</span>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatTime(currentTime)}</span>
+            </div>
           </div>
         </motion.div>
-
-        {/* Statistics */}
-        <AnimatePresence>
-          {productsQuery.data && productsQuery.data.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-4"
-            >
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20 border-l-4 border-l-blue-400">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-300 uppercase tracking-wide">Total</p>
-                    <p className="text-2xl font-bold text-white mt-1">{stats.total}</p>
-                  </div>
-                  <Package className="w-8 h-8 text-blue-400" />
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20 border-l-4 border-l-green-400">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-300 uppercase tracking-wide">Preço Médio</p>
-                    <p className="text-2xl font-bold text-white mt-1">{formatPrice(stats.averagePrice)}</p>
-                  </div>
-                  <DollarSign className="w-8 h-8 text-green-400" />
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20 border-l-4 border-l-red-400">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-300 uppercase tracking-wide">Mais Barato</p>
-                    <p className="text-2xl font-bold text-white mt-1">{formatPrice(stats.minPrice)}</p>
-                  </div>
-                  <TrendingDown className="w-8 h-8 text-red-400" />
-                </div>
-              </div>
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20 border-l-4 border-l-purple-400">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-gray-300 uppercase tracking-wide">Fornecedores</p>
-                    <p className="text-2xl font-bold text-white mt-1">{stats.suppliersCount}</p>
-                  </div>
-                  <ShoppingCart className="w-8 h-8 text-purple-400" />
-          </div>
-          </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Search */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20"
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-300" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
-              placeholder="Digite o modelo... Ex: iPhone 17 Pro Max"
+              placeholder="Buscar produtos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-lg text-white placeholder-gray-300 transition-all"
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
             />
           </div>
         </motion.div>
 
-        {/* Filters */}
+        {/* Update status and filters */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 md:p-6 border border-white/20"
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
+          {/* Update status row */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-300" />
-              <h2 className="text-lg font-semibold text-white">Filtros</h2>
+              <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                Última atualização: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span className="text-xs font-medium text-green-700 dark:text-green-400">Online</span>
               </div>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/20 rounded-lg transition-colors border border-red-400/30"
-              >
-                <X className="w-4 h-4" />
-                Limpar Filtros
+              <button className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors">
+                Atualizar
               </button>
-            )}
+            </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+
+          {/* Filters row */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Calendar className="w-4 h-4 mr-1" />
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Calendar className="w-4 h-4 mr-1.5" />
                 Data
               </label>
               <select
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
                 <option value="">Hoje</option>
                 {availableDates.slice(1).map((date) => (
@@ -581,20 +495,20 @@ export default function SearchCheapestIPhonePage() {
                   </option>
                 ))}
               </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-              </div>
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
 
             <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Building2 className="w-4 h-4 mr-1" />
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Building2 className="w-4 h-4 mr-1.5" />
                 Categoria
               </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                <option value="">Todas</option>
+                <option value="">Todas as Categorias</option>
                 {dynamicFilters.categories.length > 0 ? (
                   dynamicFilters.categories.map((cat) => (
                     <option key={cat} value={cat}>
@@ -611,20 +525,64 @@ export default function SearchCheapestIPhonePage() {
                   </>
                 )}
               </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-                </div>
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
 
             <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Palette className="w-4 h-4 mr-1" />
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Package className="w-4 h-4 mr-1.5" />
+                Capacidade / MM
+              </label>
+              <select
+                value={selectedStorage}
+                onChange={(e) => setSelectedStorage(e.target.value)}
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
+              >
+                <option value="">Todas as Capacida...</option>
+                {dynamicFilters.storages.length > 0 ? (
+                  dynamicFilters.storages.map((storage) => (
+                    <option key={storage} value={storage}>
+                      {storage}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="64GB">64GB</option>
+                    <option value="128GB">128GB</option>
+                    <option value="256GB">256GB</option>
+                    <option value="512GB">512GB</option>
+                    <option value="1TB">1TB</option>
+                  </>
+                )}
+              </select>
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Building2 className="w-4 h-4 mr-1.5" />
+                Região / GB-RAM
+              </label>
+              <select
+                value=""
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
+              >
+                <option value="">Todas as Regiões</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <Palette className="w-4 h-4 mr-1.5" />
                 Cor
               </label>
               <select
                 value={selectedColor}
                 onChange={(e) => setSelectedColor(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                <option value="">Todas</option>
+                <option value="">Todas as Cores</option>
                 {dynamicFilters.colors.length > 0 ? (
                   dynamicFilters.colors.map((color) => (
                     <option key={color} value={color}>
@@ -648,48 +606,31 @@ export default function SearchCheapestIPhonePage() {
                   </>
                 )}
               </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-                </div>
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
 
             <div className="relative">
-              <label className="block text-xs font-medium text-gray-300 mb-2 flex items-center">
-                <Package className="w-4 h-4 mr-1" />
-                Capacidade
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                <ShoppingCart className="w-4 h-4 mr-1.5" />
+                Fornecedor
               </label>
               <select
-                value={selectedStorage}
-                onChange={(e) => setSelectedStorage(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white/20 backdrop-blur-sm border-2 border-white/30 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 appearance-none font-medium text-white"
+                value=""
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                <option value="">Todas</option>
-                {dynamicFilters.storages.length > 0 ? (
-                  dynamicFilters.storages.map((storage) => (
-                    <option key={storage} value={storage}>
-                      {storage}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="64GB">64GB</option>
-                    <option value="128GB">128GB</option>
-                    <option value="256GB">256GB</option>
-                    <option value="512GB">512GB</option>
-                    <option value="1TB">1TB</option>
-                  </>
-                )}
+                <option value="">Todos os Forneced...</option>
               </select>
-              <ChevronDown className="absolute right-2 top-9 w-4 h-4 text-gray-300 pointer-events-none" />
-                        </div>
-
+              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+            </div>
           </div>
         </motion.div>
 
-      {/* Results */}
+        {/* Results */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg overflow-hidden border border-white/20"
+          className="bg-white dark:bg-black rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-white/10"
         >
           <AnimatePresence mode="wait">
             {productsQuery.isLoading ? (
@@ -705,7 +646,7 @@ export default function SearchCheapestIPhonePage() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="ml-3 text-white text-lg"
+                  className="ml-3 text-gray-900 dark:text-white text-lg"
                 >
                   Buscando produtos...
                 </motion.span>
@@ -719,10 +660,10 @@ export default function SearchCheapestIPhonePage() {
                 className="text-center py-16"
               >
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 backdrop-blur-sm mb-4 border border-red-500/20">
-                  <span className="text-red-400 text-2xl">⚠️</span>
+                  <span className="text-red-600 dark:text-red-400 text-2xl">⚠️</span>
                 </div>
-                <p className="text-xl font-semibold text-white mb-2">Erro ao buscar produtos</p>
-                <p className="text-gray-300 mb-6">{(productsQuery.error as any)?.message || 'Erro desconhecido'}</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Erro ao buscar produtos</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">{(productsQuery.error as any)?.message || 'Erro desconhecido'}</p>
               </motion.div>
             ) : !productsQuery.data || productsQuery.data.length === 0 ? (
               <motion.div
@@ -732,11 +673,11 @@ export default function SearchCheapestIPhonePage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="text-center py-16"
               >
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-sm mb-4 border border-white/20">
-                  <Search className="w-10 h-10 text-gray-300" />
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-white/10 backdrop-blur-sm mb-4 border border-gray-200 dark:border-white/20">
+                  <Search className="w-10 h-10 text-gray-400 dark:text-gray-300" />
                 </div>
-                <p className="text-xl font-semibold text-white mb-2">Nenhum produto encontrado</p>
-                <p className="text-gray-300 mb-6">Digite um termo de busca ou ajuste os filtros</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Nenhum produto encontrado</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">Digite um termo de busca ou ajuste os filtros</p>
               </motion.div>
             ) : (
               <motion.div
@@ -746,24 +687,24 @@ export default function SearchCheapestIPhonePage() {
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className="p-4 border-b border-white/20 bg-white/5">
+                <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-white">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {productsQuery.data.length} {productsQuery.data.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <ArrowUpDown className="w-4 h-4" />
                       <span>Ordenado por: Menor Preço</span>
                     </div>
                   </div>
                   {priceHistoryQuery.data && Array.isArray((priceHistoryQuery.data as any).prices) && (priceHistoryQuery.data as any).prices.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-white/10">
-                      <p className="text-xs text-gray-400 mb-2">Preços dos últimos 2 dias:</p>
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Preços dos últimos 2 dias:</p>
                       <div className="flex gap-4 flex-wrap text-xs">
                         {(priceHistoryQuery.data as any).prices.slice(0, 2).map((day: any) => (
                           <div key={day.date} className="flex items-center gap-2">
-                            <span className="text-gray-300 font-medium">{day.date}:</span>
-                            <span className="text-white font-semibold">{formatPrice(day.average_price)}</span>
+                            <span className="text-gray-600 dark:text-gray-300 font-medium">{day.date}:</span>
+                            <span className="text-gray-900 dark:text-white font-semibold">{formatPrice(day.average_price)}</span>
                             {day.variation !== undefined && day.variation !== 0 && (
                               <span className={`flex items-center gap-1 ${day.variation > 0 ? 'text-red-400' : 'text-green-400'}`}>
                                 {day.variation > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
@@ -780,9 +721,9 @@ export default function SearchCheapestIPhonePage() {
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gradient-to-r from-purple-500/30 to-indigo-500/30 border-b-2 border-white/20">
+                    <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-white/10">
                       <tr>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
+                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
                           <div className="flex items-center space-x-2">
                             <Package className="w-4 h-4" />
                             <span>Produto</span>
@@ -823,7 +764,7 @@ export default function SearchCheapestIPhonePage() {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white/5 divide-y divide-white/10">
+                    <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-white/10">
                       <AnimatePresence>
                         {productsQuery.data.map((product: any, index: number) => (
                           <motion.tr
@@ -832,7 +773,7 @@ export default function SearchCheapestIPhonePage() {
                       animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
                             transition={{ duration: 0.2, delay: index * 0.02 }}
-                            className="hover:bg-white/10 transition-colors group"
+                            className="hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
                           >
                             <td className="px-4 py-4 whitespace-nowrap">
                               <div className="flex items-center">
@@ -847,16 +788,16 @@ export default function SearchCheapestIPhonePage() {
                                   </motion.span>
                                 )}
                                 <div>
-                                  <div className="text-sm font-semibold text-white">
+                                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
                                     {product.name || product.model || 'N/A'}
                                   </div>
                                   {product.model && product.model !== product.name && (
-                                    <div className="text-xs text-gray-300 mt-0.5">{product.model}</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{product.model}</div>
                                   )}
                           </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-white">
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                               <div className="flex flex-col space-y-1">
                                 <span>{product.supplier_name || 'N/A'}</span>
                                 {product.variant && (
@@ -882,7 +823,7 @@ export default function SearchCheapestIPhonePage() {
                                 {normalizeColor(product.color)}
                               </span>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-white/80">
+                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-white/80">
                               {product.model?.includes('iPhone')
                                 ? 'iPhone'
                                 : product.model?.includes('iPad')
@@ -938,7 +879,7 @@ export default function SearchCheapestIPhonePage() {
                                     navigator.clipboard.writeText(text)
                                     toast.success('Copiado para a área de transferência!')
                                   }}
-                                  className="p-2 text-gray-300 hover:bg-white/20 rounded-lg transition-colors"
+                                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 rounded-lg transition-colors"
                                   title="Copiar informações"
                                 >
                                   <Copy className="w-5 h-5" />
@@ -962,7 +903,7 @@ export default function SearchCheapestIPhonePage() {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ duration: 0.2, delay: index * 0.02 }}
-                        className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-white/20"
+                        className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-gray-200 dark:border-white/20"
                       >
                         {/* Header with product name and badge */}
                         <div className="flex items-start justify-between mb-3">
@@ -978,16 +919,16 @@ export default function SearchCheapestIPhonePage() {
                                   1
                                 </motion.span>
                               )}
-                              <h3 className="text-base font-bold text-white">
+                              <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                 {product.name || product.model || 'N/A'}
                               </h3>
                             </div>
                             {product.model && product.model !== product.name && (
-                              <p className="text-xs text-gray-300">{product.model}</p>
+                              <p className="text-xs text-gray-600 dark:text-gray-300">{product.model}</p>
                             )}
                           </div>
                           <div className="text-right">
-                            <div className="text-xl font-bold text-green-400">
+                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
                               {formatPrice(product.price || 0)}
                             </div>
                             {index === 0 && (
@@ -1027,13 +968,13 @@ export default function SearchCheapestIPhonePage() {
                         </div>
 
                         {/* Supplier info */}
-                        <div className="flex items-center gap-2 mb-3 text-sm text-white/80">
+                        <div className="flex items-center gap-2 mb-3 text-sm text-gray-700 dark:text-white/80">
                           <ShoppingCart className="w-4 h-4" />
                           <span>{product.supplier_name || 'N/A'}</span>
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-2 pt-3 border-t border-white/10">
+                        <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-white/10">
                           {product.whatsapp ? (
                             <motion.button
                               whileTap={{ scale: 0.95 }}

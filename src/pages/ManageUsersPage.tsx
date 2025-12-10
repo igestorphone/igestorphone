@@ -84,8 +84,8 @@ export default function ManageUsersPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <Shield className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem gerenciar usuários.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem gerenciar usuários.</p>
         </div>
       </div>
     );
@@ -367,7 +367,7 @@ export default function ManageUsersPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-white/70">Carregando usuários...</p>
+          <p className="text-gray-600 dark:text-white/70">Carregando usuários...</p>
         </div>
       </div>
     );
@@ -378,8 +378,8 @@ export default function ManageUsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gerenciar Usuários</h1>
-          <p className="text-white/70 mt-1">Gerencie usuários e suas permissões</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gerenciar Usuários</h1>
+          <p className="text-gray-600 dark:text-white/70 mt-1">Gerencie usuários e suas permissões</p>
         </div>
         <div className="flex items-center space-x-3">
           {activeTab === 'users' && (
@@ -404,13 +404,13 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-2 border-b border-white/10">
+      <div className="flex space-x-2 border-b border-gray-200 dark:border-white/10">
         <button
           onClick={() => setActiveTab('users')}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'users'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60 hover:text-white/80'
+              ? 'text-gray-900 dark:text-white border-b-2 border-blue-500'
+              : 'text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80'
           }`}
         >
           Usuários
@@ -419,8 +419,8 @@ export default function ManageUsersPage() {
           onClick={() => setActiveTab('pending')}
           className={`px-4 py-2 font-medium transition-colors relative ${
             activeTab === 'pending'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60 hover:text-white/80'
+              ? 'text-gray-900 dark:text-white border-b-2 border-blue-500'
+              : 'text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80'
           }`}
         >
           Pendentes
@@ -434,8 +434,8 @@ export default function ManageUsersPage() {
           onClick={() => setActiveTab('expiring')}
           className={`px-4 py-2 font-medium transition-colors relative ${
             activeTab === 'expiring'
-              ? 'text-white border-b-2 border-blue-500'
-              : 'text-white/60 hover:text-white/80'
+              ? 'text-gray-900 dark:text-white border-b-2 border-blue-500'
+              : 'text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white/80'
           }`}
         >
           Renovações
@@ -450,17 +450,17 @@ export default function ManageUsersPage() {
       </div>
 
       {/* Filters */}
-      <div className="glass rounded-xl p-6">
+      <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-64">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Buscar usuários..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-primary pl-10 w-full"
+                className="pl-10 w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -468,14 +468,14 @@ export default function ManageUsersPage() {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="input-primary"
+            className="bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
           >
             <option value="">Todos os status</option>
             <option value="active">Ativos</option>
             <option value="inactive">Inativos</option>
           </select>
 
-          <div className="text-white/70 text-sm">
+          <div className="text-gray-600 dark:text-white/70 text-sm">
             {filteredUsers.length} de {users.length} usuários
           </div>
         </div>
@@ -489,15 +489,15 @@ export default function ManageUsersPage() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass rounded-xl p-6 mb-6"
+          className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 mb-6"
         >
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white mb-2">Link de Cadastro Ativo</h3>
-              <div className="bg-white/5 rounded-lg p-3 mb-2">
-                <code className="text-sm text-white/90 break-all">{currentRegistrationLink}</code>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Link de Cadastro Ativo</h3>
+              <div className="bg-gray-100 dark:bg-white/5 rounded-lg p-3 mb-2">
+                <code className="text-sm text-gray-800 dark:text-white/90 break-all">{currentRegistrationLink}</code>
               </div>
-              <p className="text-white/50 text-xs">Copie este link e envie para convidar novos usuários</p>
+              <p className="text-gray-500 dark:text-white/50 text-xs">Copie este link e envie para convidar novos usuários</p>
             </div>
             <button
               onClick={() => {
@@ -516,10 +516,10 @@ export default function ManageUsersPage() {
       {/* Users List */}
       <div className="space-y-4">
         {filteredUsers.length === 0 ? (
-          <div className="glass rounded-xl p-12 text-center">
-            <User className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhum usuário encontrado</h3>
-            <p className="text-white/50">
+          <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-12 text-center">
+            <User className="w-16 h-16 text-gray-300 dark:text-white/30 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 dark:text-white/70 mb-2">Nenhum usuário encontrado</h3>
+            <p className="text-gray-500 dark:text-white/50">
               {searchTerm || statusFilter 
                 ? 'Tente ajustar os filtros de busca.'
                 : 'Nenhum usuário cadastrado ainda.'}
@@ -531,7 +531,7 @@ export default function ManageUsersPage() {
             key={user.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
@@ -539,8 +539,8 @@ export default function ManageUsersPage() {
                   <User className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{user.name}</h3>
-                  <p className="text-white/70 text-sm">{user.email}</p>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.name}</h3>
+                  <p className="text-gray-600 dark:text-white/70 text-sm">{user.email}</p>
                   <div className="flex items-center space-x-2 mt-2">
                     {getTypeBadge(user.tipo)}
                     {getStatusBadge(user.is_active)}
@@ -551,7 +551,7 @@ export default function ManageUsersPage() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleEditUser(user.id)}
-                  className="p-2 text-white/50 hover:text-blue-400 hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 dark:text-white/50 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
@@ -560,7 +560,7 @@ export default function ManageUsersPage() {
                     setUserToDelete(user);
                     setShowDeleteModal(true);
                   }}
-                  className="p-2 text-white/50 hover:text-red-400 hover:bg-white/5 rounded-lg transition-colors"
+                  className="p-2 text-gray-500 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -570,8 +570,8 @@ export default function ManageUsersPage() {
             {/* User Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
               <div>
-                <span className="text-white/50">Telefone:</span>
-                <p className="text-white/80">{user.telefone || 'Não informado'}</p>
+                <span className="text-gray-500 dark:text-white/50">Telefone:</span>
+                <p className="text-gray-700 dark:text-white/80">{user.telefone || 'Não informado'}</p>
               </div>
               <div>
                 <span className="text-white/50">Criado em:</span>
@@ -609,7 +609,7 @@ export default function ManageUsersPage() {
               <p className="text-white/70">Carregando usuários pendentes...</p>
             </div>
           ) : pendingUsers.length === 0 ? (
-            <div className="glass rounded-xl p-12 text-center">
+            <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-12 text-center">
               <CheckCircle2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
               <p className="text-white/70">Nenhum usuário pendente de aprovação.</p>
             </div>
@@ -619,7 +619,7 @@ export default function ManageUsersPage() {
                 key={pendingUser.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="glass rounded-xl p-6"
+                className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center space-x-4 flex-1">
@@ -674,7 +674,7 @@ export default function ManageUsersPage() {
                         key={user.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="glass rounded-xl p-4 border-l-4 border-red-500"
+                        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-red-500"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -720,7 +720,7 @@ export default function ManageUsersPage() {
                         key={user.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="glass rounded-xl p-4 border-l-4 border-orange-500"
+                        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-orange-500"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -768,7 +768,7 @@ export default function ManageUsersPage() {
                         key={user.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="glass rounded-xl p-4 border-l-4 border-yellow-500"
+                        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-yellow-500"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -816,7 +816,7 @@ export default function ManageUsersPage() {
                         key={user.id}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="glass rounded-xl p-4 border-l-4 border-blue-500"
+                        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-blue-500"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -856,7 +856,7 @@ export default function ManageUsersPage() {
                expiringUsers.expiring_3_days.length === 0 &&
                expiringUsers.expiring_7_days.length === 0 &&
                expiringUsers.expiring_30_days.length === 0 && (
-                <div className="glass rounded-xl p-12 text-center">
+                <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-12 text-center">
                   <CheckCircle2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
                   <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhum usuário próximo do vencimento</h3>
                   <p className="text-white/50">Todos os usuários estão com acesso válido.</p>
@@ -873,7 +873,7 @@ export default function ManageUsersPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
             <h3 className="text-xl font-bold text-white mb-4">Confirmar Exclusão</h3>
             <p className="text-white/70 mb-6">
@@ -904,7 +904,7 @@ export default function ManageUsersPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
             <h3 className="text-xl font-bold text-white mb-4">Gerar Link de Cadastro</h3>
             <div className="space-y-4">

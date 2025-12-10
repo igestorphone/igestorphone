@@ -44,8 +44,8 @@ export default function ManageSuppliersPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem gerenciar fornecedores.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem gerenciar fornecedores.</p>
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export default function ManageSuppliersPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-white/70">Carregando fornecedores...</p>
+          <p className="text-gray-600 dark:text-white/70">Carregando fornecedores...</p>
         </div>
       </div>
     );
@@ -159,28 +159,28 @@ export default function ManageSuppliersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Gerenciar Fornecedores</h1>
-          <p className="text-white/70 mt-1">Gerencie fornecedores e suas informações</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Gerenciar Fornecedores</h1>
+          <p className="text-gray-600 dark:text-white/70 mt-1">Gerencie fornecedores e suas informações</p>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="glass rounded-xl p-6">
+      <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6">
         <div className="flex flex-wrap gap-4 items-center">
           <div className="flex-1 min-w-64">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-white/50 w-4 h-4" />
               <input
                 type="text"
                 placeholder="Buscar fornecedores..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-primary pl-10 w-full"
+                className="pl-10 w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
           
-          <div className="text-white/70 text-sm">
+          <div className="text-gray-600 dark:text-white/70 text-sm">
             {filteredSuppliers.length} de {suppliers.length} fornecedores
           </div>
         </div>
@@ -193,7 +193,7 @@ export default function ManageSuppliersPage() {
             key={supplier.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
@@ -201,28 +201,28 @@ export default function ManageSuppliersPage() {
                   <Users className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">{supplier.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{supplier.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {supplier.whatsapp && (
-                      <span className="text-white/70 text-sm flex items-center space-x-1">
+                      <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                         <Phone className="w-3 h-3" />
                         <span>{supplier.whatsapp}</span>
                       </span>
                     )}
                     {supplier.contact_phone && !supplier.whatsapp && (
-                      <span className="text-white/70 text-sm flex items-center space-x-1">
+                      <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                         <Phone className="w-3 h-3" />
                         <span>{supplier.contact_phone}</span>
                       </span>
                     )}
                     {supplier.contact_email && (
-                      <span className="text-white/70 text-sm flex items-center space-x-1">
+                      <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                         <Mail className="w-3 h-3" />
                         <span>{supplier.contact_email}</span>
                       </span>
                     )}
                     {supplier.city && (
-                      <span className="text-white/70 text-sm flex items-center space-x-1">
+                      <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
                         <MapPin className="w-3 h-3" />
                         <span>{supplier.city}</span>
                       </span>
@@ -230,13 +230,13 @@ export default function ManageSuppliersPage() {
                   </div>
                   <div className="flex items-center space-x-2 mt-2">
                     {supplier.processed_today && (
-                      <span className="flex items-center space-x-1 bg-green-500/20 text-green-400 px-2 py-0.5 rounded text-xs font-medium">
+                      <span className="flex items-center space-x-1 bg-green-500/20 text-green-600 dark:text-green-400 px-2 py-0.5 rounded text-xs font-medium">
                         <CheckCircle className="w-3 h-3" />
                         <span>Processado hoje</span>
                       </span>
                     )}
                     {supplier.product_count !== undefined && supplier.product_count > 0 && (
-                      <span className="text-white/60 text-xs">
+                      <span className="text-gray-500 dark:text-white/60 text-xs">
                         {supplier.product_count} produtos
                       </span>
                     )}
@@ -266,8 +266,8 @@ export default function ManageSuppliersPage() {
 
         {filteredSuppliers.length === 0 && (
           <div className="text-center py-12">
-            <Users className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <p className="text-white/70">Nenhum fornecedor encontrado</p>
+            <Users className="w-16 h-16 text-gray-300 dark:text-white/30 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-white/70">Nenhum fornecedor encontrado</p>
           </div>
         )}
       </div>
@@ -278,16 +278,16 @@ export default function ManageSuppliersPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Editar Fornecedor</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Editar Fornecedor</h3>
               <button
                 onClick={() => {
                   setShowEditModal(false);
                   setSupplierToEdit(null);
                 }}
-                className="text-white/70 hover:text-white"
+                className="text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -295,67 +295,67 @@ export default function ManageSuppliersPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-white/70 text-sm mb-2">Nome do Fornecedor *</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Nome do Fornecedor *</label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="Nome do fornecedor"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm mb-2">WhatsApp</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">WhatsApp</label>
                 <input
                   type="text"
                   value={editForm.whatsapp}
                   onChange={(e) => setEditForm({ ...editForm, whatsapp: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="(11) 99999-9999"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm mb-2">Telefone</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Telefone</label>
                 <input
                   type="text"
                   value={editForm.contact_phone}
                   onChange={(e) => setEditForm({ ...editForm, contact_phone: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="(11) 99999-9999"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm mb-2">Email</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Email</label>
                 <input
                   type="email"
                   value={editForm.contact_email}
                   onChange={(e) => setEditForm({ ...editForm, contact_email: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="email@exemplo.com"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm mb-2">Cidade</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Cidade</label>
                 <input
                   type="text"
                   value={editForm.city}
                   onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="São Paulo"
                 />
               </div>
 
               <div>
-                <label className="block text-white/70 text-sm mb-2">Website</label>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Website</label>
                 <input
                   type="url"
                   value={editForm.website}
                   onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="https://exemplo.com"
                 />
               </div>
@@ -388,28 +388,28 @@ export default function ManageSuppliersPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Confirmar Exclusão</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Confirmar Exclusão</h3>
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setSupplierToDelete(null);
                 }}
-                className="text-white/70 hover:text-white"
+                className="text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-white/70 mb-6">
-              Tem certeza que deseja excluir o fornecedor <strong className="text-white">{supplierToDelete.name}</strong>?
+            <p className="text-gray-600 dark:text-white/70 mb-6">
+              Tem certeza que deseja excluir o fornecedor <strong className="text-gray-900 dark:text-white">{supplierToDelete.name}</strong>?
             </p>
 
             {supplierToDelete.product_count !== undefined && supplierToDelete.product_count > 0 && (
-              <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
-                <p className="text-yellow-400 text-sm">
+              <div className="bg-yellow-50 dark:bg-yellow-500/20 border border-yellow-200 dark:border-yellow-500/30 rounded-lg p-4 mb-4">
+                <p className="text-yellow-600 dark:text-yellow-400 text-sm">
                   ⚠️ Este fornecedor possui {supplierToDelete.product_count} produto(s) associado(s).
                   <br />
                   Ao excluir, o fornecedor e todos os seus produtos serão desativados (não aparecerão mais nas buscas).

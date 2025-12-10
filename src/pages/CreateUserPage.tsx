@@ -88,7 +88,7 @@ const CreateUserPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await usersApi.create({
+      await usersApi.create({
         nome: formData.nome,
         email: formData.email,
         senha: formData.senha,
@@ -126,7 +126,7 @@ const CreateUserPage: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/manage-users')}
-          className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
@@ -135,7 +135,7 @@ const CreateUserPage: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-3xl font-bold text-white"
+            className="text-3xl font-bold text-gray-900 dark:text-white"
           >
             Criar Usuário
           </motion.h1>
@@ -143,7 +143,7 @@ const CreateUserPage: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-white/70 mt-1"
+            className="text-gray-600 dark:text-white/70 mt-1"
           >
             Adicione um novo usuário ao sistema
           </motion.p>
@@ -155,7 +155,7 @@ const CreateUserPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="glass rounded-xl p-8"
+        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-8"
       >
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Dados Básicos */}
@@ -164,7 +164,7 @@ const CreateUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
               <User className="w-5 h-5 mr-2 text-blue-400" />
               Dados Básicos
             </h3>
@@ -174,7 +174,7 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Nome Completo *
                 </label>
                 <input
@@ -182,7 +182,7 @@ const CreateUserPage: React.FC = () => {
                   name="nome"
                   value={formData.nome}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.nome ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border ${errors.nome ? 'border-red-500' : 'border-gray-300 dark:border-white/20'} rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500 ${errors.nome ? 'border-red-500' : ''}`}
                   placeholder="Digite o nome completo"
                 />
                 {errors.nome && <p className="text-red-400 text-sm mt-1">{errors.nome}</p>}
@@ -193,7 +193,7 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Email *
                 </label>
                 <input
@@ -201,7 +201,7 @@ const CreateUserPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.email ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border ${errors.email ? 'border-red-500' : 'border-gray-300 dark:border-white/20'} rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500`}
                   placeholder="Digite o email"
                 />
                 {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
@@ -212,7 +212,7 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Telefone *
                 </label>
                 <input
@@ -220,7 +220,7 @@ const CreateUserPage: React.FC = () => {
                   name="telefone"
                   value={formData.telefone}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.telefone ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border ${errors.telefone ? 'border-red-500' : 'border-gray-300 dark:border-white/20'} rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500`}
                   placeholder="(11) 99999-9999"
                 />
                 {errors.telefone && <p className="text-red-400 text-sm mt-1">{errors.telefone}</p>}
@@ -231,14 +231,14 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Tipo de Usuário
                 </label>
                 <select
                   name="tipo"
                   value={formData.tipo}
                   onChange={handleInputChange}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                 >
                   <option value="user">Usuário</option>
                   <option value="admin">Administrador</option>
@@ -253,7 +253,7 @@ const CreateUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
               <Shield className="w-5 h-5 mr-2 text-green-400" />
               Segurança
             </h3>
@@ -263,7 +263,7 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Senha *
                 </label>
                 <div className="relative">
@@ -272,13 +272,13 @@ const CreateUserPage: React.FC = () => {
                     name="senha"
                     value={formData.senha}
                     onChange={handleInputChange}
-                    className={`input-primary w-full pr-10 ${errors.senha ? 'border-red-500' : ''}`}
+                    className={`w-full bg-white dark:bg-white/10 border ${errors.senha ? 'border-red-500' : 'border-gray-300 dark:border-white/20'} rounded-lg px-4 py-2 pr-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500`}
                     placeholder="Digite a senha"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -291,7 +291,7 @@ const CreateUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Confirmar Senha *
                 </label>
                 <input
@@ -299,7 +299,7 @@ const CreateUserPage: React.FC = () => {
                   name="confirmarSenha"
                   value={formData.confirmarSenha}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.confirmarSenha ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border ${errors.confirmarSenha ? 'border-red-500' : 'border-gray-300 dark:border-white/20'} rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500`}
                   placeholder="Confirme a senha"
                 />
                 {errors.confirmarSenha && <p className="text-red-400 text-sm mt-1">{errors.confirmarSenha}</p>}
@@ -314,8 +314,8 @@ const CreateUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.2 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6">Status</h3>
-            <div className="glass rounded-lg p-4 border border-white/10">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Status</h3>
+            <div className="bg-gray-50 dark:bg-white/10 rounded-lg p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -325,7 +325,7 @@ const CreateUserPage: React.FC = () => {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                 />
-                <label htmlFor="isActive" className="text-white font-medium cursor-pointer">
+                <label htmlFor="isActive" className="text-gray-900 dark:text-white font-medium cursor-pointer">
                   Usuário ativo
                 </label>
               </div>
@@ -337,7 +337,7 @@ const CreateUserPage: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.3 }}
-            className="flex justify-end space-x-4 pt-6 border-t border-white/10"
+            className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-white/10"
           >
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}

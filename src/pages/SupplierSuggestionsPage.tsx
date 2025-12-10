@@ -17,8 +17,8 @@ export default function SupplierSuggestionsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem visualizar indicações.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem visualizar indicações.</p>
         </div>
       </div>
     )
@@ -80,11 +80,11 @@ export default function SupplierSuggestionsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-green-500/20 text-green-400 border-green-400/30'
+        return 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 border-green-300 dark:border-green-400/30'
       case 'rejected':
-        return 'bg-red-500/20 text-red-400 border-red-400/30'
+        return 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 border-red-300 dark:border-red-400/30'
       default:
-        return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30'
+        return 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400 border-yellow-300 dark:border-yellow-400/30'
     }
   }
 
@@ -99,7 +99,7 @@ export default function SupplierSuggestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <motion.div
@@ -122,11 +122,11 @@ export default function SupplierSuggestionsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-white/20"
+          className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg p-4 border border-gray-200 dark:border-white/20"
         >
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-white font-medium">Filtrar por status:</span>
+              <span className="text-gray-700 dark:text-white font-medium">Filtrar por status:</span>
               <div className="flex gap-2 flex-wrap">
                 {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
                   <button
@@ -134,8 +134,8 @@ export default function SupplierSuggestionsPage() {
                     onClick={() => setStatusFilter(status)}
                     className={`px-4 py-2 rounded-lg font-medium transition-all ${
                       statusFilter === status
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white/10 text-white/70 hover:bg-white/20'
+                        ? 'bg-purple-600 dark:bg-purple-600 text-white'
+                        : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/20'
                     }`}
                   >
                     {status === 'all' ? 'Todas' : status === 'pending' ? 'Pendentes' : status === 'approved' ? 'Aprovadas' : 'Rejeitadas'}
@@ -160,17 +160,17 @@ export default function SupplierSuggestionsPage() {
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="w-8 h-8 border-4 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-purple-600 dark:border-purple-400 border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : error ? (
             <div className="text-center py-16">
               <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <p className="text-white text-lg">Erro ao carregar indicações</p>
+              <p className="text-gray-900 dark:text-white text-lg">Erro ao carregar indicações</p>
             </div>
           ) : suggestions.length === 0 ? (
             <div className="text-center py-16">
               <UserPlus className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-white text-lg">Nenhuma indicação encontrada</p>
+              <p className="text-gray-900 dark:text-white text-lg">Nenhuma indicação encontrada</p>
             </div>
           ) : (
             <div className="divide-y divide-white/10">
@@ -179,13 +179,13 @@ export default function SupplierSuggestionsPage() {
                   key={suggestion.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-6 hover:bg-white/5 transition-colors"
+                  className="p-6 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4 flex-wrap">
                     {/* Informações principais */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-xl font-bold text-white">{suggestion.supplier_name}</h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">{suggestion.supplier_name}</h3>
                         <span className={`px-3 py-1 rounded-full text-xs font-medium border flex items-center gap-1.5 ${getStatusColor(suggestion.status)}`}>
                           {getStatusIcon(suggestion.status)}
                           {getStatusLabel(suggestion.status)}
@@ -194,7 +194,7 @@ export default function SupplierSuggestionsPage() {
 
                       {/* Informações do usuário */}
                       {suggestion.user_name && (
-                        <div className="flex items-center gap-2 text-sm text-white/70 mb-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/70 mb-2">
                           <User className="w-4 h-4" />
                           <span>{suggestion.user_name}</span>
                           {suggestion.user_email && (
@@ -209,7 +209,7 @@ export default function SupplierSuggestionsPage() {
 
                       {/* Contato */}
                       {suggestion.contact && (
-                        <div className="flex items-center gap-2 text-sm text-white/70 mb-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-white/70 mb-2">
                           <Phone className="w-4 h-4" />
                           <span>{suggestion.contact}</span>
                         </div>
@@ -217,16 +217,16 @@ export default function SupplierSuggestionsPage() {
 
                       {/* Comentário */}
                       {suggestion.comment && (
-                        <div className="mt-3 p-3 bg-white/5 rounded-lg border border-white/10">
+                        <div className="mt-3 p-3 bg-gray-50 dark:bg-white/5 rounded-lg border border-gray-200 dark:border-white/10">
                           <div className="flex items-start gap-2">
-                            <MessageSquare className="w-4 h-4 text-white/50 flex-shrink-0 mt-0.5" />
-                            <p className="text-sm text-white/80">{suggestion.comment}</p>
+                            <MessageSquare className="w-4 h-4 text-gray-400 dark:text-white/50 flex-shrink-0 mt-0.5" />
+                            <p className="text-sm text-gray-700 dark:text-white/80">{suggestion.comment}</p>
                           </div>
                         </div>
                       )}
 
                       {/* Data */}
-                      <div className="flex items-center gap-2 text-xs text-white/50 mt-3">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-white/50 mt-3">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Enviado em {formatDate(suggestion.created_at)}</span>
                         {suggestion.reviewed_at && (

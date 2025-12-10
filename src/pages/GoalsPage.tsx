@@ -59,8 +59,8 @@ export default function GoalsPage() {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Acesso Negado</h2>
-          <p className="text-white/70">Apenas administradores podem acessar esta página.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Acesso Negado</h2>
+          <p className="text-gray-600 dark:text-white/70">Apenas administradores podem acessar esta página.</p>
         </div>
       </div>
     )
@@ -254,12 +254,12 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
+          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32" />
           <div className="relative z-10">
@@ -276,7 +276,7 @@ export default function GoalsPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openCreateGoalModal}
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg"
+            className="inline-flex items-center gap-2 bg-purple-600 dark:bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg"
           >
             <Plus className="w-5 h-5" />
             Nova Meta
@@ -304,23 +304,23 @@ export default function GoalsPage() {
                 key={statusKey}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className={`bg-white/10 backdrop-blur-lg rounded-xl shadow-lg border ${meta.color} p-4 flex flex-col min-h-[360px]`}
+                className={`bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg border border-gray-200 dark:border-white/20 ${meta.color} p-4 flex flex-col min-h-[360px]`}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-white">
+                  <div className="flex items-center gap-2 text-gray-900 dark:text-white">
                     {meta.icon}
                     <h2 className="text-lg font-semibold">{meta.label}</h2>
                   </div>
-                  <span className="text-sm text-white/70 bg-white/10 rounded-full px-3 py-1">{goals.length}</span>
+                  <span className="text-sm text-gray-600 dark:text-white/70 bg-gray-100 dark:bg-white/10 rounded-full px-3 py-1">{goals.length}</span>
                 </div>
 
                 <div className="space-y-3 flex-1 overflow-auto pr-1">
                   {goalsQuery.isError ? (
                     <p className="text-red-300 text-sm">Erro ao carregar metas.</p>
                   ) : goalsQuery.isLoading ? (
-                    <p className="text-white/50 text-sm">Carregando...</p>
+                    <p className="text-gray-500 dark:text-white/50 text-sm">Carregando...</p>
                   ) : goals.length === 0 ? (
-                    <p className="text-white/40 text-sm">Nenhuma meta nesta coluna.</p>
+                    <p className="text-gray-500 dark:text-white/40 text-sm">Nenhuma meta nesta coluna.</p>
                   ) : (
                     goals.map((goal: any) => {
                       const isExpanded = expandedGoalId === goal.id
@@ -337,15 +337,15 @@ export default function GoalsPage() {
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           onClick={() => toggleGoalExpand(goal.id)}
-                          className={`bg-white/5 border border-white/10 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-white/20 ${
-                            isExpanded ? 'bg-white/10 border-purple-400/40 shadow-lg shadow-purple-900/20' : ''
+                          className={`bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-gray-300 dark:hover:border-white/20 ${
+                            isExpanded ? 'bg-white dark:bg-white/10 border-purple-400/40 dark:border-purple-400/40 shadow-lg dark:shadow-purple-900/20' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <h3 className="text-white font-semibold text-base">{goal.title}</h3>
+                              <h3 className="text-gray-900 dark:text-white font-semibold text-base">{goal.title}</h3>
                               {hasDescription && (
-                                <p className="text-white/60 text-sm mt-2 leading-relaxed">
+                                <p className="text-gray-600 dark:text-white/60 text-sm mt-2 leading-relaxed">
                                   {description}
                                 </p>
                               )}
@@ -353,10 +353,10 @@ export default function GoalsPage() {
                             <span
                               className={`text-xs font-semibold px-2 py-1 rounded-full ${
                                 goal.priority === 'high'
-                                  ? 'bg-red-500/20 text-red-300 border border-red-400/40'
+                                  ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-300 border border-red-300 dark:border-red-400/40'
                                   : goal.priority === 'medium'
-                                  ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-400/40'
-                                  : 'bg-green-500/20 text-green-300 border border-green-400/40'
+                                  ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-400/40'
+                                  : 'bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-300 border border-green-300 dark:border-green-400/40'
                               }`}
                             >
                               Prioridade {priorityLabel[goal.priority || 'medium']}
@@ -365,7 +365,7 @@ export default function GoalsPage() {
 
                           {isExpanded && (
                             <>
-                              <div className="flex flex-wrap items-center justify-between text-xs text-white/50 mt-4 gap-2">
+                              <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 dark:text-white/50 mt-4 gap-2">
                                 <span>Criado em {new Date(goal.created_at).toLocaleDateString('pt-BR')}</span>
                                 {goal.completed_at && <span>Finalizado em {new Date(goal.completed_at).toLocaleDateString('pt-BR')}</span>}
                               </div>
@@ -376,7 +376,7 @@ export default function GoalsPage() {
                                     e.stopPropagation()
                                     openEditGoalModal(goal)
                                   }}
-                                  className="flex-1 inline-flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 text-xs rounded-lg transition-colors"
+                                  className="flex-1 inline-flex items-center justify-center gap-2 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white px-3 py-2 text-xs rounded-lg transition-colors"
                                 >
                                   <Edit className="w-4 h-4" />
                                   Editar
@@ -386,7 +386,7 @@ export default function GoalsPage() {
                                     e.stopPropagation()
                                     deleteGoalMutation.mutate(goal.id)
                                   }}
-                                  className="inline-flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-200 px-3 py-2 text-xs rounded-lg transition-colors"
+                                  className="inline-flex items-center justify-center gap-2 bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-200 px-3 py-2 text-xs rounded-lg transition-colors"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -402,7 +402,7 @@ export default function GoalsPage() {
                                         e.stopPropagation()
                                         updateGoalMutation.mutate({ id: goal.id, data: { status } })
                                       }}
-                                      className="text-xs text-white/70 hover:text-white bg-white/5 hover:bg-white/15 px-3 py-1.5 rounded-full transition-colors"
+                                      className="text-xs text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/15 px-3 py-1.5 rounded-full transition-colors"
                                     >
                                       Mover para {statusLabels[status].label}
                                     </button>
@@ -417,7 +417,7 @@ export default function GoalsPage() {
                                 e.stopPropagation()
                                 toggleGoalExpand(goal.id)
                               }}
-                              className="text-xs text-purple-200 hover:text-white bg-purple-500/20 hover:bg-purple-500/30 px-3 py-1 rounded-full transition-colors"
+                              className="text-xs text-purple-700 dark:text-purple-200 hover:text-purple-900 dark:hover:text-white bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 px-3 py-1 rounded-full transition-colors"
                             >
                               {isExpanded ? 'Ver menos' : 'Ver mais'}
                             </button>
@@ -436,14 +436,14 @@ export default function GoalsPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-lg rounded-2xl border border-white/20 shadow-xl p-6 space-y-4"
+          className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-2xl border border-gray-200 dark:border-white/20 shadow-xl p-6 space-y-4"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <StickyNote className="w-6 h-6 text-yellow-300" />
-              <h2 className="text-2xl font-semibold text-white">Anotações</h2>
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Anotações</h2>
             </div>
-            <span className="text-sm text-white/60">{notesQuery.data?.length || 0} anotação(ões)</span>
+            <span className="text-sm text-gray-600 dark:text-white/60">{notesQuery.data?.length || 0} anotação(ões)</span>
           </div>
 
           {notesQuery.isError ? (
@@ -453,7 +453,7 @@ export default function GoalsPage() {
               <div className="w-8 h-8 border-4 border-white/30 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : notesList.length === 0 ? (
-            <div className="text-center py-12 text-white/50">
+            <div className="text-center py-12 text-gray-500 dark:text-white/50">
               Nenhuma anotação cadastrada ainda.
             </div>
           ) : (
@@ -463,31 +463,31 @@ export default function GoalsPage() {
                   key={note.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3"
+                  className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 space-y-3"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-white font-semibold text-lg">{note.title}</h3>
-                      {note.content && <p className="text-white/60 text-sm mt-2 whitespace-pre-line">{note.content}</p>}
+                      <h3 className="text-gray-900 dark:text-white font-semibold text-lg">{note.title}</h3>
+                      {note.content && <p className="text-gray-600 dark:text-white/60 text-sm mt-2 whitespace-pre-line">{note.content}</p>}
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => openEditNoteModal(note)}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                        className="p-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white transition-colors"
                         title="Editar anotação"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => deleteNoteMutation.mutate(note.id)}
-                        className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-200 transition-colors"
+                        className="p-2 rounded-lg bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-700 dark:text-red-200 transition-colors"
                         title="Excluir anotação"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                  <div className="text-xs text-white/40">
+                  <div className="text-xs text-gray-500 dark:text-white/40">
                     Atualizado em {new Date(note.updated_at || note.created_at).toLocaleString('pt-BR')}
                   </div>
                 </motion.div>
@@ -510,46 +510,46 @@ export default function GoalsPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-white">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {isEditingGoal ? 'Editar Meta' : 'Nova Meta'}
                 </h3>
-                <button onClick={closeGoalModal} className="text-white/50 hover:text-white">
+                <button onClick={closeGoalModal} className="text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-white/70 block mb-2">Título</label>
+                  <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Título</label>
                   <input
                     type="text"
                     value={goalForm.title}
                     onChange={(e) => setGoalForm((prev) => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-purple-400"
                     placeholder="Ex: Automatizar listas via WhatsApp"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/70 block mb-2">Descrição</label>
+                  <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Descrição</label>
                   <textarea
                     value={goalForm.description}
                     onChange={(e) => setGoalForm((prev) => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400 min-h-[120px]"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-purple-400 min-h-[120px]"
                     placeholder="Detalhe o objetivo, próximos passos, responsáveis..."
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-white/70 block mb-2">Status</label>
+                    <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Status</label>
                     <select
                       value={goalForm.status}
                       onChange={(e) => setGoalForm((prev) => ({ ...prev, status: e.target.value as GoalFormState['status'] }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-purple-400"
                     >
                       <option value="pending">Meta</option>
                       <option value="in_progress">Em Processo</option>
@@ -559,11 +559,11 @@ export default function GoalsPage() {
                   </div>
 
                   <div>
-                    <label className="text-sm text-white/70 block mb-2">Prioridade</label>
+                    <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Prioridade</label>
                     <select
                       value={goalForm.priority}
                       onChange={(e) => setGoalForm((prev) => ({ ...prev, priority: e.target.value as GoalFormState['priority'] }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-purple-400"
                     >
                       <option value="low">Baixa</option>
                       <option value="medium">Média</option>
@@ -576,7 +576,7 @@ export default function GoalsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={closeGoalModal}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancelar
                 </button>
@@ -608,35 +608,35 @@ export default function GoalsPage() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-slate-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4"
+              className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold text-white">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {isEditingNote ? 'Editar Anotação' : 'Nova Anotação'}
                 </h3>
-                <button onClick={closeNoteModal} className="text-white/50 hover:text-white">
+                <button onClick={closeNoteModal} className="text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white">
                   <XCircle className="w-5 h-5" />
                 </button>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm text-white/70 block mb-2">Título</label>
+                  <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Título</label>
                   <input
                     type="text"
                     value={noteForm.title}
                     onChange={(e) => setNoteForm((prev) => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-blue-400"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-400"
                     placeholder="Resumo da anotação"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-white/70 block mb-2">Conteúdo</label>
+                  <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Conteúdo</label>
                   <textarea
                     value={noteForm.content}
                     onChange={(e) => setNoteForm((prev) => ({ ...prev, content: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:border-blue-400 min-h-[160px]"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-400 min-h-[160px]"
                     placeholder="Detalhes, ideias, lembretes..."
                   />
                 </div>
@@ -645,7 +645,7 @@ export default function GoalsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={closeNoteModal}
-                  className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                  className="px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-900 dark:text-white transition-colors"
                 >
                   Cancelar
                 </button>
