@@ -33,47 +33,53 @@ export default function MainLayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200 overflow-x-hidden">
-      {/* Sidebar - Always visible and fixed on desktop */}
-      <motion.div
-        animate={{ width: sidebarCollapsed ? 80 : 264 }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="hidden lg:block fixed inset-y-0 left-0 z-30"
-      >
-        <Sidebar onClose={() => {}} />
-      </motion.div>
+      {/* Sidebar - Always visible and fixed on desktop ONLY */}
+      {isDesktop && (
+        <motion.div
+          animate={{ width: sidebarCollapsed ? 80 : 264 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="hidden lg:block fixed inset-y-0 left-0 z-30"
+        >
+          <Sidebar onClose={() => {}} />
+        </motion.div>
+      )}
 
-      {/* Mobile Sidebar */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ x: -300, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -300, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="lg:hidden fixed inset-y-0 left-0 z-[50] w-64"
-            onClick={(e) => {
-              // Previne que o clique dentro do sidebar feche ele
-              e.stopPropagation()
-            }}
-          >
-            <Sidebar onClose={() => setSidebarOpen(false)} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Mobile Sidebar - ONLY on mobile */}
+      {!isDesktop && (
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ x: -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -300, opacity: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="fixed inset-y-0 left-0 z-[50] w-64"
+              onClick={(e) => {
+                // Previne que o clique dentro do sidebar feche ele
+                e.stopPropagation()
+              }}
+            >
+              <Sidebar onClose={() => setSidebarOpen(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Overlay for mobile only */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-black/50 z-[45]"
-            onClick={() => setSidebarOpen(false)}
-            onTouchStart={() => setSidebarOpen(false)}
-          />
-        )}
-      </AnimatePresence>
+      {!isDesktop && (
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[45]"
+              onClick={() => setSidebarOpen(false)}
+              onTouchStart={() => setSidebarOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+      )}
 
       {/* Main content - Adjust margin based on sidebar */}
       <div 
