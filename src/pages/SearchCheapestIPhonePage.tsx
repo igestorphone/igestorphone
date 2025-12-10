@@ -160,6 +160,7 @@ export default function SearchCheapestIPhonePage() {
   const [selectedColor, setSelectedColor] = useState('')
   const [currentTime, setCurrentTime] = useState(new Date())
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
+  const [dollarHistory, setDollarHistory] = useState<number[]>([])
 
   useEffect(() => {
     const trimmed = searchQuery.trim()
@@ -354,10 +355,16 @@ export default function SearchCheapestIPhonePage() {
 
   useEffect(() => {
     if (dollarRateQuery.data?.rate) {
+      const rate = dollarRateQuery.data.rate
       localStorage.setItem(
         'dollar-rate-cache',
-        JSON.stringify({ rate: dollarRateQuery.data.rate, timestamp: new Date().toISOString() })
+        JSON.stringify({ rate, timestamp: new Date().toISOString() })
       )
+      // Adiciona ao histórico (mantém últimos 20 valores)
+      setDollarHistory(prev => {
+        const newHistory = [...prev, rate]
+        return newHistory.slice(-20)
+      })
     }
   }, [dollarRateQuery.data])
 
@@ -393,19 +400,48 @@ export default function SearchCheapestIPhonePage() {
             <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                R$ {dollarRate.toFixed(2)}
-              </span>
-              {dollarChange !== 0 && (
-                <span
-                  className={`flex items-center gap-0.5 text-xs ${
-                    dollarChange < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {dollarChange < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                  {Math.abs(parseFloat(dollarChangePercent))}%
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                  R$ {dollarRate.toFixed(2)}
                 </span>
-              )}
+                {dollarHistory.length > 1 && (
+                  <div className="relative w-16 h-6">
+                    <svg
+                      className="w-full h-full"
+                      viewBox={`0 0 ${dollarHistory.length * 4} 24`}
+                      preserveAspectRatio="none"
+                    >
+                      <polyline
+                        fill="none"
+                        stroke={dollarChange < 0 ? '#10b981' : dollarChange > 0 ? '#ef4444' : '#6b7280'}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        points={dollarHistory
+                          .map((value, index) => {
+                            const min = Math.min(...dollarHistory)
+                            const max = Math.max(...dollarHistory)
+                            const range = max - min || 1
+                            const x = index * 4
+                            const y = 24 - ((value - min) / range) * 24
+                            return `${x},${y}`
+                          })
+                          .join(' ')}
+                      />
+                    </svg>
+                  </div>
+                )}
+                {dollarChange !== 0 && (
+                  <span
+                    className={`flex items-center gap-0.5 text-xs ${
+                      dollarChange < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {dollarChange < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
+                    {Math.abs(parseFloat(dollarChangePercent))}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
