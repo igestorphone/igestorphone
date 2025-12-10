@@ -806,8 +806,8 @@ export default function SearchCheapestIPhonePage() {
                                   <span
                                     className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
                                       product.variant.toUpperCase() === 'ANATEL'
-                                        ? 'bg-amber-500/20 text-amber-200 border border-amber-400/40'
-                                        : 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
+                                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
+                                        : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                                     }`}
                                   >
                                     {product.variant}
@@ -816,12 +816,12 @@ export default function SearchCheapestIPhonePage() {
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
                                 {product.storage || 'N/A'}
                               </span>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                                 {normalizeColor(product.color)}
                               </span>
                             </td>
@@ -938,7 +938,7 @@ export default function SearchCheapestIPhonePage() {
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
                                 transition={{ type: 'spring', stiffness: 200 }}
-                                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30"
+                                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30"
                               >
                                 Mais Barato
                               </motion.span>
@@ -948,11 +948,11 @@ export default function SearchCheapestIPhonePage() {
 
                         {/* Info badges */}
                         <div className="flex flex-wrap gap-2 mb-3">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
                             <BarChart3 className="w-3 h-3 mr-1" />
                             {product.storage || 'N/A'}
                           </span>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                             <Palette className="w-3 h-3 mr-1" />
                             {normalizeColor(product.color)}
                           </span>
