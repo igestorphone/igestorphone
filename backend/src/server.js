@@ -23,7 +23,6 @@ import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
-import productsCleanupRoutes from './routes/products-cleanup.js';
 
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -170,9 +169,6 @@ app.use('/api/notes', authenticateToken, notesRoutes);
 
 // Rotas de IA - algumas públicas, outras protegidas
 app.use('/api/ai', aiRoutes);
-
-// Rotas de limpeza de produtos
-app.use('/api/products', productsCleanupRoutes);
 
 // Rotas de limpeza de produtos
 app.use('/api/products', productsCleanupRoutes);
