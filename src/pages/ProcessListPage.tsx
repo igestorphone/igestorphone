@@ -385,14 +385,44 @@ export default function ProcessListPage() {
           warnings: validationResult.validation.warnings || [],
           suggestions: validationResult.validation.suggestions || [],
           dataProcessamento: new Date().toISOString(),
-          listaOriginal: rawList,
+          // Não salvar a lista original completa para economizar espaço
+          // listaOriginal: rawList, // Removido para evitar exceder quota do localStorage
+          listaOriginalLength: rawList.length, // Salvar apenas o tamanho
           modo: 'ai'
         }
 
-        // Salvar no localStorage
-        const existingProcessamentos = JSON.parse(localStorage.getItem('processamentos') || '[]')
-        existingProcessamentos.unshift(processedData)
-        localStorage.setItem('processamentos', JSON.stringify(existingProcessamentos))
+        // Salvar no localStorage com limite e tratamento de erro
+        try {
+          const existingProcessamentos = JSON.parse(localStorage.getItem('processamentos') || '[]')
+          
+          // Adicionar novo processamento no início
+          existingProcessamentos.unshift(processedData)
+          
+          // Limitar a 30 processamentos mais recentes para evitar exceder quota
+          const limitedProcessamentos = existingProcessamentos.slice(0, 30)
+          
+          // Tentar salvar
+          localStorage.setItem('processamentos', JSON.stringify(limitedProcessamentos))
+          console.log('✅ Processamento salvo no localStorage')
+        } catch (storageError: any) {
+          // Se der erro de quota, tentar limpar dados antigos e salvar apenas o mais recente
+          if (storageError.message?.includes('quota') || storageError.message?.includes('QuotaExceededError')) {
+            console.warn('⚠️ Quota do localStorage excedida. Limpando dados antigos...')
+            try {
+              // Limpar todos os processamentos antigos
+              localStorage.removeItem('processamentos')
+              // Salvar apenas o processamento atual
+              localStorage.setItem('processamentos', JSON.stringify([processedData]))
+              console.log('✅ Processamento salvo após limpeza de dados antigos')
+            } catch (retryError) {
+              console.error('❌ Erro ao salvar no localStorage mesmo após limpeza:', retryError)
+              // Não mostrar erro ao usuário, pois o processamento foi bem-sucedido
+            }
+          } else {
+            console.error('❌ Erro ao salvar no localStorage:', storageError)
+            // Não mostrar erro ao usuário, pois o processamento foi bem-sucedido
+          }
+        }
 
         // Recarregar fornecedores do banco de dados após salvar
         const suppliersResponse = await fetch(buildApiUrl('/suppliers'), {
@@ -432,6 +462,13 @@ export default function ProcessListPage() {
         errorMessage += '• A variável de ambiente VITE_API_URL está configurada corretamente\n'
         errorMessage += '• O backend está deployado e acessível\n'
       } else if (error.message) {
+        // Ignorar erros de localStorage (quota excedida) - não são críticos
+        if (error.message.includes('quota') || error.message.includes('QuotaExceededError') || error.message.includes('setItem')) {
+          console.warn('⚠️ Erro de localStorage (não crítico):', error.message)
+          // Não mostrar erro ao usuário se for apenas problema de localStorage
+          // O processamento foi bem-sucedido, apenas não foi salvo no histórico local
+          return // Sair silenciosamente
+        }
         errorMessage += `Detalhes: ${error.message}\n\n`
       }
       
