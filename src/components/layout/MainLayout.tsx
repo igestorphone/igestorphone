@@ -19,7 +19,7 @@ export default function MainLayout() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200 overflow-x-hidden">
       {/* Sidebar - Always visible and fixed on desktop */}
       <motion.div
         animate={{ width: sidebarCollapsed ? 80 : 264 }}
@@ -59,13 +59,13 @@ export default function MainLayout() {
 
       {/* Main content - Adjust margin based on sidebar */}
       <div 
-        className="flex-1 flex flex-col overflow-visible transition-all duration-300"
+        className="flex-1 flex flex-col overflow-x-hidden transition-all duration-300 w-0 min-w-0"
         style={{ 
           marginLeft: isDesktop ? (sidebarCollapsed ? '80px' : '264px') : '0' 
         }}
       >
         <Header />
-        <main className="flex-1 overflow-visible">
+        <main className="flex-1 overflow-x-hidden w-full max-w-full">
           <Outlet />
         </main>
       </div>

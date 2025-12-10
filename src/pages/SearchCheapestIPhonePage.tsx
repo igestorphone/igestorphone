@@ -367,8 +367,8 @@ export default function SearchCheapestIPhonePage() {
   const availableDates = buildAvailableDates()
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200">
-      <div className="space-y-4 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
+      <div className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Status bar - Barra superior com informações */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -477,7 +477,8 @@ export default function SearchCheapestIPhonePage() {
           </div>
 
           {/* Filters row */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="overflow-x-auto -mx-4 px-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Calendar className="w-4 h-4 mr-1.5" />
@@ -622,6 +623,7 @@ export default function SearchCheapestIPhonePage() {
               </select>
               <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
+            </div>
           </div>
         </motion.div>
 
@@ -719,47 +721,47 @@ export default function SearchCheapestIPhonePage() {
                 </div>
 
                 {/* Desktop Table View */}
-                <div className="hidden md:block overflow-x-auto">
-                  <table className="w-full">
+                <div className="hidden md:block overflow-x-auto max-w-full">
+                  <table className="w-full min-w-max table-auto">
                     <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-white/10">
                       <tr>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <Package className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[180px]">
+                          <div className="flex items-center space-x-1">
+                            <Package className="w-3 h-3" />
                             <span>Produto</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <ShoppingCart className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">
+                          <div className="flex items-center space-x-1">
+                            <ShoppingCart className="w-3 h-3" />
                             <span>Fornecedor</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <BarChart3 className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <BarChart3 className="w-3 h-3" />
                             <span>Capacidade</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <Palette className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <Palette className="w-3 h-3" />
                             <span>Cor</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <Building2 className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                          <div className="flex items-center space-x-1">
+                            <Building2 className="w-3 h-3" />
                             <span>Categoria</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-wider">
-                          <div className="flex items-center space-x-2">
-                            <DollarSign className="w-4 h-4" />
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">
+                          <div className="flex items-center space-x-1">
+                            <DollarSign className="w-3 h-3" />
                             <span>Preço</span>
                           </div>
                         </th>
-                        <th className="px-4 py-4 text-center text-xs font-bold text-white uppercase tracking-wider">
+                        <th className="px-2 py-3 text-center text-xs font-bold text-white uppercase tracking-wider min-w-[140px]">
                           Ações
                         </th>
                       </tr>
@@ -775,34 +777,34 @@ export default function SearchCheapestIPhonePage() {
                             transition={{ duration: 0.2, delay: index * 0.02 }}
                             className="hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
                           >
-                            <td className="px-4 py-4 whitespace-nowrap">
+                            <td className="px-2 py-3 whitespace-normal">
                               <div className="flex items-center">
                                 {index === 0 && (
                                   <motion.span
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 200 }}
-                                    className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold mr-2"
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold mr-1.5 flex-shrink-0"
                                   >
                                     1
                                   </motion.span>
                                 )}
-                                <div>
-                                  <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
                                     {product.name || product.model || 'N/A'}
                                   </div>
                                   {product.model && product.model !== product.name && (
-                                    <div className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{product.model}</div>
+                                    <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5 truncate">{product.model}</div>
                                   )}
-                          </div>
+                                </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                            <td className="px-2 py-3 whitespace-normal text-xs text-gray-900 dark:text-white">
                               <div className="flex flex-col space-y-1">
-                                <span>{product.supplier_name || 'N/A'}</span>
+                                <span className="truncate">{product.supplier_name || 'N/A'}</span>
                                 {product.variant && (
                                   <span
-                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide uppercase ${
+                                    className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
                                       product.variant.toUpperCase() === 'ANATEL'
                                         ? 'bg-amber-500/20 text-amber-200 border border-amber-400/40'
                                         : 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
@@ -813,17 +815,17 @@ export default function SearchCheapestIPhonePage() {
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/30 text-blue-200 border border-blue-400/30">
                                 {product.storage || 'N/A'}
                               </span>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/30 text-purple-200 border border-purple-400/30">
                                 {normalizeColor(product.color)}
                               </span>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-white/80">
+                            <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80">
                               {product.model?.includes('iPhone')
                                 ? 'iPhone'
                                 : product.model?.includes('iPad')
@@ -836,9 +838,9 @@ export default function SearchCheapestIPhonePage() {
                                 ? 'Apple Watch'
                                 : '—'}
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <span className="text-lg font-bold text-green-400">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              <div className="flex flex-col items-start space-y-1">
+                                <span className="text-sm font-bold text-green-400">
                                   {formatPrice(product.price || 0)}
                                 </span>
                                 {index === 0 && (
@@ -846,32 +848,32 @@ export default function SearchCheapestIPhonePage() {
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 200 }}
-                                    className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-500/30 text-green-200 border border-green-400/30"
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-500/30 text-green-200 border border-green-400/30"
                                   >
                                     Mais Barato
                                   </motion.span>
                                 )}
                               </div>
                             </td>
-                            <td className="px-4 py-4 whitespace-nowrap text-center">
-                              <div className="flex items-center justify-center space-x-2">
+                            <td className="px-2 py-3 whitespace-nowrap text-center">
+                              <div className="flex items-center justify-center space-x-1">
                                 {product.whatsapp ? (
                                   <motion.button
-                                    whileHover={{ scale: 1.1 }}
+                                    whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => handleWhatsApp(product.whatsapp, product)}
-                                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center space-x-2 transition-all shadow-lg"
+                                    className="bg-green-500 hover:bg-green-600 text-white px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all shadow-lg"
                                     title="Contatar no WhatsApp"
                                   >
-                                    <MessageCircle className="w-5 h-5" />
-                                    <span>WhatsApp</span>
+                                    <MessageCircle className="w-4 h-4" />
+                                    <span className="hidden lg:inline">WhatsApp</span>
                                   </motion.button>
                                 ) : (
-                                  <div className="text-xs text-gray-400 px-2 py-1">Sem WhatsApp</div>
+                                  <div className="text-[10px] text-gray-400 px-1 py-0.5">Sem WhatsApp</div>
                                 )}
-                          <motion.button
+                                <motion.button
                                   whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
+                                  whileTap={{ scale: 0.95 }}
                                   onClick={() => {
                                     const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A')}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
@@ -879,12 +881,12 @@ export default function SearchCheapestIPhonePage() {
                                     navigator.clipboard.writeText(text)
                                     toast.success('Copiado para a área de transferência!')
                                   }}
-                                  className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 rounded-lg transition-colors"
+                                  className="p-1.5 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 rounded-lg transition-colors"
                                   title="Copiar informações"
                                 >
-                                  <Copy className="w-5 h-5" />
-                          </motion.button>
-                        </div>
+                                  <Copy className="w-4 h-4" />
+                                </motion.button>
+                              </div>
                             </td>
                           </motion.tr>
                   ))}
