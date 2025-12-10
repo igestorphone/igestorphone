@@ -18,10 +18,18 @@ export default function MainLayout() {
         setSidebarOpen(false)
       }
     }
+    
+    // Verifica na inicialização se é mobile e fecha o sidebar
+    const isMobile = window.innerWidth < 1024
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen(false)
+    }
+    
+    setIsDesktop(!isMobile)
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [sidebarOpen, setSidebarOpen])
+  }, []) // Dependências vazias - só executa na montagem
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200 overflow-x-hidden">
