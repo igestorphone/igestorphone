@@ -916,7 +916,7 @@ export default function SearchCheapestIPhonePage() {
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   transition={{ type: 'spring', stiffness: 200 }}
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 text-white text-xs font-bold"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold"
                                 >
                                   1
                                 </motion.span>
@@ -960,8 +960,8 @@ export default function SearchCheapestIPhonePage() {
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
                                 product.variant.toUpperCase() === 'ANATEL'
-                                  ? 'bg-amber-500/20 text-amber-200 border border-amber-400/40'
-                                  : 'bg-emerald-500/20 text-emerald-200 border border-emerald-400/30'
+                                  ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
+                                  : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                               }`}
                             >
                               {product.variant}
@@ -998,7 +998,7 @@ export default function SearchCheapestIPhonePage() {
                               navigator.clipboard.writeText(text)
                               toast.success('Copiado para a área de transferência!')
                             }}
-                            className="p-3 text-gray-300 hover:bg-white/20 rounded-lg transition-colors"
+                            className="p-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 rounded-lg transition-colors"
                             title="Copiar informações"
                           >
                             <Copy className="w-5 h-5" />
