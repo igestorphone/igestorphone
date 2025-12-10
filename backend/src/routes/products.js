@@ -258,17 +258,14 @@ router.get('/', [
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar produtos de HOJE no timezone do Brasil
-      // Se não houver produtos de hoje, mostrar produtos das últimas 24h como fallback
+      // Por padrão, mostrar APENAS produtos de HOJE no timezone do Brasil
+      // Sem fallback - após a meia-noite, produtos antigos não devem aparecer
       const todayBrasil = `DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))`;
-      const last24hBrasil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' - INTERVAL '24 hours')`;
       whereClause += ` AND (
         DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
         OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
-        OR p.updated_at >= ${last24hBrasil}
-        OR p.created_at >= ${last24hBrasil}
       )`;
-      console.log('📊 Filtro aplicado: produtos de HOJE (ou últimas 24h como fallback) no timezone do Brasil');
+      console.log('📊 Filtro aplicado: produtos APENAS de HOJE no timezone do Brasil');
     }
 
     // Buscar produtos
