@@ -22,6 +22,8 @@ import bugReportsRoutes from './routes/bug-reports.js';
 import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
 import registrationRoutes from './routes/registration.js';
+import productsCleanupRoutes from './routes/products-cleanup.js';
+import productsCleanupRoutes from './routes/products-cleanup.js';
 
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -169,6 +171,12 @@ app.use('/api/notes', authenticateToken, notesRoutes);
 // Rotas de IA - algumas públicas, outras protegidas
 app.use('/api/ai', aiRoutes);
 
+// Rotas de limpeza de produtos
+app.use('/api/products', productsCleanupRoutes);
+
+// Rotas de limpeza de produtos
+app.use('/api/products', productsCleanupRoutes);
+
 // Rota de health check
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -195,11 +203,57 @@ if (process.env.NODE_ENV === 'production') {
 // Middleware de tratamento de erros
 app.use(errorHandler);
 
+// Scheduler automático para limpeza de produtos à meia-noite de Brasília
+let cleanupInterval = null;
+
+async function checkAndCleanupProducts() {
+  try {
+    const { query } = await import('./config/database.js');
+    
+    // Verificar horário atual de Brasília
+    const timeCheck = await query(`
+      SELECT 
+        NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' as agora_brasil,
+        EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::int as hora_brasil,
+        EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::int as minuto_brasil
+    `);
+    
+    const horaBrasil = timeCheck.rows[0].hora_brasil;
+    const minutoBrasil = timeCheck.rows[0].minuto_brasil;
+    const agoraBrasil = timeCheck.rows[0].agora_brasil;
+    
+    // Verificar se é meia-noite (00h) em Brasília (com tolerância de 2 minutos)
+    if (horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 2) {
+      logger.info(`🕛 Executando limpeza automática de produtos à meia-noite (Brasília): ${agoraBrasil}`);
+      
+      // Executar limpeza
+      const result = await query(`
+        UPDATE products 
+        SET is_active = false,
+            updated_at = NOW()
+        WHERE is_active = true
+          AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
+              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+      `);
+      
+      const deactivatedCount = result.rowCount || 0;
+      logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente`);
+    }
+  } catch (error) {
+    logger.error('❌ Erro no scheduler de limpeza automática:', error);
+  }
+}
+
 // Iniciar servidor
 app.listen(PORT, () => {
   logger.info(`🚀 Servidor rodando na porta ${PORT}`);
   logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
+  
+  // Iniciar scheduler de limpeza automática (verifica a cada minuto)
+  logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
+  cleanupInterval = setInterval(checkAndCleanupProducts, 60000); // Verifica a cada 1 minuto
+  logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
 });
 
 // Tratamento de erros não capturados
@@ -211,6 +265,23 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
+});
+
+// Cleanup ao encerrar o servidor
+process.on('SIGTERM', () => {
+  logger.info('🛑 Encerrando servidor...');
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  logger.info('🛑 Encerrando servidor...');
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  process.exit(0);
 });
 
 export default app;
