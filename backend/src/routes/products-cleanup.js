@@ -23,9 +23,12 @@ router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), as
     console.log(`🕐 Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}`);
     
     // Verificar se é meia-noite (00h) em Brasília - com tolerância de 5 minutos
-    if (horaBrasil !== 0 || minutoBrasil > 5) {
+    // OU se for solicitado via query param ?force=true (apenas para emergências)
+    const force = req.query.force === 'true';
+    
+    if (!force && (horaBrasil !== 0 || minutoBrasil > 5)) {
       return res.status(400).json({ 
-        message: `Esta operação só pode ser executada à meia-noite (00h) horário de Brasília. Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}` 
+        message: `Esta operação só pode ser executada à meia-noite (00h) horário de Brasília. Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}. Use ?force=true para forçar (apenas em emergências).` 
       });
     }
     

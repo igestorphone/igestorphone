@@ -222,22 +222,40 @@ async function checkAndCleanupProducts() {
     const minutoBrasil = timeCheck.rows[0].minuto_brasil;
     const agoraBrasil = timeCheck.rows[0].agora_brasil;
     
-    // Verificar se é meia-noite (00h) em Brasília (com tolerância de 2 minutos)
-    if (horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 2) {
-      logger.info(`🕛 Executando limpeza automática de produtos à meia-noite (Brasília): ${agoraBrasil}`);
-      
-      // Executar limpeza
-      const result = await query(`
-        UPDATE products 
-        SET is_active = false,
-            updated_at = NOW()
+    // Verificar se é meia-noite (00h) em Brasília (com tolerância até 00:10)
+    const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
+    
+    if (isMidnightWindow) {
+      // Verificar se há produtos antigos para limpar (de dias anteriores)
+      const countQuery = await query(`
+        SELECT COUNT(*) as total
+        FROM products
         WHERE is_active = true
           AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
       `);
       
-      const deactivatedCount = result.rowCount || 0;
-      logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente`);
+      const totalToClean = parseInt(countQuery.rows[0].total);
+      
+      if (totalToClean > 0) {
+        logger.info(`🕛 Executando limpeza automática de produtos (Brasília): ${agoraBrasil}`);
+        logger.info(`📊 ${totalToClean} produtos antigos encontrados para limpar`);
+        
+        // Executar limpeza - apenas produtos de dias anteriores
+        const result = await query(`
+          UPDATE products 
+          SET is_active = false,
+              updated_at = NOW()
+          WHERE is_active = true
+            AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
+                DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        `);
+        
+        const deactivatedCount = result.rowCount || 0;
+        logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente`);
+      } else {
+        logger.debug(`⏰ Horário de limpeza (${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}), mas nenhum produto antigo encontrado`);
+      }
     }
   } catch (error) {
     logger.error('❌ Erro no scheduler de limpeza automática:', error);
