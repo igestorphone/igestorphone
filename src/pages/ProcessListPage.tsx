@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search } from 'lucide-react'
+import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, RefreshCw, AlertTriangle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
@@ -131,6 +131,49 @@ export default function ProcessListPage() {
 
     loadSuppliers()
   }, [])
+
+  // Função para restaurar produtos de hoje (emergência)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const handleRestoreTodayProducts = async () => {
+    if (!confirm('⚠️ Restaurar TODOS os produtos de hoje que foram desativados? Isso pode restaurar produtos que foram zerados por engano.')) {
+      return
+    }
+
+    setIsRestoring(true)
+    try {
+      const authData = localStorage.getItem('auth-storage')
+      if (!authData) throw new Error('Token não encontrado')
+      
+      const token = JSON.parse(authData).state?.token
+      if (!token) throw new Error('Token inválido')
+
+      const response = await fetch(buildApiUrl('/products/restore-today-emergency'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Erro ao restaurar produtos')
+      }
+
+      const result = await response.json()
+      alert(`✅ ${result.restored} produtos de hoje restaurados com sucesso!\n\n📊 Estatísticas:\n- Produtos ativos hoje: ${result.statistics.active_today}\n- Produtos inativos hoje: ${result.statistics.inactive_today}`)
+      
+      // Recarregar página após 2 segundos para mostrar produtos restaurados
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    } catch (error: any) {
+      console.error('Erro ao restaurar produtos:', error)
+      alert(`❌ Erro ao restaurar produtos: ${error.message}`)
+    } finally {
+      setIsRestoring(false)
+    }
+  }
 
   // Verificar se é admin
   if (user?.tipo !== 'admin') {
@@ -621,6 +664,32 @@ export default function ProcessListPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Processar Lista Apple</h1>
           <p className="text-gray-600 dark:text-white/70">Cole a lista do fornecedor e a IA processará automaticamente todos os produtos Apple</p>
           <p className="text-gray-500 dark:text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
+          
+          {/* Botão de emergência para restaurar produtos */}
+          <div className="mt-4">
+            <motion.button
+              onClick={handleRestoreTodayProducts}
+              disabled={isRestoring}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto"
+            >
+              {isRestoring ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Restaurando...</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Restaurar Produtos de Hoje</span>
+                </>
+              )}
+            </motion.button>
+            <p className="text-xs text-gray-500 dark:text-white/40 mt-2">
+              Use apenas se os produtos foram zerados por engano
+            </p>
+          </div>
         </div>
       </motion.div>
 

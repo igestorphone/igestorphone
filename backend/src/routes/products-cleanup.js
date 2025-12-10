@@ -107,6 +107,61 @@ router.post('/restore-products', authenticateToken, requireRole('admin'), async 
   }
 });
 
+// Rota de EMERGÊNCIA: Restaurar TODOS os produtos de hoje
+router.post('/restore-today-emergency', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    console.log('🚨 EMERGÊNCIA: Restaurando TODOS os produtos de hoje...');
+    
+    // Restaurar produtos criados OU atualizados HOJE no timezone do Brasil
+    const result = await query(`
+      UPDATE products 
+      SET is_active = true,
+          updated_at = NOW()
+      WHERE is_active = false
+        AND (
+          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        )
+    `);
+    
+    const restoredCount = result.rowCount || 0;
+    
+    // Estatísticas
+    const stats = await query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE is_active = true 
+          AND (DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+            OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')))) as produtos_ativos_hoje,
+        COUNT(*) FILTER (WHERE is_active = false 
+          AND (DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+            OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')))) as produtos_inativos_hoje
+      FROM products
+    `);
+    
+    console.log(`✅ ${restoredCount} produtos de HOJE restaurados`);
+    console.log(`📊 Estatísticas: ${stats.rows[0].produtos_ativos_hoje} ativos hoje, ${stats.rows[0].produtos_inativos_hoje} inativos hoje`);
+    
+    res.json({
+      message: 'Produtos de hoje restaurados com sucesso',
+      restored: restoredCount,
+      statistics: {
+        active_today: parseInt(stats.rows[0].produtos_ativos_hoje),
+        inactive_today: parseInt(stats.rows[0].produtos_inativos_hoje)
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao restaurar produtos de hoje:', error);
+    res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+  }
+});
+
 export default router;
 
 // NOTA IMPORTANTE:
