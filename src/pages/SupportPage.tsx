@@ -106,7 +106,7 @@ export default function SupportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-primary p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-primary p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div
@@ -116,10 +116,10 @@ export default function SupportPage() {
           className="text-center mb-8"
         >
           <div className="flex items-center justify-center mb-4">
-            <HelpCircle className="w-12 h-12 text-blue-400 mr-3" />
-            <h1 className="text-4xl font-bold text-white">Central de Suporte</h1>
+            <HelpCircle className="w-12 h-12 text-blue-500 dark:text-blue-400 mr-3" />
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white">Central de Suporte</h1>
           </div>
-          <p className="text-white/70 text-lg">
+          <p className="text-gray-600 dark:text-white/70 text-lg">
             Estamos aqui para ajudar você a aproveitar ao máximo o iGestorPhone
           </p>
         </motion.div>
@@ -129,7 +129,7 @@ export default function SupportPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 mb-8"
+          className="bg-white dark:bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-gray-200 dark:border-white/20 mb-8"
         >
           <div className="flex space-x-1 mb-6">
             {[
@@ -143,7 +143,7 @@ export default function SupportPage() {
                 className={`flex items-center px-4 py-2 rounded-lg transition-all ${
                   activeTab === tab.id
                     ? 'bg-blue-500 text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    : 'text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
                 }`}
               >
                 <tab.icon className="w-4 h-4 mr-2" />
@@ -162,36 +162,36 @@ export default function SupportPage() {
             >
               {/* Contact Methods */}
               <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10">
                   <div className="flex items-center mb-4">
-                    <Mail className="w-6 h-6 text-blue-400 mr-3" />
-                    <h3 className="text-xl font-semibold text-white">Email</h3>
+                    <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Email</h3>
                   </div>
-                  <p className="text-white/80 mb-4">
+                  <p className="text-gray-600 dark:text-white/80 mb-4">
                     Envie suas dúvidas por email e receba resposta em até 24 horas.
                   </p>
                   <a
                     href="mailto:igestorphone@gmail.com"
-                    className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+                    className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
                     <Mail className="w-4 h-4 mr-2" />
                     igestorphone@gmail.com
                   </a>
                 </div>
 
-                <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10">
                   <div className="flex items-center mb-4">
-                    <Phone className="w-6 h-6 text-green-400 mr-3" />
-                    <h3 className="text-xl font-semibold text-white">WhatsApp</h3>
+                    <Phone className="w-6 h-6 text-green-600 dark:text-green-400 mr-3" />
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white">WhatsApp</h3>
                   </div>
-                  <p className="text-white/80 mb-4">
+                  <p className="text-gray-600 dark:text-white/80 mb-4">
                     Suporte rápido e direto via WhatsApp.
                   </p>
                   <a
                     href="https://wa.me/5511983132474"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-green-400 hover:text-green-300 transition-colors"
+                    className="inline-flex items-center text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                   >
                     <Phone className="w-4 h-4 mr-2" />
                     (11) 98313-2474
@@ -200,33 +200,33 @@ export default function SupportPage() {
               </div>
 
               {/* Support Ticket Form */}
-              <div className="bg-white/5 rounded-lg p-6 border border-white/10">
+              <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10">
                 <div className="flex items-center mb-4">
-                  <Send className="w-6 h-6 text-purple-400 mr-3" />
-                  <h3 className="text-xl font-semibold text-white">Abrir Ticket de Suporte</h3>
+                  <Send className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-3" />
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Abrir Ticket de Suporte</h3>
                 </div>
                 <form onSubmit={handleSubmitTicket} className="space-y-4">
                   <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">
+                    <label className="block text-gray-700 dark:text-white/80 text-sm font-medium mb-2">
                       Assunto
                     </label>
                     <input
                       type="text"
                       value={ticketForm.subject}
                       onChange={(e) => setTicketForm({ ...ticketForm, subject: e.target.value })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Descreva brevemente o problema"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">
+                    <label className="block text-gray-700 dark:text-white/80 text-sm font-medium mb-2">
                       Prioridade
                     </label>
                     <select
                       value={ticketForm.priority}
                       onChange={(e) => setTicketForm({ ...ticketForm, priority: e.target.value as any })}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="low">Baixa</option>
                       <option value="medium">Média</option>
@@ -234,14 +234,14 @@ export default function SupportPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-white/80 text-sm font-medium mb-2">
+                    <label className="block text-gray-700 dark:text-white/80 text-sm font-medium mb-2">
                       Mensagem
                     </label>
                     <textarea
                       value={ticketForm.message}
                       onChange={(e) => setTicketForm({ ...ticketForm, message: e.target.value })}
                       rows={4}
-                      className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Descreva detalhadamente o problema ou dúvida"
                       required
                     />
@@ -266,12 +266,12 @@ export default function SupportPage() {
               className="space-y-4"
             >
               {faqItems.map((item, index) => (
-                <div key={index} className="bg-white/5 rounded-lg p-6 border border-white/10">
-                  <h3 className="text-lg font-semibold text-white mb-2 flex items-center">
-                    <Info className="w-5 h-5 text-blue-400 mr-2" />
+                <div key={index} className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                    <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 mr-2" />
                     {item.question}
                   </h3>
-                  <p className="text-white/80 leading-relaxed">{item.answer}</p>
+                  <p className="text-gray-600 dark:text-white/80 leading-relaxed">{item.answer}</p>
                 </div>
               ))}
             </motion.div>
@@ -287,14 +287,14 @@ export default function SupportPage() {
             >
               {tickets.length === 0 ? (
                 <div className="text-center py-8">
-                  <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-4" />
-                  <p className="text-white/80">Nenhum ticket encontrado.</p>
+                  <AlertTriangle className="w-12 h-12 text-yellow-500 dark:text-yellow-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-white/80">Nenhum ticket encontrado.</p>
                 </div>
               ) : (
                 tickets.map((ticket) => (
-                  <div key={ticket.id} className="bg-white/5 rounded-lg p-6 border border-white/10">
+                  <div key={ticket.id} className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10">
                     <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-lg font-semibold text-white">{ticket.subject}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{ticket.subject}</h3>
                       <div className="flex space-x-2">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(ticket.status)}`}>
                           {ticket.status === 'resolved' ? 'Resolvido' : 
@@ -306,8 +306,8 @@ export default function SupportPage() {
                         </span>
                       </div>
                     </div>
-                    <p className="text-white/80 mb-3">{ticket.message}</p>
-                    <div className="flex items-center text-sm text-white/60">
+                    <p className="text-gray-600 dark:text-white/80 mb-3">{ticket.message}</p>
+                    <div className="flex items-center text-sm text-gray-500 dark:text-white/60">
                       <Clock className="w-4 h-4 mr-2" />
                       Criado em {ticket.createdAt}
                     </div>
@@ -323,32 +323,32 @@ export default function SupportPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20"
+          className="bg-white dark:bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-gray-200 dark:border-white/20"
         >
-          <h2 className="text-2xl font-bold text-white mb-6 text-center">Ações Rápidas</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Ações Rápidas</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <a
               href="https://wa.me/5511983132474"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center p-4 bg-green-500/20 hover:bg-green-500/30 rounded-lg border border-green-500/30 transition-colors"
+              className="flex items-center justify-center p-4 bg-green-100 dark:bg-green-500/20 hover:bg-green-200 dark:hover:bg-green-500/30 rounded-lg border border-green-300 dark:border-green-500/30 transition-colors"
             >
-              <MessageCircle className="w-6 h-6 text-green-400 mr-3" />
-              <span className="text-white font-medium">Chat WhatsApp</span>
+              <MessageCircle className="w-6 h-6 text-green-600 dark:text-green-400 mr-3" />
+              <span className="text-gray-900 dark:text-white font-medium">Chat WhatsApp</span>
             </a>
             <a
               href="mailto:igestorphone@gmail.com"
-              className="flex items-center justify-center p-4 bg-blue-500/20 hover:bg-blue-500/30 rounded-lg border border-blue-500/30 transition-colors"
+              className="flex items-center justify-center p-4 bg-blue-100 dark:bg-blue-500/20 hover:bg-blue-200 dark:hover:bg-blue-500/30 rounded-lg border border-blue-300 dark:border-blue-500/30 transition-colors"
             >
-              <Mail className="w-6 h-6 text-blue-400 mr-3" />
-              <span className="text-white font-medium">Enviar Email</span>
+              <Mail className="w-6 h-6 text-blue-600 dark:text-blue-400 mr-3" />
+              <span className="text-gray-900 dark:text-white font-medium">Enviar Email</span>
             </a>
             <button
               onClick={() => setActiveTab('faq')}
-              className="flex items-center justify-center p-4 bg-purple-500/20 hover:bg-purple-500/30 rounded-lg border border-purple-500/30 transition-colors"
+              className="flex items-center justify-center p-4 bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 rounded-lg border border-purple-300 dark:border-purple-500/30 transition-colors"
             >
-              <FileText className="w-6 h-6 text-purple-400 mr-3" />
-              <span className="text-white font-medium">Ver FAQ</span>
+              <FileText className="w-6 h-6 text-purple-600 dark:text-purple-400 mr-3" />
+              <span className="text-gray-900 dark:text-white font-medium">Ver FAQ</span>
             </button>
           </div>
         </motion.div>

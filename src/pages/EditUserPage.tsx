@@ -250,7 +250,7 @@ const EditUserPage: React.FC = () => {
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-white/70">Carregando usuário...</p>
+          <p className="text-gray-600 dark:text-white/70">Carregando usuário...</p>
         </div>
       </div>
     );
@@ -274,7 +274,7 @@ const EditUserPage: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/manage-users')}
-          className="p-2 text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-lg transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
         </motion.button>
@@ -283,7 +283,7 @@ const EditUserPage: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="text-3xl font-bold text-white"
+            className="text-3xl font-bold text-gray-900 dark:text-white"
           >
             Editar Usuário
           </motion.h1>
@@ -291,7 +291,7 @@ const EditUserPage: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-white/70 mt-1"
+            className="text-gray-600 dark:text-white/70 mt-1"
           >
             Atualize as informações do usuário
           </motion.p>
@@ -303,7 +303,7 @@ const EditUserPage: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
-        className="glass rounded-xl p-8"
+        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-8"
       >
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Dados Básicos */}
@@ -312,8 +312,8 @@ const EditUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
-              <User className="w-5 h-5 mr-2 text-blue-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <User className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
               Dados Básicos
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -322,7 +322,7 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.7 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Nome Completo *
                 </label>
                 <input
@@ -330,7 +330,7 @@ const EditUserPage: React.FC = () => {
                   name="nome"
                   value={formData.nome}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.nome ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.nome ? 'border-red-500' : ''}`}
                   placeholder="Digite o nome completo"
                 />
                 {errors.nome && <p className="text-red-400 text-sm mt-1">{errors.nome}</p>}
@@ -341,7 +341,7 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.8 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Email *
                 </label>
                 <input
@@ -349,7 +349,7 @@ const EditUserPage: React.FC = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.email ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.email ? 'border-red-500' : ''}`}
                   placeholder="Digite o email"
                 />
                 {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
@@ -360,7 +360,7 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Telefone *
                 </label>
                 <input
@@ -368,7 +368,7 @@ const EditUserPage: React.FC = () => {
                   name="telefone"
                   value={formData.telefone}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.telefone ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.telefone ? 'border-red-500' : ''}`}
                   placeholder="(11) 99999-9999"
                 />
                 {errors.telefone && <p className="text-red-400 text-sm mt-1">{errors.telefone}</p>}
@@ -379,14 +379,14 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Tipo de Usuário
                 </label>
                 <select
                   name="tipo"
                   value={formData.tipo}
                   onChange={handleInputChange}
-                  className="input-primary w-full"
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                 >
                   <option value="user">Usuário</option>
                   <option value="admin">Administrador</option>
@@ -401,8 +401,8 @@ const EditUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-green-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <Shield className="w-5 h-5 mr-2 text-green-600 dark:text-green-400" />
               Alterar Senha (Opcional)
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -411,7 +411,7 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Nova Senha
                 </label>
                 <div className="relative">
@@ -420,13 +420,13 @@ const EditUserPage: React.FC = () => {
                     name="senha"
                     value={formData.senha}
                     onChange={handleInputChange}
-                    className={`input-primary w-full pr-10 ${errors.senha ? 'border-red-500' : ''}`}
+                    className={`w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 pr-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.senha ? 'border-red-500' : ''}`}
                     placeholder="Deixe em branco para manter a senha atual"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-white/50 hover:text-gray-700 dark:hover:text-white"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -439,7 +439,7 @@ const EditUserPage: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6, delay: 1.0 }}
               >
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Confirmar Nova Senha
                 </label>
                 <input
@@ -447,7 +447,7 @@ const EditUserPage: React.FC = () => {
                   name="confirmarSenha"
                   value={formData.confirmarSenha}
                   onChange={handleInputChange}
-                  className={`input-primary w-full ${errors.confirmarSenha ? 'border-red-500' : ''}`}
+                  className={`w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all ${errors.confirmarSenha ? 'border-red-500' : ''}`}
                   placeholder="Confirme a nova senha"
                 />
                 {errors.confirmarSenha && <p className="text-red-400 text-sm mt-1">{errors.confirmarSenha}</p>}
@@ -461,35 +461,35 @@ const EditUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
-              <Crown className="w-5 h-5 mr-2 text-yellow-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <Crown className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
               Assinatura
             </h3>
-            <div className="glass rounded-lg p-6 border border-white/10 space-y-4">
+            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Nome do Plano */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Nome do Plano
                   </label>
                   <input
                     type="text"
                     value={subscriptionData.planName}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, planName: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="Ex: Plano PRO, Plano Básico"
                   />
                 </div>
 
                 {/* Tipo de Plano */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Tipo de Plano
                   </label>
                   <select
                     value={subscriptionData.planType}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, planType: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="basic">Básico</option>
                     <option value="pro">PRO</option>
@@ -500,18 +500,18 @@ const EditUserPage: React.FC = () => {
 
                 {/* Valor */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Valor (R$)
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-white/50" />
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={subscriptionData.price}
                       onChange={(e) => setSubscriptionData({ ...subscriptionData, price: parseFloat(e.target.value) || 0 })}
-                      className="input-primary w-full pl-10"
+                      className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 pl-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                       placeholder="0.00"
                     />
                   </div>
@@ -519,13 +519,13 @@ const EditUserPage: React.FC = () => {
 
                 {/* Método de Pagamento */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Método de Pagamento
                   </label>
                   <select
                     value={subscriptionData.paymentMethod}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, paymentMethod: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="pix">PIX</option>
                     <option value="credit_card">Cartão de Crédito</option>
@@ -537,7 +537,7 @@ const EditUserPage: React.FC = () => {
 
                 {/* Duração (meses) */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Duração (meses)
                   </label>
                   <input
@@ -545,20 +545,20 @@ const EditUserPage: React.FC = () => {
                     min="1"
                     value={subscriptionData.durationMonths}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, durationMonths: parseInt(e.target.value) || 1 })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                     placeholder="1"
                   />
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Status
                   </label>
                   <select
                     value={subscriptionData.status}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, status: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   >
                     <option value="active">Ativo</option>
                     <option value="trial">Trial</option>
@@ -570,27 +570,27 @@ const EditUserPage: React.FC = () => {
 
                 {/* Data de Início */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Data de Início
                   </label>
                   <input
                     type="date"
                     value={subscriptionData.startDate}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, startDate: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
 
                 {/* Data de Término */}
                 <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                     Data de Término
                   </label>
                   <input
                     type="date"
                     value={subscriptionData.endDate}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, endDate: e.target.value })}
-                    className="input-primary w-full"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
                   />
                 </div>
               </div>
@@ -604,7 +604,7 @@ const EditUserPage: React.FC = () => {
                   onChange={(e) => setSubscriptionData({ ...subscriptionData, autoRenew: e.target.checked })}
                   className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
                 />
-                <label htmlFor="autoRenew" className="text-white font-medium cursor-pointer">
+                <label htmlFor="autoRenew" className="text-gray-900 dark:text-white font-medium cursor-pointer">
                   Renovação Automática
                 </label>
               </div>
@@ -617,19 +617,19 @@ const EditUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.1 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
-              <Calendar className="w-5 h-5 mr-2 text-purple-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
+              <Calendar className="w-5 h-5 mr-2 text-purple-600 dark:text-purple-400" />
               Renovar/Prolongar Acesso
             </h3>
-            <div className="glass rounded-lg p-6 border border-white/10 space-y-4">
+            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10 space-y-4">
               {accessExpiresAt && (
-                <div className="flex items-center space-x-2 text-white/70 mb-4">
+                <div className="flex items-center space-x-2 text-gray-600 dark:text-white/70 mb-4">
                   <Clock className="w-4 h-4" />
                   <span className="text-sm">
                     {new Date(accessExpiresAt) > new Date() ? (
-                      <>Acesso válido até: <strong className="text-white">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
+                      <>Acesso válido até: <strong className="text-gray-900 dark:text-white">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
                     ) : (
-                      <>Acesso expirado em: <strong className="text-red-400">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
+                      <>Acesso expirado em: <strong className="text-red-600 dark:text-red-400">{new Date(accessExpiresAt).toLocaleDateString('pt-BR')}</strong></>
                     )}
                   </span>
                 </div>
@@ -643,7 +643,7 @@ const EditUserPage: React.FC = () => {
                   onChange={(e) => setRenewAccess(e.target.checked)}
                   className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
                 />
-                <label htmlFor="renewAccess" className="text-white font-medium cursor-pointer">
+                <label htmlFor="renewAccess" className="text-gray-900 dark:text-white font-medium cursor-pointer">
                   Renovar/Prolongar período de acesso
                 </label>
               </div>
@@ -655,7 +655,7 @@ const EditUserPage: React.FC = () => {
                   transition={{ duration: 0.3 }}
                   className="space-y-4"
                 >
-                  <p className="text-white/70 text-sm">
+                  <p className="text-gray-600 dark:text-white/70 text-sm">
                     {accessExpiresAt && new Date(accessExpiresAt) > new Date() 
                       ? 'O período será prolongado a partir da data de expiração atual.'
                       : 'O período será calculado a partir de hoje.'}
@@ -668,8 +668,8 @@ const EditUserPage: React.FC = () => {
                         onClick={() => setSelectedDuration(days as 5 | 30 | 90 | 365)}
                         className={`p-4 rounded-lg border transition-colors ${
                           selectedDuration === days
-                            ? 'bg-purple-500/20 border-purple-500 text-white'
-                            : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                            ? 'bg-purple-100 dark:bg-purple-500/20 border-purple-500 text-purple-900 dark:text-white'
+                            : 'bg-white dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-50 dark:hover:bg-white/10'
                         }`}
                       >
                         <div className="text-center">
@@ -700,8 +700,8 @@ const EditUserPage: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.2 }}
           >
-            <h3 className="text-lg font-semibold text-white mb-6">Status</h3>
-            <div className="glass rounded-lg p-4 border border-white/10">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Status</h3>
+            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-4 border border-gray-200 dark:border-white/10">
               <div className="flex items-center space-x-3">
                 <input
                   type="checkbox"
@@ -711,7 +711,7 @@ const EditUserPage: React.FC = () => {
                   onChange={handleInputChange}
                   className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                 />
-                <label htmlFor="isActive" className="text-white font-medium cursor-pointer">
+                <label htmlFor="isActive" className="text-gray-900 dark:text-white font-medium cursor-pointer">
                   Usuário ativo
                 </label>
               </div>
@@ -723,7 +723,7 @@ const EditUserPage: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.3 }}
-            className="flex justify-between items-center pt-6 border-t border-white/10"
+            className="flex justify-between items-center pt-6 border-t border-gray-200 dark:border-white/10"
           >
             <motion.button
               whileHover={{ scale: 1.05, y: -2 }}
@@ -782,10 +782,10 @@ const EditUserPage: React.FC = () => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="glass rounded-xl p-8 max-w-md w-full mx-4"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-8 max-w-md w-full mx-4"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Confirmar Exclusão</h3>
-            <p className="text-white/70 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Confirmar Exclusão</h3>
+            <p className="text-gray-600 dark:text-white/70 mb-6">
               Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.
             </p>
             <div className="flex space-x-4">

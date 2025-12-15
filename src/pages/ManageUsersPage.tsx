@@ -574,12 +574,12 @@ export default function ManageUsersPage() {
                 <p className="text-gray-700 dark:text-white/80">{user.telefone || 'Não informado'}</p>
               </div>
               <div>
-                <span className="text-white/50">Criado em:</span>
-                <p className="text-white/80">{new Date(user.created_at).toLocaleDateString()}</p>
+                <span className="text-gray-500 dark:text-white/50">Criado em:</span>
+                <p className="text-gray-700 dark:text-white/80">{new Date(user.created_at).toLocaleDateString()}</p>
               </div>
               <div>
-                <span className="text-white/50">Último login:</span>
-                <p className="text-white/80">
+                <span className="text-gray-500 dark:text-white/50">Último login:</span>
+                <p className="text-gray-700 dark:text-white/80">
                   {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Nunca'}
                 </p>
               </div>
@@ -587,9 +587,9 @@ export default function ManageUsersPage() {
 
             {/* Permissions */}
             {user.tipo === 'user' && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <span className="text-white/50 text-sm">Permissões:</span>
-                <p className="text-white/80 text-sm mt-1">{getPermissionsText(user.permissions)}</p>
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-white/10">
+                <span className="text-gray-500 dark:text-white/50 text-sm">Permissões:</span>
+                <p className="text-gray-700 dark:text-white/80 text-sm mt-1">{getPermissionsText(user.permissions)}</p>
               </div>
             )}
           </motion.div>
