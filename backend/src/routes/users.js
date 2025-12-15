@@ -1159,7 +1159,17 @@ router.patch('/:id/permissions', requireRole('admin'), async (req, res) => {
 router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { planType, durationMonths, price, autoRenew } = req.body;
+    const { 
+      planName, 
+      planType, 
+      durationMonths, 
+      price, 
+      paymentMethod, 
+      startDate, 
+      endDate, 
+      autoRenew,
+      status = 'active'
+    } = req.body;
 
     // Verificar se usuário existe
     const existingUser = await query('SELECT id FROM users WHERE id = $1', [id]);
@@ -1167,21 +1177,83 @@ router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    // Desativar assinatura atual
-    await query(`
-      UPDATE subscriptions SET status = 'cancelled' 
+    // Se não tiver data de início, usar hoje
+    const finalStartDate = startDate ? new Date(startDate) : new Date();
+    // Se não tiver data de término e tiver duração, calcular
+    let finalEndDate = endDate ? new Date(endDate) : null;
+    if (!finalEndDate && durationMonths) {
+      finalEndDate = new Date(finalStartDate);
+      finalEndDate.setMonth(finalEndDate.getMonth() + durationMonths);
+    }
+
+    // Verificar se já existe assinatura ativa
+    const existingSubscription = await query(`
+      SELECT id FROM subscriptions 
       WHERE user_id = $1 AND status = 'active'
+      ORDER BY created_at DESC
+      LIMIT 1
     `, [id]);
 
-    // Criar nova assinatura
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + durationMonths);
+    if (existingSubscription.rows.length > 0) {
+      // Atualizar assinatura existente
+      await query(`
+        UPDATE subscriptions 
+        SET plan_name = COALESCE($2, plan_name),
+            plan_type = COALESCE($3, plan_type),
+            duration_months = COALESCE($4, duration_months),
+            price = COALESCE($5, price),
+            payment_method = COALESCE($6, payment_method),
+            start_date = COALESCE($7, start_date),
+            end_date = COALESCE($8, end_date),
+            current_period_start = COALESCE($7, current_period_start),
+            current_period_end = COALESCE($8, current_period_end),
+            auto_renew = COALESCE($9, auto_renew),
+            status = COALESCE($10, status),
+            updated_at = NOW()
+        WHERE id = $1
+      `, [
+        existingSubscription.rows[0].id,
+        planName || null,
+        planType || null,
+        durationMonths || null,
+        price || null,
+        paymentMethod || 'pix',
+        finalStartDate,
+        finalEndDate,
+        autoRenew !== undefined ? autoRenew : false,
+        status
+      ]);
+    } else {
+      // Criar nova assinatura
+      await query(`
+        INSERT INTO subscriptions (
+          user_id, plan_name, plan_type, duration_months, price, 
+          payment_method, status, start_date, end_date, 
+          current_period_start, current_period_end, auto_renew
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $8, $9, $10)
+      `, [
+        id,
+        planName || planType || 'Plano Básico',
+        planType || 'basic',
+        durationMonths || 1,
+        price || 0,
+        paymentMethod || 'pix',
+        status,
+        finalStartDate,
+        finalEndDate || finalStartDate,
+        autoRenew !== undefined ? autoRenew : false
+      ]);
+    }
 
+    // Atualizar status do usuário
     await query(`
-      INSERT INTO subscriptions (user_id, plan_type, duration_months, price, status, start_date, end_date, auto_renew)
-      VALUES ($1, $2, $3, $4, 'active', $5, $6, $7)
-    `, [id, planType, durationMonths, price, startDate, endDate, autoRenew]);
+      UPDATE users 
+      SET subscription_status = $1,
+          subscription_expires_at = $2,
+          updated_at = NOW()
+      WHERE id = $3
+    `, [status, finalEndDate, id]);
 
     // Log da ação
     await query(`
@@ -1190,7 +1262,15 @@ router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
     `, [
       req.user.id,
       'user_subscription_updated',
-      JSON.stringify({ target_user_id: id, planType, durationMonths, price }),
+      JSON.stringify({ 
+        target_user_id: id, 
+        planName, 
+        planType, 
+        durationMonths, 
+        price, 
+        paymentMethod,
+        status
+      }),
       req.ip,
       req.get('User-Agent')
     ]);
@@ -1199,7 +1279,7 @@ router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao atualizar assinatura:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
   }
 });
 

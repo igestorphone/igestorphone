@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, CreditCard, Crown, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/lib/api';
 
@@ -28,6 +28,18 @@ const EditUserPage: React.FC = () => {
   const [accessExpiresAt, setAccessExpiresAt] = useState<string | null>(null);
   const [renewAccess, setRenewAccess] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(30);
+  const [subscription, setSubscription] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState({
+    planName: '',
+    planType: 'basic',
+    durationMonths: 1,
+    price: 0,
+    paymentMethod: 'pix',
+    startDate: '',
+    endDate: '',
+    autoRenew: false,
+    status: 'active'
+  });
   
   const [formData, setFormData] = useState<UserFormData>({
     nome: '',
@@ -74,6 +86,44 @@ const EditUserPage: React.FC = () => {
       
       // Carregar data de expiração do acesso
       setAccessExpiresAt(user.access_expires_at || null);
+
+      // Carregar assinatura se existir
+      if (user.subscription) {
+        setSubscription(user.subscription);
+        setSubscriptionData({
+          planName: user.subscription.plan_name || '',
+          planType: user.subscription.plan_type || 'basic',
+          durationMonths: user.subscription.duration_months || 1,
+          price: user.subscription.price || 0,
+          paymentMethod: user.subscription.payment_method || 'pix',
+          startDate: user.subscription.start_date ? new Date(user.subscription.start_date).toISOString().split('T')[0] : '',
+          endDate: user.subscription.end_date ? new Date(user.subscription.end_date).toISOString().split('T')[0] : '',
+          autoRenew: user.subscription.auto_renew || false,
+          status: user.subscription.status || 'active'
+        });
+      } else {
+        // Tentar buscar assinatura diretamente
+        try {
+          const subResponse = await usersApi.getSubscription(id!);
+          if (subResponse.subscription) {
+            const sub = subResponse.subscription;
+            setSubscription(sub);
+            setSubscriptionData({
+              planName: sub.plan_name || '',
+              planType: sub.plan_type || 'basic',
+              durationMonths: sub.duration_months || 1,
+              price: parseFloat(sub.price) || 0,
+              paymentMethod: sub.payment_method || 'pix',
+              startDate: sub.start_date ? new Date(sub.start_date).toISOString().split('T')[0] : '',
+              endDate: sub.end_date ? new Date(sub.end_date).toISOString().split('T')[0] : '',
+              autoRenew: sub.auto_renew || false,
+              status: sub.status || 'active'
+            });
+          }
+        } catch (subError) {
+          console.log('Nenhuma assinatura encontrada');
+        }
+      }
     } catch (error: any) {
       console.error('Erro ao carregar usuário:', error);
       setErrors({ submit: error.response?.data?.message || 'Erro ao carregar dados do usuário' });
@@ -146,6 +196,26 @@ const EditUserPage: React.FC = () => {
       // Só incluir senha se foi preenchida
       if (formData.senha) {
         updateData.senha = formData.senha;
+      }
+
+      // Atualizar assinatura se houver dados
+      if (subscriptionData.planName || subscriptionData.planType) {
+        try {
+          await usersApi.updateSubscription(id!, {
+            planName: subscriptionData.planName || subscriptionData.planType,
+            planType: subscriptionData.planType,
+            durationMonths: subscriptionData.durationMonths,
+            price: subscriptionData.price,
+            paymentMethod: subscriptionData.paymentMethod,
+            startDate: subscriptionData.startDate || undefined,
+            endDate: subscriptionData.endDate || undefined,
+            autoRenew: subscriptionData.autoRenew,
+            status: subscriptionData.status
+          });
+        } catch (subError: any) {
+          console.error('Erro ao atualizar assinatura:', subError);
+          // Não bloquear o update do usuário se falhar a assinatura
+        }
       }
       
       // Incluir renovação de acesso se solicitada
@@ -382,6 +452,162 @@ const EditUserPage: React.FC = () => {
                 />
                 {errors.confirmarSenha && <p className="text-red-400 text-sm mt-1">{errors.confirmarSenha}</p>}
               </motion.div>
+            </div>
+          </motion.div>
+
+          {/* Assinatura */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.0 }}
+          >
+            <h3 className="text-lg font-semibold text-white mb-6 flex items-center">
+              <Crown className="w-5 h-5 mr-2 text-yellow-400" />
+              Assinatura
+            </h3>
+            <div className="glass rounded-lg p-6 border border-white/10 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nome do Plano */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Nome do Plano
+                  </label>
+                  <input
+                    type="text"
+                    value={subscriptionData.planName}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, planName: e.target.value })}
+                    className="input-primary w-full"
+                    placeholder="Ex: Plano PRO, Plano Básico"
+                  />
+                </div>
+
+                {/* Tipo de Plano */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Tipo de Plano
+                  </label>
+                  <select
+                    value={subscriptionData.planType}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, planType: e.target.value })}
+                    className="input-primary w-full"
+                  >
+                    <option value="basic">Básico</option>
+                    <option value="pro">PRO</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </div>
+
+                {/* Valor */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Valor (R$)
+                  </label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={subscriptionData.price}
+                      onChange={(e) => setSubscriptionData({ ...subscriptionData, price: parseFloat(e.target.value) || 0 })}
+                      className="input-primary w-full pl-10"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {/* Método de Pagamento */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Método de Pagamento
+                  </label>
+                  <select
+                    value={subscriptionData.paymentMethod}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, paymentMethod: e.target.value })}
+                    className="input-primary w-full"
+                  >
+                    <option value="pix">PIX</option>
+                    <option value="credit_card">Cartão de Crédito</option>
+                    <option value="debit_card">Cartão de Débito</option>
+                    <option value="boleto">Boleto</option>
+                    <option value="bank_transfer">Transferência Bancária</option>
+                  </select>
+                </div>
+
+                {/* Duração (meses) */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Duração (meses)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={subscriptionData.durationMonths}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, durationMonths: parseInt(e.target.value) || 1 })}
+                    className="input-primary w-full"
+                    placeholder="1"
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={subscriptionData.status}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, status: e.target.value })}
+                    className="input-primary w-full"
+                  >
+                    <option value="active">Ativo</option>
+                    <option value="trial">Trial</option>
+                    <option value="cancelled">Cancelado</option>
+                    <option value="expired">Expirado</option>
+                    <option value="past_due">Pagamento Atrasado</option>
+                  </select>
+                </div>
+
+                {/* Data de Início */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Data de Início
+                  </label>
+                  <input
+                    type="date"
+                    value={subscriptionData.startDate}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, startDate: e.target.value })}
+                    className="input-primary w-full"
+                  />
+                </div>
+
+                {/* Data de Término */}
+                <div>
+                  <label className="block text-sm font-medium text-white/90 mb-2">
+                    Data de Término
+                  </label>
+                  <input
+                    type="date"
+                    value={subscriptionData.endDate}
+                    onChange={(e) => setSubscriptionData({ ...subscriptionData, endDate: e.target.value })}
+                    className="input-primary w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Auto Renovação */}
+              <div className="flex items-center space-x-3 pt-2">
+                <input
+                  type="checkbox"
+                  id="autoRenew"
+                  checked={subscriptionData.autoRenew}
+                  onChange={(e) => setSubscriptionData({ ...subscriptionData, autoRenew: e.target.checked })}
+                  className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                />
+                <label htmlFor="autoRenew" className="text-white font-medium cursor-pointer">
+                  Renovação Automática
+                </label>
+              </div>
             </div>
           </motion.div>
 
