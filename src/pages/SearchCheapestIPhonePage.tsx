@@ -151,8 +151,8 @@ const formatTime = (date: Date) =>
 export default function SearchCheapestIPhonePage() {
   const queryClient = useQueryClient()
 
-  const [searchQuery, setSearchQuery] = useState('iPhone')
-  const [debouncedSearch, setDebouncedSearch] = useState('iPhone')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
@@ -163,7 +163,7 @@ export default function SearchCheapestIPhonePage() {
 
   useEffect(() => {
     const trimmed = searchQuery.trim()
-    const timer = setTimeout(() => setDebouncedSearch(trimmed || 'iPhone'), 400)
+    const timer = setTimeout(() => setDebouncedSearch(trimmed || ''), 400)
     return () => clearTimeout(timer)
   }, [searchQuery])
 
@@ -184,12 +184,9 @@ export default function SearchCheapestIPhonePage() {
 
 
 
-  const shouldFetchProducts =
-    debouncedSearch.length >= 1 ||
-    !!selectedDate ||
-    !!selectedCategory ||
-    !!selectedStorage ||
-    !!selectedColor
+  // Buscar produtos se houver busca com pelo menos 3 caracteres OU se houver algum filtro selecionado
+  // Se não houver busca nem filtros, buscar todos os produtos do dia
+  const shouldFetchProducts = true // Sempre buscar produtos para mostrar todos os produtos do dia
 
   const productsQuery = useQuery({
     queryKey: [
@@ -202,7 +199,7 @@ export default function SearchCheapestIPhonePage() {
     ],
     queryFn: () =>
       produtosApi.getAll({
-        search: debouncedSearch,
+        search: debouncedSearch.length >= 3 ? debouncedSearch : undefined, // Só aplicar busca se tiver 3+ caracteres
         condition: selectedCategory,
         storage: selectedStorage,
         color: selectedColor,
