@@ -151,6 +151,11 @@ export const authApi = {
     apiClient.post<{ token: string }>('/auth/refresh'),
 }
 
+export const subscriptionsApi = {
+  getMySubscription: () =>
+    apiClient.get<any>('/subscriptions/my-subscription'),
+}
+
 export const fornecedoresApi = {
   getAll: (params?: any) =>
     apiClient.get<any[]>('/suppliers', { params }),

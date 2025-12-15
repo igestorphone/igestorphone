@@ -9,8 +9,10 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Buscar assinatura do usuário
 router.get('/my-subscription', async (req, res) => {
   try {
-    const result = await query(`
-      SELECT s.*, u.email, u.name
+    // Buscar assinatura e dados do usuário
+    const subscriptionResult = await query(`
+      SELECT s.*, u.email, u.name, u.created_at as user_created_at, 
+             u.last_login, u.subscription_status, u.subscription_expires_at
       FROM subscriptions s
       JOIN users u ON s.user_id = u.id
       WHERE s.user_id = $1
@@ -18,11 +20,26 @@ router.get('/my-subscription', async (req, res) => {
       LIMIT 1
     `, [req.user.id]);
 
-    if (result.rows.length === 0) {
-      return res.json({ subscription: null });
+    if (subscriptionResult.rows.length === 0) {
+      // Se não tiver assinatura, retornar apenas dados do usuário
+      const userResult = await query(`
+        SELECT id, email, name, created_at as user_created_at, 
+               last_login, subscription_status, subscription_expires_at
+        FROM users
+        WHERE id = $1
+      `, [req.user.id]);
+
+      if (userResult.rows.length === 0) {
+        return res.status(404).json({ message: 'Usuário não encontrado' });
+      }
+
+      return res.json({ 
+        subscription: null,
+        user: userResult.rows[0]
+      });
     }
 
-    const subscription = result.rows[0];
+    const subscription = subscriptionResult.rows[0];
     res.json({ subscription });
 
   } catch (error) {
