@@ -89,19 +89,19 @@ export default function SupportPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'resolved': return 'text-green-400 bg-green-400/20';
-      case 'in_progress': return 'text-yellow-400 bg-yellow-400/20';
-      case 'pending': return 'text-red-400 bg-red-400/20';
-      default: return 'text-gray-400 bg-gray-400/20';
+      case 'resolved': return 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-400/20';
+      case 'in_progress': return 'text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/20';
+      case 'pending': return 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-400/20';
+      default: return 'text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-400/20';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'text-red-400 bg-red-400/20';
-      case 'medium': return 'text-yellow-400 bg-yellow-400/20';
-      case 'low': return 'text-green-400 bg-green-400/20';
-      default: return 'text-gray-400 bg-gray-400/20';
+      case 'high': return 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-400/20';
+      case 'medium': return 'text-yellow-700 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-400/20';
+      case 'low': return 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-400/20';
+      default: return 'text-gray-700 dark:text-gray-400 bg-gray-100 dark:bg-gray-400/20';
     }
   };
 
