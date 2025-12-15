@@ -70,6 +70,9 @@ const colorMap: Record<string, string> = {
   // Remover outras cores não utilizadas
 }
 
+// Cores oficiais disponíveis
+const OFFICIAL_COLORS = ['Preto', 'Branco', 'Azul-névoa', 'Lavanda', 'Sálvia']
+
 const normalizeColor = (color: string, model?: string): string => {
   if (!color) return 'N/A'
   const lower = color.toLowerCase().trim()
@@ -100,7 +103,15 @@ const normalizeColor = (color: string, model?: string): string => {
   }
   
   // Se não encontrar, retornar capitalizado
-  return lower.charAt(0).toUpperCase() + lower.slice(1)
+  const capitalized = lower.charAt(0).toUpperCase() + lower.slice(1)
+  
+  // Se a cor capitalizada não está na lista oficial, tentar mapear novamente
+  if (!OFFICIAL_COLORS.includes(capitalized)) {
+    // Retornar a primeira cor oficial como fallback (ou 'N/A')
+    return 'N/A'
+  }
+  
+  return capitalized
 }
 
 const formatPrice = (price: number) =>
@@ -237,7 +248,13 @@ export default function SearchCheapestIPhonePage() {
     const categories = new Set<string>()
 
     products.forEach((product: any) => {
-      if (product.color) colors.add(normalizeColor(product.color, product.model))
+      if (product.color) {
+        const normalized = normalizeColor(product.color, product.model)
+        // Só adicionar se for uma cor oficial
+        if (OFFICIAL_COLORS.includes(normalized)) {
+          colors.add(normalized)
+        }
+      }
       if (product.storage) storages.add(product.storage)
       if (product.supplier_name) suppliers.add(product.supplier_name)
       if (product.model) {
@@ -249,8 +266,18 @@ export default function SearchCheapestIPhonePage() {
       }
     })
 
+    // Ordenar cores na ordem oficial
+    const sortedColors = Array.from(colors).sort((a, b) => {
+      const indexA = OFFICIAL_COLORS.indexOf(a)
+      const indexB = OFFICIAL_COLORS.indexOf(b)
+      if (indexA === -1 && indexB === -1) return a.localeCompare(b)
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+
     return {
-      colors: Array.from(colors).sort(),
+      colors: sortedColors,
       storages: Array.from(storages).sort((a, b) => {
         const aNum = parseInt(a.replace(/\D/g, '')) || 0
         const bNum = parseInt(b.replace(/\D/g, '')) || 0
@@ -615,13 +642,11 @@ export default function SearchCheapestIPhonePage() {
                     </option>
                   ))
                 ) : (
-                  <>
-                    <option value="Preto">Preto</option>
-                    <option value="Branco">Branco</option>
-                    <option value="Azul-névoa">Azul-névoa</option>
-                    <option value="Lavanda">Lavanda</option>
-                    <option value="Sálvia">Sálvia</option>
-                  </>
+                  OFFICIAL_COLORS.map((color) => (
+                    <option key={color} value={color}>
+                      {color}
+                    </option>
+                  ))
                 )}
               </select>
               <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
