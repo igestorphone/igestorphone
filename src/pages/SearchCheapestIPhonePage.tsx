@@ -32,54 +32,42 @@ const colorMap: Record<string, string> = {
   'space black': 'Preto',
   'jet black': 'Preto',
   preto: 'Preto',
+  'titanium black': 'Preto',
   
   // Branco
   white: 'Branco',
   branco: 'Branco',
   starlight: 'Branco',
   'titanium white': 'Branco',
-  
-  // Azul
-  blue: 'Azul',
-  azul: 'Azul',
-  'deep blue': 'Azul',
-  'titanium blue': 'Azul',
-  midnight: 'Azul',
-  
-  // Laranja
-  orange: 'Laranja',
-  laranja: 'Laranja',
-  'cosmic orange': 'Laranja',
-  cosmic: 'Laranja',
-  
-  // Prata (para iPhone 17 Pro/Pro Max = Branco)
   silver: 'Branco',
   prata: 'Branco',
   
-  // Outras cores
-  red: 'Vermelho',
-  vermelho: 'Vermelho',
-  green: 'Verde',
-  verde: 'Verde',
-  yellow: 'Amarelo',
-  amarelo: 'Amarelo',
-  purple: 'Roxo',
-  roxo: 'Roxo',
-  pink: 'Rosa',
-  rosa: 'Rosa',
-  rose: 'Rosa',
-  gold: 'Dourado',
-  dourado: 'Dourado',
-  gray: 'Cinza',
-  grey: 'Cinza',
-  cinza: 'Cinza',
-  natural: 'Natural',
-  desert: 'Desert',
-  lilac: 'Lilás',
-  lilas: 'Lilás',
-  titanium: 'Titânio',
-  'titanium black': 'Preto',
-  'titanium natural': 'Natural'
+  // Azul-névoa (pode ser chamado de azul)
+  blue: 'Azul-névoa',
+  azul: 'Azul-névoa',
+  'deep blue': 'Azul-névoa',
+  'titanium blue': 'Azul-névoa',
+  midnight: 'Azul-névoa',
+  'azul-nevoa': 'Azul-névoa',
+  'azul névoa': 'Azul-névoa',
+  
+  // Lavanda (pode ser chamada de roxo)
+  purple: 'Lavanda',
+  roxo: 'Lavanda',
+  lavanda: 'Lavanda',
+  lavender: 'Lavanda',
+  lilac: 'Lavanda',
+  lilas: 'Lavanda',
+  'lilás': 'Lavanda',
+  
+  // Sálvia (pode ser chamada de verde)
+  green: 'Sálvia',
+  verde: 'Sálvia',
+  sage: 'Sálvia',
+  sálvia: 'Sálvia',
+  salvia: 'Sálvia',
+  
+  // Remover outras cores não utilizadas
 }
 
 const normalizeColor = (color: string, model?: string): string => {
@@ -630,16 +618,9 @@ export default function SearchCheapestIPhonePage() {
                   <>
                     <option value="Preto">Preto</option>
                     <option value="Branco">Branco</option>
-                    <option value="Azul">Azul</option>
-                    <option value="Vermelho">Vermelho</option>
-                    <option value="Verde">Verde</option>
-                    <option value="Amarelo">Amarelo</option>
-                    <option value="Roxo">Roxo</option>
-                    <option value="Rosa">Rosa</option>
-                    <option value="Dourado">Dourado</option>
-                    <option value="Prata">Prata</option>
-                    <option value="Cinza">Cinza</option>
-                    <option value="Laranja">Laranja</option>
+                    <option value="Azul-névoa">Azul-névoa</option>
+                    <option value="Lavanda">Lavanda</option>
+                    <option value="Sálvia">Sálvia</option>
                   </>
                 )}
               </select>
