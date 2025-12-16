@@ -298,9 +298,14 @@ const modelColorMappings = {
   'iphone 17': {
     'preto': 'Preto',
     'black': 'Preto',
+    '⚫': 'Preto',
+    '⬛': 'Preto',
+    '🔳': 'Preto',
     'branco': 'Branco',
     'white': 'Branco',
-    // Lavanda - todas as variações
+    '⚪': 'Branco',
+    '⬜': 'Branco',
+    // Lavanda - todas as variações (incluindo emojis roxo)
     'lavanda': 'Lavanda',
     'lavender': 'Lavanda',
     'lilás': 'Lavanda',
@@ -308,55 +313,79 @@ const modelColorMappings = {
     'lilac': 'Lavanda',
     'roxo': 'Lavanda',
     'purple': 'Lavanda',
-    // Mist Blue - todas as variações
+    '🟣': 'Lavanda',
+    '💜': 'Lavanda',
+    // Mist Blue - todas as variações (incluindo emojis azul)
     'mist blue': 'Mist Blue',
     'azul névoa': 'Mist Blue',
     'azul-nevoa': 'Mist Blue',
     'azul nevoa': 'Mist Blue',
     'azul névoa mist': 'Mist Blue',
-    // Sage - todas as variações
+    '🔵': 'Mist Blue',
+    '💙': 'Mist Blue',
+    '🌫️': 'Mist Blue',
+    // Sage - todas as variações (incluindo emojis verde)
     'sage': 'Sage',
     'sálvia': 'Sage',
     'salvia': 'Sage',
     'verde': 'Sage',
     'green': 'Sage',
+    '🟢': 'Sage',
+    '💚': 'Sage',
+    '🌿': 'Sage',
   },
   // iPhone 17 Pro e 17 Pro Max
   'iphone 17 pro': {
-    // Cosmic Orange - todas as variações
+    // Cosmic Orange - todas as variações (incluindo emojis laranja)
     'cosmic orange': 'Cosmic Orange',
     'laranja cósmico': 'Cosmic Orange',
     'laranja cosmico': 'Cosmic Orange',
     'orange': 'Cosmic Orange',
     'laranja': 'Cosmic Orange',
     'cosmic': 'Cosmic Orange',
-    // Deep Blue - todas as variações
+    '🟠': 'Cosmic Orange',
+    '🧡': 'Cosmic Orange',
+    '🔶': 'Cosmic Orange',
+    // Deep Blue - todas as variações (incluindo emojis azul)
     'deep blue': 'Deep Blue',
     'azul profundo': 'Deep Blue',
     'blue': 'Deep Blue',
     'azul': 'Deep Blue',
+    '🔵': 'Deep Blue',
+    '💙': 'Deep Blue',
+    '🔷': 'Deep Blue',
     // Silver - todas as variações
     'silver': 'Silver',
     'prata': 'Silver',
     'prateado': 'Silver',
+    '⚪': 'Silver',
+    '⬜': 'Silver',
   },
   'iphone 17 pro max': {
-    // Cosmic Orange - todas as variações
+    // Cosmic Orange - todas as variações (incluindo emojis laranja)
     'cosmic orange': 'Cosmic Orange',
     'laranja cósmico': 'Cosmic Orange',
     'laranja cosmico': 'Cosmic Orange',
     'orange': 'Cosmic Orange',
     'laranja': 'Cosmic Orange',
     'cosmic': 'Cosmic Orange',
-    // Deep Blue - todas as variações
+    '🟠': 'Cosmic Orange',
+    '🧡': 'Cosmic Orange',
+    '🔶': 'Cosmic Orange',
+    // Deep Blue - todas as variações (incluindo emojis azul)
     'deep blue': 'Deep Blue',
     'azul profundo': 'Deep Blue',
     'blue': 'Deep Blue',
     'azul': 'Deep Blue',
+    '🔵': 'Deep Blue',
+    '💙': 'Deep Blue',
+    '🔷': 'Deep Blue',
     // Silver - todas as variações
     'silver': 'Silver',
     'prata': 'Silver',
     'prateado': 'Silver',
+    '⚪': 'Silver',
+    '⬜': 'Silver',
   },
   // iPhone AIR
   'iphone air': {
