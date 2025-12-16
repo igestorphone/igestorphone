@@ -210,8 +210,8 @@ export default function SearchCheapestIPhonePage() {
     products.forEach((product: any) => {
       if (product.color) {
         const normalized = normalizeColor(product.color, product.model)
-        // Só adicionar se for uma cor oficial
-        if (OFFICIAL_COLORS.includes(normalized)) {
+        // Adicionar todas as cores normalizadas (cada modelo tem suas cores específicas)
+        if (normalized && normalized !== 'N/A') {
           colors.add(normalized)
         }
       }
