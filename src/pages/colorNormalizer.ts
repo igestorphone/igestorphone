@@ -340,6 +340,97 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'space black': 'Space Black',
     'preto espacial': 'Space Black',
   },
+  // iPad 10ª geração
+  'ipad 10': {
+    'azul': 'Azul',
+    'blue': 'Azul',
+    'rosa': 'Rosa',
+    'pink': 'Rosa',
+    'amarelo': 'Amarelo',
+    'yellow': 'Amarelo',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  // iPad 11ª geração
+  'ipad 11': {
+    'azul': 'Azul',
+    'blue': 'Azul',
+    'rosa': 'Rosa',
+    'pink': 'Rosa',
+    'amarelo': 'Amarelo',
+    'yellow': 'Amarelo',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  // iPad Air 5ª geração
+  'ipad air 5': {
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'rosa': 'Rosa',
+    'pink': 'Rosa',
+    'roxo': 'Roxo',
+    'purple': 'Roxo',
+    'azul': 'Azul',
+    'blue': 'Azul',
+  },
+  // iPad Air 6ª geração
+  'ipad air 6': {
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'roxo': 'Roxo',
+    'purple': 'Roxo',
+    'azul': 'Azul',
+    'blue': 'Azul',
+  },
+  // iPad Pro 11" M2
+  'ipad pro 11 m2': {
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  // iPad Pro 12.9" M2
+  'ipad pro 12.9 m2': {
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  'ipad pro 12.9" m2': {
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  // iPad Pro 11" M4
+  'ipad pro 11 m4': {
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  // iPad Pro 13" M4
+  'ipad pro 13 m4': {
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
+  'ipad pro 13" m4': {
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+    'prata': 'Prata',
+    'silver': 'Prata',
+  },
 }
 
 // Função para identificar o modelo do iPhone
@@ -383,6 +474,37 @@ export function identifyIPhoneModel(model?: string): string | null {
   if (lowerModel.includes('iphone 11')) return 'iphone 11'
   
   if (lowerModel.includes('iphone air')) return 'iphone air'
+  
+  // Verificar iPads
+  if (lowerModel.includes('ipad pro 13') && (lowerModel.includes('m4') || lowerModel.includes('m 4'))) {
+    return 'ipad pro 13 m4'
+  }
+  if (lowerModel.includes('ipad pro 11') && (lowerModel.includes('m4') || lowerModel.includes('m 4'))) {
+    return 'ipad pro 11 m4'
+  }
+  if (lowerModel.includes('ipad pro 12.9') && (lowerModel.includes('m2') || lowerModel.includes('m 2'))) {
+    return 'ipad pro 12.9 m2'
+  }
+  if (lowerModel.includes('ipad pro 11') && (lowerModel.includes('m2') || lowerModel.includes('m 2'))) {
+    return 'ipad pro 11 m2'
+  }
+  if (lowerModel.includes('ipad air 6') || (lowerModel.includes('ipad air') && lowerModel.includes('6'))) {
+    return 'ipad air 6'
+  }
+  if (lowerModel.includes('ipad air 5') || (lowerModel.includes('ipad air') && lowerModel.includes('5'))) {
+    return 'ipad air 5'
+  }
+  if (lowerModel.includes('ipad 11') || (lowerModel.includes('ipad') && lowerModel.includes('11') && !lowerModel.includes('pro'))) {
+    return 'ipad 11'
+  }
+  if (lowerModel.includes('ipad 10') || (lowerModel.includes('ipad') && lowerModel.includes('10') && !lowerModel.includes('pro'))) {
+    return 'ipad 10'
+  }
+  // iPad genérico (fallback para outros modelos de iPad)
+  if (lowerModel.includes('ipad')) {
+    // Tentar identificar por características se possível
+    return 'ipad' // Pode criar um mapeamento genérico se necessário
+  }
   
   return null
 }
