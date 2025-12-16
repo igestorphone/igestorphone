@@ -77,6 +77,13 @@ const normalizeColor = (color: string, model?: string): string => {
   if (!color) return 'N/A'
   const lower = color.toLowerCase().trim()
   
+  // Verificar se é iPhone 17 normal (não Pro, não Pro Max)
+  // iPhone 17 normal = tem "iPhone 17" mas NÃO tem "Pro" e NÃO tem "Max"
+  const is17Normal = model && 
+    model.toLowerCase().includes('iphone 17') && 
+    !model.toLowerCase().includes('pro') && 
+    !model.toLowerCase().includes('max')
+  
   // Para iPhone 17 Pro/Pro Max, Prata = Branco
   if (model && (model.includes('17 Pro') || model.includes('17 Pro Max'))) {
     if (lower === 'prata' || lower === 'silver') {
@@ -84,33 +91,67 @@ const normalizeColor = (color: string, model?: string): string => {
     }
   }
   
-  // Tentar mapeamento completo primeiro
-  if (colorMap[lower]) {
-    return colorMap[lower]
+  // Mapeamento restrito (SEM Azul-névoa) para todos os modelos EXCETO iPhone 17 normal
+  const restrictedColorMap: Record<string, string> = {
+    // Preto
+    black: 'Preto',
+    'space black': 'Preto',
+    'jet black': 'Preto',
+    preto: 'Preto',
+    'titanium black': 'Preto',
+    // Branco
+    white: 'Branco',
+    branco: 'Branco',
+    starlight: 'Branco',
+    'titanium white': 'Branco',
+    silver: 'Branco',
+    prata: 'Branco',
+    // Lavanda
+    purple: 'Lavanda',
+    roxo: 'Lavanda',
+    lavanda: 'Lavanda',
+    lavender: 'Lavanda',
+    lilac: 'Lavanda',
+    lilas: 'Lavanda',
+    'lilás': 'Lavanda',
+    // Sálvia
+    green: 'Sálvia',
+    verde: 'Sálvia',
+    sage: 'Sálvia',
+    sálvia: 'Sálvia',
+    salvia: 'Sálvia',
   }
   
-  // Tentar por palavras individuais
-  const words = lower.split(/\s+/)
-  for (const word of words) {
-    if (colorMap[word]) {
-      return colorMap[word]
+  // APENAS para iPhone 17 normal, usar mapeamento completo (COM Azul-névoa)
+  if (is17Normal) {
+    if (colorMap[lower]) {
+      return colorMap[lower]
+    }
+    const words = lower.split(/\s+/)
+    for (const word of words) {
+      if (colorMap[word]) {
+        return colorMap[word]
+      }
+    }
+    if (words.length > 0 && colorMap[words[0]]) {
+      return colorMap[words[0]]
+    }
+  } else {
+    // Para TODOS os outros modelos (iPad, iPhone 17 Pro/Pro Max, etc), usar mapeamento restrito
+    if (restrictedColorMap[lower]) {
+      return restrictedColorMap[lower]
+    }
+    
+    const words = lower.split(/\s+/)
+    for (const word of words) {
+      if (restrictedColorMap[word]) {
+        return restrictedColorMap[word]
+      }
     }
   }
   
-  // Tentar primeira palavra
-  if (words.length > 0 && colorMap[words[0]]) {
-    return colorMap[words[0]]
-  }
-  
-  // Se não encontrar, retornar capitalizado
+  // Se não encontrou no mapeamento, retornar a cor original capitalizada
   const capitalized = lower.charAt(0).toUpperCase() + lower.slice(1)
-  
-  // Se a cor capitalizada não está na lista oficial, tentar mapear novamente
-  if (!OFFICIAL_COLORS.includes(capitalized)) {
-    // Retornar a primeira cor oficial como fallback (ou 'N/A')
-    return 'N/A'
-  }
-  
   return capitalized
 }
 
