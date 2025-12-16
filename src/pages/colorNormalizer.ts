@@ -300,31 +300,60 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'black': 'Preto',
     'branco': 'Branco',
     'white': 'Branco',
+    // Lavanda - todas as variações
     'lavanda': 'Lavanda',
     'lavender': 'Lavanda',
+    'lilás': 'Lavanda',
+    'lilas': 'Lavanda',
+    'lilac': 'Lavanda',
+    'roxo': 'Lavanda',
+    'purple': 'Lavanda',
+    // Mist Blue - todas as variações
     'mist blue': 'Mist Blue',
     'azul névoa': 'Mist Blue',
     'azul-nevoa': 'Mist Blue',
     'azul nevoa': 'Mist Blue',
+    'azul névoa mist': 'Mist Blue',
+    // Sage - todas as variações
     'sage': 'Sage',
     'sálvia': 'Sage',
     'salvia': 'Sage',
+    'verde': 'Sage',
+    'green': 'Sage',
   },
   // iPhone 17 Pro e 17 Pro Max
   'iphone 17 pro': {
+    // Cosmic Orange - todas as variações
     'cosmic orange': 'Cosmic Orange',
     'laranja cósmico': 'Cosmic Orange',
+    'laranja cosmico': 'Cosmic Orange',
+    'orange': 'Cosmic Orange',
+    'laranja': 'Cosmic Orange',
+    'cosmic': 'Cosmic Orange',
+    // Deep Blue - todas as variações
     'deep blue': 'Deep Blue',
     'azul profundo': 'Deep Blue',
+    'blue': 'Deep Blue',
+    'azul': 'Deep Blue',
+    // Silver - todas as variações
     'silver': 'Silver',
     'prata': 'Silver',
     'prateado': 'Silver',
   },
   'iphone 17 pro max': {
+    // Cosmic Orange - todas as variações
     'cosmic orange': 'Cosmic Orange',
     'laranja cósmico': 'Cosmic Orange',
+    'laranja cosmico': 'Cosmic Orange',
+    'orange': 'Cosmic Orange',
+    'laranja': 'Cosmic Orange',
+    'cosmic': 'Cosmic Orange',
+    // Deep Blue - todas as variações
     'deep blue': 'Deep Blue',
     'azul profundo': 'Deep Blue',
+    'blue': 'Deep Blue',
+    'azul': 'Deep Blue',
+    // Silver - todas as variações
     'silver': 'Silver',
     'prata': 'Silver',
     'prateado': 'Silver',
