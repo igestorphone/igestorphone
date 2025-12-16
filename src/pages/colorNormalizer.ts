@@ -1,5 +1,5 @@
 // Mapeamento de cores por modelo específico de iPhone
-const modelColorMappings = {
+export const modelColorMappings: Record<string, Record<string, string>> = {
   // iPhone 11
   'iphone 11': {
     'preto': 'Preto',
@@ -343,7 +343,7 @@ const modelColorMappings = {
 }
 
 // Função para identificar o modelo do iPhone
-function identifyIPhoneModel(model = '') {
+export function identifyIPhoneModel(model?: string): string | null {
   if (!model) return null
   
   const lowerModel = model.toLowerCase().trim()
@@ -387,14 +387,9 @@ function identifyIPhoneModel(model = '') {
   return null
 }
 
-/**
- * Normaliza uma cor para o nome padrão baseado no modelo
- * @param {string} color - Cor a ser normalizada
- * @param {string} model - Modelo do produto (opcional, usado para identificar qual mapeamento usar)
- * @returns {string} Cor normalizada
- */
-function normalizeColor(color, model = '') {
-  if (!color) return null
+// Função para normalizar cores baseada no modelo
+export function normalizeColor(color: string, model?: string): string {
+  if (!color) return 'N/A'
   
   const lower = color.toLowerCase().trim()
   const identifiedModel = identifyIPhoneModel(model)
@@ -424,114 +419,7 @@ function normalizeColor(color, model = '') {
   }
   
   // Se não encontrou mapeamento específico, retornar cor original capitalizada
-  return color.charAt(0).toUpperCase() + color.slice(1).toLowerCase()
+  const capitalized = color.charAt(0).toUpperCase() + color.slice(1).toLowerCase()
+  return capitalized
 }
 
-/**
- * Gera condições SQL para buscar por cor normalizada
- * Quando buscar por "Laranja", deve encontrar "Laranja", "Cosmic orange", etc.
- * @param {string} normalizedColor - Cor normalizada para buscar
- * @returns {string} Condição SQL ILIKE
- */
-function getColorSearchConditions(normalizedColor) {
-  if (!normalizedColor) return null
-  
-  const lower = normalizedColor.toLowerCase()
-  
-  // Mapear de volta para variações possíveis baseado no modelo
-  // Este mapeamento é mais genérico, usado para busca
-  const variations = {
-    'laranja': ['laranja', 'orange', 'cosmic orange', 'cosmic'],
-    'azul': ['azul', 'blue', 'deep blue', 'midnight', 'pacific blue', 'sierra blue', 'ultramarine blue'],
-    'branco': ['branco', 'white', 'prata', 'silver', 'starlight', 'titanium white', 'cloud white'],
-    'preto': ['preto', 'black', 'space black', 'jet black', 'titanium black'],
-    'rosa': ['rosa', 'pink', 'rose'],
-    'vermelho': ['vermelho', 'red'],
-    'verde': ['verde', 'green', 'midnight green', 'alpine green'],
-    'amarelo': ['amarelo', 'yellow'],
-    'roxo': ['roxo', 'purple', 'deep purple'],
-    'dourado': ['dourado', 'gold', 'light gold'],
-    'cinza': ['cinza', 'gray', 'grey', 'space gray', 'graphite'],
-    'grafite': ['grafite', 'graphite'],
-    'prateado': ['prateado', 'silver'],
-    'titânio natural': ['titânio natural', 'natural titanium', 'titanium natural', 'natural'],
-    'titânio azul': ['titânio azul', 'blue titanium', 'titanium blue'],
-    'titânio branco': ['titânio branco', 'white titanium', 'titanium white'],
-    'titânio preto': ['titânio preto', 'black titanium', 'titanium black'],
-    'desert titanium': ['desert titanium', 'titânio desert'],
-    'mist blue': ['mist blue', 'azul névoa', 'azul-nevoa', 'azul nevoa'],
-    'lavanda': ['lavanda', 'lavender'],
-    'sage': ['sage', 'sálvia', 'salvia'],
-    'cosmic orange': ['cosmic orange', 'laranja cósmico'],
-    'deep blue': ['deep blue', 'azul profundo'],
-    'silver': ['silver', 'prata', 'prateado'],
-    'sky blue': ['sky blue', 'azul céu'],
-    'light gold': ['light gold', 'dourado claro'],
-    'cloud white': ['cloud white', 'branco nuvem'],
-    'space black': ['space black', 'preto espacial'],
-  }
-  
-  const variants = variations[lower] || [normalizedColor]
-  
-  // Retornar condição SQL que busca por qualquer variação
-  return variants.map(v => `LOWER(p.color) LIKE '%${v}%'`).join(' OR ')
-}
-
-// Mapeamento antigo para compatibilidade (será removido gradualmente)
-const colorMap = {
-  // Preto
-  'black': 'Preto',
-  'space black': 'Preto',
-  'jet black': 'Preto',
-  'preto': 'Preto',
-  'titanium black': 'Preto',
-  
-  // Branco
-  'white': 'Branco',
-  'branco': 'Branco',
-  'starlight': 'Branco',
-  'titanium white': 'Branco',
-  
-  // Prata = Branco (para iPhone 17 Pro/Pro Max)
-  'silver': 'Branco',
-  'prata': 'Branco',
-  
-  // Azul
-  'blue': 'Azul',
-  'azul': 'Azul',
-  'deep blue': 'Azul',
-  'titanium blue': 'Azul',
-  'midnight': 'Azul',
-  
-  // Laranja
-  'orange': 'Laranja',
-  'laranja': 'Laranja',
-  'cosmic orange': 'Laranja',
-  'cosmic': 'Laranja',
-  
-  // Outras cores
-  'red': 'Vermelho',
-  'vermelho': 'Vermelho',
-  'green': 'Verde',
-  'verde': 'Verde',
-  'yellow': 'Amarelo',
-  'amarelo': 'Amarelo',
-  'purple': 'Roxo',
-  'roxo': 'Roxo',
-  'pink': 'Rosa',
-  'rosa': 'Rosa',
-  'rose': 'Rosa',
-  'gold': 'Dourado',
-  'dourado': 'Dourado',
-  'gray': 'Cinza',
-  'grey': 'Cinza',
-  'cinza': 'Cinza',
-  'natural': 'Natural',
-  'desert': 'Desert',
-  'lilac': 'Lilás',
-  'lilas': 'Lilás',
-  'titanium': 'Titânio',
-  'titanium natural': 'Natural'
-}
-
-export { normalizeColor, getColorSearchConditions, colorMap }

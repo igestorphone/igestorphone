@@ -25,7 +25,12 @@ import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import SecurityAlertModal from '@/components/ui/SecurityAlertModal'
+import { normalizeColor } from './colorNormalizer'
 
+// Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
+const OFFICIAL_COLORS = ['Preto', 'Branco', 'Azul-névoa', 'Lavanda', 'Sálvia']
+
+// Mantendo colorMap antigo para compatibilidade com código existente (será removido gradualmente)
 const colorMap: Record<string, string> = {
   // Preto
   black: 'Preto',
@@ -70,90 +75,7 @@ const colorMap: Record<string, string> = {
   // Remover outras cores não utilizadas
 }
 
-// Cores oficiais disponíveis
-const OFFICIAL_COLORS = ['Preto', 'Branco', 'Azul-névoa', 'Lavanda', 'Sálvia']
-
-const normalizeColor = (color: string, model?: string): string => {
-  if (!color) return 'N/A'
-  const lower = color.toLowerCase().trim()
-  
-  // Verificar se é iPhone 17 normal (não Pro, não Pro Max)
-  // iPhone 17 normal = tem "iPhone 17" mas NÃO tem "Pro" e NÃO tem "Max"
-  const is17Normal = model && 
-    model.toLowerCase().includes('iphone 17') && 
-    !model.toLowerCase().includes('pro') && 
-    !model.toLowerCase().includes('max')
-  
-  // Para iPhone 17 Pro/Pro Max, Prata = Branco
-  if (model && (model.includes('17 Pro') || model.includes('17 Pro Max'))) {
-    if (lower === 'prata' || lower === 'silver') {
-      return 'Branco'
-    }
-  }
-  
-  // Mapeamento restrito (SEM Azul-névoa) para todos os modelos EXCETO iPhone 17 normal
-  const restrictedColorMap: Record<string, string> = {
-    // Preto
-    black: 'Preto',
-    'space black': 'Preto',
-    'jet black': 'Preto',
-    preto: 'Preto',
-    'titanium black': 'Preto',
-    // Branco
-    white: 'Branco',
-    branco: 'Branco',
-    starlight: 'Branco',
-    'titanium white': 'Branco',
-    silver: 'Branco',
-    prata: 'Branco',
-    // Lavanda
-    purple: 'Lavanda',
-    roxo: 'Lavanda',
-    lavanda: 'Lavanda',
-    lavender: 'Lavanda',
-    lilac: 'Lavanda',
-    lilas: 'Lavanda',
-    'lilás': 'Lavanda',
-    // Sálvia
-    green: 'Sálvia',
-    verde: 'Sálvia',
-    sage: 'Sálvia',
-    sálvia: 'Sálvia',
-    salvia: 'Sálvia',
-  }
-  
-  // APENAS para iPhone 17 normal, usar mapeamento completo (COM Azul-névoa)
-  if (is17Normal) {
-    if (colorMap[lower]) {
-      return colorMap[lower]
-    }
-    const words = lower.split(/\s+/)
-    for (const word of words) {
-      if (colorMap[word]) {
-        return colorMap[word]
-      }
-    }
-    if (words.length > 0 && colorMap[words[0]]) {
-      return colorMap[words[0]]
-    }
-  } else {
-    // Para TODOS os outros modelos (iPad, iPhone 17 Pro/Pro Max, etc), usar mapeamento restrito
-    if (restrictedColorMap[lower]) {
-      return restrictedColorMap[lower]
-    }
-    
-    const words = lower.split(/\s+/)
-    for (const word of words) {
-      if (restrictedColorMap[word]) {
-        return restrictedColorMap[word]
-      }
-    }
-  }
-  
-  // Se não encontrou no mapeamento, retornar a cor original capitalizada
-  const capitalized = lower.charAt(0).toUpperCase() + lower.slice(1)
-  return capitalized
-}
+// normalizeColor agora vem de colorNormalizer.ts
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('pt-BR', {
