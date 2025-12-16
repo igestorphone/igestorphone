@@ -226,15 +226,8 @@ export default function SearchCheapestIPhonePage() {
       }
     })
 
-    // Ordenar cores na ordem oficial
-    const sortedColors = Array.from(colors).sort((a, b) => {
-      const indexA = OFFICIAL_COLORS.indexOf(a)
-      const indexB = OFFICIAL_COLORS.indexOf(b)
-      if (indexA === -1 && indexB === -1) return a.localeCompare(b)
-      if (indexA === -1) return 1
-      if (indexB === -1) return -1
-      return indexA - indexB
-    })
+    // Ordenar cores alfabeticamente
+    const sortedColors = Array.from(colors).sort()
 
     return {
       colors: sortedColors,
