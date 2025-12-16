@@ -431,6 +431,144 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'prata': 'Prata',
     'silver': 'Prata',
   },
+  // MacBook Air M1, 2020
+  'macbook air m1': {
+    'dourado': 'Dourado',
+    'gold': 'Dourado',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Air M2, 2022
+  'macbook air m2': {
+    'meia noite': 'Meia Noite',
+    'midnight': 'Meia Noite',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Air M3, 2024
+  'macbook air m3': {
+    'meia noite': 'Meia Noite',
+    'midnight': 'Meia Noite',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Air M4
+  'macbook air m4': {
+    'azul céu': 'Azul Céu',
+    'sky blue': 'Azul Céu',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'meia noite': 'Meia Noite',
+    'midnight': 'Meia Noite',
+  },
+  // MacBook Pro M1, 2020
+  'macbook pro m1': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Pro M1 Pro/Max, 2021
+  'macbook pro m1 pro': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  'macbook pro m1 max': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Pro M2, 2022
+  'macbook pro m2': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Pro M2 Pro/Max, 2023
+  'macbook pro m2 pro': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  'macbook pro m2 max': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+  },
+  // MacBook Pro M3/M3 Pro/M3 Max, 2023
+  'macbook pro m3': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
+  'macbook pro m3 pro': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
+  'macbook pro m3 max': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'cinza espacial': 'Cinza Espacial',
+    'space gray': 'Cinza Espacial',
+    'spacegrey': 'Cinza Espacial',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
+  // MacBook Pro M4/M4 Pro/M4 Max, 2024
+  'macbook pro m4': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
+  'macbook pro m4 pro': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
+  'macbook pro m4 max': {
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'preto espacial': 'Preto Espacial',
+    'space black': 'Preto Espacial',
+  },
 }
 
 // Função para identificar o modelo do iPhone
@@ -504,6 +642,65 @@ export function identifyIPhoneModel(model?: string): string | null {
   if (lowerModel.includes('ipad')) {
     // Tentar identificar por características se possível
     return 'ipad' // Pode criar um mapeamento genérico se necessário
+  }
+  
+  // Verificar MacBooks
+  // MacBook Pro M4 (mais específicos primeiro)
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m4 max')) {
+    return 'macbook pro m4 max'
+  }
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m4 pro')) {
+    return 'macbook pro m4 pro'
+  }
+  if (lowerModel.includes('macbook pro') && (lowerModel.includes('m4') || lowerModel.includes('m 4'))) {
+    return 'macbook pro m4'
+  }
+  // MacBook Pro M3
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m3 max')) {
+    return 'macbook pro m3 max'
+  }
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m3 pro')) {
+    return 'macbook pro m3 pro'
+  }
+  if (lowerModel.includes('macbook pro') && (lowerModel.includes('m3') || lowerModel.includes('m 3'))) {
+    return 'macbook pro m3'
+  }
+  // MacBook Pro M2
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m2 max')) {
+    return 'macbook pro m2 max'
+  }
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m2 pro')) {
+    return 'macbook pro m2 pro'
+  }
+  if (lowerModel.includes('macbook pro') && (lowerModel.includes('m2') || lowerModel.includes('m 2'))) {
+    return 'macbook pro m2'
+  }
+  // MacBook Pro M1
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m1 max')) {
+    return 'macbook pro m1 max'
+  }
+  if (lowerModel.includes('macbook pro') && lowerModel.includes('m1 pro')) {
+    return 'macbook pro m1 pro'
+  }
+  if (lowerModel.includes('macbook pro') && (lowerModel.includes('m1') || lowerModel.includes('m 1'))) {
+    return 'macbook pro m1'
+  }
+  // MacBook Air
+  if (lowerModel.includes('macbook air') && (lowerModel.includes('m4') || lowerModel.includes('m 4'))) {
+    return 'macbook air m4'
+  }
+  if (lowerModel.includes('macbook air') && (lowerModel.includes('m3') || lowerModel.includes('m 3'))) {
+    return 'macbook air m3'
+  }
+  if (lowerModel.includes('macbook air') && (lowerModel.includes('m2') || lowerModel.includes('m 2'))) {
+    return 'macbook air m2'
+  }
+  if (lowerModel.includes('macbook air') && (lowerModel.includes('m1') || lowerModel.includes('m 1'))) {
+    return 'macbook air m1'
+  }
+  // MacBook genérico (fallback)
+  if (lowerModel.includes('macbook')) {
+    return 'macbook'
   }
   
   return null
