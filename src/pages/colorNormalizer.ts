@@ -569,6 +569,97 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'preto espacial': 'Preto Espacial',
     'space black': 'Preto Espacial',
   },
+  // Apple Watch SE 2ª geração
+  'apple watch se 2': {
+    'meia-noite': 'Meia-noite',
+    'meia noite': 'Meia-noite',
+    'midnight': 'Meia-noite',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+  },
+  // Apple Watch Series 9 - Alumínio
+  'apple watch series 9': {
+    'meia-noite': 'Meia-noite',
+    'meia noite': 'Meia-noite',
+    'midnight': 'Meia-noite',
+    'estelar': 'Estelar',
+    'starlight': 'Estelar',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'product)red': 'Product Red',
+    'product red': 'Product Red',
+    'red': 'Product Red',
+    'vermelho': 'Product Red',
+    'verde': 'Verde',
+    'green': 'Verde',
+    'azul': 'Azul',
+    'blue': 'Azul',
+    // Aço inoxidável
+    'grafite': 'Grafite',
+    'graphite': 'Grafite',
+    'dourado': 'Dourado',
+    'gold': 'Dourado',
+  },
+  // Apple Watch Series 10 - Alumínio e Titânio
+  'apple watch series 10': {
+    // Alumínio
+    'jet black': 'Jet Black',
+    'preto brilhante': 'Jet Black',
+    'silver': 'Silver',
+    'prata': 'Silver',
+    'rose gold': 'Rose Gold',
+    'ouro rosa': 'Rose Gold',
+    // Titânio
+    'natural': 'Natural',
+    'titânio natural': 'Natural',
+    'titanium natural': 'Natural',
+    'gold': 'Gold',
+    'dourado': 'Gold',
+    'slate': 'Slate',
+    'ardósia': 'Slate',
+  },
+  // Apple Watch Series 11 - Alumínio e Titânio
+  'apple watch series 11': {
+    // Alumínio
+    'ouro rosa': 'Ouro Rosa',
+    'rose gold': 'Ouro Rosa',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'preto brilhante': 'Preto Brilhante',
+    'jet black': 'Preto Brilhante',
+    'cinza-espacial': 'Cinza-Espacial',
+    'cinza espacial': 'Cinza-Espacial',
+    'space gray': 'Cinza-Espacial',
+    'spacegrey': 'Cinza-Espacial',
+    // Titânio
+    'natural': 'Natural',
+    'titânio natural': 'Natural',
+    'titanium natural': 'Natural',
+    'dourado': 'Dourado',
+    'gold': 'Dourado',
+    'ardósia': 'Ardósia',
+    'slate': 'Ardósia',
+  },
+  // Apple Watch Ultra 2
+  'apple watch ultra 2': {
+    'titânio natural': 'Titânio Natural',
+    'titanium natural': 'Titânio Natural',
+    'natural titanium': 'Titânio Natural',
+    'titânio preto': 'Titânio Preto',
+    'titanium black': 'Titânio Preto',
+    'black titanium': 'Titânio Preto',
+  },
+  // Apple Watch Ultra 3
+  'apple watch ultra 3': {
+    'titânio natural': 'Titânio Natural',
+    'titanium natural': 'Titânio Natural',
+    'natural titanium': 'Titânio Natural',
+    'titânio preto': 'Titânio Preto',
+    'titanium black': 'Titânio Preto',
+    'black titanium': 'Titânio Preto',
+  },
 }
 
 // Função para identificar o modelo do iPhone
@@ -701,6 +792,30 @@ export function identifyIPhoneModel(model?: string): string | null {
   // MacBook genérico (fallback)
   if (lowerModel.includes('macbook')) {
     return 'macbook'
+  }
+  
+  // Verificar Apple Watch
+  if (lowerModel.includes('apple watch ultra 3') || (lowerModel.includes('apple watch ultra') && lowerModel.includes('3'))) {
+    return 'apple watch ultra 3'
+  }
+  if (lowerModel.includes('apple watch ultra 2') || (lowerModel.includes('apple watch ultra') && lowerModel.includes('2'))) {
+    return 'apple watch ultra 2'
+  }
+  if (lowerModel.includes('apple watch series 11') || (lowerModel.includes('apple watch') && lowerModel.includes('series 11'))) {
+    return 'apple watch series 11'
+  }
+  if (lowerModel.includes('apple watch series 10') || (lowerModel.includes('apple watch') && lowerModel.includes('series 10'))) {
+    return 'apple watch series 10'
+  }
+  if (lowerModel.includes('apple watch series 9') || (lowerModel.includes('apple watch') && lowerModel.includes('series 9'))) {
+    return 'apple watch series 9'
+  }
+  if (lowerModel.includes('apple watch se 2') || (lowerModel.includes('apple watch se') && lowerModel.includes('2'))) {
+    return 'apple watch se 2'
+  }
+  // Apple Watch genérico (fallback)
+  if (lowerModel.includes('apple watch')) {
+    return 'apple watch'
   }
   
   return null
