@@ -224,40 +224,41 @@ class WhatsAppService {
       const { normalizeColor } = await import('../utils/colorNormalizer.js')
       
       // Função helper para detectar variante (mesma lógica do ai.js)
-      const detectVariant = (variant, name, model) => {
-        if (!variant) return null
-        const upperVariant = variant.toString().toUpperCase()
-        
-        // ANATEL
-        if (upperVariant.includes('ANATEL') || upperVariant.includes('🇧🇷')) {
-          return 'ANATEL'
-        }
-        
-        // E-SIM / CHIP VIRTUAL
-        if (upperVariant.includes('E-SIM') || upperVariant.includes('ESIM') || upperVariant.includes('CHIP VIRTUAL')) {
-          return 'E-SIM'
-        }
-        
-        // CPO
-        if (upperVariant.includes('CPO')) {
-          return 'CPO'
-        }
-        
-        // Regiões por bandeiras/países
-        if (upperVariant.includes('🇺🇸') || upperVariant.includes('US') || upperVariant.includes('AMERICANO')) {
-          return 'AMERICANO'
-        }
-        if (upperVariant.includes('🇯🇵') || upperVariant.includes('JP') || upperVariant.includes('JAPONÊS')) {
-          return 'JAPONÊS'
-        }
-        if (upperVariant.includes('🇮🇳') || upperVariant.includes('INDIANO')) {
-          return 'INDIANO'
-        }
-        if (upperVariant.includes('🇨🇳') || upperVariant.includes('CHINÊS')) {
-          return 'CHINÊS'
-        }
-        
-        return upperVariant
+      const detectVariant = (product) => {
+        const combined = [
+          product?.variant,
+          product?.network,
+          product?.notes,
+          product?.model,
+          product?.name,
+          product?.additional_info,
+          product?.description
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        if (!combined) return null
+
+        if (combined.includes('anatel')) return 'ANATEL'
+        if (combined.includes('e-sim') || combined.includes('esim') || combined.includes('e sim')) return 'E-SIM'
+        if (
+          combined.includes('chip físico') ||
+          combined.includes('chip fisico') ||
+          combined.includes('chip fisco') ||
+          combined.includes('1 chip') ||
+          combined.includes('01 chip') ||
+          combined.includes('2 chip') ||
+          combined.includes('02 chip')
+        ) return 'CHIP FÍSICO'
+        if (combined.includes('chip virtual')) return 'CHIP VIRTUAL'
+        if (combined.includes('chin')) return 'CHINÊS'
+        if (combined.includes('jap')) return 'JAPONÊS'
+        if (combined.includes('indi')) return 'INDIANO'
+        if (combined.includes('usa') || combined.includes('americano')) return 'AMERICANO'
+        if (combined.includes('cpo')) return 'CPO'
+
+        return product?.variant ? product.variant.toString().toUpperCase() : null
       }
       
       // Salvar produtos no banco (usando mesma lógica da rota /ai/process-list)
