@@ -270,7 +270,7 @@ class WhatsAppService {
           const condition = product.condition || 'Novo'
           const conditionDetail = product.condition_detail || (condition === 'Novo' ? 'LACRADO' : null)
           const normalizedColor = product.color ? normalizeColor(product.color, product.model) : null
-          const normalizedVariant = product.variant ? detectVariant(product.variant, product.name, product.model) : null
+          const normalizedVariant = detectVariant(product)
 
           // Normalizar nome e modelo para busca
           const normalizedName = product.name ? product.name.trim().toLowerCase() : ''
