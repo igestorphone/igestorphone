@@ -259,12 +259,13 @@ router.get('/', [
       paramCount++;
     } else {
       // Por padrão, mostrar APENAS produtos de HOJE no timezone do Brasil
-      // Usar DATE() com timezone do Brasil para garantir comparação correta
-      // CURRENT_DATE pode variar dependendo do timezone do servidor, então usar NOW() convertido
-      const todayBrasil = `DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))`;
+      // Usar uma comparação que funcione corretamente mesmo com diferenças de timezone
+      // Comparar apenas a parte da data (YYYY-MM-DD) convertida para timezone do Brasil
       whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrasil}
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+          DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+          DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
       )`;
       console.log('📊 Filtro aplicado: produtos APENAS de HOJE no timezone do Brasil');
     }
