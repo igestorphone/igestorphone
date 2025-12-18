@@ -81,17 +81,18 @@ async function cleanupProductsAtMidnightBrasil() {
     console.log('🕛 Iniciando limpeza de produtos à meia-noite (horário de Brasília)...\n');
     
     // Contar produtos que serão desativados (produtos atualizados ANTES de hoje)
+    // Usar CURRENT_DATE para simplificar (sem conversão complexa de timezone)
     const countQuery = await query(`
       SELECT COUNT(*) as total
       FROM products
       WHERE is_active = true
-        AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        AND DATE(updated_at) < CURRENT_DATE
+        AND DATE(created_at) < CURRENT_DATE
     `);
     
     const totalToDeactivate = parseInt(countQuery.rows[0].total);
     console.log(`📊 Produtos que serão desativados: ${totalToDeactivate}`);
-    console.log(`   (Produtos atualizados antes de hoje, ${dataBrasil}, no horário de Brasília)\n`);
+    console.log(`   (Produtos atualizados antes de hoje, ${dataBrasil})\n`);
     
     if (totalToDeactivate === 0) {
       console.log('✅ Nenhum produto para desativar!');
@@ -99,16 +100,16 @@ async function cleanupProductsAtMidnightBrasil() {
       process.exit(0);
     }
     
-    // Desativar produtos que não foram atualizados HOJE (no horário de Brasília)
-    // Produtos atualizados ANTES de hoje à meia-noite em Brasília serão desativados
+    // Desativar produtos que não foram atualizados HOJE
+    // Produtos atualizados ANTES de hoje serão desativados
     console.log('🔄 Desativando produtos antigos...');
     const result = await query(`
       UPDATE products 
       SET is_active = false,
           updated_at = NOW()
       WHERE is_active = true
-        AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        AND DATE(updated_at) < CURRENT_DATE
+        AND DATE(created_at) < CURRENT_DATE
     `);
     
     const deactivatedCount = result.rowCount || 0;
@@ -121,8 +122,7 @@ async function cleanupProductsAtMidnightBrasil() {
         COUNT(*) FILTER (WHERE is_active = false) as produtos_inativos,
         COUNT(*) FILTER (
           WHERE is_active = true 
-          AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+          AND (DATE(updated_at) = CURRENT_DATE OR DATE(created_at) = CURRENT_DATE)
         ) as produtos_ativos_hoje
       FROM products
     `);
