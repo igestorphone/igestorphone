@@ -631,10 +631,11 @@ router.get('/:id/raw-list', authenticateToken, requireSubscription('active'), as
   try {
     const { id } = req.params;
     
-    // Calcular início do dia (00h)
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const todayISO = today.toISOString();
+    // Calcular início do dia (00h) horário de São Paulo, Brasil
+    const todayResult = await query(`
+      SELECT DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::timestamp as today_brasil
+    `);
+    const todayISO = new Date(todayResult.rows[0].today_brasil).toISOString();
 
     // Buscar lista bruta do fornecedor processada hoje
     const rawListResult = await query(`
