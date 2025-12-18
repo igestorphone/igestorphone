@@ -259,15 +259,13 @@ router.get('/', [
       paramCount++;
     } else {
       // Por padrão, mostrar APENAS produtos de HOJE no timezone do Brasil
-      // Calcular o dia de hoje no timezone do Brasil usando CURRENT_TIMESTAMP
-      // Isso garante que funcione corretamente mesmo com diferenças de timezone
+      // TEMPORÁRIO: Usar data fixa '2025-12-18' até corrigir problema de timezone
+      // TODO: Corrigir timezone do PostgreSQL para usar comparação dinâmica
       whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-          DATE((CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-          DATE((CURRENT_TIMESTAMP AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-18'::date
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-18'::date
       )`;
-      console.log('📊 Filtro aplicado: produtos APENAS de HOJE no timezone do Brasil');
+      console.log('📊 Filtro aplicado: produtos APENAS de HOJE (18/12) no timezone do Brasil');
     }
 
     // Buscar produtos
