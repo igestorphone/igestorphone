@@ -43,30 +43,12 @@ router.get('/', [
     }
 
     // Buscar fornecedores com informações de processamento do dia
-    // Por padrão, reset às 00h (meia-noite)
-    // Configurar no .env: RESET_HOUR=0 (ou omitir para 00h)
-    // Para outros horários: RESET_HOUR=19 (19h) ou RESET_HOUR=20 (20h)
-    const resetHour = parseInt(process.env.RESET_HOUR || '0') || 0; // 0 = 00h (padrão), 19 = 19h, 20 = 20h
-    const now = new Date();
-    const currentHour = now.getHours();
-    
-    // Calcular o início do "dia" baseado no horário de reset
-    let dayStartTimestamp;
-    if (resetHour === 0) {
-      // Reset à meia-noite (comportamento padrão)
-      dayStartTimestamp = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    } else {
-      // Reset às 19h ou 20h
-      if (currentHour >= resetHour) {
-        // Hoje já passou do horário de reset, então "hoje" começou no horário de reset de hoje
-        dayStartTimestamp = new Date(now.getFullYear(), now.getMonth(), now.getDate(), resetHour, 0, 0, 0);
-      } else {
-        // Hoje ainda não passou do horário de reset, então "hoje" começou no horário de reset de ontem
-        const yesterday = new Date(now);
-        yesterday.setDate(yesterday.getDate() - 1);
-        dayStartTimestamp = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), resetHour, 0, 0, 0);
-      }
-    }
+    // SEMPRE reset à meia-noite (00h) horário de São Paulo, Brasil
+    // Usar timezone do Brasil para calcular o início do dia
+    const dayStartResult = await query(`
+      SELECT DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::timestamp as day_start_brasil
+    `);
+    const dayStartTimestamp = new Date(dayStartResult.rows[0].day_start_brasil);
     
     // Adicionar dayStartTimestamp aos valores
     const queryValues = [...values, dayStartTimestamp.toISOString()];
@@ -679,7 +661,8 @@ router.get('/:id/raw-list', authenticateToken, requireSubscription('active'), as
       SELECT p.name, p.model, p.color, p.storage, p.condition, p.price, p.updated_at
       FROM products p
       WHERE p.supplier_id = $1
-        AND DATE(p.updated_at) = CURRENT_DATE
+        AND DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
+            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
         AND p.is_active = true
       ORDER BY p.updated_at DESC
     `, [id]);
