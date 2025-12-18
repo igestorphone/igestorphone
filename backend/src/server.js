@@ -23,6 +23,7 @@ import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
+import whatsappWebhookRoutes from './routes/whatsapp-webhook.js';
 
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -172,6 +173,9 @@ app.use('/api/ai', aiRoutes);
 
 // Rotas de limpeza de produtos
 app.use('/api/products', productsCleanupRoutes);
+
+// Webhook do WhatsApp (sem autenticação, mas validado por secret/token)
+app.use('/api/whatsapp', whatsappWebhookRoutes);
 
 // Rota de health check
 app.get('/api/health', (req, res) => {
