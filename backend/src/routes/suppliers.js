@@ -147,6 +147,24 @@ router.get('/:id', async (req, res) => {
 
     const supplier = result.rows[0];
 
+    // Buscar números de WhatsApp do fornecedor
+    const whatsappNumbersResult = await query(`
+      SELECT id, phone_number, is_primary, description, created_at
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1
+      ORDER BY is_primary DESC, created_at ASC
+    `, [id]);
+
+    // Buscar número principal (ou primeiro número, ou número antigo do campo whatsapp)
+    const primaryWhatsappResult = await query(`
+      SELECT phone_number
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1 AND is_primary = true
+      LIMIT 1
+    `, [id]);
+
+    const primaryWhatsapp = primaryWhatsappResult.rows[0]?.phone_number || supplier.whatsapp || null;
+
     // Buscar produtos do fornecedor
     const productsResult = await query(`
       SELECT id, name, model, price, stock_quantity, condition, created_at
@@ -157,7 +175,12 @@ router.get('/:id', async (req, res) => {
     `, [id]);
 
     res.json({
-      supplier,
+      supplier: {
+        ...supplier,
+        whatsapp: primaryWhatsapp, // Número principal para compatibilidade
+        whatsapp_numbers: whatsappNumbersResult.rows,
+        primary_whatsapp: primaryWhatsapp
+      },
       recent_products: productsResult.rows
     });
 
@@ -173,6 +196,10 @@ router.post('/', requireSubscription('active'), [
   body('contact_email').optional().isEmail().normalizeEmail(),
   body('contact_phone').optional().trim(),
   body('whatsapp').optional().trim(),
+  body('whatsapp_numbers').optional().isArray(),
+  body('whatsapp_numbers.*.phone_number').optional().trim(),
+  body('whatsapp_numbers.*.is_primary').optional().isBoolean(),
+  body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
@@ -189,6 +216,7 @@ router.post('/', requireSubscription('active'), [
       contact_email,
       contact_phone,
       whatsapp,
+      whatsapp_numbers,
       city,
       website,
       api_endpoint,
@@ -221,6 +249,46 @@ router.post('/', requireSubscription('active'), [
 
     const supplier = result.rows[0];
 
+    // Inserir números de WhatsApp se fornecidos
+    if (whatsapp_numbers && Array.isArray(whatsapp_numbers) && whatsapp_numbers.length > 0) {
+      // Primeiro, desmarcar todos como não primários se houver algum marcado como primário
+      let hasPrimary = whatsapp_numbers.some(n => n.is_primary === true);
+      
+      for (const whatsappNumber of whatsapp_numbers) {
+        if (whatsappNumber.phone_number) {
+          try {
+            await query(`
+              INSERT INTO supplier_whatsapp_numbers (supplier_id, phone_number, is_primary, description)
+              VALUES ($1, $2, $3, $4)
+            `, [
+              supplier.id,
+              whatsappNumber.phone_number.trim(),
+              whatsappNumber.is_primary === true,
+              whatsappNumber.description || null
+            ]);
+          } catch (error) {
+            console.error(`Erro ao inserir número ${whatsappNumber.phone_number}:`, error.message);
+          }
+        }
+      }
+      
+      // Se nenhum foi marcado como primário, marcar o primeiro como primário
+      if (!hasPrimary && whatsapp_numbers[0]?.phone_number) {
+        await query(`
+          UPDATE supplier_whatsapp_numbers 
+          SET is_primary = true 
+          WHERE supplier_id = $1 AND phone_number = $2
+        `, [supplier.id, whatsapp_numbers[0].phone_number.trim()]);
+      }
+    } else if (whatsapp) {
+      // Se não foram fornecidos números, mas há whatsapp no campo antigo, criar registro
+      await query(`
+        INSERT INTO supplier_whatsapp_numbers (supplier_id, phone_number, is_primary)
+        VALUES ($1, $2, true)
+        ON CONFLICT (supplier_id, phone_number) DO NOTHING
+      `, [supplier.id, whatsapp]);
+    }
+
     // Log da ação
     await query(`
       INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
@@ -233,9 +301,31 @@ router.post('/', requireSubscription('active'), [
       req.get('User-Agent')
     ]);
 
+    // Buscar números cadastrados para retornar
+    const whatsappNumbersResult = await query(`
+      SELECT id, phone_number, is_primary, description, created_at
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1
+      ORDER BY is_primary DESC, created_at ASC
+    `, [supplier.id]);
+
+    const primaryWhatsappResult = await query(`
+      SELECT phone_number
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1 AND is_primary = true
+      LIMIT 1
+    `, [supplier.id]);
+
+    const primaryWhatsapp = primaryWhatsappResult.rows[0]?.phone_number || supplier.whatsapp || null;
+
     res.status(201).json({
       message: 'Fornecedor criado com sucesso',
-      supplier
+      supplier: {
+        ...supplier,
+        whatsapp: primaryWhatsapp,
+        whatsapp_numbers: whatsappNumbersResult.rows,
+        primary_whatsapp: primaryWhatsapp
+      }
     });
 
   } catch (error) {
@@ -250,6 +340,10 @@ router.put('/:id', requireSubscription('active'), [
   body('contact_email').optional().isEmail().normalizeEmail(),
   body('contact_phone').optional().trim(),
   body('whatsapp').optional().trim(),
+  body('whatsapp_numbers').optional().isArray(),
+  body('whatsapp_numbers.*.phone_number').optional().trim(),
+  body('whatsapp_numbers.*.is_primary').optional().isBoolean(),
+  body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
@@ -263,7 +357,9 @@ router.put('/:id', requireSubscription('active'), [
     }
 
     const { id } = req.params;
-    const updates = req.body;
+    const updates = { ...req.body };
+    const whatsappNumbers = updates.whatsapp_numbers;
+    delete updates.whatsapp_numbers; // Remover do updates para não tentar atualizar campo inexistente
 
     // Verificar se fornecedor existe
     const existingSupplier = await query('SELECT * FROM suppliers WHERE id = $1', [id]);
@@ -292,15 +388,72 @@ router.put('/:id', requireSubscription('active'), [
       }
     });
 
-    if (fieldsToUpdate.length === 0) {
-      return res.status(400).json({ message: 'Nenhum campo para atualizar' });
+    if (fieldsToUpdate.length > 0) {
+      values.push(id);
+      const queryText = `UPDATE suppliers SET ${fieldsToUpdate.join(', ')} WHERE id = $${paramCount} RETURNING *`;
+      await query(queryText, values);
     }
 
-    values.push(id);
-    const queryText = `UPDATE suppliers SET ${fieldsToUpdate.join(', ')} WHERE id = $${paramCount} RETURNING *`;
-    
-    const result = await query(queryText, values);
+    // Atualizar números de WhatsApp se fornecidos
+    if (whatsappNumbers !== undefined) {
+      if (Array.isArray(whatsappNumbers)) {
+        // Remover todos os números existentes
+        await query('DELETE FROM supplier_whatsapp_numbers WHERE supplier_id = $1', [id]);
+        
+        // Inserir novos números
+        if (whatsappNumbers.length > 0) {
+          let hasPrimary = whatsappNumbers.some(n => n.is_primary === true);
+          
+          for (const whatsappNumber of whatsappNumbers) {
+            if (whatsappNumber.phone_number) {
+              try {
+                await query(`
+                  INSERT INTO supplier_whatsapp_numbers (supplier_id, phone_number, is_primary, description)
+                  VALUES ($1, $2, $3, $4)
+                `, [
+                  id,
+                  whatsappNumber.phone_number.trim(),
+                  whatsappNumber.is_primary === true,
+                  whatsappNumber.description || null
+                ]);
+              } catch (error) {
+                console.error(`Erro ao inserir número ${whatsappNumber.phone_number}:`, error.message);
+              }
+            }
+          }
+          
+          // Se nenhum foi marcado como primário, marcar o primeiro como primário
+          if (!hasPrimary && whatsappNumbers[0]?.phone_number) {
+            await query(`
+              UPDATE supplier_whatsapp_numbers 
+              SET is_primary = true 
+              WHERE supplier_id = $1 AND phone_number = $2
+            `, [id, whatsappNumbers[0].phone_number.trim()]);
+          }
+        }
+      }
+    }
+
+    // Buscar fornecedor atualizado
+    const result = await query('SELECT * FROM suppliers WHERE id = $1', [id]);
     const supplier = result.rows[0];
+
+    // Buscar números cadastrados
+    const whatsappNumbersResult = await query(`
+      SELECT id, phone_number, is_primary, description, created_at
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1
+      ORDER BY is_primary DESC, created_at ASC
+    `, [id]);
+
+    const primaryWhatsappResult = await query(`
+      SELECT phone_number
+      FROM supplier_whatsapp_numbers
+      WHERE supplier_id = $1 AND is_primary = true
+      LIMIT 1
+    `, [id]);
+
+    const primaryWhatsapp = primaryWhatsappResult.rows[0]?.phone_number || supplier.whatsapp || null;
 
     // Log da ação
     await query(`
@@ -316,7 +469,12 @@ router.put('/:id', requireSubscription('active'), [
 
     res.json({
       message: 'Fornecedor atualizado com sucesso',
-      supplier
+      supplier: {
+        ...supplier,
+        whatsapp: primaryWhatsapp,
+        whatsapp_numbers: whatsappNumbersResult.rows,
+        primary_whatsapp: primaryWhatsapp
+      }
     });
 
   } catch (error) {

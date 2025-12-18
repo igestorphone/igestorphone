@@ -270,7 +270,11 @@ router.get('/', [
 
     // Buscar produtos
     const productsResult = await query(`
-      SELECT p.*, s.name as supplier_name, s.contact_email as supplier_email, s.whatsapp as whatsapp
+      SELECT p.*, s.name as supplier_name, s.contact_email as supplier_email,
+             COALESCE(
+               (SELECT phone_number FROM supplier_whatsapp_numbers WHERE supplier_id = s.id AND is_primary = true LIMIT 1),
+               s.whatsapp
+             ) as whatsapp
       FROM products p
       JOIN suppliers s ON p.supplier_id = s.id
       ${whereClause}
@@ -448,7 +452,11 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
 
     const result = await query(`
-      SELECT p.*, s.name as supplier_name, s.contact_email, s.contact_phone, s.website, s.whatsapp as whatsapp
+      SELECT p.*, s.name as supplier_name, s.contact_email, s.contact_phone, s.website,
+             COALESCE(
+               (SELECT phone_number FROM supplier_whatsapp_numbers WHERE supplier_id = s.id AND is_primary = true LIMIT 1),
+               s.whatsapp
+             ) as whatsapp
       FROM products p
       JOIN suppliers s ON p.supplier_id = s.id
       WHERE p.id = $1 AND p.is_active = true

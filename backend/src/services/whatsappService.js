@@ -34,6 +34,7 @@ class WhatsAppService {
 
   /**
    * Busca fornecedor pelo número do WhatsApp
+   * Busca na nova tabela supplier_whatsapp_numbers que suporta múltiplos números
    */
   async findSupplierByWhatsApp(phoneNumber) {
     try {
@@ -41,17 +42,31 @@ class WhatsAppService {
       
       if (!normalized) return null
 
-      // Buscar fornecedor que tenha este número no campo whatsapp ou contact_phone
+      // Buscar fornecedor pela tabela de números de WhatsApp (suporta múltiplos números)
       const result = await query(`
-        SELECT id, name, whatsapp, contact_phone
-        FROM suppliers
-        WHERE is_active = true
-        AND (
-          REPLACE(REPLACE(REPLACE(REPLACE(whatsapp, ' ', ''), '-', ''), '(', ''), ')', '') LIKE $1
-          OR REPLACE(REPLACE(REPLACE(REPLACE(contact_phone, ' ', ''), '-', ''), '(', ''), ')', '') LIKE $1
-        )
+        SELECT s.id, s.name, s.whatsapp, s.contact_phone
+        FROM suppliers s
+        INNER JOIN supplier_whatsapp_numbers swn ON s.id = swn.supplier_id
+        WHERE s.is_active = true
+        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(swn.phone_number, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') LIKE $1
         LIMIT 1
       `, [`%${normalized}%`])
+
+      // Se não encontrou na nova tabela, buscar na tabela antiga (compatibilidade)
+      if (!result.rows[0]) {
+        const fallbackResult = await query(`
+          SELECT id, name, whatsapp, contact_phone
+          FROM suppliers
+          WHERE is_active = true
+          AND (
+            REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(whatsapp, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') LIKE $1
+            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(contact_phone, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') LIKE $1
+          )
+          LIMIT 1
+        `, [`%${normalized}%`])
+        
+        return fallbackResult.rows[0] || null
+      }
 
       return result.rows[0] || null
     } catch (error) {
