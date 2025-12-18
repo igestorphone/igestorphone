@@ -223,6 +223,43 @@ class WhatsAppService {
       // Importar normalizador de cores
       const { normalizeColor } = await import('../utils/colorNormalizer.js')
       
+      // Função helper para detectar variante (mesma lógica do ai.js)
+      const detectVariant = (variant, name, model) => {
+        if (!variant) return null
+        const upperVariant = variant.toString().toUpperCase()
+        
+        // ANATEL
+        if (upperVariant.includes('ANATEL') || upperVariant.includes('🇧🇷')) {
+          return 'ANATEL'
+        }
+        
+        // E-SIM / CHIP VIRTUAL
+        if (upperVariant.includes('E-SIM') || upperVariant.includes('ESIM') || upperVariant.includes('CHIP VIRTUAL')) {
+          return 'E-SIM'
+        }
+        
+        // CPO
+        if (upperVariant.includes('CPO')) {
+          return 'CPO'
+        }
+        
+        // Regiões por bandeiras/países
+        if (upperVariant.includes('🇺🇸') || upperVariant.includes('US') || upperVariant.includes('AMERICANO')) {
+          return 'AMERICANO'
+        }
+        if (upperVariant.includes('🇯🇵') || upperVariant.includes('JP') || upperVariant.includes('JAPONÊS')) {
+          return 'JAPONÊS'
+        }
+        if (upperVariant.includes('🇮🇳') || upperVariant.includes('INDIANO')) {
+          return 'INDIANO'
+        }
+        if (upperVariant.includes('🇨🇳') || upperVariant.includes('CHINÊS')) {
+          return 'CHINÊS'
+        }
+        
+        return upperVariant
+      }
+      
       // Salvar produtos no banco (usando mesma lógica da rota /ai/process-list)
       let savedCount = 0
       let updatedCount = 0
@@ -232,46 +269,101 @@ class WhatsAppService {
           const condition = product.condition || 'Novo'
           const conditionDetail = product.condition_detail || (condition === 'Novo' ? 'LACRADO' : null)
           const normalizedColor = product.color ? normalizeColor(product.color, product.model) : null
-          const normalizedVariant = product.variant ? product.variant.toUpperCase() : null
+          const normalizedVariant = product.variant ? detectVariant(product.variant, product.name, product.model) : null
 
-          // Verificar se produto já existe (mesmo fornecedor, modelo, cor, armazenamento, condição)
-          const existingProduct = await query(`
-            SELECT id FROM products
-            WHERE supplier_id = $1
-              AND model = $2
-              AND color = $3
-              AND storage = $4
-              AND condition = $5
-              AND COALESCE(variant, '') = COALESCE($6, '')
-            LIMIT 1
-          `, [
-            supplier_id,
-            product.model || null,
-            normalizedColor || product.color || null,
-            product.storage || null,
-            condition,
-            normalizedVariant || null
-          ])
+          // Normalizar nome e modelo para busca
+          const normalizedName = product.name ? product.name.trim().toLowerCase() : ''
+          const normalizedStorage = product.storage ? product.storage.trim().toLowerCase().replace(/\s+/g, '') : ''
+          
+          // Buscar produto existente (mesma lógica do process-list)
+          let existingProduct
+          
+          if (product.model) {
+            const modelPattern = product.model.trim().toLowerCase().replace(/\s+/g, '\\s*')
+            existingProduct = await query(`
+              SELECT id FROM products 
+              WHERE supplier_id = $1 
+                AND LOWER(REGEXP_REPLACE(model, '\\s+', '', 'g')) ~ $2
+                AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
+                AND COALESCE(TRIM(LOWER(REGEXP_REPLACE(COALESCE(storage, ''), '\\s+', '', 'g'))), '') = COALESCE(TRIM(LOWER($4)), '')
+                AND condition = $5
+              ORDER BY updated_at DESC
+              LIMIT 1
+            `, [
+              supplier_id,
+              `^${modelPattern}$`,
+              normalizedColor || '',
+              normalizedStorage || '',
+              condition
+            ])
+          } else {
+            existingProduct = await query(`
+              SELECT id FROM products 
+              WHERE supplier_id = $1 
+                AND TRIM(LOWER(name)) = $2
+                AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
+                AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
+                AND condition = $5
+              ORDER BY updated_at DESC
+              LIMIT 1
+            `, [
+              supplier_id,
+              normalizedName,
+              normalizedColor || '',
+              normalizedStorage || '',
+              condition
+            ])
+          }
 
           if (existingProduct.rows.length > 0) {
             // Atualizar produto existente
             const productId = existingProduct.rows[0].id
             await query(`
-              UPDATE products
-              SET price = $1, updated_at = NOW(), is_active = true
-              WHERE id = $2
-            `, [product.price, productId])
+              UPDATE products 
+              SET price = $1, 
+                  name = $2,
+                  model = $3,
+                  color = $4,
+                  storage = $5,
+                  variant = $6,
+                  condition_detail = $7,
+                  is_active = $8,
+                  updated_at = NOW()
+              WHERE id = $9
+            `, [
+              product.price,
+              product.name,
+              product.model || null,
+              normalizedColor || product.color || null,
+              product.storage || null,
+              normalizedVariant,
+              conditionDetail || null,
+              true,
+              productId
+            ])
 
-            // Adicionar ao histórico de preços
-            await query(`
-              INSERT INTO price_history (product_id, supplier_id, price)
-              VALUES ($1, $2, $3)
-            `, [productId, supplier_id, product.price])
+            // Verificar se preço mudou antes de adicionar ao histórico
+            const priceHistoryCheck = await query(`
+              SELECT price FROM price_history 
+              WHERE product_id = $1 
+              ORDER BY created_at DESC 
+              LIMIT 1
+            `, [productId])
+            
+            const lastPrice = priceHistoryCheck.rows.length > 0 ? parseFloat(priceHistoryCheck.rows[0].price) : null
+            const currentPrice = parseFloat(product.price)
+            
+            if (lastPrice === null || lastPrice !== currentPrice) {
+              await query(`
+                INSERT INTO price_history (product_id, supplier_id, price)
+                VALUES ($1, $2, $3)
+              `, [productId, supplier_id, product.price])
+            }
 
             updatedCount++
           } else {
             // Criar novo produto
-            await query(`
+            const productResult = await query(`
               INSERT INTO products (
                 supplier_id, name, model, color, storage, condition, condition_detail, variant,
                 price, stock_quantity, is_active
@@ -288,16 +380,17 @@ class WhatsAppService {
               conditionDetail || null,
               normalizedVariant || null,
               product.price || 0,
-              1, // stock_quantity padrão
-              true // is_active
-            ]).then(async (result) => {
-              const productId = result.rows[0].id
-              // Adicionar ao histórico de preços
-              await query(`
-                INSERT INTO price_history (product_id, supplier_id, price)
-                VALUES ($1, $2, $3)
-              `, [productId, supplier_id, product.price])
-            })
+              1,
+              true
+            ])
+
+            const productId = productResult.rows[0].id
+
+            // Adicionar ao histórico de preços
+            await query(`
+              INSERT INTO price_history (product_id, supplier_id, price)
+              VALUES ($1, $2, $3)
+            `, [productId, supplier_id, product.price])
 
             savedCount++
           }
