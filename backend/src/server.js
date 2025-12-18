@@ -218,55 +218,18 @@ async function checkAndCleanupProducts() {
     const minutoBrasil = timeCheck.rows[0].minuto_brasil;
     const agoraBrasil = timeCheck.rows[0].agora_brasil;
     
-    // SEMPRE verificar e restaurar produtos de hoje se foram desativados por engano
-    const todayProductsDeactivated = await query(`
-      SELECT COUNT(*) as total
-      FROM products
-      WHERE is_active = false
-        AND (
-          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-        )
-    `);
-    
-    const totalTodayDeactivated = parseInt(todayProductsDeactivated.rows[0].total);
-    
-    if (totalTodayDeactivated > 0) {
-      logger.warn(`⚠️  ${totalTodayDeactivated} produtos de HOJE foram desativados por engano. Restaurando...`);
-      
-      const restoreResult = await query(`
-        UPDATE products 
-        SET is_active = true,
-            updated_at = NOW()
-        WHERE is_active = false
-          AND (
-            DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-            OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-          )
-      `);
-      
-      const restoredCount = restoreResult.rowCount || 0;
-      logger.info(`✅ ${restoredCount} produtos de HOJE restaurados automaticamente`);
-    }
-    
     // Verificar se é meia-noite (00h) em Brasília (com tolerância até 00:10)
     const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
     
     if (isMidnightWindow) {
       // Verificar se há produtos antigos para limpar (de dias anteriores)
-      // IMPORTANTE: usar < DATE() para garantir que produtos de HOJE nunca sejam desativados
+      // Usar DATE() simples que funciona com o timezone do servidor
       const countQuery = await query(`
         SELECT COUNT(*) as total
         FROM products
         WHERE is_active = true
-          AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-          AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-              DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+          AND DATE(updated_at) < CURRENT_DATE
+          AND DATE(created_at) < CURRENT_DATE
       `);
       
       const totalToClean = parseInt(countQuery.rows[0].total);
@@ -276,16 +239,13 @@ async function checkAndCleanupProducts() {
         logger.info(`📊 ${totalToClean} produtos antigos encontrados para limpar`);
         
         // Executar limpeza - apenas produtos de dias anteriores
-        // Proteção dupla: verificar tanto updated_at quanto created_at
         const result = await query(`
           UPDATE products 
           SET is_active = false,
               updated_at = NOW()
           WHERE is_active = true
-            AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-                DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-            AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-                DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+            AND DATE(updated_at) < CURRENT_DATE
+            AND DATE(created_at) < CURRENT_DATE
         `);
         
         const deactivatedCount = result.rowCount || 0;

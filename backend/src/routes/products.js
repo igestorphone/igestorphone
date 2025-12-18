@@ -258,14 +258,13 @@ router.get('/', [
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar APENAS produtos de HOJE no timezone do Brasil
-      // TEMPORÁRIO: Usar data fixa '2025-12-18' até corrigir problema de timezone
-      // TODO: Corrigir timezone do PostgreSQL para usar comparação dinâmica
+      // Por padrão, mostrar APENAS produtos de HOJE
+      // Usar CURRENT_DATE que funciona corretamente
       whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-18'::date
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = '2025-12-18'::date
+        DATE(p.updated_at) = CURRENT_DATE
+        OR DATE(p.created_at) = CURRENT_DATE
       )`;
-      console.log('📊 Filtro aplicado: produtos APENAS de HOJE (18/12) no timezone do Brasil');
+      console.log('📊 Filtro aplicado: produtos APENAS de HOJE');
     }
 
     // Buscar produtos
