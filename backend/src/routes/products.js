@@ -259,13 +259,20 @@ router.get('/', [
       paramCount++;
     } else {
       // Por padrão, mostrar APENAS produtos de HOJE no timezone do Brasil
-      // Usar uma comparação que funcione corretamente mesmo com diferenças de timezone
-      // Comparar apenas a parte da data (YYYY-MM-DD) convertida para timezone do Brasil
+      // Usar EXTRACT para comparar dia, mês e ano separadamente, garantindo que funcione
+      // independente de problemas de timezone
+      const nowBrasil = `NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'`;
       whereClause += ` AND (
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-          DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-          DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+        (
+          EXTRACT(DAY FROM (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(DAY FROM ${nowBrasil})
+          AND EXTRACT(MONTH FROM (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(MONTH FROM ${nowBrasil})
+          AND EXTRACT(YEAR FROM (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(YEAR FROM ${nowBrasil})
+        )
+        OR (
+          EXTRACT(DAY FROM (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(DAY FROM ${nowBrasil})
+          AND EXTRACT(MONTH FROM (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(MONTH FROM ${nowBrasil})
+          AND EXTRACT(YEAR FROM (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')) = EXTRACT(YEAR FROM ${nowBrasil})
+        )
       )`;
       console.log('📊 Filtro aplicado: produtos APENAS de HOJE no timezone do Brasil');
     }
