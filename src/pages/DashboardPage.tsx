@@ -13,7 +13,8 @@ import {
   CheckCircle,
   Activity,
   RefreshCw,
-  Store
+  Store,
+  AlertCircle
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { api } from '@/lib/api'
@@ -395,6 +396,26 @@ export default function DashboardPage() {
               ))}
             </div>
           </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Maintenance Notice */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.3 }}
+        className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 backdrop-blur-sm p-4"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent"></div>
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="flex-shrink-0 p-2 rounded-lg bg-amber-500/20 border border-amber-500/30">
+            <AlertCircle className="w-5 h-5 text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm text-white/90 leading-relaxed">
+              <span className="font-medium">Manutenção temporária:</span> O sistema está com limitações no banco de dados hoje. Estamos resolvendo e tudo voltará ao normal em breve.
+            </p>
+          </div>
         </div>
       </motion.div>
 
