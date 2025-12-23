@@ -76,6 +76,11 @@ router.get('/', [
       const trimmedSearch = search.trim();
       const searchLower = trimmedSearch.toLowerCase();
       
+      // Detectar se o termo de busca original termina com espaço (indicando busca ampla)
+      // Se termina com espaço, o usuário quer ver variantes (ex: "iphone 17 " mostra Pro, Pro Max)
+      // Se não termina com espaço, busca exata (ex: "iphone 17" mostra APENAS iPhone 17)
+      const endsWithSpace = search.endsWith(' ');
+      
       // Se busca tem mais de uma palavra, fazer busca específica (ex: "iphone 16", "iphone 15 pro")
       // Se busca é genérica (uma palavra só), fazer busca ampla
       const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0);
@@ -99,6 +104,25 @@ router.get('/', [
         )`;
         values.push(`%${searchLower}%`);
         paramCount++;
+        
+        // REGRA PRINCIPAL: Se busca NÃO termina com espaço e não contém "pro" ou "max",
+        // excluir automaticamente produtos com "pro" ou "max"
+        // Ex: "iphone 17" (sem espaço) → mostra APENAS iPhone 17, exclui Pro e Pro Max
+        if (!endsWithSpace && !hasPro && !hasMax && !hasPlus) {
+          // Excluir variantes Pro, Pro Max, Plus quando busca é exata
+          // Simplesmente excluir qualquer produto que contenha "pro", "max" ou "plus" no nome/modelo
+          whereClause += ` AND (
+            LOWER(p.name) NOT LIKE '%pro%'
+            AND LOWER(p.model) NOT LIKE '%pro%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%pro%'
+            AND LOWER(p.name) NOT LIKE '%max%'
+            AND LOWER(p.model) NOT LIKE '%max%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%max%'
+            AND LOWER(p.name) NOT LIKE '%plus%'
+            AND LOWER(p.model) NOT LIKE '%plus%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%plus%'
+          )`;
+        }
         
         // Se busca "pro" sem "max", excluir resultados com "max"
         if (hasPro && !hasMax) {
