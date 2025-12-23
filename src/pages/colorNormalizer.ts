@@ -308,6 +308,8 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     // Lavanda - todas as variações (incluindo emojis roxo)
     'lavanda': 'Lavanda',
     'lavender': 'Lavanda',
+    'lavand': 'Lavanda',
+    'lavander': 'Lavanda',
     'lilás': 'Lavanda',
     'lilas': 'Lavanda',
     'lilac': 'Lavanda',
@@ -321,6 +323,8 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'azul-nevoa': 'Mist Blue',
     'azul nevoa': 'Mist Blue',
     'azul névoa mist': 'Mist Blue',
+    'azul': 'Mist Blue',
+    'blue': 'Mist Blue',
     '🔵': 'Mist Blue',
     '💙': 'Mist Blue',
     '🌫️': 'Mist Blue',
