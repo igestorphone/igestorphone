@@ -94,6 +94,7 @@ router.get('/', [
         const hasPro = searchWords.includes('pro');
         const hasMax = searchWords.includes('max');
         const hasPlus = searchWords.includes('plus');
+        const hasAir = searchWords.includes('air');
         
         // Construir busca precisa
         // Buscar o termo completo no name ou model
@@ -107,10 +108,10 @@ router.get('/', [
         
         // REGRA PRINCIPAL: Se busca NÃO termina com espaço e não contém "pro" ou "max",
         // excluir automaticamente produtos com "pro" ou "max"
-        // Ex: "iphone 17" (sem espaço) → mostra APENAS iPhone 17, exclui Pro e Pro Max
-        if (!endsWithSpace && !hasPro && !hasMax && !hasPlus) {
-          // Excluir variantes Pro, Pro Max, Plus quando busca é exata
-          // Simplesmente excluir qualquer produto que contenha "pro", "max" ou "plus" no nome/modelo
+        // Ex: "iphone 17" (sem espaço) → mostra APENAS iPhone 17, exclui Pro, Pro Max, Plus e Air
+        if (!endsWithSpace && !hasPro && !hasMax && !hasPlus && !hasAir) {
+          // Excluir variantes Pro, Pro Max, Plus e Air quando busca é exata
+          // Simplesmente excluir qualquer produto que contenha "pro", "max", "plus" ou "air" no nome/modelo
           whereClause += ` AND (
             LOWER(p.name) NOT LIKE '%pro%'
             AND LOWER(p.model) NOT LIKE '%pro%'
@@ -121,6 +122,12 @@ router.get('/', [
             AND LOWER(p.name) NOT LIKE '%plus%'
             AND LOWER(p.model) NOT LIKE '%plus%'
             AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%plus%'
+            AND LOWER(p.name) NOT LIKE '% air%'
+            AND LOWER(p.model) NOT LIKE '% air%'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '% air%'
+            AND LOWER(p.name) NOT LIKE '%air %'
+            AND LOWER(p.model) NOT LIKE '%air %'
+            AND LOWER(CONCAT(p.name, ' ', COALESCE(p.model, ''))) NOT LIKE '%air %'
           )`;
         }
         

@@ -207,12 +207,32 @@ export default function SearchCheapestIPhonePage() {
     const suppliers = new Set<string>()
     const categories = new Set<string>()
 
+    // Detectar se a busca é "iPhone 17" (sem Pro, Max, Plus, Air)
+    const searchLower = debouncedSearch.toLowerCase().trim()
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0)
+    const isIPhone17Exact = searchLower.includes('iphone') && 
+                           searchWords.includes('17') && 
+                           !searchWords.includes('pro') && 
+                           !searchWords.includes('max') && 
+                           !searchWords.includes('plus') && 
+                           !searchWords.includes('air')
+
+    // Cores oficiais do iPhone 17 (normal): Preto, Branco, Mist Blue, Lavanda, Sage
+    const iPhone17OfficialColors = new Set(['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage'])
+
     products.forEach((product: any) => {
       if (product.color) {
         const normalized = normalizeColor(product.color, product.model)
         // Adicionar todas as cores normalizadas (cada modelo tem suas cores específicas)
         if (normalized && normalized !== 'N/A') {
-          colors.add(normalized)
+          // Se busca é "iPhone 17" exato, mostrar apenas cores oficiais
+          if (isIPhone17Exact) {
+            if (iPhone17OfficialColors.has(normalized)) {
+              colors.add(normalized)
+            }
+          } else {
+            colors.add(normalized)
+          }
         }
       }
       if (product.storage) storages.add(product.storage)
@@ -226,8 +246,22 @@ export default function SearchCheapestIPhonePage() {
       }
     })
 
-    // Ordenar cores alfabeticamente
-    const sortedColors = Array.from(colors).sort()
+    // Ordenar cores alfabeticamente, mas manter ordem específica para iPhone 17
+    let sortedColors: string[]
+    if (isIPhone17Exact) {
+      // Ordem específica para iPhone 17: Preto, Branco, Mist Blue, Lavanda, Sage
+      const order = ['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage']
+      sortedColors = Array.from(colors).sort((a, b) => {
+        const indexA = order.indexOf(a)
+        const indexB = order.indexOf(b)
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB
+        if (indexA !== -1) return -1
+        if (indexB !== -1) return 1
+        return a.localeCompare(b)
+      })
+    } else {
+      sortedColors = Array.from(colors).sort()
+    }
 
     return {
       colors: sortedColors,
@@ -239,7 +273,7 @@ export default function SearchCheapestIPhonePage() {
       suppliers: Array.from(suppliers).sort(),
       categories: Array.from(categories).sort()
     }
-  }, [productsQuery.data])
+  }, [productsQuery.data, debouncedSearch])
 
   const stats = useMemo(() => {
     const products = productsQuery.data || []
