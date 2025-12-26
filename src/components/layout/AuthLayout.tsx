@@ -10,10 +10,11 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Emojis natalinos simples (estáticos para melhor performance no mobile) */}
-      <div className="absolute top-8 left-8 z-20 text-3xl opacity-50 pointer-events-none">🎄</div>
-      <div className="absolute top-12 right-12 z-20 text-3xl opacity-50 pointer-events-none">🎅</div>
-      <div className="absolute bottom-20 right-16 z-20 text-3xl opacity-50 pointer-events-none">🎁</div>
+      {/* Emojis de Ano Novo (estáticos para melhor performance no mobile) */}
+      <div className="absolute top-8 left-8 z-20 text-3xl opacity-50 pointer-events-none">🎉</div>
+      <div className="absolute top-12 right-12 z-20 text-3xl opacity-50 pointer-events-none">✨</div>
+      <div className="absolute bottom-20 right-16 z-20 text-3xl opacity-50 pointer-events-none">🎊</div>
+      <div className="absolute bottom-16 left-12 z-20 text-2xl opacity-40 pointer-events-none">2025</div>
 
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
@@ -40,7 +41,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         transition={{ duration: 0.6 }}
         className="relative z-10 w-full max-w-md"
       >
-        {/* Logo com gorro de Papai Noel */}
+        {/* Logo com decoração de Ano Novo */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -48,9 +49,9 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className="text-center mb-8"
         >
           <div className="w-40 h-40 mx-auto mb-6 flex items-center justify-center relative">
-            {/* Gorro de Papai Noel no logo (estático) */}
+            {/* Decoração de Ano Novo no logo */}
             <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-10">
-              <span className="text-5xl">🎅</span>
+              <span className="text-5xl">🎆</span>
             </div>
             
             <img 
@@ -96,7 +97,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           transition={{ delay: 0.8, duration: 0.5 }}
           className="text-center mt-8 text-white/60 text-sm"
         >
-          <p>© 2024 iGestorPhone. Todos os direitos reservados.</p>
+          <p>© 2025 iGestorPhone. Todos os direitos reservados.</p>
         </motion.div>
       </motion.div>
     </div>
