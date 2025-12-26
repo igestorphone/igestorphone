@@ -10,11 +10,53 @@ interface AuthLayoutProps {
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Emojis de Ano Novo (estáticos para melhor performance no mobile) */}
-      <div className="absolute top-8 left-8 z-20 text-3xl opacity-50 pointer-events-none">🎉</div>
-      <div className="absolute top-12 right-12 z-20 text-3xl opacity-50 pointer-events-none">✨</div>
-      <div className="absolute bottom-20 right-16 z-20 text-3xl opacity-50 pointer-events-none">🎊</div>
-      <div className="absolute bottom-16 left-12 z-20 text-2xl opacity-40 pointer-events-none">2025</div>
+      {/* Emojis de Ano Novo animados */}
+      <motion.div 
+        className="absolute top-8 left-8 z-20 text-3xl opacity-60 pointer-events-none"
+        animate={{
+          y: [0, -10, 0],
+          rotate: [0, 10, -10, 0],
+          scale: [1, 1.1, 1]
+        }}
+        transition={{
+          duration: 3,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        🎉
+      </motion.div>
+      <motion.div 
+        className="absolute top-12 right-12 z-20 text-3xl opacity-60 pointer-events-none"
+        animate={{
+          rotate: [0, 360],
+          scale: [1, 1.2, 1],
+          opacity: [0.4, 0.8, 0.4]
+        }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut"
+        }}
+      >
+        ✨
+      </motion.div>
+      <motion.div 
+        className="absolute bottom-20 right-16 z-20 text-3xl opacity-60 pointer-events-none"
+        animate={{
+          y: [0, -8, 0],
+          rotate: [0, -15, 15, 0],
+          scale: [1, 1.15, 1]
+        }}
+        transition={{
+          duration: 2.5,
+          repeat: Infinity,
+          ease: "easeInOut",
+          delay: 0.5
+        }}
+      >
+        🎊
+      </motion.div>
 
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
@@ -49,10 +91,102 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           className="text-center mb-8"
         >
           <div className="w-40 h-40 mx-auto mb-6 flex items-center justify-center relative">
-            {/* Decoração de Ano Novo no logo */}
-            <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 z-10">
-              <span className="text-5xl">🎆</span>
-            </div>
+            {/* Feliz Ano Novo animado */}
+            <motion.div 
+              className="absolute -top-16 left-1/2 transform -translate-x-1/2 z-10"
+              initial={{ scale: 0, opacity: 0, y: -20 }}
+              animate={{ 
+                scale: [0, 1.1, 1],
+                opacity: [0, 1, 1],
+                y: [0, -5, 0]
+              }}
+              transition={{ 
+                duration: 0.8,
+                delay: 0.3,
+                repeat: Infinity,
+                repeatType: "reverse",
+                repeatDelay: 3
+              }}
+            >
+              <div className="relative">
+                <motion.div
+                  className="text-center"
+                  animate={{
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  <div className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-yellow-400 via-pink-500 via-purple-500 to-blue-400 bg-clip-text text-transparent drop-shadow-lg">
+                    Feliz Ano Novo
+                  </div>
+                  <motion.div
+                    className="text-xl sm:text-2xl font-bold mt-1 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                    animate={{
+                      scale: [1, 1.1, 1],
+                    }}
+                    transition={{
+                      duration: 1.5,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                      delay: 0.5
+                    }}
+                  >
+                    2025
+                  </motion.div>
+                </motion.div>
+                {/* Brilhos decorativos */}
+                <motion.div
+                  className="absolute -top-2 -left-2 text-xl"
+                  animate={{
+                    rotate: [0, 360],
+                    scale: [0.8, 1.2, 0.8],
+                    opacity: [0.3, 0.8, 0.3]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                >
+                  ✨
+                </motion.div>
+                <motion.div
+                  className="absolute -top-2 -right-2 text-xl"
+                  animate={{
+                    rotate: [360, 0],
+                    scale: [0.8, 1.2, 0.8],
+                    opacity: [0.3, 0.8, 0.3]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 0.5
+                  }}
+                >
+                  ✨
+                </motion.div>
+                <motion.div
+                  className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-lg"
+                  animate={{
+                    scale: [0.8, 1.3, 0.8],
+                    opacity: [0.4, 0.9, 0.4]
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: 1
+                  }}
+                >
+                  🎉
+                </motion.div>
+              </div>
+            </motion.div>
             
             <img 
               src="/assets/images/logo.png" 
