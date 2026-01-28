@@ -337,6 +337,9 @@ export const usersApi = {
   
   approve: (id: string, durationDays: number) =>
     apiClient.post<any>(`/users/${id}/approve`, { durationDays }),
+  
+  forceLogoutAll: () =>
+    apiClient.post<any>('/users/force-logout-all', {}),
 }
 
 export const registrationApi = {

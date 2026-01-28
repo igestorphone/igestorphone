@@ -1,0 +1,24 @@
+═══════════════════════════════════════════════════════════
+🚀 COMANDOS RÁPIDOS PARA FAZER PUSH
+═══════════════════════════════════════════════════════════
+
+1️⃣ CRIAR TOKEN NO GITHUB:
+   https://github.com/settings/tokens
+   → Generate new token (classic)
+   → Nome: igestorphone-push
+   → Marcar: repo
+   → Generate token
+   → COPIAR O TOKEN
+
+2️⃣ NO TERMINAL DO MACOS:
+
+   cd /Users/MAC/igestorphone
+   
+   bash configurar-token-github.sh
+   (cole o token quando pedir)
+   
+   git push origin main
+
+═══════════════════════════════════════════════════════════
+✅ PRONTO! O Render vai fazer deploy automaticamente!
+═══════════════════════════════════════════════════════════

@@ -1,0 +1,456 @@
+From dfed9a11151b19a81dbc19f34ad0f97556251eec Mon Sep 17 00:00:00 2001
+From: Luiz G <MAC@MacBook-Pro-de-Luiz.local>
+Date: Wed, 28 Jan 2026 16:47:00 -0300
+Subject: [PATCH] =?UTF-8?q?feat:=20logout=20autom=C3=A1tico=20por=20inativ?=
+ =?UTF-8?q?idade=20(15=20min)=20e=20desconectar=20todos=20os=20usu=C3=A1ri?=
+ =?UTF-8?q?os?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Implementado logout automático após 15 minutos de inatividade
+- Frontend: hook useIdleLogout com timeout de 15 min
+- Backend: middleware valida inatividade e retorna 401 após 15 min
+- Script para desconectar todos os usuários: npm run users:force-logout-all
+- Migração: adicionada coluna last_activity_at na tabela users
+- Build de produção gerado em dist/
+---
+ backend/src/middleware/auth.js          | 21 +++++-
+ backend/src/migrate.js                  |  3 +
+ backend/src/routes/auth.js              |  2 +-
+ backend/src/scripts/force-logout-all.js | 33 ++++++++++
+ deploy-now.sh                           | 57 ++++++++++++++++
+ env.example                             |  6 ++
+ package.json                            |  3 +-
+ src/App.tsx                             |  2 +
+ src/hooks/useIdleLogout.ts              | 88 +++++++++++++++++++++++++
+ src/lib/idle.ts                         | 30 +++++++++
+ src/stores/authStore.ts                 |  9 ++-
+ 11 files changed, 249 insertions(+), 5 deletions(-)
+ create mode 100644 backend/src/scripts/force-logout-all.js
+ create mode 100755 deploy-now.sh
+ create mode 100644 src/hooks/useIdleLogout.ts
+ create mode 100644 src/lib/idle.ts
+
+diff --git a/backend/src/middleware/auth.js b/backend/src/middleware/auth.js
+index 5662a12..f4b5f12 100644
+--- a/backend/src/middleware/auth.js
++++ b/backend/src/middleware/auth.js
+@@ -1,6 +1,10 @@
+ import jwt from 'jsonwebtoken';
+ import { query } from '../config/database.js';
+ 
++const IDLE_TIMEOUT_MINUTES = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10);
++const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
++const TOUCH_INTERVAL_MS = parseInt(process.env.IDLE_TOUCH_INTERVAL_MS || `${60 * 1000}`, 10); // 1 min
++
+ export const authenticateToken = async (req, res, next) => {
+   try {
+     const authHeader = req.headers['authorization'];
+@@ -14,7 +18,7 @@ export const authenticateToken = async (req, res, next) => {
+     
+     // Buscar usuário no banco para verificar se ainda está ativo
+     const result = await query(`
+-      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active
++      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at
+       FROM users WHERE id = $1
+     `, [decoded.userId]);
+ 
+@@ -28,6 +32,14 @@ export const authenticateToken = async (req, res, next) => {
+       return res.status(401).json({ message: 'Conta desativada' });
+     }
+ 
++    // Verificar inatividade (logout após 15 minutos sem atividade)
++    const nowMs = Date.now();
++    const lastActivityMs = user.last_activity_at ? new Date(user.last_activity_at).getTime() : null;
++
++    if (lastActivityMs && nowMs - lastActivityMs > IDLE_TIMEOUT_MS) {
++      return res.status(401).json({ message: 'Sessão expirada por inatividade' });
++    }
++
+     // Verificar se a assinatura não expirou
+     if (user.subscription_status === 'trial' && user.subscription_expires_at) {
+       const now = new Date();
+@@ -47,6 +59,13 @@ export const authenticateToken = async (req, res, next) => {
+       }
+     }
+ 
++    // Atualizar last_activity_at com throttle (evita update em todo request)
++    const shouldTouch =
++      !lastActivityMs || (nowMs - lastActivityMs) > TOUCH_INTERVAL_MS;
++    if (shouldTouch) {
++      await query('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
++    }
++
+     // Adicionar dados do usuário ao request
+     req.user = {
+       id: user.id,
+diff --git a/backend/src/migrate.js b/backend/src/migrate.js
+index bc00575..2ecc38e 100644
+--- a/backend/src/migrate.js
++++ b/backend/src/migrate.js
+@@ -22,6 +22,7 @@ const migrations = [
+     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+     last_login TIMESTAMP,
++    last_activity_at TIMESTAMP,
+     is_active BOOLEAN DEFAULT true
+   )`,
+ 
+@@ -142,6 +143,7 @@ const migrations = [
+   )`,
+ 
+   // Atualizações de colunas existentes
++  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
+   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`,
+   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,
+   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS city VARCHAR(120)`,
+@@ -170,6 +172,7 @@ const migrations = [
+   // Índices para performance
+   `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
+   `CREATE INDEX IF NOT EXISTS idx_users_subscription_status ON users(subscription_status)`,
++  `CREATE INDEX IF NOT EXISTS idx_users_last_activity_at ON users(last_activity_at)`,
+   `CREATE INDEX IF NOT EXISTS idx_products_supplier_id ON products(supplier_id)`,
+   `CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)`,
+   `CREATE INDEX IF NOT EXISTS idx_price_history_product_id ON price_history(product_id)`,
+diff --git a/backend/src/routes/auth.js b/backend/src/routes/auth.js
+index 236f681..c4aa6e8 100644
+--- a/backend/src/routes/auth.js
++++ b/backend/src/routes/auth.js
+@@ -166,7 +166,7 @@ router.post('/login', loginValidation, async (req, res) => {
+     }
+ 
+     // Atualizar último login
+-    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
++    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+ 
+     // Gerar JWT
+     const token = jwt.sign(
+diff --git a/backend/src/scripts/force-logout-all.js b/backend/src/scripts/force-logout-all.js
+new file mode 100644
+index 0000000..8541ba0
+--- /dev/null
++++ b/backend/src/scripts/force-logout-all.js
+@@ -0,0 +1,33 @@
++import { query } from '../config/database.js';
++
++async function main() {
++  // Coloca a última atividade bem no passado para expirar imediatamente
++  await query(`UPDATE users SET last_activity_at = NOW() - INTERVAL '365 days'`);
++
++  // Log no system_logs (user_id pode ser NULL)
++  try {
++    await query(
++      `
++      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
++      VALUES ($1, $2, $3, $4, $5)
++    `,
++      [
++        null,
++        'force_logout_all',
++        JSON.stringify({ reason: 'security', at: new Date().toISOString() }),
++        null,
++        'script:force-logout-all',
++      ],
++    );
++  } catch {
++    // Se a tabela não existir ainda em algum ambiente, não bloqueia o comando
++  }
++
++  console.log('✅ Todos os usuários foram marcados para logout imediato.');
++}
++
++main().catch((err) => {
++  console.error('❌ Erro ao forçar logout de todos os usuários:', err);
++  process.exit(1);
++});
++
+diff --git a/deploy-now.sh b/deploy-now.sh
+new file mode 100755
+index 0000000..eb564ab
+--- /dev/null
++++ b/deploy-now.sh
+@@ -0,0 +1,57 @@
++#!/bin/bash
++
++# Script para fazer deploy das alterações
++# Execute: bash deploy-now.sh
++
++echo "🚀 Fazendo deploy das alterações..."
++
++cd "$(dirname "$0")"
++
++# Verificar se está no diretório correto
++if [ ! -f "package.json" ]; then
++    echo "❌ Execute este script no diretório raiz do projeto"
++    exit 1
++fi
++
++# Aceitar licença do Xcode (se necessário)
++echo "📝 Verificando licença do Xcode..."
++if ! xcodebuild -license check 2>/dev/null; then
++    echo "⚠️  É necessário aceitar a licença do Xcode primeiro."
++    echo "   Execute: sudo xcodebuild -license"
++    echo "   Depois execute este script novamente."
++    exit 1
++fi
++
++# Adicionar todas as alterações
++echo "📦 Adicionando alterações ao Git..."
++git add -A
++
++# Verificar se há alterações
++if git diff --cached --quiet; then
++    echo "ℹ️  Nenhuma alteração para commitar."
++else
++    # Fazer commit
++    echo "💾 Fazendo commit..."
++    git commit -m "feat: logout automático por inatividade (15 min) e desconectar todos os usuários
++
++- Implementado logout automático após 15 minutos de inatividade
++- Frontend: hook useIdleLogout com timeout de 15 min
++- Backend: middleware valida inatividade e retorna 401 após 15 min
++- Script para desconectar todos os usuários: npm run users:force-logout-all
++- Migração: adicionada coluna last_activity_at na tabela users
++- Build de produção gerado em dist/"
++    
++    # Fazer push
++    echo "🚀 Fazendo push para o repositório..."
++    git push origin main
++    
++    if [ $? -eq 0 ]; then
++        echo "✅ Deploy realizado com sucesso!"
++        echo "📊 O Render deve detectar o push e fazer deploy automático."
++    else
++        echo "❌ Erro ao fazer push. Verifique suas credenciais Git."
++        exit 1
++    fi
++fi
++
++echo "✨ Concluído!"
+diff --git a/env.example b/env.example
+index 9887215..c26f270 100644
+--- a/env.example
++++ b/env.example
+@@ -18,6 +18,12 @@ FRONTEND_URL=http://localhost:3000
+ JWT_SECRET=alterar_em_producao_com_valor_forte
+ JWT_EXPIRES_IN=7d
+ 
++# Logout por inatividade (backend)
++# Depois de 15 minutos sem atividade, o middleware retorna 401.
++IDLE_TIMEOUT_MINUTES=15
++# Evita UPDATE no banco a cada request (default 60000 = 1 min)
++IDLE_TOUCH_INTERVAL_MS=60000
++
+ # Stripe (para pagamentos)
+ STRIPE_SECRET_KEY=sk_test_sua_chave_secreta_do_stripe
+ STRIPE_PUBLISHABLE_KEY=pk_test_sua_chave_publica_do_stripe
+diff --git a/package.json b/package.json
+index 8b87132..194b81d 100644
+--- a/package.json
++++ b/package.json
+@@ -19,7 +19,8 @@
+     "db:clean": "node backend/src/clean-database.js",
+     "db:cleanup": "node backend/src/cleanup-old-data.js",
+     "db:cleanup-vitrine": "node backend/src/cleanup-vitrine-products.js",
+-    "db:reset": "node backend/src/reset.js"
++    "db:reset": "node backend/src/reset.js",
++    "users:force-logout-all": "node backend/src/scripts/force-logout-all.js"
+   },
+   "dependencies": {
+     "@hookform/resolvers": "^3.3.2",
+diff --git a/src/App.tsx b/src/App.tsx
+index fe19f12..4b049f7 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -1,6 +1,7 @@
+ import { Routes, Route, Navigate } from 'react-router-dom'
+ import { Analytics } from '@vercel/analytics/react'
+ import { useAuthStore } from '@/stores/authStore'
++import { useIdleLogout } from '@/hooks/useIdleLogout'
+ 
+ // Layouts
+ import AuthLayout from '@/components/layout/AuthLayout'
+@@ -35,6 +36,7 @@ import RankingPage from '@/pages/RankingPage'
+ 
+ function App() {
+   const { isAuthenticated } = useAuthStore()
++  useIdleLogout()
+ 
+   return (
+     <div className="min-h-screen">
+diff --git a/src/hooks/useIdleLogout.ts b/src/hooks/useIdleLogout.ts
+new file mode 100644
+index 0000000..2c6ba42
+--- /dev/null
++++ b/src/hooks/useIdleLogout.ts
+@@ -0,0 +1,88 @@
++import { useEffect, useRef } from 'react'
++import { useLocation, useNavigate } from 'react-router-dom'
++import toast from 'react-hot-toast'
++import { throttle } from '@/lib/utils'
++import { clearActivity, getLastActivityAt, setLastActivityAt, touchActivity } from '@/lib/idle'
++import { useAuthStore } from '@/stores/authStore'
++
++const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60 * 1000 // 15 min
++const CHECK_EVERY_MS = 15 * 1000
++const TOUCH_THROTTLE_MS = 2000
++
++export function useIdleLogout(idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS) {
++  const navigate = useNavigate()
++  const location = useLocation()
++  const { isAuthenticated, logout } = useAuthStore()
++  const didLogoutRef = useRef(false)
++
++  useEffect(() => {
++    if (!isAuthenticated) {
++      didLogoutRef.current = false
++      return
++    }
++
++    // Garante um "marco inicial" assim que autenticou
++    if (!getLastActivityAt()) {
++      touchActivity()
++    }
++
++    const performLogout = () => {
++      if (didLogoutRef.current) return
++      didLogoutRef.current = true
++
++      clearActivity()
++      logout()
++      toast.error('Você foi desconectado por inatividade.')
++
++      if (location.pathname !== '/login') {
++        navigate('/login', { replace: true })
++      }
++    }
++
++    const touchThrottled = throttle(() => {
++      setLastActivityAt(Date.now())
++    }, TOUCH_THROTTLE_MS)
++
++    const onActivity = () => {
++      const last = getLastActivityAt()
++      if (last && Date.now() - last >= idleTimeoutMs) {
++        performLogout()
++        return
++      }
++
++      touchThrottled()
++    }
++
++    const listenerOptions: AddEventListenerOptions = { passive: true, capture: true }
++    const events: Array<keyof WindowEventMap> = [
++      'mousemove',
++      'mousedown',
++      'keydown',
++      'touchstart',
++      'scroll',
++      'wheel',
++      'pointerdown',
++    ]
++
++    events.forEach((event) => window.addEventListener(event, onActivity, listenerOptions))
++
++    const interval = window.setInterval(() => {
++      const last = getLastActivityAt()
++      if (!last) {
++        // Se o storage foi limpo por qualquer motivo, reinicia o timer enquanto logado
++        touchActivity()
++        return
++      }
++
++      const idleForMs = Date.now() - last
++      if (idleForMs < idleTimeoutMs) return
++      performLogout()
++    }, CHECK_EVERY_MS)
++
++    return () => {
++      window.clearInterval(interval)
++      events.forEach((event) => window.removeEventListener(event, onActivity, listenerOptions))
++    }
++  }, [idleTimeoutMs, isAuthenticated, location.pathname, logout, navigate])
++}
++
+diff --git a/src/lib/idle.ts b/src/lib/idle.ts
+new file mode 100644
+index 0000000..10971c6
+--- /dev/null
++++ b/src/lib/idle.ts
+@@ -0,0 +1,30 @@
++export const IDLE_LAST_ACTIVITY_KEY = 'idle:lastActivityAt'
++
++export function getLastActivityAt(): number | null {
++  const raw = localStorage.getItem(IDLE_LAST_ACTIVITY_KEY)
++  if (!raw) return null
++
++  const value = Number(raw)
++  return Number.isFinite(value) ? value : null
++}
++
++export function setLastActivityAt(timestampMs: number): void {
++  try {
++    localStorage.setItem(IDLE_LAST_ACTIVITY_KEY, String(timestampMs))
++  } catch {
++    // ignore (private mode / storage full)
++  }
++}
++
++export function touchActivity(): void {
++  setLastActivityAt(Date.now())
++}
++
++export function clearActivity(): void {
++  try {
++    localStorage.removeItem(IDLE_LAST_ACTIVITY_KEY)
++  } catch {
++    // ignore
++  }
++}
++
+diff --git a/src/stores/authStore.ts b/src/stores/authStore.ts
+index 6595ce4..6b50a18 100644
+--- a/src/stores/authStore.ts
++++ b/src/stores/authStore.ts
+@@ -1,8 +1,9 @@
+ import { create } from 'zustand'
+ import { persist } from 'zustand/middleware'
+-import { Usuario, LoginRequest, TipoUsuario } from '@/types'
++import { Usuario, LoginRequest } from '@/types'
+ import { removeFromStorage } from '@/lib/utils'
+ import { api } from '@/lib/api'
++import { clearActivity, touchActivity } from '@/lib/idle'
+ 
+ interface AuthState {
+   user: Usuario | null
+@@ -62,6 +63,9 @@ export const useAuthStore = create<AuthStore>()(
+               isLoading: false,
+               error: null
+             })
++
++            // Marca atividade inicial para controle de inatividade
++            touchActivity()
+             
+             // Após o login, carregar as permissões
+             console.log('🔐 Login - Carregando permissões...')
+@@ -83,6 +87,7 @@ export const useAuthStore = create<AuthStore>()(
+       logout: () => {
+         // Clear storage
+         removeFromStorage('auth-storage')
++        clearActivity()
+         
+         set({
+           user: null,
+@@ -173,7 +178,7 @@ export const useAuthStore = create<AuthStore>()(
+ 
+ // Initialize auth on app start
+ const initializeAuth = () => {
+-  const { token, user, isAuthenticated } = useAuthStore.getState()
++  const { token, user } = useAuthStore.getState()
+   
+   if (token && user) {
+     console.log('Auth initialized successfully')
+-- 
+2.50.1 (Apple Git-155)
+

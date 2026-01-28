@@ -1420,4 +1420,40 @@ router.post('/:id/approve', requireRole('admin'), [
   }
 });
 
+// Forçar logout de todos os usuários (apenas admin)
+router.post('/force-logout-all', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    // Coloca a última atividade bem no passado para expirar imediatamente
+    const result = await query(`UPDATE users SET last_activity_at = NOW() - INTERVAL '365 days'`);
+
+    // Log no system_logs
+    try {
+      await query(
+        `
+        INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+        VALUES ($1, $2, $3, $4, $5)
+      `,
+        [
+          req.user.id,
+          'force_logout_all',
+          JSON.stringify({ reason: 'security', at: new Date().toISOString(), affected_users: result.rowCount }),
+          req.ip,
+          req.get('User-Agent')
+        ],
+      );
+    } catch (logError) {
+      // Se a tabela não existir ainda em algum ambiente, não bloqueia o comando
+      console.warn('Erro ao registrar log:', logError);
+    }
+
+    res.json({
+      message: 'Todos os usuários foram desconectados com sucesso',
+      affected_users: result.rowCount
+    });
+  } catch (error) {
+    console.error('Erro ao forçar logout de todos os usuários:', error);
+    res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+  }
+});
+
 export default router;
