@@ -166,7 +166,7 @@ router.post('/login', loginValidation, async (req, res) => {
     }
 
     // Atualizar último login
-    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+    await query('UPDATE users SET last_login = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
 
     // Gerar JWT
     const token = jwt.sign(

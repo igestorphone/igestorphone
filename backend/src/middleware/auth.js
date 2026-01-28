@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
 
+const IDLE_TIMEOUT_MINUTES = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10);
+const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
+const TOUCH_INTERVAL_MS = parseInt(process.env.IDLE_TOUCH_INTERVAL_MS || `${60 * 1000}`, 10); // 1 min
+
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
@@ -14,7 +18,7 @@ export const authenticateToken = async (req, res, next) => {
     
     // Buscar usuário no banco para verificar se ainda está ativo
     const result = await query(`
-      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active
+      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at
       FROM users WHERE id = $1
     `, [decoded.userId]);
 
@@ -26,6 +30,14 @@ export const authenticateToken = async (req, res, next) => {
 
     if (!user.is_active) {
       return res.status(401).json({ message: 'Conta desativada' });
+    }
+
+    // Verificar inatividade (logout após 15 minutos sem atividade)
+    const nowMs = Date.now();
+    const lastActivityMs = user.last_activity_at ? new Date(user.last_activity_at).getTime() : null;
+
+    if (lastActivityMs && nowMs - lastActivityMs > IDLE_TIMEOUT_MS) {
+      return res.status(401).json({ message: 'Sessão expirada por inatividade' });
     }
 
     // Verificar se a assinatura não expirou
@@ -45,6 +57,13 @@ export const authenticateToken = async (req, res, next) => {
           subscription_status: 'expired'
         });
       }
+    }
+
+    // Atualizar last_activity_at com throttle (evita update em todo request)
+    const shouldTouch =
+      !lastActivityMs || (nowMs - lastActivityMs) > TOUCH_INTERVAL_MS;
+    if (shouldTouch) {
+      await query('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
     }
 
     // Adicionar dados do usuário ao request

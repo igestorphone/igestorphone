@@ -22,6 +22,7 @@ const migrations = [
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP,
+    last_activity_at TIMESTAMP,
     is_active BOOLEAN DEFAULT true
   )`,
 
@@ -142,6 +143,7 @@ const migrations = [
   )`,
 
   // Atualizações de colunas existentes
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS city VARCHAR(120)`,
@@ -170,6 +172,7 @@ const migrations = [
   // Índices para performance
   `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
   `CREATE INDEX IF NOT EXISTS idx_users_subscription_status ON users(subscription_status)`,
+  `CREATE INDEX IF NOT EXISTS idx_users_last_activity_at ON users(last_activity_at)`,
   `CREATE INDEX IF NOT EXISTS idx_products_supplier_id ON products(supplier_id)`,
   `CREATE INDEX IF NOT EXISTS idx_products_name ON products(name)`,
   `CREATE INDEX IF NOT EXISTS idx_price_history_product_id ON price_history(product_id)`,

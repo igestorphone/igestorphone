@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Usuario, LoginRequest, TipoUsuario } from '@/types'
+import { Usuario, LoginRequest } from '@/types'
 import { removeFromStorage } from '@/lib/utils'
 import { api } from '@/lib/api'
+import { clearActivity, touchActivity } from '@/lib/idle'
 
 interface AuthState {
   user: Usuario | null
@@ -62,6 +63,9 @@ export const useAuthStore = create<AuthStore>()(
               isLoading: false,
               error: null
             })
+
+            // Marca atividade inicial para controle de inatividade
+            touchActivity()
             
             // Após o login, carregar as permissões
             console.log('🔐 Login - Carregando permissões...')
@@ -83,6 +87,7 @@ export const useAuthStore = create<AuthStore>()(
       logout: () => {
         // Clear storage
         removeFromStorage('auth-storage')
+        clearActivity()
         
         set({
           user: null,
@@ -173,7 +178,7 @@ export const useAuthStore = create<AuthStore>()(
 
 // Initialize auth on app start
 const initializeAuth = () => {
-  const { token, user, isAuthenticated } = useAuthStore.getState()
+  const { token, user } = useAuthStore.getState()
   
   if (token && user) {
     console.log('Auth initialized successfully')

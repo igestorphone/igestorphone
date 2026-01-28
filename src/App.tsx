@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { useAuthStore } from '@/stores/authStore'
+import { useIdleLogout } from '@/hooks/useIdleLogout'
 
 // Layouts
 import AuthLayout from '@/components/layout/AuthLayout'
@@ -35,6 +36,7 @@ import RankingPage from '@/pages/RankingPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
+  useIdleLogout()
 
   return (
     <div className="min-h-screen">
