@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Search, Filter, MoreVertical, Calendar, CreditCard, Mail, Phone, Link as LinkIcon, Copy, Check, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Search, Filter, MoreVertical, Calendar, CreditCard, Mail, Phone, Link as LinkIcon, Copy, Check, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -175,6 +175,26 @@ export default function ManageUsersPage() {
       setUserToDelete(null);
     } catch (error) {
       console.error('Erro ao deletar usuário:', error);
+    }
+  };
+
+  const handleForceLogoutAll = async () => {
+    if (!confirm('⚠️ ATENÇÃO: Isso desconectará TODOS os usuários do sistema, incluindo você!\n\nDeseja continuar?')) {
+      return;
+    }
+
+    try {
+      const response = await usersApi.forceLogoutAll();
+      toast.success(`✅ Todos os usuários foram desconectados! (${response.affected_users || 0} usuários afetados)`);
+      
+      // Desconectar você também após 2 segundos
+      setTimeout(() => {
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/login';
+      }, 2000);
+    } catch (error: any) {
+      console.error('Erro ao desconectar todos os usuários:', error);
+      toast.error(error.response?.data?.message || 'Erro ao desconectar usuários');
     }
   };
 
@@ -384,6 +404,14 @@ export default function ManageUsersPage() {
         <div className="flex items-center space-x-3">
           {activeTab === 'users' && (
             <div className="flex items-center space-x-3">
+              <button
+                onClick={handleForceLogoutAll}
+                className="btn-secondary flex items-center space-x-2 bg-red-500/20 hover:bg-red-500/30 border-red-500/30 text-red-400"
+                title="Desconectar todos os usuários do sistema"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Desconectar Todos</span>
+              </button>
               <button
                 onClick={handleCopyRegistrationLink}
                 className="btn-primary flex items-center space-x-2"
