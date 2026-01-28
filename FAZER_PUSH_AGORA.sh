@@ -8,8 +8,8 @@ echo ""
 
 cd /Users/MAC/igestorphone
 
-# Configurar remote com token
-git remote set-url origin https://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@github.com/igestorphone/igestorphone.git
+# Configurar remote com token (token deve ser fornecido via variável de ambiente ou input)
+# git remote set-url origin https://SEU_TOKEN@github.com/igestorphone/igestorphone.git
 
 echo "✅ Token configurado!"
 echo ""
