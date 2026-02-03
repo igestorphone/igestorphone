@@ -110,6 +110,18 @@ const migrations = [
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Tabela de tickets de suporte (um por usuário)
+  `CREATE TABLE IF NOT EXISTS support_tickets (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    subject VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    priority VARCHAR(50) DEFAULT 'medium',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Tabela de listas brutas dos fornecedores
   `CREATE TABLE IF NOT EXISTS supplier_raw_lists (
     id SERIAL PRIMARY KEY,
@@ -181,6 +193,8 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_supplier_suggestions_created_at ON supplier_suggestions(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_bug_reports_status ON bug_reports(status)`,
   `CREATE INDEX IF NOT EXISTS idx_bug_reports_severity ON bug_reports(severity)`,
+  `CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_support_tickets_created_at ON support_tickets(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_supplier_raw_lists_supplier_id ON supplier_raw_lists(supplier_id)`,
   `CREATE INDEX IF NOT EXISTS idx_supplier_raw_lists_processed_at ON supplier_raw_lists(processed_at)`,
   `CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id)`,
@@ -218,7 +232,10 @@ const migrations = [
   `CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
   `DROP TRIGGER IF EXISTS update_notes_updated_at ON notes`,
-  `CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`
+  `CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  `DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets`,
+  `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`
 ];
 
 async function runMigrations() {

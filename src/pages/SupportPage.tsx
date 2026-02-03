@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import { 
   HelpCircle, 
   Mail, 
@@ -16,6 +17,7 @@ import {
   AlertTriangle,
   Info
 } from 'lucide-react';
+import { supportApi } from '@/lib/api';
 
 interface SupportTicket {
   id: string;
@@ -34,24 +36,32 @@ export default function SupportPage() {
     priority: 'medium' as 'low' | 'medium' | 'high'
   });
 
-  const [tickets] = useState<SupportTicket[]>([
-    {
-      id: '1',
-      subject: 'Problema com login',
-      message: 'Não consigo fazer login no sistema',
-      status: 'resolved',
-      priority: 'high',
-      createdAt: '2024-09-15'
-    },
-    {
-      id: '2',
-      subject: 'Dúvida sobre relatórios',
-      message: 'Como gerar relatórios de vendas?',
-      status: 'in_progress',
-      priority: 'medium',
-      createdAt: '2024-09-16'
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+
+  const loadTickets = async () => {
+    setTicketsLoading(true);
+    try {
+      const res = await supportApi.getTickets();
+      const list = (res as { tickets?: Array<{ id: string; subject: string; message: string; status: string; priority: string; createdAt: string | null }> }).tickets ?? [];
+      setTickets(list.map((t) => ({
+        id: t.id,
+        subject: t.subject,
+        message: t.message,
+        status: t.status as SupportTicket['status'],
+        priority: t.priority as SupportTicket['priority'],
+        createdAt: t.createdAt || ''
+      })));
+    } catch {
+      setTickets([]);
+    } finally {
+      setTicketsLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    loadTickets();
+  }, []);
 
   const faqItems = [
     {
@@ -80,11 +90,30 @@ export default function SupportPage() {
     }
   ];
 
-  const handleSubmitTicket = (e: React.FormEvent) => {
+  const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui você implementaria o envio do ticket
-    console.log('Ticket enviado:', ticketForm);
-    setTicketForm({ subject: '', message: '', priority: 'medium' });
+    try {
+      const res = await supportApi.createTicket({
+        subject: ticketForm.subject,
+        message: ticketForm.message,
+        priority: ticketForm.priority
+      }) as { ticket?: { id: string; subject: string; message: string; status: string; priority: string; createdAt: string | null } };
+      if (res.ticket) {
+        const t = res.ticket;
+        setTickets((prev) => [{
+          id: t.id,
+          subject: t.subject,
+          message: t.message,
+          status: (t.status || 'pending') as SupportTicket['status'],
+          priority: (t.priority || 'medium') as SupportTicket['priority'],
+          createdAt: t.createdAt || new Date().toISOString().split('T')[0]
+        }, ...prev]);
+      }
+      setTicketForm({ subject: '', message: '', priority: 'medium' });
+      toast.success('Ticket enviado com sucesso!');
+    } catch {
+      toast.error('Erro ao enviar ticket. Tente novamente.');
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -285,10 +314,12 @@ export default function SupportPage() {
               transition={{ duration: 0.3 }}
               className="space-y-4"
             >
-              {tickets.length === 0 ? (
+              {ticketsLoading ? (
+                <div className="text-center py-8 text-gray-600 dark:text-white/80">Carregando seus tickets...</div>
+              ) : tickets.length === 0 ? (
                 <div className="text-center py-8">
                   <AlertTriangle className="w-12 h-12 text-yellow-500 dark:text-yellow-400 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-white/80">Nenhum ticket encontrado.</p>
+                  <p className="text-gray-600 dark:text-white/80">Nenhum ticket encontrado. Abra um novo na aba Contato.</p>
                 </div>
               ) : (
                 tickets.map((ticket) => (

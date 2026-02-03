@@ -263,6 +263,11 @@ export const bugReportsApi = {
   }
 }
 
+export const supportApi = {
+  getTickets: () => api.get<{ success: boolean; tickets: Array<{ id: string; subject: string; message: string; status: string; priority: string; createdAt: string | null }> }>('/support/tickets').then(r => r.data),
+  createTicket: (data: { subject: string; message: string; priority?: 'low' | 'medium' | 'high' }) => api.post<{ success: boolean; ticket: { id: string; subject: string; message: string; status: string; priority: string; createdAt: string | null } }>('/support/tickets', data).then(r => r.data)
+}
+
 export const goalsApi = {
   getAll: async () => {
     const response = await api.get('/goals')

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, CreditCard, Crown, DollarSign } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, Crown, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/lib/api';
 
@@ -28,7 +28,6 @@ const EditUserPage: React.FC = () => {
   const [accessExpiresAt, setAccessExpiresAt] = useState<string | null>(null);
   const [renewAccess, setRenewAccess] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(30);
-  const [subscription, setSubscription] = useState<any>(null);
   const [subscriptionData, setSubscriptionData] = useState({
     planName: '',
     planType: 'basic',
@@ -89,7 +88,6 @@ const EditUserPage: React.FC = () => {
 
       // Carregar assinatura se existir
       if (user.subscription) {
-        setSubscription(user.subscription);
         setSubscriptionData({
           planName: user.subscription.plan_name || '',
           planType: user.subscription.plan_type || 'basic',
@@ -104,10 +102,9 @@ const EditUserPage: React.FC = () => {
       } else {
         // Tentar buscar assinatura diretamente
         try {
-          const subResponse = await usersApi.getSubscription(id!);
+          const subResponse = await usersApi.getSubscription(id!) as { subscription?: any };
           if (subResponse.subscription) {
             const sub = subResponse.subscription;
-            setSubscription(sub);
             setSubscriptionData({
               planName: sub.plan_name || '',
               planType: sub.plan_type || 'basic',

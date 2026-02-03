@@ -19,6 +19,7 @@ import aiRoutes from './routes/ai.js';
 import utilsRoutes from './routes/utils.js';
 import supplierSuggestionsRoutes from './routes/supplier-suggestions.js';
 import bugReportsRoutes from './routes/bug-reports.js';
+import supportRoutes from './routes/support.js';
 import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
 import registrationRoutes from './routes/registration.js';
@@ -163,6 +164,7 @@ app.use('/api/analytics', authenticateToken, analyticsRoutes);
 app.use('/api/utils', utilsRoutes);
 app.use('/api/supplier-suggestions', supplierSuggestionsRoutes);
 app.use('/api/bug-reports', bugReportsRoutes);
+app.use('/api/support', supportRoutes);
 app.use('/api/goals', authenticateToken, goalsRoutes);
 app.use('/api/notes', authenticateToken, notesRoutes);
 
@@ -222,34 +224,34 @@ async function checkAndCleanupProducts() {
     const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
     
     if (isMidnightWindow) {
-      // Verificar se há produtos antigos para limpar (de dias anteriores)
-      // Usar DATE() simples que funciona com o timezone do servidor
+      // Verificar se há produtos antigos para limpar (mais de 3 dias)
+      // Mantém apenas os últimos 3 dias de produtos ativos
       const countQuery = await query(`
         SELECT COUNT(*) as total
         FROM products
         WHERE is_active = true
-          AND DATE(updated_at) < CURRENT_DATE
-          AND DATE(created_at) < CURRENT_DATE
+          AND updated_at < NOW() - INTERVAL '3 days'
+          AND created_at < NOW() - INTERVAL '3 days'
       `);
       
       const totalToClean = parseInt(countQuery.rows[0].total);
       
       if (totalToClean > 0) {
         logger.info(`🕛 Executando limpeza automática de produtos (Brasília): ${agoraBrasil}`);
-        logger.info(`📊 ${totalToClean} produtos antigos encontrados para limpar`);
+        logger.info(`📊 ${totalToClean} produtos antigos encontrados para limpar (mais de 3 dias)`);
         
-        // Executar limpeza - apenas produtos de dias anteriores
+        // Executar limpeza - produtos com mais de 3 dias
         const result = await query(`
           UPDATE products 
           SET is_active = false,
               updated_at = NOW()
           WHERE is_active = true
-            AND DATE(updated_at) < CURRENT_DATE
-            AND DATE(created_at) < CURRENT_DATE
+            AND updated_at < NOW() - INTERVAL '3 days'
+            AND created_at < NOW() - INTERVAL '3 days'
         `);
         
         const deactivatedCount = result.rowCount || 0;
-        logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente`);
+        logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente (mantendo apenas últimos 3 dias)`);
       } else {
         logger.debug(`⏰ Horário de limpeza (${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}), mas nenhum produto antigo encontrado`);
       }
