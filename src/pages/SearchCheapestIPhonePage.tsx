@@ -366,7 +366,6 @@ export default function SearchCheapestIPhonePage() {
                 {stats.suppliersCount} fornecedores
               </span>
             </div>
-            </div>
           </div>
 
           {/* Right side - Status and time */}
