@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
-  Calendar,
   Building2,
   BarChart3,
   Palette,
@@ -12,9 +11,6 @@ import {
   Loader2,
   MessageCircle,
   Copy,
-  TrendingDown,
-  TrendingUp,
-  DollarSign,
   Package,
   Wifi,
   Clock,
@@ -85,24 +81,6 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0
   }).format(price || 0)
 
-const formatDateShort = (date: string) => {
-  if (!date) return ''
-  const d = new Date(date)
-  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-}
-
-const buildAvailableDates = () => {
-  const dates: { value: string; label: string }[] = []
-  const today = new Date()
-  dates.push({ value: today.toISOString().split('T')[0], label: 'Hoje' })
-  for (let i = 1; i < 7; i++) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    dates.push({ value: date.toISOString().split('T')[0], label: formatDateShort(date.toISOString()) })
-  }
-  return dates
-}
-
 const formatTime = (date: Date) =>
   date.toLocaleTimeString('pt-BR', {
     hour: '2-digit',
@@ -162,7 +140,6 @@ export default function SearchCheapestIPhonePage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
-  const [dollarHistory, setDollarHistory] = useState<number[]>([])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -358,51 +335,12 @@ export default function SearchCheapestIPhonePage() {
     gcTime: 5 * 60 * 1000
   })
 
-  const dollarRateQuery = useQuery({
-    queryKey: ['dollar-rate'],
-    queryFn: () => utilsApi.getDollarRate(),
-    refetchInterval: 60000,
-    staleTime: 30000
-  })
-
   const serverStatusQuery = useQuery({
     queryKey: ['server-status'],
     queryFn: () => utilsApi.getServerStatus(),
     refetchInterval: 10000,
     staleTime: 5000
   })
-
-  const dollarRate = dollarRateQuery.data?.rate || 5.38
-  const previousRate = useMemo(() => {
-    const cached = localStorage.getItem('dollar-rate-cache')
-    if (!cached) return 5.5
-    try {
-      const data = JSON.parse(cached)
-      return data.rate || 5.5
-    } catch {
-      return 5.5
-    }
-  }, [dollarRateQuery.data])
-
-  useEffect(() => {
-    if (dollarRateQuery.data?.rate) {
-      const rate = dollarRateQuery.data.rate
-      localStorage.setItem(
-        'dollar-rate-cache',
-        JSON.stringify({ rate, timestamp: new Date().toISOString() })
-      )
-      // Adiciona ao histórico (mantém últimos 20 valores)
-      setDollarHistory(prev => {
-        const newHistory = [...prev, rate]
-        return newHistory.slice(-20)
-      })
-    }
-  }, [dollarRateQuery.data])
-
-  const dollarChange = dollarRate - previousRate
-  const dollarChangePercent = previousRate > 0 ? ((dollarChange / previousRate) * 100).toFixed(2) : '0.00'
-
-  const availableDates = buildAvailableDates()
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
@@ -428,51 +366,6 @@ export default function SearchCheapestIPhonePage() {
                 {stats.suppliersCount} fornecedores
               </span>
             </div>
-            <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                  R$ {dollarRate.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-                {dollarHistory.length > 1 && (
-                  <div className="relative w-16 h-6">
-                    <svg
-                      className="w-full h-full"
-                      viewBox={`0 0 ${dollarHistory.length * 4} 24`}
-                      preserveAspectRatio="none"
-                    >
-                      <polyline
-                        fill="none"
-                        stroke={dollarChange < 0 ? '#10b981' : dollarChange > 0 ? '#ef4444' : '#6b7280'}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        points={dollarHistory
-                          .map((value, index) => {
-                            const min = Math.min(...dollarHistory)
-                            const max = Math.max(...dollarHistory)
-                            const range = max - min || 1
-                            const x = index * 4
-                            const y = 24 - ((value - min) / range) * 24
-                            return `${x},${y}`
-                          })
-                          .join(' ')}
-                      />
-                    </svg>
-                  </div>
-                )}
-                {dollarChange !== 0 && (
-                  <span
-                    className={`flex items-center gap-0.5 text-xs ${
-                      dollarChange < 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                    }`}
-                  >
-                    {dollarChange < 0 ? <TrendingDown className="w-3 h-3" /> : <TrendingUp className="w-3 h-3" />}
-                    {Math.abs(parseFloat(dollarChangePercent))}%
-                  </span>
-                )}
-              </div>
             </div>
           </div>
 
@@ -534,26 +427,6 @@ export default function SearchCheapestIPhonePage() {
           {/* Filters row */}
           <div className="overflow-x-auto -mx-4 px-4">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Calendar className="w-4 h-4 mr-1.5" />
-                Data
-              </label>
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                <option value="">Hoje</option>
-                {availableDates.slice(1).map((date) => (
-                  <option key={date.value} value={date.value}>
-                    {date.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-            </div>
-
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Building2 className="w-4 h-4 mr-1.5" />
@@ -802,10 +675,7 @@ export default function SearchCheapestIPhonePage() {
                           </div>
                         </th>
                         <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="w-3 h-3" />
-                            <span>Preço</span>
-                          </div>
+                          <span>Preço</span>
                         </th>
                         <th className="px-2 py-3 text-center text-xs font-bold text-white uppercase tracking-wider min-w-[140px]">
                           Ações
