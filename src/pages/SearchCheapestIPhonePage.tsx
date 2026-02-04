@@ -111,24 +111,58 @@ const formatTime = (date: Date) =>
     timeZone: 'America/Sao_Paulo'
   })
 
+// Input de busca com estado local: só o input re-renderiza ao digitar, evitando delay
+function SearchInputDebounced({
+  onDebouncedChange,
+  placeholder = 'Buscar produtos...'
+}: {
+  onDebouncedChange: (value: string) => void
+  placeholder?: string
+}) {
+  const [localValue, setLocalValue] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => onDebouncedChange(localValue.trim() || ''), 400)
+    return () => clearTimeout(timer)
+  }, [localValue, onDebouncedChange])
+  return (
+    <div className="relative">
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+      <input
+        type="text"
+        placeholder={placeholder}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
+      />
+    </div>
+  )
+}
+
+// Relógio isolado: atualização a cada 1s não re-renderiza a página inteira
+function LiveClock() {
+  const [currentTime, setCurrentTime] = useState(() => new Date())
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
+    return () => clearInterval(timer)
+  }, [])
+  return (
+    <div className="flex items-center gap-2">
+      <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+      <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatTime(currentTime)}</span>
+    </div>
+  )
+}
+
 export default function SearchCheapestIPhonePage() {
   const queryClient = useQueryClient()
 
-  const [searchQuery, setSearchQuery] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
-  const [currentTime, setCurrentTime] = useState(new Date())
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
   const [dollarHistory, setDollarHistory] = useState<number[]>([])
-
-  useEffect(() => {
-    const trimmed = searchQuery.trim()
-    const timer = setTimeout(() => setDebouncedSearch(trimmed || ''), 400)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -139,11 +173,6 @@ export default function SearchCheapestIPhonePage() {
       clearInterval(interval)
     }
   }, [queryClient])
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(timer)
-  }, [])
 
 
 
@@ -462,30 +491,18 @@ export default function SearchCheapestIPhonePage() {
                 </>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">{formatTime(currentTime)}</span>
-            </div>
+            <LiveClock />
           </div>
         </motion.div>
 
-        {/* Search */}
+        {/* Search - input isolado para não re-renderizar a página ao digitar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
           className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder="Buscar produtos..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all"
-            />
-          </div>
+          <SearchInputDebounced onDebouncedChange={setDebouncedSearch} placeholder="Buscar produtos..." />
         </motion.div>
 
         {/* Update status and filters */}
