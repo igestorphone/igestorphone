@@ -534,12 +534,12 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       return res.status(400).json({ message: 'Fornecedor não encontrado ou inativo' });
     }
 
-    // NOVA LÓGICA: Não desativar produtos existentes
-    // Apenas atualizar/adicionar produtos da lista atual
-    // Produtos que não estão na lista permanecem ativos
+    // Ao reprocessar: produtos do fornecedor que NÃO estão na lista são desativados
+    // Assim evita aparecer produto antigo/errado (ex: 17 Pro Max preto que não existe mais na lista)
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     console.log(`🔄 Preparando para processar lista do fornecedor ${finalSupplierId} (${today})...`);
-    console.log(`ℹ️  Produtos existentes não serão desativados. Apenas serão atualizados os que estão na nova lista.`);
+
+    const keysInList = new Set(); // chaves (model|color|storage|condition) dos produtos desta lista
 
     // Salvar produtos validados
     const savedProducts = [];
@@ -584,7 +584,10 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         const normalizedStorage = product.storage ? product.storage.trim().toLowerCase() : null;
         const normalizedName = product.name ? product.name.trim().toLowerCase() : null;
         const normalizedVariant = detectVariant(product);
-        
+
+        const listKey = `${(normalizedModel || '').toLowerCase().trim()}|${(normalizedColor || '').toLowerCase().trim()}|${(normalizedStorage || '').trim()}|${condition}`;
+        keysInList.add(listKey);
+
         if (normalizedModel) {
           // Busca por modelo: compara modelo, cor, armazenamento e condição
           // Buscar mesmo produtos inativos (que foram desativados hoje) para reativá-los
@@ -748,6 +751,29 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     console.log(`  ❌ Erros: ${saveErrors.length}`);
     if (saveErrors.length > 0) {
       console.error(`  📋 Erros detalhados:`, saveErrors);
+    }
+
+    // Desativar produtos deste fornecedor que NÃO estão na lista processada
+    // (evita aparecer produto antigo/errado, ex: 17 Pro Max preto que não existe na lista)
+    const allActive = await query(`
+      SELECT id, model, color, storage, condition
+      FROM products
+      WHERE supplier_id = $1 AND is_active = true
+    `, [finalSupplierId]);
+    const idsToDeactivate = [];
+    for (const row of allActive.rows) {
+      const dbColorNorm = row.color ? normalizeColor(row.color, row.model) : null;
+      const dbKey = `${(row.model || '').toString().trim().toLowerCase()}|${(dbColorNorm || '').toString().toLowerCase().trim()}|${(row.storage || '').toString().trim().toLowerCase()}|${row.condition || 'Novo'}`;
+      if (!keysInList.has(dbKey)) {
+        idsToDeactivate.push(row.id);
+      }
+    }
+    if (idsToDeactivate.length > 0) {
+      await query(`
+        UPDATE products SET is_active = false, updated_at = NOW()
+        WHERE id = ANY($1::int[])
+      `, [idsToDeactivate]);
+      console.log(`  🧹 ${idsToDeactivate.length} produto(s) desativado(s) (não estão na lista atual)`);
     }
 
     // Log da ação
