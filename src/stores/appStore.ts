@@ -1,3 +1,4 @@
+import { startTransition } from 'react'
 import { create } from 'zustand'
 import { Fornecedor, Produto, StatisticsResponse } from '@/types'
 
@@ -214,12 +215,15 @@ const applyThemeToDocument = (theme: 'light' | 'dark') => {
   }
 }
 
-// Override setTheme to also apply to document
+// Override setTheme: aplicar no DOM primeiro (troca imediata), depois atualizar store em startTransition (evita travada)
 const originalSetTheme = useAppStore.getState().setTheme
 useAppStore.setState({
   setTheme: (theme: 'light' | 'dark') => {
-    originalSetTheme(theme)
     applyThemeToDocument(theme)
+    localStorage.setItem('theme', theme)
+    startTransition(() => {
+      useAppStore.setState({ theme })
+    })
   }
 })
 
