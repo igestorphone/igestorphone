@@ -46,6 +46,8 @@ export interface UserPermissions {
 export interface Usuario {
   id: string;
   nome: string;
+  /** Nome completo retornado pela API (alguns endpoints usam `name`) */
+  name?: string;
   email: string;
   telefone?: string;
   avatar?: string;

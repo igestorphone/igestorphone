@@ -128,10 +128,10 @@ export default function Header() {
                 </div>
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
-                    {user?.nome?.split(' ')[0] || 'Usuário'}
+                    {(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-white/70 font-medium capitalize">
-                    {user?.tipo || 'user'}
+                    {user?.tipo || user?.role || 'user'}
                   </p>
                 </div>
               </button>
@@ -155,8 +155,8 @@ export default function Header() {
                     <div className="py-2">
                       {/* User Info */}
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{user?.nome?.split(' ')[0] || 'Usuário'}</p>
-                        <p className="text-xs text-gray-600 dark:text-white/70 capitalize">{user?.tipo || 'user'}</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}</p>
+                        <p className="text-xs text-gray-600 dark:text-white/70 capitalize">{user?.tipo || user?.role || 'user'}</p>
                       </div>
                       
                       {/* Menu Items */}
