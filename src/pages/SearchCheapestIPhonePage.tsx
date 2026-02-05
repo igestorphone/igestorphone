@@ -309,7 +309,7 @@ export default function SearchCheapestIPhonePage() {
       ? `\n${product.name || product.model || 'Produto'}\n${
           product.model && product.model !== product.name ? `Modelo: ${product.model}\n` : ''
         }Preço: ${formatPrice(product.price || 0)}\n${product.storage ? `Capacidade: ${product.storage}\n` : ''}${
-          product.color ? `Cor: ${normalizeColor(product.color)}\n` : ''
+          product.color ? `Cor: ${normalizeColor(product.color, product.model)}\n` : ''
         }${product.variant ? `Variante: ${product.variant}\n` : ''}`
       : '\n'
 
@@ -718,7 +718,7 @@ export default function SearchCheapestIPhonePage() {
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
-                                {normalizeColor(product.color)}
+                                {normalizeColor(product.color, product.model)}
                               </span>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80">
@@ -771,7 +771,7 @@ export default function SearchCheapestIPhonePage() {
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
-                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A')}\n${
+                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
                                     }`
                                     navigator.clipboard.writeText(text)
@@ -850,7 +850,7 @@ export default function SearchCheapestIPhonePage() {
                           </span>
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                             <Palette className="w-3 h-3 mr-1" />
-                            {normalizeColor(product.color)}
+                            {normalizeColor(product.color, product.model)}
                           </span>
                           {product.variant && (
                             <span
@@ -888,7 +888,7 @@ export default function SearchCheapestIPhonePage() {
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A')}\n${
+                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
                               }`
                               navigator.clipboard.writeText(text)
