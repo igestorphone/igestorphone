@@ -218,7 +218,7 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'roxo profundo': 'Roxo Profundo',
     'deep purple': 'Roxo Profundo',
   },
-  // iPhone 15 e 15 Plus
+  // iPhone 15 e 15 Plus — cores oficiais: Preto, Azul, Verde, Amarelo, Rosa
   'iphone 15': {
     'preto': 'Preto',
     'black': 'Preto',
@@ -230,6 +230,8 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'yellow': 'Amarelo',
     'rosa': 'Rosa',
     'pink': 'Rosa',
+    'rose': 'Rosa',
+    'roza': 'Rosa', // typo comum de fornecedores
   },
   'iphone 15 plus': {
     'preto': 'Preto',
@@ -242,6 +244,8 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'yellow': 'Amarelo',
     'rosa': 'Rosa',
     'pink': 'Rosa',
+    'rose': 'Rosa',
+    'roza': 'Rosa', // typo comum de fornecedores
   },
   // iPhone 15 Pro e 15 Pro Max
   'iphone 15 pro': {
@@ -913,11 +917,12 @@ export function identifyIPhoneModel(model?: string): string | null {
   return null
 }
 
-// Fallback global: inglês → português para evitar duplicatas no filtro (Black/Preto, White/Branco, Rose/Rosa)
+// Fallback global: inglês → português para evitar duplicatas no filtro (Black/Preto, White/Branco, Rose/Rosa, Roza→Rosa)
 const globalColorFallback: Record<string, string> = {
   black: 'Preto',
   white: 'Branco',
   rose: 'Rosa',
+  roza: 'Rosa', // typo comum
   pink: 'Rosa',
   blue: 'Azul',
   green: 'Verde',
