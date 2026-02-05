@@ -225,17 +225,22 @@ export default function SearchCheapestIPhonePage() {
 
     // Cores oficiais do iPhone 17 (normal): Preto, Branco, Mist Blue, Lavanda, Sage
     const iPhone17OfficialColors = new Set(['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage'])
+    // iPhone 16 Pro / 16 Pro Max: só Titânio Deserto, Natural, Branco, Preto (evita "Branco" solto)
+    const isIPhone16Pro = searchLower.includes('iphone') && (searchLower.includes('16 pro') || searchLower.includes('16 pro max'))
+    const iPhone16ProOfficialColors = new Set(['Titânio Deserto', 'Titânio Natural', 'Titânio Branco', 'Titânio Preto'])
+    const modelOrName = (p: any) => p.model || p.name || ''
 
     products.forEach((product: any) => {
       if (product.color) {
-        const normalized = normalizeColor(product.color, product.model)
+        const normalized = normalizeColor(product.color, modelOrName(product))
         // Adicionar todas as cores normalizadas (cada modelo tem suas cores específicas)
         if (normalized && normalized !== 'N/A') {
           // Se busca é "iPhone 17" exato, mostrar apenas cores oficiais
           if (isIPhone17Exact) {
-            if (iPhone17OfficialColors.has(normalized)) {
-              colors.add(normalized)
-            }
+            if (iPhone17OfficialColors.has(normalized)) colors.add(normalized)
+          } else if (isIPhone16Pro) {
+            // iPhone 16 Pro / Pro Max: só as 4 cores Titânio (evita "Branco" solto)
+            if (iPhone16ProOfficialColors.has(normalized)) colors.add(normalized)
           } else {
             colors.add(normalized)
           }
@@ -252,11 +257,20 @@ export default function SearchCheapestIPhonePage() {
       }
     })
 
-    // Ordenar cores alfabeticamente, mas manter ordem específica para iPhone 17
+    // Ordenar cores alfabeticamente, mas manter ordem específica para iPhone 17 e 16 Pro
     let sortedColors: string[]
     if (isIPhone17Exact) {
-      // Ordem específica para iPhone 17: Preto, Branco, Mist Blue, Lavanda, Sage
       const order = ['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage']
+      sortedColors = Array.from(colors).sort((a, b) => {
+        const indexA = order.indexOf(a)
+        const indexB = order.indexOf(b)
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB
+        if (indexA !== -1) return -1
+        if (indexB !== -1) return 1
+        return a.localeCompare(b)
+      })
+    } else if (isIPhone16Pro) {
+      const order = ['Titânio Deserto', 'Titânio Natural', 'Titânio Branco', 'Titânio Preto']
       sortedColors = Array.from(colors).sort((a, b) => {
         const indexA = order.indexOf(a)
         const indexB = order.indexOf(b)
@@ -309,7 +323,7 @@ export default function SearchCheapestIPhonePage() {
       ? `\n${product.name || product.model || 'Produto'}\n${
           product.model && product.model !== product.name ? `Modelo: ${product.model}\n` : ''
         }Preço: ${formatPrice(product.price || 0)}\n${product.storage ? `Capacidade: ${product.storage}\n` : ''}${
-          product.color ? `Cor: ${normalizeColor(product.color, product.model)}\n` : ''
+          product.color ? `Cor: ${normalizeColor(product.color, product.model || product.name)}\n` : ''
         }${product.variant ? `Variante: ${product.variant}\n` : ''}`
       : '\n'
 
@@ -718,7 +732,7 @@ export default function SearchCheapestIPhonePage() {
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
-                                {normalizeColor(product.color, product.model)}
+                                {normalizeColor(product.color, product.model || product.name)}
                               </span>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80">
@@ -771,7 +785,7 @@ export default function SearchCheapestIPhonePage() {
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
-                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model)}\n${
+                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
                                     }`
                                     navigator.clipboard.writeText(text)
@@ -850,7 +864,7 @@ export default function SearchCheapestIPhonePage() {
                           </span>
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                             <Palette className="w-3 h-3 mr-1" />
-                            {normalizeColor(product.color, product.model)}
+                            {normalizeColor(product.color, product.model || product.name)}
                           </span>
                           {product.variant && (
                             <span
@@ -888,7 +902,7 @@ export default function SearchCheapestIPhonePage() {
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model)}\n${
+                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
                               }`
                               navigator.clipboard.writeText(text)
