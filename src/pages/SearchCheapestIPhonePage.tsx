@@ -225,21 +225,23 @@ export default function SearchCheapestIPhonePage() {
 
     // Cores oficiais do iPhone 17 (normal): Preto, Branco, Mist Blue, Lavanda, Sage
     const iPhone17OfficialColors = new Set(['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage'])
-    // iPhone 16 Pro / 16 Pro Max: só Titânio Deserto, Natural, Branco, Preto (evita "Branco" solto)
+    // iPhone 16 Pro / 16 Pro Max: só Titânio Deserto, Natural, Branco, Preto
     const isIPhone16Pro = searchLower.includes('iphone') && (searchLower.includes('16 pro') || searchLower.includes('16 pro max'))
     const iPhone16ProOfficialColors = new Set(['Titânio Deserto', 'Titânio Natural', 'Titânio Branco', 'Titânio Preto'])
+    // iPhone 17 Pro / 17 Pro Max: Azul Intenso, Laranja Cósmico, Prateado (Silver = Branco)
+    const isIPhone17Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('17 pro max'))
+    const iPhone17ProOfficialColors = new Set(['Azul Intenso', 'Laranja Cósmico', 'Prateado'])
     const modelOrName = (p: any) => p.model || p.name || ''
 
     products.forEach((product: any) => {
       if (product.color) {
         const normalized = normalizeColor(product.color, modelOrName(product))
-        // Adicionar todas as cores normalizadas (cada modelo tem suas cores específicas)
         if (normalized && normalized !== 'N/A') {
-          // Se busca é "iPhone 17" exato, mostrar apenas cores oficiais
           if (isIPhone17Exact) {
             if (iPhone17OfficialColors.has(normalized)) colors.add(normalized)
+          } else if (isIPhone17Pro) {
+            if (iPhone17ProOfficialColors.has(normalized)) colors.add(normalized)
           } else if (isIPhone16Pro) {
-            // iPhone 16 Pro / Pro Max: só as 4 cores Titânio (evita "Branco" solto)
             if (iPhone16ProOfficialColors.has(normalized)) colors.add(normalized)
           } else {
             colors.add(normalized)
@@ -261,6 +263,16 @@ export default function SearchCheapestIPhonePage() {
     let sortedColors: string[]
     if (isIPhone17Exact) {
       const order = ['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage']
+      sortedColors = Array.from(colors).sort((a, b) => {
+        const indexA = order.indexOf(a)
+        const indexB = order.indexOf(b)
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB
+        if (indexA !== -1) return -1
+        if (indexB !== -1) return 1
+        return a.localeCompare(b)
+      })
+    } else if (isIPhone17Pro) {
+      const order = ['Azul Intenso', 'Laranja Cósmico', 'Prateado']
       sortedColors = Array.from(colors).sort((a, b) => {
         const indexA = order.indexOf(a)
         const indexB = order.indexOf(b)
