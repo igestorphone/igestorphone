@@ -276,7 +276,7 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'black titanium': 'Titânio Preto',
     'titanium black': 'Titânio Preto',
   },
-  // iPhone 16 e 16 Plus
+  // iPhone 16 e 16 Plus — cores oficiais: Ultramarino (Azul), Verde (Teal), Rosa, Branco, Preto
   'iphone 16': {
     'preto': 'Preto',
     'black': 'Preto',
@@ -284,10 +284,15 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'white': 'Branco',
     'verde': 'Verde',
     'green': 'Verde',
+    'teal': 'Verde',
     'rosa': 'Rosa',
     'pink': 'Rosa',
-    'azul ultramarine': 'Azul Ultramarine',
-    'ultramarine blue': 'Azul Ultramarine',
+    'rose': 'Rosa',
+    'ultramarino': 'Ultramarino',
+    'azul ultramarine': 'Ultramarino',
+    'ultramarine blue': 'Ultramarino',
+    'azul': 'Ultramarino',
+    'blue': 'Ultramarino',
   },
   'iphone 16 plus': {
     'preto': 'Preto',
@@ -296,10 +301,22 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'white': 'Branco',
     'verde': 'Verde',
     'green': 'Verde',
+    'teal': 'Verde',
     'rosa': 'Rosa',
     'pink': 'Rosa',
-    'azul ultramarine': 'Azul Ultramarine',
-    'ultramarine blue': 'Azul Ultramarine',
+    'rose': 'Rosa',
+    'ultramarino': 'Ultramarino',
+    'azul ultramarine': 'Ultramarino',
+    'ultramarine blue': 'Ultramarino',
+    'azul': 'Ultramarino',
+    'blue': 'Ultramarino',
+  },
+  // iPhone 16E — apenas Preto e Branco
+  'iphone 16e': {
+    'preto': 'Preto',
+    'black': 'Preto',
+    'branco': 'Branco',
+    'white': 'Branco',
   },
   // iPhone 16 Pro e 16 Pro Max
   'iphone 16 pro': {
@@ -772,6 +789,7 @@ export function identifyIPhoneModel(model?: string): string | null {
   if (lowerModel.includes('iphone 16 pro max')) return 'iphone 16 pro max'
   if (lowerModel.includes('iphone 16 pro')) return 'iphone 16 pro'
   if (lowerModel.includes('iphone 16 plus')) return 'iphone 16 plus'
+  if (lowerModel.includes('iphone 16e') || lowerModel.includes('iphone 16 e')) return 'iphone 16e'
   if (lowerModel.includes('iphone 16')) return 'iphone 16'
   
   if (lowerModel.includes('iphone 15 pro max')) return 'iphone 15 pro max'
@@ -926,6 +944,7 @@ const globalColorFallback: Record<string, string> = {
   pink: 'Rosa',
   blue: 'Azul',
   green: 'Verde',
+  teal: 'Verde',
   red: 'Vermelho',
   yellow: 'Amarelo',
   purple: 'Roxo',

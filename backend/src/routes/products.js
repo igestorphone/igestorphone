@@ -175,6 +175,21 @@ router.get('/', [
           values.push(`%${number}%`);
           paramCount++;
         }
+
+        // iPhone 16 vs 16E: "iPhone 16" → só 16; "iPhone 16e" → só 16E
+        const has16E = searchLower.includes('16e') || searchLower.includes('16 e');
+        const has16 = searchLower.includes('16');
+        if (has16E) {
+          // Busca é "iPhone 16e" → mostrar apenas 16E
+          whereClause += ` AND (
+            LOWER(p.name) LIKE '%16e%' OR LOWER(p.model) LIKE '%16e%'
+            OR LOWER(p.name) LIKE '%16 e%' OR LOWER(p.model) LIKE '%16 e%'
+          )`;
+        } else if (has16) {
+          // Busca é "iPhone 16" (sem e) → excluir 16E
+          whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%16e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%16e%'`;
+          whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%16 e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%16 e%'`;
+        }
       } else {
         // Busca genérica de uma palavra: identificar tipo de produto
         let searchPattern = '';
