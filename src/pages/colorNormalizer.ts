@@ -384,11 +384,12 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'white': 'Branco',
     '⚪': 'Branco',
     '⬜': 'Branco',
-    // Lavanda - todas as variações (incluindo emojis roxo)
+    // Lavanda (roxo) - todas as variações e typos de fornecedores
     'lavanda': 'Lavanda',
     'lavender': 'Lavanda',
     'lavand': 'Lavanda',
     'lavander': 'Lavanda',
+    'lavande': 'Lavanda',
     'lilás': 'Lavanda',
     'lilas': 'Lavanda',
     'lilac': 'Lavanda',
@@ -407,7 +408,7 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     '🔵': 'Mist Blue',
     '💙': 'Mist Blue',
     '🌫️': 'Mist Blue',
-    // Sage - todas as variações (incluindo emojis verde)
+    // Sage (verde/sálvia) - fornecedores mandam "sage" ou "sálvia"
     'sage': 'Sage',
     'sálvia': 'Sage',
     'salvia': 'Sage',
@@ -963,12 +964,12 @@ export function identifyIPhoneModel(model?: string): string | null {
   return null
 }
 
-// Fallback global: inglês → português para evitar duplicatas no filtro (Black/Preto, White/Branco, Rose/Rosa, Roza→Rosa)
+// Fallback global: unificar duplicatas (Black/Preto, Lavanda/Lavander, Sage/Sálvia, etc.)
 const globalColorFallback: Record<string, string> = {
   black: 'Preto',
   white: 'Branco',
   rose: 'Rosa',
-  roza: 'Rosa', // typo comum
+  roza: 'Rosa',
   pink: 'Rosa',
   blue: 'Azul',
   green: 'Verde',
@@ -977,6 +978,15 @@ const globalColorFallback: Record<string, string> = {
   yellow: 'Amarelo',
   purple: 'Roxo',
   orange: 'Laranja',
+  // iPhone 17 Lavanda (roxo) - typos de fornecedores
+  lavander: 'Lavanda',
+  lavande: 'Lavanda',
+  lavender: 'Lavanda',
+  lilac: 'Lavanda',
+  // iPhone 17 Sage (verde/sálvia)
+  sage: 'Sage',
+  salvia: 'Sage',
+  sálvia: 'Sage',
   silver: 'Prateado',
   gold: 'Dourado',
   gray: 'Cinza',
