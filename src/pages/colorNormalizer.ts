@@ -94,10 +94,15 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'midnight': 'Meia Noite',
     'estelar': 'Estelar',
     'starlight': 'Estelar',
+    'preto': 'Preto',
+    'black': 'Preto',
+    'branco': 'Branco',
+    'white': 'Branco',
     'azul': 'Azul',
     'blue': 'Azul',
     'rosa': 'Rosa',
     'pink': 'Rosa',
+    'rose': 'Rosa',
     'verde': 'Verde',
     'green': 'Verde',
     'vermelho': 'Vermelho',
@@ -108,10 +113,15 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     'midnight': 'Meia Noite',
     'estelar': 'Estelar',
     'starlight': 'Estelar',
+    'preto': 'Preto',
+    'black': 'Preto',
+    'branco': 'Branco',
+    'white': 'Branco',
     'azul': 'Azul',
     'blue': 'Azul',
     'rosa': 'Rosa',
     'pink': 'Rosa',
+    'rose': 'Rosa',
     'verde': 'Verde',
     'green': 'Verde',
     'vermelho': 'Vermelho',
@@ -883,6 +893,30 @@ export function identifyIPhoneModel(model?: string): string | null {
   return null
 }
 
+// Fallback global: inglês → português para evitar duplicatas no filtro (Black/Preto, White/Branco, Rose/Rosa)
+const globalColorFallback: Record<string, string> = {
+  black: 'Preto',
+  white: 'Branco',
+  rose: 'Rosa',
+  pink: 'Rosa',
+  blue: 'Azul',
+  green: 'Verde',
+  red: 'Vermelho',
+  yellow: 'Amarelo',
+  purple: 'Roxo',
+  orange: 'Laranja',
+  silver: 'Prateado',
+  gold: 'Dourado',
+  gray: 'Cinza',
+  grey: 'Cinza',
+  midnight: 'Meia Noite',
+  starlight: 'Estelar',
+  graphite: 'Grafite',
+  spacegray: 'Cinza Espacial',
+  'space gray': 'Cinza Espacial',
+  'space grey': 'Cinza Espacial',
+}
+
 // Função para normalizar cores baseada no modelo
 export function normalizeColor(color: string, model?: string): string {
   if (!color) return 'N/A'
@@ -914,7 +948,18 @@ export function normalizeColor(color: string, model?: string): string {
     }
   }
   
-  // Se não encontrou mapeamento específico, retornar cor original capitalizada
+  // Fallback global: unificar inglês → português (evita Black + Preto, White + Branco, Rose + Rosa no filtro)
+  if (globalColorFallback[lower]) {
+    return globalColorFallback[lower]
+  }
+  const words = lower.split(/\s+/)
+  for (const word of words) {
+    if (globalColorFallback[word]) {
+      return globalColorFallback[word]
+    }
+  }
+  
+  // Se já está em português ou é nome próprio (ex: Mist Blue), capitalizar e retornar
   const capitalized = color.charAt(0).toUpperCase() + color.slice(1).toLowerCase()
   return capitalized
 }
