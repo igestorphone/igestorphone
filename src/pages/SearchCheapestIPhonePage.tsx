@@ -157,6 +157,12 @@ export default function SearchCheapestIPhonePage() {
   // Se não houver busca nem filtros, buscar todos os produtos do dia
   const shouldFetchProducts = true // Sempre buscar produtos para mostrar todos os produtos do dia
 
+  // 17 Pro e 16 Pro usam cores normalizadas (ex: Laranja Cósmico); o backend filtra pelo valor bruto (ex: Cosmic Orange) e não acha. Não enviar color à API e filtrar no front por cor normalizada.
+  const searchLowerForColor = debouncedSearch.toLowerCase().trim()
+  const filterColorClientSide =
+    searchLowerForColor.includes('iphone') &&
+    (searchLowerForColor.includes('17 pro') || searchLowerForColor.includes('16 pro'))
+
   const productsQuery = useQuery({
     queryKey: [
       'produtos',
@@ -168,10 +174,10 @@ export default function SearchCheapestIPhonePage() {
     ],
     queryFn: () =>
       produtosApi.getAll({
-        search: debouncedSearch.length >= 3 ? debouncedSearch : undefined, // Só aplicar busca se tiver 3+ caracteres
+        search: debouncedSearch.length >= 3 ? debouncedSearch : undefined,
         condition: selectedCategory,
         storage: selectedStorage,
-        color: selectedColor,
+        color: filterColorClientSide ? undefined : selectedColor || undefined,
         date: selectedDate || undefined,
         sort_by: 'price',
         sort_order: 'asc',
@@ -188,6 +194,12 @@ export default function SearchCheapestIPhonePage() {
       else if (response?.products) products = response.products
       else if (response?.data?.products) products = response.data.products
       else if (response?.data && Array.isArray(response.data)) products = response.data
+
+      if (filterColorClientSide && selectedColor) {
+        products = products.filter(
+          (p: any) => normalizeColor(p.color, p.model || p.name) === selectedColor
+        )
+      }
 
       const getVariantPriority = (variant?: string | null) =>
         variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
