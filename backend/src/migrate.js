@@ -40,6 +40,15 @@ const migrations = [
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Colunas extras de assinatura (plan_type, valor, datas, renovação) — ADD IF NOT EXISTS para não quebrar DBs existentes
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS plan_type VARCHAR(100)`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS duration_months INTEGER`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS price DECIMAL(10,2)`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'pix'`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS start_date TIMESTAMP`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date TIMESTAMP`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT false`,
+
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (
     id SERIAL PRIMARY KEY,

@@ -209,26 +209,25 @@ const EditUserPage: React.FC = () => {
         updateData.senha = formData.senha;
       }
 
-      // Atualizar assinatura se houver dados
-      if (subscriptionData.planName || subscriptionData.planType) {
-        try {
-          await usersApi.updateSubscription(id!, {
-            planName: subscriptionData.planName || subscriptionData.planType,
-            planType: subscriptionData.planType,
-            durationMonths: subscriptionData.durationMonths,
-            price: subscriptionData.price,
-            paymentMethod: subscriptionData.paymentMethod,
-            startDate: subscriptionData.startDate || undefined,
-            endDate: subscriptionData.endDate || undefined,
-            autoRenew: subscriptionData.autoRenew,
-            status: subscriptionData.status
-          });
-        } catch (subError: any) {
-          console.error('Erro ao atualizar assinatura:', subError);
-          // Não bloquear o update do usuário se falhar a assinatura
-        }
+      // Sempre enviar assinatura (criar ou atualizar) para que os dados sejam salvos
+      try {
+        await usersApi.updateSubscription(id!, {
+          planName: subscriptionData.planName || subscriptionData.planType || 'Plano',
+          planType: subscriptionData.planType,
+          durationMonths: subscriptionData.durationMonths,
+          price: subscriptionData.price,
+          paymentMethod: subscriptionData.paymentMethod,
+          startDate: subscriptionData.startDate || undefined,
+          endDate: subscriptionData.endDate || undefined,
+          autoRenew: subscriptionData.autoRenew,
+          status: subscriptionData.status
+        });
+      } catch (subError: any) {
+        console.error('Erro ao atualizar assinatura:', subError);
+        const msg = subError.response?.data?.message || subError.message || 'Erro ao salvar assinatura';
+        toast.error(`Assinatura não foi salva: ${msg}`);
       }
-      
+
       // Incluir renovação de acesso se solicitada
       if (renewAccess) {
         updateData.renewAccess = true;
