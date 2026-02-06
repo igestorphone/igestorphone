@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, Crown, DollarSign } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, Crown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/lib/api';
 
@@ -30,7 +30,7 @@ const EditUserPage: React.FC = () => {
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(30);
   const [subscriptionData, setSubscriptionData] = useState({
     planName: '',
-    planType: 'basic',
+    planType: 'mensal' as 'mensal' | 'trimestral' | 'anual',
     durationMonths: 1,
     price: 0,
     paymentMethod: 'pix',
@@ -39,6 +39,12 @@ const EditUserPage: React.FC = () => {
     autoRenew: false,
     status: 'active'
   });
+
+  const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12 };
+  const setPlanType = (value: string) => {
+    const months = planTypeToMonths[value] ?? subscriptionData.durationMonths;
+    setSubscriptionData(prev => ({ ...prev, planType: value as 'mensal' | 'trimestral' | 'anual', durationMonths: months }));
+  };
   
   const [formData, setFormData] = useState<UserFormData>({
     nome: '',
@@ -86,29 +92,37 @@ const EditUserPage: React.FC = () => {
       // Carregar data de expiração do acesso
       setAccessExpiresAt(user.access_expires_at || null);
 
+      const normPlanType = (t: string, months?: number) => {
+        if (t === 'mensal' || t === 'trimestral' || t === 'anual') return t;
+        if (months === 12) return 'anual';
+        if (months === 3) return 'trimestral';
+        return 'mensal';
+      };
       // Carregar assinatura se existir
       if (user.subscription) {
+        const sub = user.subscription;
+        const dur = sub.duration_months ?? 1;
         setSubscriptionData({
-          planName: user.subscription.plan_name || '',
-          planType: user.subscription.plan_type || 'basic',
-          durationMonths: user.subscription.duration_months || 1,
-          price: user.subscription.price || 0,
-          paymentMethod: user.subscription.payment_method || 'pix',
-          startDate: user.subscription.start_date ? new Date(user.subscription.start_date).toISOString().split('T')[0] : '',
-          endDate: user.subscription.end_date ? new Date(user.subscription.end_date).toISOString().split('T')[0] : '',
-          autoRenew: user.subscription.auto_renew || false,
-          status: user.subscription.status || 'active'
+          planName: sub.plan_name || '',
+          planType: normPlanType(sub.plan_type || '', dur),
+          durationMonths: dur,
+          price: parseFloat(sub.price) || 0,
+          paymentMethod: sub.payment_method || 'pix',
+          startDate: sub.start_date ? new Date(sub.start_date).toISOString().split('T')[0] : '',
+          endDate: sub.end_date ? new Date(sub.end_date).toISOString().split('T')[0] : '',
+          autoRenew: sub.auto_renew || false,
+          status: sub.status || 'active'
         });
       } else {
-        // Tentar buscar assinatura diretamente
         try {
           const subResponse = await usersApi.getSubscription(id!) as { subscription?: any };
           if (subResponse.subscription) {
             const sub = subResponse.subscription;
+            const dur = sub.duration_months ?? 1;
             setSubscriptionData({
               planName: sub.plan_name || '',
-              planType: sub.plan_type || 'basic',
-              durationMonths: sub.duration_months || 1,
+              planType: normPlanType(sub.plan_type || '', dur),
+              durationMonths: dur,
               price: parseFloat(sub.price) || 0,
               paymentMethod: sub.payment_method || 'pix',
               startDate: sub.start_date ? new Date(sub.start_date).toISOString().split('T')[0] : '',
@@ -452,77 +466,79 @@ const EditUserPage: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Assinatura */}
+          {/* Assinatura — plano, valor, datas e renovação */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0 }}
           >
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6 flex items-center">
-              <Crown className="w-5 h-5 mr-2 text-yellow-600 dark:text-yellow-400" />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+              <Crown className="w-5 h-5 mr-2 text-amber-500 dark:text-amber-400" />
               Assinatura
             </h3>
-            <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-6 border border-gray-200 dark:border-white/10 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <p className="text-sm text-gray-500 dark:text-white/60 mb-6">
+              Defina o plano, valor pago, datas de entrada e último pagamento. Use a data de término para inativar ou renovar o acesso.
+            </p>
+            <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Nome do Plano */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
                     Nome do Plano
                   </label>
                   <input
                     type="text"
                     value={subscriptionData.planName}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, planName: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                     placeholder="Ex: Plano PRO, Plano Básico"
                   />
                 </div>
 
-                {/* Tipo de Plano */}
+                {/* Tipo de Plano — Mensal / Trimestral / Anual */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
                     Tipo de Plano
                   </label>
                   <select
                     value={subscriptionData.planType}
-                    onChange={(e) => setSubscriptionData({ ...subscriptionData, planType: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    onChange={(e) => setPlanType(e.target.value)}
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   >
-                    <option value="basic">Básico</option>
-                    <option value="pro">PRO</option>
-                    <option value="premium">Premium</option>
-                    <option value="enterprise">Enterprise</option>
+                    <option value="mensal">Mensal (1 mês)</option>
+                    <option value="trimestral">Trimestral (3 meses)</option>
+                    <option value="anual">Anual (12 meses)</option>
                   </select>
                 </div>
 
-                {/* Valor */}
+                {/* Valor (R$) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
-                    Valor (R$)
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
+                    Valor que o usuário paga (R$)
                   </label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-white/50" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-white/50 text-sm">R$</span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
-                      value={subscriptionData.price}
+                      value={subscriptionData.price === 0 ? '' : subscriptionData.price}
                       onChange={(e) => setSubscriptionData({ ...subscriptionData, price: parseFloat(e.target.value) || 0 })}
-                      className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 pl-10 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                      placeholder="0.00"
+                      className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 pl-9 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                      placeholder="0,00"
                     />
                   </div>
                 </div>
 
                 {/* Método de Pagamento */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
                     Método de Pagamento
                   </label>
                   <select
                     value={subscriptionData.paymentMethod}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, paymentMethod: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   >
                     <option value="pix">PIX</option>
                     <option value="credit_card">Cartão de Crédito</option>
@@ -532,9 +548,9 @@ const EditUserPage: React.FC = () => {
                   </select>
                 </div>
 
-                {/* Duração (meses) */}
+                {/* Duração (meses) — preenchido pelo tipo de plano, editável */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
                     Duração (meses)
                   </label>
                   <input
@@ -542,67 +558,68 @@ const EditUserPage: React.FC = () => {
                     min="1"
                     value={subscriptionData.durationMonths}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, durationMonths: parseInt(e.target.value) || 1 })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                    placeholder="1"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   />
                 </div>
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
-                    Status
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
+                    Status da Assinatura
                   </label>
                   <select
                     value={subscriptionData.status}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, status: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   >
                     <option value="active">Ativo</option>
                     <option value="trial">Trial</option>
                     <option value="cancelled">Cancelado</option>
                     <option value="expired">Expirado</option>
-                    <option value="past_due">Pagamento Atrasado</option>
+                    <option value="past_due">Pagamento atrasado</option>
                   </select>
                 </div>
 
-                {/* Data de Início */}
+                {/* Data de entrada (quando entrou no sistema) */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
-                    Data de Início
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
+                    Data de entrada
                   </label>
                   <input
                     type="date"
                     value={subscriptionData.startDate}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, startDate: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   />
+                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Data em que o usuário entrou no sistema</p>
                 </div>
 
-                {/* Data de Término */}
+                {/* Data do último pagamento / Término */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
-                    Data de Término
+                  <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
+                    Data do último pagamento / Término
                   </label>
                   <input
                     type="date"
                     value={subscriptionData.endDate}
                     onChange={(e) => setSubscriptionData({ ...subscriptionData, endDate: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-3 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   />
+                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Até quando está pago. Use para inativar ou renovar.</p>
                 </div>
               </div>
 
-              {/* Auto Renovação */}
-              <div className="flex items-center space-x-3 pt-2">
+              {/* Renovação automática */}
+              <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-white/10">
                 <input
                   type="checkbox"
                   id="autoRenew"
                   checked={subscriptionData.autoRenew}
                   onChange={(e) => setSubscriptionData({ ...subscriptionData, autoRenew: e.target.checked })}
-                  className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 dark:border-white/20 rounded"
                 />
-                <label htmlFor="autoRenew" className="text-gray-900 dark:text-white font-medium cursor-pointer">
-                  Renovação Automática
+                <label htmlFor="autoRenew" className="text-sm font-medium text-gray-900 dark:text-white cursor-pointer">
+                  Renovação automática (sistema pode renovar com base nesta data)
                 </label>
               </div>
             </div>
