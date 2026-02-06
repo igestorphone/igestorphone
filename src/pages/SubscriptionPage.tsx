@@ -22,6 +22,10 @@ interface SubscriptionData {
   stripe_subscription_id?: string
   current_period_start: string
   current_period_end: string
+  start_date?: string
+  end_date?: string
+  price?: number
+  payment_method?: string
   cancel_at_period_end: boolean
   created_at: string
   updated_at: string
@@ -67,6 +71,17 @@ export default function SubscriptionPage() {
       month: '2-digit',
       year: 'numeric'
     })
+  }
+
+  // Datas “só dia” (ex.: início/fim do período): evita mostrar dia anterior por causa de UTC
+  const formatDateOnly = (dateString?: string) => {
+    if (!dateString) return 'N/A'
+    const d = new Date(dateString)
+    const isMidnightUTC = d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCMilliseconds() === 0
+    if (isMidnightUTC) {
+      return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}`
+    }
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
   const formatDateTime = (dateString?: string) => {
@@ -209,7 +224,7 @@ export default function SubscriptionPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Membro desde</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {formatDate(subscription.user_created_at || subscription.created_at)}
+                  {formatDateOnly(subscription.user_created_at || subscription.created_at)}
                 </p>
               </div>
             </div>
@@ -267,14 +282,15 @@ export default function SubscriptionPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Valor do Pagamento</p>
                 <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {/* Valor seria buscado do Stripe ou de configuração de planos */}
-                  R$ ---
+                  {subscription.price != null && subscription.price > 0
+                    ? `R$ ${Number(subscription.price).toFixed(2).replace('.', ',')}`
+                    : 'R$ ---'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Método de Pagamento</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {subscription.stripe_subscription_id ? 'Cartão de Crédito' : 'PIX'}
+                  {subscription.payment_method || (subscription.stripe_subscription_id ? 'Cartão de Crédito' : 'PIX')}
                 </p>
               </div>
               <div>
@@ -303,13 +319,13 @@ export default function SubscriptionPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Último Pagamento</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {formatDate(subscription.current_period_start)}
+                  {formatDateOnly(subscription.start_date || subscription.current_period_start)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Próximo Pagamento</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {formatDate(subscription.current_period_end)}
+                  {formatDateOnly(subscription.end_date || subscription.current_period_end)}
                 </p>
               </div>
             </div>
