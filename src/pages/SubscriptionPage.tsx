@@ -9,7 +9,9 @@ import {
   CreditCard,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  LogIn,
+  Sparkles
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { subscriptionsApi } from '@/lib/api'
@@ -198,7 +200,7 @@ export default function SubscriptionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:bg-white/[0.12] transition-all duration-200"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-blue-100 dark:bg-blue-500/20 rounded-lg">
@@ -235,7 +237,7 @@ export default function SubscriptionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:bg-white/[0.12] transition-all duration-200"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-yellow-100 dark:bg-yellow-500/20 rounded-lg">
@@ -268,7 +270,7 @@ export default function SubscriptionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:bg-white/[0.12] transition-all duration-200"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-green-100 dark:bg-green-500/20 rounded-lg">
@@ -290,7 +292,7 @@ export default function SubscriptionPage() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Método de Pagamento</p>
                 <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {subscription.payment_method || (subscription.stripe_subscription_id ? 'Cartão de Crédito' : 'PIX')}
+                  {String(subscription.payment_method || (subscription.stripe_subscription_id ? 'Cartão de Crédito' : 'pix')).toLowerCase() === 'pix' ? 'PIX' : (subscription.payment_method || 'Cartão de Crédito')}
                 </p>
               </div>
               <div>
@@ -305,7 +307,7 @@ export default function SubscriptionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:bg-white/[0.12] transition-all duration-200"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-purple-100 dark:bg-purple-500/20 rounded-lg">
@@ -336,7 +338,7 @@ export default function SubscriptionPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:bg-white/[0.12] transition-all duration-200"
           >
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-lg">
@@ -369,33 +371,46 @@ export default function SubscriptionPage() {
             </div>
           </motion.div>
 
-          {/* Card 6: Informações Adicionais */}
+          {/* Card 6: Atividade recente */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
+            className="bg-gradient-to-br from-white to-gray-50/80 dark:from-white/10 dark:to-indigo-500/5 border border-gray-200 dark:border-indigo-500/20 rounded-2xl p-6 shadow-sm hover:shadow-md dark:shadow-none dark:hover:from-white/[0.12] dark:hover:to-indigo-500/10 transition-all duration-200"
           >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
-                <CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            <div className="flex items-center gap-3 mb-5">
+              <div className="p-2.5 bg-indigo-100 dark:bg-indigo-500/25 rounded-xl">
+                <Sparkles className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Informações Adicionais
-              </h3>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Atividade recente
+                </h3>
+                <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">Último acesso e início da assinatura</p>
+              </div>
             </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Último Login</p>
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {formatDateTime(subscription.last_login)}
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                <div className="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 shrink-0">
+                  <LogIn className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-500 dark:text-white/50 uppercase tracking-wide">Último login</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
+                    {formatDateTime(subscription.last_login)}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600 dark:text-white/70 mb-1">Assinatura criada em</p>
-                <p className="text-base font-semibold text-gray-900 dark:text-white">
-                  {formatDateTime(subscription.created_at)}
-                </p>
+              <div className="flex items-start gap-3 p-3 rounded-xl bg-white/50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
+                <div className="p-1.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 shrink-0">
+                  <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-gray-500 dark:text-white/50 uppercase tracking-wide">Assinatura criada em</p>
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">
+                    {formatDateTime(subscription.created_at)}
+                  </p>
+                </div>
               </div>
             </div>
           </motion.div>
