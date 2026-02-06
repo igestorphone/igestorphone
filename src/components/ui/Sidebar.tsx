@@ -22,7 +22,8 @@ import {
   Trophy,
   Moon,
   Sun,
-  MessageCircle
+  MessageCircle,
+  Calendar
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -42,41 +43,22 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const isAdmin = user?.tipo === 'admin'
   const [isAdminOpen, setIsAdminOpen] = useState(true)
+  const [isConfigOpen, setIsConfigOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(true)
 
-  // Navegação principal
+  // Navegação principal (topo)
   const mainNavigation = [
-    {
-      name: 'Dashboard',
-      href: '/search-cheapest-iphone',
-      icon: Home,
-      permission: 'buscar_iphone_barato',
-    },
-    {
-      name: 'Meus Dados',
-      href: '/profile',
-      icon: Users,
-    },
-    {
-      name: 'Plano & Assinatura',
-      href: '/subscription',
-      icon: CreditCard,
-    },
-    {
-      name: 'Preferências',
-      href: '/preferences',
-      icon: Settings,
-    },
-    {
-      name: 'FAQ',
-      href: '/faq',
-      icon: HelpCircle,
-    },
-    {
-      name: 'Ranking',
-      href: '/ranking',
-      icon: Trophy,
-    }
+    { name: 'Dashboard', href: '/search-cheapest-iphone', icon: Home, permission: 'buscar_iphone_barato' },
+    { name: 'Média de Preço (página em desenvolvimento)', href: '/price-averages', icon: BarChart3 },
+    { name: 'Calendário (página em desenvolvimento)', href: '/calendar', icon: Calendar },
+    { name: 'FAQ', href: '/faq', icon: HelpCircle },
+  ]
+
+  // Configurações (seção recolhível)
+  const configNavigation = [
+    { name: 'Meus Dados', href: '/profile', icon: Users },
+    { name: 'Plano & Assinatura', href: '/subscription', icon: CreditCard },
+    { name: 'Preferências', href: '/preferences', icon: Settings },
   ]
 
   const adminNavigation = [
@@ -228,22 +210,51 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
-        {/* Main Navigation */}
+        {/* Principal: Dashboard, Média de Preço, Calendário, FAQ */}
         <div className="space-y-1">
           {filteredMainNavigation.map((item) => (
             <NavItem key={item.href} item={item} onClick={onClose} />
           ))}
         </div>
 
-        {/* Seção PREFERÊNCIAS */}
+        {/* Seção Configurações: Meus dados, Plano & Assinatura, Preferências */}
         {!sidebarCollapsed && (
-          <div className="mt-8">
+          <div className="mt-6">
+            <button
+              onClick={() => setIsConfigOpen((prev) => !prev)}
+              className="w-full flex items-center justify-between px-4 py-2 mb-2 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider">Configurações</span>
+              <ChevronDown
+                className={`w-4 h-4 transition-transform duration-200 ${isConfigOpen ? 'rotate-0' : '-rotate-90'}`}
+              />
+            </button>
+            {isConfigOpen && (
+              <div className="space-y-1">
+                {configNavigation.map((item) => (
+                  <NavItem key={item.href} item={item} onClick={onClose} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {sidebarCollapsed && (
+          <div className="mt-6 space-y-1">
+            {configNavigation.map((item) => (
+              <NavItem key={item.href} item={item} onClick={onClose} />
+            ))}
+          </div>
+        )}
+
+        {/* Seção Preferências: Modo Claro/Escuro, Fale Conosco */}
+        {!sidebarCollapsed && (
+          <div className="mt-6">
             <button
               onClick={() => setIsPreferencesOpen((prev) => !prev)}
               className="w-full flex items-center justify-between px-4 py-2 mb-2 rounded-lg text-gray-500 dark:text-white/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
             >
               <span className="text-xs font-semibold uppercase tracking-wider">
-                PREFERÊNCIAS
+                Preferências
               </span>
               <ChevronDown
                 className={`w-4 h-4 transition-transform duration-200 ${isPreferencesOpen ? 'rotate-0' : '-rotate-90'}`}
