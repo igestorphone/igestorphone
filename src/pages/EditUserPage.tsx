@@ -41,9 +41,22 @@ const EditUserPage: React.FC = () => {
   });
 
   const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12 };
+
+  const addMonthsToDate = (dateStr: string, months: number): string => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setMonth(d.getMonth() + months);
+    return d.toISOString().slice(0, 10);
+  };
+
   const setPlanType = (value: string) => {
     const months = planTypeToMonths[value] ?? subscriptionData.durationMonths;
-    setSubscriptionData(prev => ({ ...prev, planType: value as 'mensal' | 'trimestral' | 'anual', durationMonths: months }));
+    setSubscriptionData(prev => ({
+      ...prev,
+      planType: value as 'mensal' | 'trimestral' | 'anual',
+      durationMonths: months,
+      endDate: prev.startDate ? addMonthsToDate(prev.startDate, months) : prev.endDate
+    }));
   };
   
   const [formData, setFormData] = useState<UserFormData>({
@@ -98,18 +111,22 @@ const EditUserPage: React.FC = () => {
         if (months === 3) return 'trimestral';
         return 'mensal';
       };
+      const startStr = (d: string) => d ? new Date(d).toISOString().slice(0, 10) : '';
+      const computedEnd = (start: string, months: number) => start && months ? addMonthsToDate(start, months) : '';
+
       // Carregar assinatura se existir
       if (user.subscription) {
         const sub = user.subscription;
         const dur = sub.duration_months ?? 1;
+        const start = startStr(sub.start_date);
         setSubscriptionData({
           planName: sub.plan_name || '',
           planType: normPlanType(sub.plan_type || '', dur),
           durationMonths: dur,
           price: parseFloat(sub.price) || 0,
           paymentMethod: sub.payment_method || 'pix',
-          startDate: sub.start_date ? new Date(sub.start_date).toISOString().split('T')[0] : '',
-          endDate: sub.end_date ? new Date(sub.end_date).toISOString().split('T')[0] : '',
+          startDate: start,
+          endDate: computedEnd(start, dur) || startStr(sub.end_date),
           autoRenew: sub.auto_renew || false,
           status: sub.status || 'active'
         });
@@ -119,14 +136,15 @@ const EditUserPage: React.FC = () => {
           if (subResponse.subscription) {
             const sub = subResponse.subscription;
             const dur = sub.duration_months ?? 1;
+            const start = startStr(sub.start_date);
             setSubscriptionData({
               planName: sub.plan_name || '',
               planType: normPlanType(sub.plan_type || '', dur),
               durationMonths: dur,
               price: parseFloat(sub.price) || 0,
               paymentMethod: sub.payment_method || 'pix',
-              startDate: sub.start_date ? new Date(sub.start_date).toISOString().split('T')[0] : '',
-              endDate: sub.end_date ? new Date(sub.end_date).toISOString().split('T')[0] : '',
+              startDate: start,
+              endDate: computedEnd(start, dur) || startStr(sub.end_date),
               autoRenew: sub.auto_renew || false,
               status: sub.status || 'active'
             });
@@ -556,7 +574,11 @@ const EditUserPage: React.FC = () => {
                     type="number"
                     min="1"
                     value={subscriptionData.durationMonths}
-                    onChange={(e) => setSubscriptionData({ ...subscriptionData, durationMonths: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => {
+                      const months = parseInt(e.target.value) || 1;
+                      const end = subscriptionData.startDate ? addMonthsToDate(subscriptionData.startDate, months) : subscriptionData.endDate;
+                      setSubscriptionData(prev => ({ ...prev, durationMonths: months, endDate: end }));
+                    }}
                     className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   />
                 </div>
@@ -587,24 +609,28 @@ const EditUserPage: React.FC = () => {
                   <input
                     type="date"
                     value={subscriptionData.startDate}
-                    onChange={(e) => setSubscriptionData({ ...subscriptionData, startDate: e.target.value })}
+                    onChange={(e) => {
+                      const start = e.target.value;
+                      const end = start ? addMonthsToDate(start, subscriptionData.durationMonths) : subscriptionData.endDate;
+                      setSubscriptionData(prev => ({ ...prev, startDate: start, endDate: end }));
+                    }}
                     className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
                   />
-                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Data em que o usuário entrou no sistema</p>
+                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Data em que o usuário entrou no sistema (último pagamento)</p>
                 </div>
 
-                {/* Data do último pagamento / Término */}
+                {/* Próximo pagamento (calculado: entrada + duração do plano) */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1.5">
-                    Data do último pagamento / Término
+                    Próximo pagamento
                   </label>
                   <input
                     type="date"
                     value={subscriptionData.endDate}
-                    onChange={(e) => setSubscriptionData({ ...subscriptionData, endDate: e.target.value })}
-                    className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all"
+                    readOnly
+                    className="w-full bg-gray-100 dark:bg-white/5 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2.5 text-gray-700 dark:text-white/80 cursor-not-allowed"
                   />
-                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Até quando está pago. Use para inativar ou renovar.</p>
+                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Calculado: data de entrada + duração do plano (mensal +1 mês, trimestral +3, anual +12)</p>
                 </div>
               </div>
 

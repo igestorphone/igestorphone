@@ -1177,14 +1177,12 @@ router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
       return res.status(404).json({ message: 'Usuário não encontrado' });
     }
 
-    // Se não tiver data de início, usar hoje
+    // Data de entrada / último pagamento (início do período)
     const finalStartDate = startDate ? new Date(startDate) : new Date();
-    // Se não tiver data de término e tiver duração, calcular
-    let finalEndDate = endDate ? new Date(endDate) : null;
-    if (!finalEndDate && durationMonths) {
-      finalEndDate = new Date(finalStartDate);
-      finalEndDate.setMonth(finalEndDate.getMonth() + durationMonths);
-    }
+    // Próximo pagamento = data de entrada + duração do plano (mensal +1 mês, trimestral +3, anual +12)
+    const months = durationMonths || 1;
+    const finalEndDate = new Date(finalStartDate);
+    finalEndDate.setMonth(finalEndDate.getMonth() + months);
 
     // Verificar se já existe assinatura ativa
     const existingSubscription = await query(`
