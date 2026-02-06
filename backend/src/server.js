@@ -24,6 +24,7 @@ import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
+import { runMigrations } from './migrate.js';
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -261,17 +262,25 @@ async function checkAndCleanupProducts() {
   }
 }
 
-// Iniciar servidor
-app.listen(PORT, () => {
-  logger.info(`🚀 Servidor rodando na porta ${PORT}`);
-  logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-  logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
-  
-  // Iniciar scheduler de limpeza automática (verifica a cada minuto)
-  logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
-  cleanupInterval = setInterval(checkAndCleanupProducts, 60000); // Verifica a cada 1 minuto
-  logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
-});
+// Rodar migrações e depois iniciar servidor
+runMigrations()
+  .then(() => {
+    logger.info('✅ Migrações do banco verificadas/aplicadas');
+    app.listen(PORT, () => {
+      logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+      logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
+
+      // Iniciar scheduler de limpeza automática (verifica a cada minuto)
+      logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
+      cleanupInterval = setInterval(checkAndCleanupProducts, 60000); // Verifica a cada 1 minuto
+      logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
+    });
+  })
+  .catch((err) => {
+    logger.error('❌ Falha ao rodar migrações:', err);
+    process.exit(1);
+  });
 
 // Tratamento de erros não capturados
 process.on('uncaughtException', (error) => {

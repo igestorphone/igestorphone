@@ -268,11 +268,21 @@ async function runMigrations() {
     
   } catch (error) {
     console.error('❌ Erro durante as migrações:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-runMigrations();
+// Quando executado diretamente (npm run db:migrate)
+if (process.argv[1]?.includes('migrate')) {
+  runMigrations()
+    .then(() => process.exit(0))
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    });
+}
+
+export { runMigrations };
 
 
 
