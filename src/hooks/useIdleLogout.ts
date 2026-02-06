@@ -5,7 +5,7 @@ import { throttle } from '@/lib/utils'
 import { clearActivity, getLastActivityAt, setLastActivityAt, touchActivity } from '@/lib/idle'
 import { useAuthStore } from '@/stores/authStore'
 
-const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60 * 1000 // 15 min
+const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 60 * 1000 // 5 horas sem atividade = logout
 const CHECK_EVERY_MS = 15 * 1000
 const TOUCH_THROTTLE_MS = 2000
 
