@@ -1279,7 +1279,12 @@ router.patch('/:id/subscription', requireRole('admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao atualizar assinatura:', error);
-    res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+    // Coluna inexistente = migração não rodou no servidor
+    const isColumnError = error.code === '42703' || (error.message && /column.*does not exist/i.test(error.message));
+    const message = isColumnError
+      ? 'Banco de dados desatualizado. No servidor execute: npm run db:migrate'
+      : 'Erro interno do servidor';
+    res.status(500).json({ message, error: process.env.NODE_ENV !== 'production' ? error.message : undefined });
   }
 });
 
