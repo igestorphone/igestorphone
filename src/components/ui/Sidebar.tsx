@@ -49,8 +49,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   // Navegação principal (topo)
   const mainNavigation = [
     { name: 'Dashboard', href: '/search-cheapest-iphone', icon: Home, permission: 'buscar_iphone_barato' },
-    { name: 'Média de Preço (página em desenvolvimento)', href: '/price-averages', icon: BarChart3 },
-    { name: 'Calendário (página em desenvolvimento)', href: '/calendar', icon: Calendar },
+    { name: 'Média de Preço', href: '/price-averages', icon: BarChart3 },
+    { name: 'Calendário', href: '/calendar', icon: Calendar },
     { name: 'FAQ', href: '/faq', icon: HelpCircle },
   ]
 

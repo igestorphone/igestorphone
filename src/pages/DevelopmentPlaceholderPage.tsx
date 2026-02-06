@@ -3,6 +3,7 @@ import { Calendar, BarChart3 } from 'lucide-react'
 
 const routeTitles: Record<string, { title: string; icon: 'calendar' | 'chart' }> = {
   '/calendar': { title: 'Calendário', icon: 'calendar' },
+  '/price-averages': { title: 'Média de Preço', icon: 'chart' },
 }
 
 export default function DevelopmentPlaceholderPage() {

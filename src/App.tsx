@@ -10,7 +10,6 @@ import ProtectedRoute from '@/components/ui/ProtectedRoute'
 
 // Pages
 import ConsultListsPage from '@/pages/ConsultListsPage'
-import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import SearchCheapestIPhonePage from '@/pages/SearchCheapestIPhonePage'
 import OutsideSPPage from '@/pages/OutsideSPPage'
 import ProcessListPage from '@/pages/ProcessListPage'
@@ -108,7 +107,7 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<PriceAveragesPage />} />
+          <Route index element={<DevelopmentPlaceholderPage />} />
         </Route>
         <Route path="/search-cheapest-iphone" element={
           <ProtectedRoute>
