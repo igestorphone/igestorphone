@@ -193,7 +193,10 @@ export const produtosApi = {
     apiClient.get<any>(`/products/${productId}/price-history`),
 
   getPriceHistoryByModel: (params: { model: string; storage?: string; color?: string }) =>
-    apiClient.get<any>('/products/price-history-by-model', { params })
+    apiClient.get<any>('/products/price-history-by-model', { params }),
+
+  getPriceAverages: () =>
+    apiClient.get<{ averages: { model: string; color: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }[] }>('/products/price-averages')
 }
 
 export const statisticsApi = {

@@ -356,6 +356,49 @@ router.get('/', [
   }
 });
 
+// Média de preços por modelo + cor (iPhones novos) — arredondado para múltiplo de 50
+router.get('/price-averages', async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        COALESCE(TRIM(p.model), TRIM(p.name)) AS model,
+        TRIM(COALESCE(p.color, '')) AS color,
+        AVG(p.price)::numeric AS avg_price,
+        COUNT(*)::int AS count,
+        MIN(p.price)::numeric AS min_price,
+        MAX(p.price)::numeric AS max_price
+      FROM products p
+      JOIN suppliers s ON p.supplier_id = s.id
+      WHERE p.is_active = true AND s.is_active = true
+        AND p.price > 0 AND p.price IS NOT NULL
+        AND (
+          p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
+          OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
+        )
+        AND (LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')
+      GROUP BY COALESCE(TRIM(p.model), TRIM(p.name)), TRIM(COALESCE(p.color, ''))
+      HAVING COUNT(*) >= 1
+      ORDER BY model, color
+    `);
+
+    const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
+
+    const rows = result.rows.map((r) => ({
+      model: r.model,
+      color: r.color || '—',
+      avg_price: roundTo50(r.avg_price),
+      count: r.count,
+      min_price: r.min_price != null ? roundTo50(r.min_price) : null,
+      max_price: r.max_price != null ? roundTo50(r.max_price) : null,
+    }));
+
+    res.json({ averages: rows });
+  } catch (error) {
+    console.error('Erro ao buscar médias de preço:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 // Buscar produto por ID
 // Buscar histórico de preços dos últimos 2 dias
 router.get('/price-history/:productId', async (req, res) => {

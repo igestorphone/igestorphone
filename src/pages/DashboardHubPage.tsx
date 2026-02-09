@@ -1,10 +1,10 @@
 import { motion } from 'framer-motion'
 import { NavLink } from 'react-router-dom'
-import { Smartphone, Smartphone as IphoneSemi, Smartphone as Android } from 'lucide-react'
+import { Smartphone, Smartphone as IphoneSemi, Smartphone as Android, BarChart3 } from 'lucide-react'
 import { usePermissions } from '@/hooks/usePermissions'
 
 export default function DashboardHubPage() {
-  const { canAccessSearchCheapest } = usePermissions()
+  const { canAccessSearchCheapest, canAccessPriceAverages } = usePermissions()
 
   const options = [
     {
@@ -15,6 +15,17 @@ export default function DashboardHubPage() {
       color: 'from-blue-500/20 to-indigo-500/20 dark:from-blue-500/10 dark:to-indigo-500/10 border-blue-500/30 dark:border-blue-400/20',
       iconColor: 'text-blue-600 dark:text-blue-400',
       requirePermission: true,
+      permissionKey: 'searchCheapest',
+    },
+    {
+      name: 'Média de Preço',
+      description: 'Média de preços dos iPhones novos por modelo e cor. Valores arredondados para sua tabela.',
+      href: '/price-averages',
+      icon: BarChart3,
+      color: 'from-purple-500/20 to-pink-500/20 dark:from-purple-500/10 dark:to-pink-500/10 border-purple-500/30 dark:border-purple-400/20',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      requirePermission: true,
+      permissionKey: 'priceAverages',
     },
     {
       name: 'Buscar iPhone Seminovo',
@@ -24,6 +35,7 @@ export default function DashboardHubPage() {
       color: 'from-gray-500/20 to-gray-600/20 dark:from-white/10 dark:to-white/5 border-gray-400/30 dark:border-white/20',
       iconColor: 'text-gray-600 dark:text-white/70',
       requirePermission: false,
+      permissionKey: null,
     },
     {
       name: 'Buscar Android',
@@ -33,6 +45,7 @@ export default function DashboardHubPage() {
       color: 'from-green-500/20 to-emerald-500/20 dark:from-green-500/10 dark:to-emerald-500/10 border-green-500/30 dark:border-green-400/20',
       iconColor: 'text-green-600 dark:text-green-400',
       requirePermission: false,
+      permissionKey: null,
     },
   ]
 
@@ -49,10 +62,17 @@ export default function DashboardHubPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {options.map((item, index) => {
-          const show = item.requirePermission ? canAccessSearchCheapest() : true
+          const show = item.requirePermission
+            ? item.permissionKey === 'searchCheapest'
+              ? canAccessSearchCheapest()
+              : item.permissionKey === 'priceAverages'
+                ? canAccessPriceAverages()
+                : true
+            : true
           if (!show) return null
 
           const Icon = item.icon
+          const isActive = item.href === '/search-cheapest-iphone' || item.href === '/price-averages'
           return (
             <motion.div
               key={item.href}
@@ -70,7 +90,7 @@ export default function DashboardHubPage() {
               <p className="text-sm text-gray-600 dark:text-white/70 flex-1">
                 {item.description}
               </p>
-              {item.href === '/search-cheapest-iphone' ? (
+              {isActive ? (
                 <NavLink
                   to={item.href}
                   className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-medium text-sm transition-colors"

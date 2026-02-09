@@ -5,10 +5,8 @@ import {
   Home,
   FileText,
   Users,
-  BarChart3,
   Search,
   Settings,
-  HelpCircle,
   X,
   Brain,
   Building2,
@@ -23,7 +21,8 @@ import {
   Moon,
   Sun,
   MessageCircle,
-  Calendar
+  Calendar,
+  BarChart3
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -38,7 +37,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const { theme, sidebarCollapsed, toggleSidebarCollapsed, setTheme } = useAppStore()
   const navigate = useNavigate()
   const {
-    canAccessSearchCheapest
+    canAccessSearchCheapest,
+    canAccessPriceAverages
   } = usePermissions()
 
   const isAdmin = user?.tipo === 'admin'
@@ -50,9 +50,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const mainNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Buscar iPhone Novo', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
-    { name: 'Média de Preço', href: '/price-averages', icon: BarChart3 },
+    { name: 'Média de Preço', href: '/price-averages', icon: BarChart3, permission: 'medias_preco' },
     { name: 'Calendário', href: '/calendar', icon: Calendar },
-    { name: 'FAQ', href: '/faq', icon: HelpCircle },
   ]
 
   // Configurações (seção recolhível)
@@ -112,6 +111,8 @@ export default function Sidebar({ onClose }: SidebarProps) {
       switch (item.permission) {
         case 'buscar_iphone_barato':
           return canAccessSearchCheapest()
+        case 'medias_preco':
+          return canAccessPriceAverages()
         default:
           return true
       }
@@ -211,7 +212,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 p-2 space-y-2 overflow-y-auto custom-scrollbar">
-        {/* Principal: Dashboard, Média de Preço, Calendário, FAQ */}
+        {/* Principal: Dashboard, Buscar iPhone Novo, Calendário */}
         <div className="space-y-1">
           {filteredMainNavigation.map((item) => (
             <NavItem key={item.href} item={item} onClick={onClose} />

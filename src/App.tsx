@@ -30,11 +30,11 @@ import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
 import PreferencesPage from '@/pages/PreferencesPage'
-import FAQPage from '@/pages/FAQPage'
 import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
 import DashboardHubPage from '@/pages/DashboardHubPage'
+import PriceAveragesPage from '@/pages/PriceAveragesPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -120,19 +120,19 @@ function App() {
         }>
           <Route index element={<ConsultListsPage />} />
         </Route>
-        <Route path="/price-averages" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DevelopmentPlaceholderPage />} />
-        </Route>
         <Route path="/search-cheapest-iphone" element={
           <ProtectedRoute>
             <MainLayout />
           </ProtectedRoute>
         }>
           <Route index element={<SearchCheapestIPhonePage />} />
+        </Route>
+        <Route path="/price-averages" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<PriceAveragesPage />} />
         </Route>
         <Route path="/outside-sp" element={
           <ProtectedRoute>
@@ -252,13 +252,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<PreferencesPage />} />
-        </Route>
-        <Route path="/faq" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<FAQPage />} />
         </Route>
         <Route path="/ranking" element={
           <ProtectedRoute>
