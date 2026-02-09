@@ -101,7 +101,7 @@ export default function Header() {
             {/* Botão Indicar Fornecedor */}
             <button
               onClick={() => setShowSuggestModal(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 rounded-xl text-white font-medium transition-all shadow-lg hover:shadow-xl"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all border border-gray-300/60 dark:border-white/15 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-white/90"
             >
               <UserPlus className="w-4 h-4" />
               <span>Indicar</span>
@@ -110,7 +110,7 @@ export default function Header() {
             {/* Botão Reportar Bug */}
             <button
               onClick={() => setShowBugModal(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-gradient-to-r dark:from-red-600 dark:via-orange-600 dark:to-yellow-600 dark:hover:from-red-500 dark:hover:via-orange-500 dark:hover:to-yellow-500 rounded-xl text-white font-medium transition-all shadow-lg hover:shadow-xl"
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all border border-gray-300/60 dark:border-white/15 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-white/90 hover:border-red-300/50 dark:hover:border-red-500/30 hover:text-red-600 dark:hover:text-red-400"
             >
               <Bug className="w-4 h-4" />
               <span>Bug</span>
@@ -121,16 +121,16 @@ export default function Header() {
               <button
                 ref={userButtonRef}
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-3 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-all duration-200 group"
+                className="flex items-center space-x-3 p-2 rounded-xl border border-transparent dark:border-white/10 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 transition-all duration-200 group"
               >
-                <div className="w-9 h-9 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-400/25 dark:bg-white/20 group-hover:bg-gray-400/35 dark:group-hover:bg-white/25 transition-colors">
+                  <User className="w-5 h-5 text-gray-600 dark:text-white/90" />
                 </div>
                 <div className="hidden sm:block text-left">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-200 transition-colors">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-white">
                     {(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}
                   </p>
-                  <p className="text-xs text-gray-600 dark:text-white/70 font-medium capitalize">
+                  <p className="text-xs text-gray-500 dark:text-white/60 font-medium capitalize">
                     {user?.tipo || user?.role || 'user'}
                   </p>
                 </div>

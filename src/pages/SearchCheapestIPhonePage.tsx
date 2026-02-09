@@ -408,16 +408,16 @@ export default function SearchCheapestIPhonePage() {
 
           {/* Right side - Status and time */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300/50 dark:border-white/15 bg-white/50 dark:bg-white/10">
               {serverStatusQuery.data?.status === 'OK' ? (
                 <>
-                  <Wifi className="w-4 h-4 text-green-600 dark:text-green-400" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-400">ONLINE</span>
+                  <Wifi className="w-4 h-4 text-gray-600 dark:text-white/70" />
+                  <span className="text-sm font-medium text-gray-700 dark:text-white/80">ONLINE</span>
                 </>
               ) : (
                 <>
-                  <Wifi className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  <span className="text-sm font-medium text-red-700 dark:text-red-400">OFFLINE</span>
+                  <Wifi className="w-4 h-4 text-red-600/80 dark:text-red-400/80" />
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400/80">OFFLINE</span>
                 </>
               )}
             </div>
