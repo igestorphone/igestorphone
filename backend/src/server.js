@@ -22,6 +22,7 @@ import bugReportsRoutes from './routes/bug-reports.js';
 import supportRoutes from './routes/support.js';
 import goalsRoutes from './routes/goals.js';
 import notesRoutes from './routes/notes.js';
+import calendarRoutes from './routes/calendar.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
 import { runMigrations } from './migrate.js';
@@ -168,6 +169,7 @@ app.use('/api/bug-reports', bugReportsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/goals', authenticateToken, goalsRoutes);
 app.use('/api/notes', authenticateToken, notesRoutes);
+app.use('/api/calendar', authenticateToken, calendarRoutes);
 
 // Rotas de IA - algumas públicas, outras protegidas
 app.use('/api/ai', aiRoutes);

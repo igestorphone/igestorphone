@@ -33,6 +33,7 @@ import PreferencesPage from '@/pages/PreferencesPage'
 import FAQPage from '@/pages/FAQPage'
 import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
+import CalendarPage from '@/pages/CalendarPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -254,7 +255,7 @@ function App() {
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<DevelopmentPlaceholderPage />} />
+          <Route index element={<CalendarPage />} />
         </Route>
       </Routes>
       <Analytics />

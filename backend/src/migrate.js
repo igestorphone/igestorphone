@@ -49,6 +49,24 @@ const migrations = [
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date TIMESTAMP`,
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT false`,
 
+  // Calendário compartilhado (vendedor/atendente - eventos de venda)
+  `CREATE TABLE IF NOT EXISTS calendar_events (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    date DATE NOT NULL,
+    time VARCHAR(5),
+    client_name VARCHAR(255),
+    iphone_model VARCHAR(120) NOT NULL,
+    storage VARCHAR(50) NOT NULL,
+    imei_end VARCHAR(20) NOT NULL,
+    valor_a_vista DECIMAL(12,2) NOT NULL DEFAULT 0,
+    valor_com_juros DECIMAL(12,2) NOT NULL DEFAULT 0,
+    forma_pagamento VARCHAR(80) NOT NULL DEFAULT 'PIX',
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (
     id SERIAL PRIMARY KEY,
@@ -242,6 +260,9 @@ const migrations = [
 
   `DROP TRIGGER IF EXISTS update_notes_updated_at ON notes`,
   `CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  `DROP TRIGGER IF EXISTS update_calendar_events_updated_at ON calendar_events`,
+  `CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
   `DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets`,
   `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`

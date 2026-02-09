@@ -8,9 +8,9 @@ async function createAdminUser() {
   try {
     console.log('🔧 Criando/atualizando usuário admin...\n');
 
-    const email = 'igestorphone@gmail.com';
-    const password = 'admin123';
-    const name = 'Administrador';
+    const email = process.env.ADMIN_EMAIL || 'igestorphone@gmail.com';
+    const password = process.env.ADMIN_PASSWORD || 'admin123';
+    const name = process.env.ADMIN_NAME || 'Administrador';
 
     // Verificar se o usuário já existe
     const existingUser = await query('SELECT id, email FROM users WHERE email = $1', [email]);

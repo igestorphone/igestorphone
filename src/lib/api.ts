@@ -347,6 +347,42 @@ export const usersApi = {
     apiClient.post<any>('/users/force-logout-all', {}),
 }
 
+// Calendário compartilhado (vendedor/atendente)
+export const calendarApi = {
+  getByMonth: (year: number, month: number) =>
+    apiClient.get<{ events: any[] }>('/calendar/events', { params: { year, month } }),
+  getByDate: (date: string) =>
+    apiClient.get<{ events: any[] }>('/calendar/events', { params: { date } }),
+  create: (data: {
+    date: string
+    time?: string
+    clientName?: string
+    iphoneModel: string
+    storage: string
+    imeiEnd: string
+    valorAVista: number
+    valorComJuros: number
+    formaPagamento: string
+    notes?: string
+  }) =>
+    apiClient.post<{ event: any }>('/calendar/events', data),
+  update: (id: number, data: Partial<{
+    date: string
+    time: string
+    clientName: string
+    iphoneModel: string
+    storage: string
+    imeiEnd: string
+    valorAVista: number
+    valorComJuros: number
+    formaPagamento: string
+    notes: string
+  }>) =>
+    apiClient.patch<{ event: any }>(`/calendar/events/${id}`, data),
+  delete: (id: number) =>
+    apiClient.delete(`/calendar/events/${id}`),
+}
+
 export const registrationApi = {
   verifyToken: async (token: string) => {
     // Tentar primeiro path parameter (formato que funciona), depois query string como fallback
