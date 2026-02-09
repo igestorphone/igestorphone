@@ -356,36 +356,69 @@ router.get('/', [
   }
 });
 
-// Média de preços por modelo + cor (iPhones novos) — arredondado para múltiplo de 50
+// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE) — arredondado para múltiplo de 50
 router.get('/price-averages', async (req, res) => {
   try {
+    const search = (req.query.search || '').trim()
+    const color = (req.query.color || '').trim()
+    const storage = (req.query.storage || '').trim()
+
+    const conditions = [
+      'p.is_active = true',
+      's.is_active = true',
+      'p.price > 0',
+      'p.price IS NOT NULL',
+      `(
+        p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
+        OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
+      )`,
+      "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
+      '(DATE(p.updated_at) = CURRENT_DATE OR DATE(p.created_at) = CURRENT_DATE)'
+    ]
+    const values = []
+    let paramCount = 1
+
+    if (search) {
+      const term = `%${search.toLowerCase()}%`
+      conditions.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
+      values.push(term)
+      paramCount++
+    }
+    if (color) {
+      conditions.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
+      values.push(color)
+      paramCount++
+    }
+    if (storage) {
+      conditions.push(`p.storage = $${paramCount}`)
+      values.push(storage)
+      paramCount++
+    }
+
+    const whereClause = conditions.join(' AND ')
     const result = await query(`
       SELECT
         COALESCE(TRIM(p.model), TRIM(p.name)) AS model,
         TRIM(COALESCE(p.color, '')) AS color,
+        TRIM(COALESCE(p.storage, '')) AS storage,
         AVG(p.price)::numeric AS avg_price,
         COUNT(*)::int AS count,
         MIN(p.price)::numeric AS min_price,
         MAX(p.price)::numeric AS max_price
       FROM products p
       JOIN suppliers s ON p.supplier_id = s.id
-      WHERE p.is_active = true AND s.is_active = true
-        AND p.price > 0 AND p.price IS NOT NULL
-        AND (
-          p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-          OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
-        )
-        AND (LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')
-      GROUP BY COALESCE(TRIM(p.model), TRIM(p.name)), TRIM(COALESCE(p.color, ''))
+      WHERE ${whereClause}
+      GROUP BY COALESCE(TRIM(p.model), TRIM(p.name)), TRIM(COALESCE(p.color, '')), TRIM(COALESCE(p.storage, ''))
       HAVING COUNT(*) >= 1
-      ORDER BY model, color
-    `);
+      ORDER BY model, color, storage
+    `, values);
 
     const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
 
     const rows = result.rows.map((r) => ({
       model: r.model,
       color: r.color || '—',
+      storage: r.storage || '—',
       avg_price: roundTo50(r.avg_price),
       count: r.count,
       min_price: r.min_price != null ? roundTo50(r.min_price) : null,

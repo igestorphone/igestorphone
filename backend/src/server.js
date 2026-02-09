@@ -273,10 +273,11 @@ runMigrations()
       logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 
-      // Iniciar scheduler de limpeza automática (verifica a cada minuto)
-      logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
-      cleanupInterval = setInterval(checkAndCleanupProducts, 60000); // Verifica a cada 1 minuto
-      logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
+      // Scheduler de limpeza automática DESATIVADO para testes (não zerar produtos à meia-noite)
+      // logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
+      // cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
+      // logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
+      logger.info('⏸️ Scheduler de limpeza de produtos DESATIVADO (produtos não serão zerados à meia-noite)');
     });
   })
   .catch((err) => {

@@ -4,12 +4,10 @@ import {
   Search,
   BarChart3,
   Smartphone,
-  DollarSign,
   Download,
   Palette,
   Loader2,
-  TrendingDown,
-  TrendingUp,
+  Package,
   Info
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -25,12 +23,18 @@ const formatPrice = (price: number) =>
 
 export default function PriceAveragesPage() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedColor, setSelectedColor] = useState('')
+  const [selectedStorage, setSelectedStorage] = useState('')
   const [sortBy, setSortBy] = useState<'model' | 'price-asc' | 'price-desc' | 'count'>('model')
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['products', 'price-averages'],
+    queryKey: ['products', 'price-averages', searchTerm, selectedColor, selectedStorage],
     queryFn: async () => {
-      const res = await produtosApi.getPriceAverages()
+      const res = await produtosApi.getPriceAverages({
+        search: searchTerm.trim() || undefined,
+        color: selectedColor || undefined,
+        storage: selectedStorage || undefined
+      })
       return res.data
     },
     staleTime: 60 * 1000,
@@ -39,18 +43,8 @@ export default function PriceAveragesPage() {
 
   const averages = data?.averages ?? []
 
-  const filtered = useMemo(() => {
-    if (!searchTerm.trim()) return averages
-    const term = searchTerm.toLowerCase().trim()
-    return averages.filter(
-      (r) =>
-        (r.model || '').toLowerCase().includes(term) ||
-        (r.color || '').toLowerCase().includes(term)
-    )
-  }, [averages, searchTerm])
-
   const sorted = useMemo(() => {
-    const list = [...filtered]
+    const list = [...averages]
     switch (sortBy) {
       case 'price-asc':
         return list.sort((a, b) => a.avg_price - b.avg_price)
@@ -64,13 +58,34 @@ export default function PriceAveragesPage() {
           (a.model || '').localeCompare(b.model || '', 'pt-BR')
         )
     }
-  }, [filtered, sortBy])
+  }, [averages, sortBy])
+
+  const uniqueColors = useMemo(() => {
+    const set = new Set<string>()
+    averages.forEach((r) => {
+      if (r.color && r.color !== '—') set.add(r.color)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  }, [averages])
+
+  const uniqueStorages = useMemo(() => {
+    const set = new Set<string>()
+    averages.forEach((r) => {
+      if (r.storage && r.storage !== '—') set.add(r.storage)
+    })
+    return Array.from(set).sort((a, b) => {
+      const numA = parseInt(a.replace(/\D/g, ''), 10) || 0
+      const numB = parseInt(b.replace(/\D/g, ''), 10) || 0
+      return numA - numB
+    })
+  }, [averages])
 
   const exportCsv = () => {
-    const headers = ['Modelo', 'Cor', 'Preço sugerido (média)', 'Qtd', 'Mín', 'Máx']
+    const headers = ['Modelo', 'Cor', 'Capacidade', 'Preço sugerido (média)', 'Qtd', 'Mín', 'Máx']
     const rows = sorted.map((r) => [
       r.model,
       r.color,
+      r.storage,
       r.avg_price,
       r.count,
       r.min_price ?? '',
@@ -88,45 +103,81 @@ export default function PriceAveragesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Título e descrição — preto e branco */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
+        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm"
       >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32" />
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <BarChart3 className="w-8 h-8 text-yellow-200" />
-            <h1 className="text-2xl md:text-3xl font-bold">Média de Preço</h1>
-          </div>
-          <p className="text-blue-100 text-sm md:text-base">
-            Média de todos os iPhones novos por modelo e cor. Valores arredondados para o múltiplo de R$ 50 mais próximo para você montar sua tabela.
-          </p>
+        <div className="flex items-center gap-3 mb-2">
+          <BarChart3 className="w-7 h-7 text-gray-700 dark:text-gray-300" />
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">
+            Média de Preço
+          </h1>
         </div>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          Média dos iPhones <strong>novos</strong> processados <strong>hoje</strong>, por modelo, cor e capacidade. 
+          Use os filtros para buscar (ex.: iPhone 17 Pro Max, Laranja, 256GB). Valores arredondados para o múltiplo de R$ 50.
+        </p>
       </motion.div>
 
+      {/* Filtros */}
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-white dark:bg-gray-800/50 rounded-xl shadow-lg p-4 border border-gray-200 dark:border-white/10"
+        transition={{ delay: 0.05 }}
+        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm"
       >
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder="Filtrar por modelo ou cor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white placeholder-gray-400"
-            />
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="relative lg:col-span-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+              <input
+                type="text"
+                placeholder="Ex.: iPhone 17 Pro Max"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-transparent"
+              />
+            </div>
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                <Palette className="w-4 h-4 inline mr-1" />
+                Cor
+              </label>
+              <select
+                value={selectedColor}
+                onChange={(e) => setSelectedColor(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+              >
+                <option value="">Todas</option>
+                {uniqueColors.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                <Package className="w-4 h-4 inline mr-1" />
+                Capacidade
+              </label>
+              <select
+                value={selectedStorage}
+                onChange={(e) => setSelectedStorage(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+              >
+                <option value="">Todas</option>
+                {uniqueStorages.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+              className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
             >
               <option value="model">Ordenar por modelo</option>
               <option value="price-asc">Preço: menor</option>
@@ -137,7 +188,7 @@ export default function PriceAveragesPage() {
               <button
                 type="button"
                 onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Exportar CSV
@@ -150,7 +201,7 @@ export default function PriceAveragesPage() {
       {isLoading && (
         <div className="flex flex-col items-center justify-center py-16 text-gray-500 dark:text-gray-400">
           <Loader2 className="w-10 h-10 animate-spin mb-4" />
-          <p>Carregando médias de preço...</p>
+          <p>Carregando médias...</p>
         </div>
       )}
 
@@ -167,7 +218,7 @@ export default function PriceAveragesPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-white dark:bg-gray-800/50 shadow-lg"
+                className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-white dark:bg-black shadow-sm"
               >
                 <div className="overflow-x-auto">
                   <table className="w-full text-left">
@@ -178,6 +229,9 @@ export default function PriceAveragesPage() {
                         </th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                           Cor
+                        </th>
+                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                          Capacidade
                         </th>
                         <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                           Preço sugerido
@@ -196,7 +250,7 @@ export default function PriceAveragesPage() {
                     <tbody className="divide-y divide-gray-200 dark:divide-white/10">
                       {sorted.map((row, i) => (
                         <motion.tr
-                          key={`${row.model}-${row.color}-${i}`}
+                          key={`${row.model}-${row.color}-${row.storage}-${i}`}
                           initial={{ opacity: 0, x: -8 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.02 }}
@@ -205,17 +259,13 @@ export default function PriceAveragesPage() {
                           <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                             {row.model || '—'}
                           </td>
-                          <td className="px-4 py-3 text-gray-600 dark:text-gray-300 flex items-center gap-1.5">
-                            {row.color && row.color !== '—' ? (
-                              <>
-                                <Palette className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                {row.color}
-                              </>
-                            ) : (
-                              '—'
-                            )}
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                            {row.color && row.color !== '—' ? row.color : '—'}
                           </td>
-                          <td className="px-4 py-3 text-right font-semibold text-indigo-600 dark:text-indigo-400">
+                          <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                            {row.storage && row.storage !== '—' ? row.storage : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
                             {formatPrice(row.avg_price)}
                           </td>
                           <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
@@ -237,16 +287,16 @@ export default function PriceAveragesPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-white/10 p-8 text-center"
+                className="rounded-xl bg-gray-50 dark:bg-gray-900/30 border border-gray-200 dark:border-white/10 p-8 text-center"
               >
                 <Smartphone className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Nenhum resultado
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
-                  {searchTerm.trim()
-                    ? 'Tente outro termo de busca.'
-                    : 'Ainda não há iPhones novos cadastrados para calcular a média.'}
+                  {searchTerm || selectedColor || selectedStorage
+                    ? 'Nenhum iPhone novo processado hoje com esses filtros. Tente outro modelo, cor ou capacidade.'
+                    : 'Nenhum iPhone novo processado hoje. As médias aparecem aqui após processar listas do dia.'}
                 </p>
               </motion.div>
             )}
@@ -255,14 +305,14 @@ export default function PriceAveragesPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
-              className="flex items-start gap-3 p-4 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/10 border border-indigo-500/20 text-sm text-gray-700 dark:text-gray-300"
+              className="flex items-start gap-3 p-4 rounded-xl bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-700 dark:text-gray-300"
             >
-              <Info className="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="font-medium text-gray-900 dark:text-white mb-1">Como usar</p>
                 <p>
-                  Os valores já vêm arredondados para o múltiplo de R$ 50 mais próximo (ex.: 7225 → 7250, 7224 → 7200).
-                  Use a coluna &quot;Preço sugerido&quot; como base para montar sua tabela de venda.
+                  Os valores são arredondados para o múltiplo de R$ 50 mais próximo (ex.: 7225 → 7250). 
+                  Use a coluna &quot;Preço sugerido&quot; como base para sua tabela de venda. Só entram iPhones <strong>novos</strong> (lacrado/novo/CPO) processados <strong>no dia</strong>.
                 </p>
               </div>
             </motion.div>
