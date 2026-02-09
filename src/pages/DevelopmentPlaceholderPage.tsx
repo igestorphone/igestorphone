@@ -1,15 +1,17 @@
 import { useLocation } from 'react-router-dom'
-import { Calendar, BarChart3 } from 'lucide-react'
+import { Calendar, BarChart3, Smartphone } from 'lucide-react'
 
-const routeTitles: Record<string, { title: string; icon: 'calendar' | 'chart' }> = {
+const routeTitles: Record<string, { title: string; icon: 'calendar' | 'chart' | 'phone' }> = {
   '/calendar': { title: 'Calendário', icon: 'calendar' },
   '/price-averages': { title: 'Média de Preço', icon: 'chart' },
+  '/search-iphone-seminovo': { title: 'Buscar iPhone Seminovo', icon: 'phone' },
+  '/search-android': { title: 'Buscar Android', icon: 'phone' },
 }
 
 export default function DevelopmentPlaceholderPage() {
   const { pathname } = useLocation()
   const { title, icon } = routeTitles[pathname] || { title: 'Esta página', icon: 'calendar' as const }
-  const Icon = icon === 'calendar' ? Calendar : BarChart3
+  const Icon = icon === 'calendar' ? Calendar : icon === 'chart' ? BarChart3 : Smartphone
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="text-center max-w-md">

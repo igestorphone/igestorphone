@@ -34,6 +34,7 @@ import FAQPage from '@/pages/FAQPage'
 import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
+import DashboardHubPage from '@/pages/DashboardHubPage'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -90,12 +91,28 @@ function App() {
             </AuthLayout>
           )
         } />
-        {/* Dashboard redireciona direto para buscar iPhone mais barato */}
+        {/* Dashboard: hub com Buscar iPhone Novo, Seminovo, Android */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            <Navigate to="/search-cheapest-iphone" replace />
+            <MainLayout />
           </ProtectedRoute>
-        } />
+        }>
+          <Route index element={<DashboardHubPage />} />
+        </Route>
+        <Route path="/search-iphone-seminovo" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<DevelopmentPlaceholderPage />} />
+        </Route>
+        <Route path="/search-android" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<DevelopmentPlaceholderPage />} />
+        </Route>
         <Route path="/consult-lists" element={
           <ProtectedRoute>
             <MainLayout />
