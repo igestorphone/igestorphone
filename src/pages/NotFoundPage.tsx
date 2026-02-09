@@ -44,13 +44,13 @@ export default function NotFoundPage() {
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <motion.button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/search-cheapest-iphone')}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="btn-primary flex items-center justify-center space-x-2 py-3 px-6"
             >
               <Home className="w-5 h-5" />
-              <span>Ir para Dashboard</span>
+              <span>Ir para início</span>
             </motion.button>
 
             <motion.button

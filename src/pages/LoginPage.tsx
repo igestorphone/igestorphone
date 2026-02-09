@@ -51,7 +51,7 @@ export default function LoginPage() {
           message: 'Bem-vindo de volta!',
           duration: 3000
         })
-        navigate('/dashboard')
+        navigate('/search-cheapest-iphone')
       } else {
         toast.error('Email ou senha inválidos')
         setError('email', { message: 'Email ou senha inválidos' })

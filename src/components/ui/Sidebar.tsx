@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  Home,
   FileText,
   Users,
   Search,
@@ -48,7 +47,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Navegação principal (topo)
   const mainNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Buscar iPhone Novo', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
     { name: 'Média de Preço', href: '/price-averages', icon: BarChart3, permission: 'medias_preco' },
     { name: 'Calendário', href: '/calendar', icon: Calendar },

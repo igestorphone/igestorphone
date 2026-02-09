@@ -33,7 +33,6 @@ import PreferencesPage from '@/pages/PreferencesPage'
 import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
-import DashboardHubPage from '@/pages/DashboardHubPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 
 function App() {
@@ -91,14 +90,7 @@ function App() {
             </AuthLayout>
           )
         } />
-        {/* Dashboard: hub com Buscar iPhone Novo, Seminovo, Android */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DashboardHubPage />} />
-        </Route>
+        <Route path="/dashboard" element={<Navigate to="/search-cheapest-iphone" replace />} />
         <Route path="/search-iphone-seminovo" element={
           <ProtectedRoute>
             <MainLayout />

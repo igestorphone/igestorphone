@@ -3,7 +3,6 @@ import { Calendar, BarChart3, Smartphone } from 'lucide-react'
 
 const routeTitles: Record<string, { title: string; icon: 'calendar' | 'chart' | 'phone' }> = {
   '/calendar': { title: 'Calendário', icon: 'calendar' },
-  '/price-averages': { title: 'Média de Preço', icon: 'chart' },
   '/search-iphone-seminovo': { title: 'Buscar iPhone Seminovo', icon: 'phone' },
   '/search-android': { title: 'Buscar Android', icon: 'phone' },
 }

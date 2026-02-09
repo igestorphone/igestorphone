@@ -10,7 +10,7 @@ export default function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (isAuthenticated) {
-        navigate('/dashboard')
+        navigate('/search-cheapest-iphone')
       } else {
         navigate('/login')
       }
