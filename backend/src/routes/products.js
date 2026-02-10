@@ -401,7 +401,7 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
-    // Normalizar modelo para UMA linha: lowercase, remove emoji, capacidade no nome, Anatel/E-SIM/AMERICANO, letra solta no final
+    // Normalizar modelo para UMA linha: remove variantes (Ja, Lla, Anatel, E-SIM, americano, etc.)
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
@@ -410,7 +410,7 @@ router.get('/price-averages', async (req, res) => {
               REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
               '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
             '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano)\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br)\\s*', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 
