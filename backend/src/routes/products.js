@@ -400,21 +400,25 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
-    // Normalizar modelo: remove sufixos (256GB no nome, Anatel, E-SIM, com Chip, etc.) para agrupar numa única linha
-    const normalizedModelExpr = `TRIM(REGEXP_REPLACE(
+    // Normalizar modelo para UMA linha: lowercase, remove emoji, capacidade no nome, Anatel/E-SIM/AMERICANO, letra solta no final
+    const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
-          REGEXP_REPLACE(COALESCE(p.model, p.name), '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
-          '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
-        '\\s*(anatel|e-?sim|com chip|chip anatel|chip)\\s*', ' ', 'gi'),
-      '\\s+', ' ', 'g'))`
+          REGEXP_REPLACE(
+            REGEXP_REPLACE(
+              REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
+              '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
+            '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano)\\s*', ' ', 'gi'),
+        '\\s+[a-zA-Z]\\s*$', '', 'g'),
+      '\\s+', ' ', 'g')))`
 
     const whereClause = conditions.join(' AND ')
     const result = await query(`
       WITH base AS (
         SELECT
           p.price,
-          ${normalizedModelExpr} AS model_normalized,
+          ${normalizedModelExpr} AS model_canonical,
           TRIM(COALESCE(p.color, '')) AS color,
           TRIM(COALESCE(p.storage, '')) AS storage
         FROM products p
@@ -422,7 +426,7 @@ router.get('/price-averages', async (req, res) => {
         WHERE ${whereClause}
       )
       SELECT
-        model_normalized AS model,
+        model_canonical AS model_key,
         color,
         storage,
         AVG(price)::numeric AS avg_price,
@@ -430,15 +434,22 @@ router.get('/price-averages', async (req, res) => {
         MIN(price)::numeric AS min_price,
         MAX(price)::numeric AS max_price
       FROM base
-      GROUP BY model_normalized, color, storage
+      GROUP BY model_canonical, color, storage
       HAVING COUNT(*) >= 1
-      ORDER BY model, color, storage
+      ORDER BY model_key, color, storage
     `, values);
 
     const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
 
+    // Exibir modelo bonito: "iPhone 17 Pro Max" (primeira letra de cada palavra maiúscula)
+    const toDisplayModel = (key) => {
+      if (!key || key === '—') return '—'
+      const rest = key.replace(/^iphone\s*/i, '').trim()
+      return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone'
+    }
+
     const rows = result.rows.map((r) => ({
-      model: r.model,
+      model: toDisplayModel(r.model_key),
       color: r.color || '—',
       storage: r.storage || '—',
       avg_price: roundTo50(r.avg_price),

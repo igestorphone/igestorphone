@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
+import { normalizeColor } from './colorNormalizer'
 
 const formatPrice = (price: number) =>
   new Intl.NumberFormat('pt-BR', {
@@ -118,8 +119,7 @@ export default function PriceAveragesPage() {
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
-Média dos iPhones <strong>novos</strong> processados <strong>hoje ou ontem</strong>, por modelo, cor e capacidade.
-          Inclui produtos restaurados. Pesquise o modelo e filtre por cor/capacidade para ver uma única linha com menor, maior e média. Valores arredondados para R$ 50.
+          Escolha o <strong>modelo</strong>, a <strong>cor</strong> e a <strong>capacidade</strong>. Você vê a <strong>média de preço</strong> para colocar seu lucro e montar sua tabela. Só iPhones novos (hoje/ontem). Valores em R$ 50.
         </p>
       </motion.div>
 
@@ -217,74 +217,111 @@ Média dos iPhones <strong>novos</strong> processados <strong>hoje ou ontem</str
         {!isLoading && !error && (
           <>
             {sorted.length > 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-white dark:bg-black shadow-sm"
-              >
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900/50">
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Modelo
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                          Cor
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
-                          Capacidade
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                          Preço sugerido
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
-                          Qtd
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
-                          Mín
-                        </th>
-                        <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
-                          Máx
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-                      {sorted.map((row, i) => (
-                        <motion.tr
-                          key={`${row.model}-${row.color}-${row.storage}-${i}`}
-                          initial={{ opacity: 0, x: -8 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: i * 0.02 }}
-                          className="hover:bg-gray-50 dark:hover:bg-white/5"
-                        >
-                          <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                            {row.model || '—'}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                            {row.color && row.color !== '—' ? row.color : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                            {row.storage && row.storage !== '—' ? row.storage : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
-                            {formatPrice(row.avg_price)}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
-                            {row.count}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                            {row.min_price != null ? formatPrice(row.min_price) : '—'}
-                          </td>
-                          <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                            {row.max_price != null ? formatPrice(row.max_price) : '—'}
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </motion.div>
+              <>
+                {/* Um resultado: card único com a média (como Buscar iPhone) */}
+                {sorted.length === 1 && (searchTerm.trim() || selectedColor || selectedStorage) ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-xl border-2 border-gray-200 dark:border-white/20 bg-white dark:bg-black p-8 shadow-sm"
+                  >
+                    <div className="text-center">
+                      <Smartphone className="w-14 h-14 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+                      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                        {sorted[0].model || '—'}
+                      </h2>
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                        {sorted[0].color && sorted[0].color !== '—'
+                          ? normalizeColor(sorted[0].color, sorted[0].model || '')
+                          : '—'}
+                        {sorted[0].storage && sorted[0].storage !== '—' ? ` • ${sorted[0].storage}` : ''}
+                      </p>
+                      <div className="inline-flex flex-col items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/10 px-8 py-6 border border-gray-200 dark:border-white/10">
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
+                          Média de preço (base para sua tabela)
+                        </span>
+                        <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                          {formatPrice(sorted[0].avg_price)}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {sorted[0].count} oferta{sorted[0].count !== 1 ? 's' : ''} • arredondado para R$ 50
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden bg-white dark:bg-black shadow-sm"
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900/50">
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Modelo
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Cor
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
+                              Capacidade
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                              Média
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                              Qtd
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                              Mín
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                              Máx
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200 dark:divide-white/10">
+                          {sorted.map((row, i) => (
+                            <motion.tr
+                              key={`${row.model}-${row.color}-${row.storage}-${i}`}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.02 }}
+                              className="hover:bg-gray-50 dark:hover:bg-white/5"
+                            >
+                              <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                {row.model || '—'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                {row.color && row.color !== '—'
+                                  ? normalizeColor(row.color, row.model || '')
+                                  : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
+                                {row.storage && row.storage !== '—' ? row.storage : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
+                                {formatPrice(row.avg_price)}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
+                                {row.count}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                                {row.min_price != null ? formatPrice(row.min_price) : '—'}
+                              </td>
+                              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                                {row.max_price != null ? formatPrice(row.max_price) : '—'}
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
+              </>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -313,8 +350,7 @@ Média dos iPhones <strong>novos</strong> processados <strong>hoje ou ontem</str
               <div>
                 <p className="font-medium text-gray-900 dark:text-white mb-1">Como usar</p>
                 <p>
-                  Os valores são arredondados para o múltiplo de R$ 50 mais próximo (ex.: 7225 → 7250). 
-                  Use a coluna &quot;Preço sugerido&quot; como base para sua tabela de venda. Só entram iPhones <strong>novos</strong> (lacrado/novo/CPO) processados ou restaurados <strong>hoje ou ontem</strong>. Variantes (Anatel, E-SIM, etc.) são agrupadas numa única linha.
+                  Digite o modelo (ex.: iPhone 17 Pro Max), escolha a cor e a capacidade. Você vê <strong>uma única média de preço</strong> para colocar seu lucro. Valores arredondados para R$ 50. Cores iguais ao Buscar iPhone lacrado.
                 </p>
               </div>
             </motion.div>
