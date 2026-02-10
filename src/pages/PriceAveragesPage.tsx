@@ -40,9 +40,9 @@ export default function PriceAveragesPage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [sortBy, setSortBy] = useState<'model' | 'price-asc' | 'price-desc' | 'count'>('model')
   const [lucroInput, setLucroInput] = useState<number>(0)
-  const [appliedLucro, setAppliedLucro] = useState<number>(0)
+  /** Margem aplicada por modelo (rowKey -> valor em R$). Aplicar só atualiza os selecionados, mantém os demais. */
+  const [appliedLucroPerRow, setAppliedLucroPerRow] = useState<Record<string, number>>({})
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
-  const [appliedSelection, setAppliedSelection] = useState<Set<string>>(new Set())
 
   const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
     `${(row.model || '').trim()}|${normalizeColor(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
@@ -209,16 +209,19 @@ export default function PriceAveragesPage() {
 
   const exportCsv = () => {
     const headers = ['Modelo', 'Cor', 'Capacidade', 'Média', 'Preço sugerido (média + lucro)', 'Qtd', 'Mín', 'Máx']
-    const rows = sorted.map((r) => [
-      r.model,
-      r.color,
-      r.storage,
-      r.avg_price.toFixed(2),
-      appliedSelection.has(rowKey(r)) ? roundTo50(r.avg_price + appliedLucro) : '',
-      r.count,
-      r.min_price ?? '',
-      r.max_price ?? ''
-    ])
+    const rows = sorted.map((r) => {
+      const lucro = appliedLucroPerRow[rowKey(r)]
+      return [
+        r.model,
+        r.color,
+        r.storage,
+        r.avg_price.toFixed(2),
+        lucro != null ? roundTo50(r.avg_price + lucro) : '',
+        r.count,
+        r.min_price ?? '',
+        r.max_price ?? ''
+      ]
+    })
     const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -326,10 +329,12 @@ export default function PriceAveragesPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setAppliedLucro(lucroInput)
-                    setAppliedSelection(
-                      sorted.length === 1 ? new Set([rowKey(sorted[0])]) : new Set(selectedKeys)
-                    )
+                    const keysToApply = sorted.length === 1 ? [rowKey(sorted[0])] : Array.from(selectedKeys)
+                    setAppliedLucroPerRow((prev) => {
+                      const next = { ...prev }
+                      keysToApply.forEach((k) => (next[k] = lucroInput))
+                      return next
+                    })
                   }}
                   className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
                 >
@@ -439,8 +444,8 @@ export default function PriceAveragesPage() {
                         <button
                           type="button"
                           onClick={() => {
-                            setAppliedLucro(lucroInput)
-                            setAppliedSelection(new Set([rowKey(sorted[0])]))
+                            const key = rowKey(sorted[0])
+                            setAppliedLucroPerRow((prev) => ({ ...prev, [key]: lucroInput }))
                           }}
                           className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium"
                         >
@@ -449,7 +454,7 @@ export default function PriceAveragesPage() {
                         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-6 py-3">
                           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Preço sugerido (média + lucro, R$ 50)</span>
                           <span className="block text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                            {formatPrice(roundTo50(sorted[0].avg_price + appliedLucro))}
+                            {formatPrice(roundTo50(sorted[0].avg_price + (appliedLucroPerRow[rowKey(sorted[0])] ?? 0)))}
                           </span>
                         </div>
                       </div>
@@ -556,9 +561,10 @@ export default function PriceAveragesPage() {
                                 {formatPriceExact(row.avg_price)}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                                {appliedSelection.has(rowKey(row))
-                                  ? formatPrice(roundTo50(row.avg_price + appliedLucro))
-                                  : '—'}
+                                {(() => {
+                                  const lucro = appliedLucroPerRow[rowKey(row)]
+                                  return lucro != null ? formatPrice(roundTo50(row.avg_price + lucro)) : '—'
+                                })()}
                               </td>
                               <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                 {row.count}
