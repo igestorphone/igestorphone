@@ -35,9 +35,9 @@ async function restoreTodayProducts() {
   try {
     console.log('🚨 RESTAURANDO TODOS OS PRODUTOS DE HOJE...\n');
     
-    // Obter data de HOJE no timezone do Brasil (via DB para não depender do fuso do servidor)
+    // Obter data de HOJE no timezone do Brasil (uma AT TIME ZONE só)
     const dateResult = await query(`
-      SELECT (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as hoje_brasil
+      SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date as hoje_brasil
     `);
     const todayStr = dateResult.rows[0].hoje_brasil;
     console.log(`📅 Data de hoje (Brasil): ${todayStr}\n`);
@@ -48,8 +48,8 @@ async function restoreTodayProducts() {
       FROM products
       WHERE is_active = false
         AND (
-          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
-          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          DATE(updated_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          OR DATE(created_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
         )
     `, [todayStr]);
     
@@ -70,8 +70,8 @@ async function restoreTodayProducts() {
           updated_at = NOW()
       WHERE is_active = false
         AND (
-          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
-          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          DATE(updated_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          OR DATE(created_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
         )
     `, [todayStr]);
     
@@ -84,8 +84,8 @@ async function restoreTodayProducts() {
       FROM products
       WHERE is_active = true
         AND (
-          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
-          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          DATE(updated_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
+          OR DATE(created_at AT TIME ZONE 'America/Sao_Paulo') = $1::date
         )
     `, [todayStr]);
     
