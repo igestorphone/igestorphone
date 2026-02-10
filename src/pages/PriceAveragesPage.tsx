@@ -9,7 +9,8 @@ import {
   Loader2,
   Package,
   Info,
-  RefreshCw
+  RefreshCw,
+  TrendingUp
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
@@ -23,11 +24,22 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0
   }).format(price)
 
+const formatPriceExact = (price: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(price)
+
+const roundTo50 = (v: number) => Math.round(v / 50) * 50
+
 export default function PriceAveragesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [sortBy, setSortBy] = useState<'model' | 'price-asc' | 'price-desc' | 'count'>('model')
+  const [lucro, setLucro] = useState<number>(0)
 
   const isModelWithOfficialColors = useMemo(() => {
     const searchLower = searchTerm.toLowerCase().trim()
@@ -87,8 +99,7 @@ export default function PriceAveragesPage() {
       } else {
         const totalCount = existing.count + count
         const weightedAvg = totalCount > 0 ? (existing.avg_price * existing.count + avg * count) / totalCount : existing.avg_price
-        const round50 = (v: number) => Math.round(v / 50) * 50
-        existing.avg_price = round50(weightedAvg)
+        existing.avg_price = weightedAvg
         existing.count += count
         if (minP != null) existing.min_price = existing.min_price != null ? Math.min(existing.min_price, minP) : minP
         if (maxP != null) existing.max_price = existing.max_price != null ? Math.max(existing.max_price, maxP) : maxP
@@ -184,12 +195,13 @@ export default function PriceAveragesPage() {
   }, [averages])
 
   const exportCsv = () => {
-    const headers = ['Modelo', 'Cor', 'Capacidade', 'Preço sugerido (média)', 'Qtd', 'Mín', 'Máx']
+    const headers = ['Modelo', 'Cor', 'Capacidade', 'Média', 'Preço sugerido (média + lucro)', 'Qtd', 'Mín', 'Máx']
     const rows = sorted.map((r) => [
       r.model,
       r.color,
       r.storage,
-      r.avg_price,
+      r.avg_price.toFixed(2),
+      roundTo50(r.avg_price + lucro),
       r.count,
       r.min_price ?? '',
       r.max_price ?? ''
@@ -219,7 +231,7 @@ export default function PriceAveragesPage() {
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Escolha o <strong>modelo</strong>, a <strong>cor</strong> e a <strong>capacidade</strong>. Você vê a <strong>média de preço</strong> para colocar seu lucro e montar sua tabela. Só iPhones novos (hoje/ontem). Valores em R$ 50.
+          Escolha o <strong>modelo</strong>, a <strong>cor</strong> e a <strong>capacidade</strong>. A <strong>média</strong> é exata; use o campo <strong>Lucro (R$)</strong> para ver o preço sugerido (média + lucro arredondado em R$ 50). Só iPhones novos (hoje/ontem).
         </p>
       </motion.div>
 
@@ -279,8 +291,23 @@ export default function PriceAveragesPage() {
               </select>
             </div>
           </div>
-          {/* Ações: ordenar, atualizar, exportar */}
-          <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-100 dark:border-white/5">
+          {/* Lucro (margem) e ações */}
+          <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-gray-100 dark:border-white/5">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                <TrendingUp className="w-4 h-4 inline mr-1.5 align-middle text-emerald-500" />
+                Lucro (R$)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={50}
+                value={lucro || ''}
+                onChange={(e) => setLucro(Number(e.target.value) || 0)}
+                placeholder="0"
+                className="w-28 px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
+              />
+            </div>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -352,14 +379,37 @@ export default function PriceAveragesPage() {
                       </p>
                       <div className="inline-flex flex-col items-center justify-center rounded-2xl bg-gray-100 dark:bg-white/10 px-8 py-6 border border-gray-200 dark:border-white/10">
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                          Média de preço (base para sua tabela)
+                          Média de preço (sem arredondamento)
                         </span>
                         <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                          {formatPrice(sorted[0].avg_price)}
+                          {formatPriceExact(sorted[0].avg_price)}
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          {sorted[0].count} oferta{sorted[0].count !== 1 ? 's' : ''} • arredondado para R$ 50
+                          {sorted[0].count} oferta{sorted[0].count !== 1 ? 's' : ''}
                         </span>
+                      </div>
+                      <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            <TrendingUp className="w-4 h-4 inline mr-1.5 align-middle text-emerald-500" />
+                            Lucro (R$)
+                          </label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={50}
+                            value={lucro || ''}
+                            onChange={(e) => setLucro(Number(e.target.value) || 0)}
+                            placeholder="0"
+                            className="w-28 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50"
+                          />
+                        </div>
+                        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-6 py-3">
+                          <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Preço sugerido (média + lucro, R$ 50)</span>
+                          <span className="block text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                            {formatPrice(roundTo50(sorted[0].avg_price + lucro))}
+                          </span>
+                        </div>
                       </div>
                       <div className="mt-6 flex items-center justify-center gap-6 text-sm">
                         <span className="text-gray-500 dark:text-gray-400">
@@ -394,6 +444,9 @@ export default function PriceAveragesPage() {
                               Média
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
+                              Preço sugerido
+                            </th>
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                               Qtd
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
@@ -424,8 +477,11 @@ export default function PriceAveragesPage() {
                               <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
                                 {row.storage && row.storage !== '—' ? row.storage : '—'}
                               </td>
-                              <td className="px-4 py-3 text-right font-semibold text-gray-900 dark:text-white">
-                                {formatPrice(row.avg_price)}
+                              <td className="px-4 py-3 text-right text-gray-900 dark:text-white">
+                                {formatPriceExact(row.avg_price)}
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                                {formatPrice(roundTo50(row.avg_price + lucro))}
                               </td>
                               <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                 {row.count}
@@ -472,7 +528,7 @@ export default function PriceAveragesPage() {
               <div>
                 <p className="font-medium text-gray-900 dark:text-white mb-1">Como usar</p>
                 <p>
-                  Digite o modelo (ex.: iPhone 17 Pro Max), escolha a cor e a capacidade. Você vê <strong>uma única média de preço</strong> para colocar seu lucro. Valores arredondados para R$ 50. Cores iguais ao Buscar iPhone lacrado.
+                  Digite o modelo (ex.: iPhone 17 Pro Max), escolha a cor e a capacidade. A <strong>média</strong> é exata; o <strong>preço sugerido</strong> (média + lucro) é arredondado em R$ 50. Cores iguais ao Buscar iPhone lacrado.
                 </p>
               </div>
             </motion.div>

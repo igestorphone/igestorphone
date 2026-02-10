@@ -449,11 +449,12 @@ router.get('/price-averages', async (req, res) => {
       return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone'
     }
 
+    // Média sem arredondamento; mín/máx arredondados em R$ 50
     const rows = result.rows.map((r) => ({
       model: toDisplayModel(r.model_key),
       color: r.color || '—',
       storage: r.storage || '—',
-      avg_price: roundTo50(r.avg_price),
+      avg_price: Number(r.avg_price),
       count: r.count,
       min_price: r.min_price != null ? roundTo50(r.min_price) : null,
       max_price: r.max_price != null ? roundTo50(r.max_price) : null,
