@@ -193,23 +193,27 @@ export default function PriceAveragesPage() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
-        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm"
+        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-5 shadow-sm"
       >
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="relative lg:col-span-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+        <div className="flex flex-col gap-5">
+          {/* Linha de filtros: mesmo alinhamento para todos os campos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+            <div className="lg:col-span-2 flex flex-col">
+              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
+                <Search className="w-4 h-4 inline mr-1 align-middle" />
+                Modelo
+              </label>
               <input
                 type="text"
                 placeholder="Ex.: iPhone 17 Pro Max"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-transparent"
+                className="w-full pl-4 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 focus:border-transparent text-sm"
               />
             </div>
-            <div className="relative">
+            <div className="flex flex-col">
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-                <Palette className="w-4 h-4 inline mr-1" />
+                <Palette className="w-4 h-4 inline mr-1 align-middle" />
                 Cor
               </label>
               <select
@@ -223,9 +227,9 @@ export default function PriceAveragesPage() {
                 ))}
               </select>
             </div>
-            <div className="relative">
+            <div className="flex flex-col">
               <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">
-                <Package className="w-4 h-4 inline mr-1" />
+                <Package className="w-4 h-4 inline mr-1 align-middle" />
                 Capacidade
               </label>
               <select
@@ -240,11 +244,12 @@ export default function PriceAveragesPage() {
               </select>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Ações: ordenar, atualizar, exportar */}
+          <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-100 dark:border-white/5">
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
+              className="px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500 min-w-[180px]"
             >
               <option value="model">Ordenar por modelo</option>
               <option value="price-asc">Preço: menor</option>
@@ -255,7 +260,7 @@ export default function PriceAveragesPage() {
               type="button"
               onClick={() => refetch()}
               disabled={isFetching}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
               Atualizar
@@ -264,7 +269,7 @@ export default function PriceAveragesPage() {
               <button
                 type="button"
                 onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-800 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
               >
                 <Download className="w-4 h-4" />
                 Exportar CSV
