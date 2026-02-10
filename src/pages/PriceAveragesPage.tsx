@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, Fragment } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -115,6 +115,9 @@ export default function PriceAveragesPage() {
     return Array.from(byKey.values())
   }, [data?.averages, isModelWithOfficialColors, selectedColor])
 
+  type Row = { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }
+  const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
+
   const sorted = useMemo(() => {
     const list = [...averages]
     switch (sortBy) {
@@ -131,6 +134,28 @@ export default function PriceAveragesPage() {
         )
     }
   }, [averages, sortBy])
+
+  /** Agrupa por modelo + capacidade (ex.: iPhone 13 128GB com todas as cores abaixo) para tabela e Excel */
+  const sortedGrouped = useMemo(() => {
+    const list = [...averages].sort((a, b) => {
+      const c = (a.model || '').localeCompare(b.model || '', 'pt-BR')
+      if (c !== 0) return c
+      const d = storageNum(a.storage) - storageNum(b.storage)
+      if (d !== 0) return d
+      return (normalizeColor(a.color, a.model || '')).localeCompare(normalizeColor(b.color, b.model || ''), 'pt-BR')
+    })
+    const groups: { groupLabel: string; rows: Row[] }[] = []
+    let current: { groupLabel: string; rows: Row[] } | null = null
+    for (const r of list) {
+      const label = `${(r.model || '').trim()} ${(r.storage || '').trim()}`.trim() || '—'
+      if (!current || current.groupLabel !== label) {
+        current = { groupLabel: label, rows: [] }
+        groups.push(current)
+      }
+      current.rows.push(r)
+    }
+    return groups
+  }, [averages])
 
   useEffect(() => {
     const el = selectAllRef.current
@@ -208,20 +233,22 @@ export default function PriceAveragesPage() {
   }, [averages])
 
   const exportCsv = () => {
-    const headers = ['Modelo', 'Cor', 'Capacidade', 'Média', 'Preço sugerido (média + lucro)', 'Qtd', 'Mín', 'Máx']
-    const rows = sorted.map((r) => {
-      const lucro = appliedLucroPerRow[rowKey(r)]
-      return [
-        r.model,
-        r.color,
-        r.storage,
-        r.avg_price.toFixed(2),
-        lucro != null ? roundTo50(r.avg_price + lucro) : '',
-        r.count,
-        r.min_price ?? '',
-        r.max_price ?? ''
-      ]
-    })
+    const headers = ['Modelo + Capacidade', 'Cor', 'Média', 'Preço sugerido (média + lucro)', 'Qtd', 'Mín', 'Máx']
+    const rows: (string | number)[][] = []
+    for (const g of sortedGrouped) {
+      for (const r of g.rows) {
+        const lucro = appliedLucroPerRow[rowKey(r)]
+        rows.push([
+          g.groupLabel,
+          r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—',
+          r.avg_price.toFixed(2),
+          lucro != null ? roundTo50(r.avg_price + lucro) : '',
+          r.count,
+          r.min_price ?? '',
+          r.max_price ?? ''
+        ])
+      }
+    }
     const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
@@ -494,13 +521,10 @@ export default function PriceAveragesPage() {
                               </label>
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Modelo
+                              Modelo + Capacidade
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Cor
-                            </th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">
-                              Capacidade
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                               Média
@@ -520,62 +544,88 @@ export default function PriceAveragesPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-                          {sorted.map((row, i) => (
-                            <motion.tr
-                              key={`${row.model}-${row.color}-${row.storage}-${i}`}
-                              initial={{ opacity: 0, x: -8 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.02 }}
-                              className="hover:bg-gray-50 dark:hover:bg-white/5"
-                            >
-                              <td className="pl-3 pr-2 py-3 w-10">
-                                <label className="cursor-pointer flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedKeys.has(rowKey(row))}
-                                    onChange={() => {
-                                      const key = rowKey(row)
-                                      setSelectedKeys((prev) => {
-                                        const next = new Set(prev)
-                                        if (next.has(key)) next.delete(key)
-                                        else next.add(key)
-                                        return next
-                                      })
-                                    }}
-                                    className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
-                                  />
-                                </label>
-                              </td>
-                              <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                {row.model || '—'}
-                              </td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
-                                {row.color && row.color !== '—'
-                                  ? normalizeColor(row.color, row.model || '')
-                                  : '—'}
-                              </td>
-                              <td className="px-4 py-3 text-gray-600 dark:text-gray-300 hidden sm:table-cell">
-                                {row.storage && row.storage !== '—' ? row.storage : '—'}
-                              </td>
-                              <td className="px-4 py-3 text-right text-gray-900 dark:text-white">
-                                {formatPriceExact(row.avg_price)}
-                              </td>
-                              <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                                {(() => {
-                                  const lucro = appliedLucroPerRow[rowKey(row)]
-                                  return lucro != null ? formatPrice(roundTo50(row.avg_price + lucro)) : '—'
-                                })()}
-                              </td>
-                              <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
-                                {row.count}
-                              </td>
-                              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                                {row.min_price != null ? formatPrice(row.min_price) : '—'}
-                              </td>
-                              <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                                {row.max_price != null ? formatPrice(row.max_price) : '—'}
-                              </td>
-                            </motion.tr>
+                          {sortedGrouped.map((group, gi) => (
+                            <Fragment key={`group-${gi}`}>
+                              <tr
+                                className="bg-gray-100 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/10"
+                              >
+                                <td className="pl-3 pr-2 py-2 w-10 align-middle">
+                                  <label className="cursor-pointer flex items-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={group.rows.every((r) => selectedKeys.has(rowKey(r)))}
+                                      onChange={(e) => {
+                                        const keys = group.rows.map((r) => rowKey(r))
+                                        setSelectedKeys((prev) => {
+                                          const next = new Set(prev)
+                                          if (e.target.checked) keys.forEach((k) => next.add(k))
+                                          else keys.forEach((k) => next.delete(k))
+                                          return next
+                                        })
+                                      }}
+                                      className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
+                                    />
+                                  </label>
+                                </td>
+                                <td colSpan={7} className="px-4 py-2 font-semibold text-gray-900 dark:text-white">
+                                  {group.groupLabel}
+                                </td>
+                              </tr>
+                              {group.rows.map((row, i) => (
+                                <motion.tr
+                                  key={rowKey(row)}
+                                  initial={{ opacity: 0, x: -8 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  transition={{ delay: (gi * 10 + i) * 0.02 }}
+                                  className="hover:bg-gray-50 dark:hover:bg-white/5"
+                                >
+                                  <td className="pl-3 pr-2 py-3 w-10">
+                                    <label className="cursor-pointer flex items-center">
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedKeys.has(rowKey(row))}
+                                        onChange={() => {
+                                          const key = rowKey(row)
+                                          setSelectedKeys((prev) => {
+                                            const next = new Set(prev)
+                                            if (next.has(key)) next.delete(key)
+                                            else next.add(key)
+                                            return next
+                                          })
+                                        }}
+                                        className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
+                                      />
+                                    </label>
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm">
+                                    {/* vazio: modelo+capacidade já no header do grupo */}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                    {row.color && row.color !== '—'
+                                      ? normalizeColor(row.color, row.model || '')
+                                      : '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-gray-900 dark:text-white">
+                                    {formatPriceExact(row.avg_price)}
+                                  </td>
+                                  <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
+                                    {(() => {
+                                      const lucro = appliedLucroPerRow[rowKey(row)]
+                                      return lucro != null ? formatPrice(roundTo50(row.avg_price + lucro)) : '—'
+                                    })()}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
+                                    {row.count}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                                    {row.min_price != null ? formatPrice(row.min_price) : '—'}
+                                  </td>
+                                  <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                                    {row.max_price != null ? formatPrice(row.max_price) : '—'}
+                                  </td>
+                                </motion.tr>
+                              ))}
+                            </Fragment>
                           ))}
                         </tbody>
                       </table>
