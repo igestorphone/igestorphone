@@ -54,6 +54,7 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+F[ií]?sico\s*/gi, ' ')
     .replace(/\s+Virtual\s*/gi, ' ')
     .replace(/\s+TGB\s*/gi, ' ')
+    .replace(/\s+1\s+1\s+/g, ' ')
   return s.replace(/\s+/g, ' ').trim() || '—'
 }
 
