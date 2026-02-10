@@ -56,10 +56,45 @@ export default function PriceAveragesPage() {
     refetchOnWindowFocus: true
   })
 
+  // Deduplica linhas iguais (modelo + cor + capacidade) que vêm do backend com pequenas variações
   const averages = useMemo(() => {
     const raw = Array.isArray(data?.averages) ? data.averages : []
-    if (!isModelWithOfficialColors || !selectedColor) return raw
-    return raw.filter((r) => normalizeColor(r.color, r.model || '') === selectedColor)
+    let list = raw
+    if (isModelWithOfficialColors && selectedColor) {
+      list = raw.filter((r) => normalizeColor(r.color, r.model || '') === selectedColor)
+    }
+    // Agrupa por (model, cor normalizada, storage) e mescla em uma única linha
+    const key = (r: (typeof raw)[0]) =>
+      `${(r.model || '').trim()}|${normalizeColor(r.color, r.model || '')}|${(r.storage || '').trim()}`
+    const byKey = new Map<string, { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }>()
+    for (const r of list) {
+      const k = key(r)
+      const existing = byKey.get(k)
+      const count = Number(r.count) || 0
+      const avg = Number(r.avg_price) || 0
+      const minP = r.min_price != null ? Number(r.min_price) : null
+      const maxP = r.max_price != null ? Number(r.max_price) : null
+      if (!existing) {
+        byKey.set(k, {
+          model: r.model || '—',
+          color: r.color || '—',
+          storage: r.storage || '—',
+          avg_price: avg,
+          count,
+          min_price: minP,
+          max_price: maxP
+        })
+      } else {
+        const totalCount = existing.count + count
+        const weightedAvg = totalCount > 0 ? (existing.avg_price * existing.count + avg * count) / totalCount : existing.avg_price
+        const round50 = (v: number) => Math.round(v / 50) * 50
+        existing.avg_price = round50(weightedAvg)
+        existing.count += count
+        if (minP != null) existing.min_price = existing.min_price != null ? Math.min(existing.min_price, minP) : minP
+        if (maxP != null) existing.max_price = existing.max_price != null ? Math.max(existing.max_price, maxP) : maxP
+      }
+    }
+    return Array.from(byKey.values())
   }, [data?.averages, isModelWithOfficialColors, selectedColor])
 
   const sorted = useMemo(() => {
