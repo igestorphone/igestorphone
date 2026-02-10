@@ -356,14 +356,15 @@ router.get('/', [
   }
 });
 
-// Média de preços por modelo + cor + capacidade (iPhones novos dos últimos 3 dias, timezone Brasil) — arredondado para múltiplo de 50
+// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE, timezone Brasil)
+// Modelo normalizado: agrupa variantes (Anatel, E-SIM, com Chip, etc.) em uma única linha
 router.get('/price-averages', async (req, res) => {
   try {
     const search = (req.query.search || '').trim()
     const color = (req.query.color || '').trim()
     const storage = (req.query.storage || '').trim()
 
-    // Últimos 3 dias no timezone de Brasília (inclui produtos restaurados e processados hoje)
+    // Apenas HOJE no timezone de Brasília
     const conditions = [
       'p.is_active = true',
       's.is_active = true',
@@ -375,8 +376,8 @@ router.get('/price-averages', async (req, res) => {
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
       `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date - 3
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date - 3
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
       )`
     ]
     const values = []
@@ -399,20 +400,37 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
+    // Normalizar modelo: remove sufixos (256GB no nome, Anatel, E-SIM, com Chip, etc.) para agrupar numa única linha
+    const normalizedModelExpr = `TRIM(REGEXP_REPLACE(
+      REGEXP_REPLACE(
+        REGEXP_REPLACE(
+          REGEXP_REPLACE(COALESCE(p.model, p.name), '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
+          '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
+        '\\s*(anatel|e-?sim|com chip|chip anatel|chip)\\s*', ' ', 'gi'),
+      '\\s+', ' ', 'g'))`
+
     const whereClause = conditions.join(' AND ')
     const result = await query(`
+      WITH base AS (
+        SELECT
+          p.price,
+          ${normalizedModelExpr} AS model_normalized,
+          TRIM(COALESCE(p.color, '')) AS color,
+          TRIM(COALESCE(p.storage, '')) AS storage
+        FROM products p
+        JOIN suppliers s ON p.supplier_id = s.id
+        WHERE ${whereClause}
+      )
       SELECT
-        COALESCE(TRIM(p.model), TRIM(p.name)) AS model,
-        TRIM(COALESCE(p.color, '')) AS color,
-        TRIM(COALESCE(p.storage, '')) AS storage,
-        AVG(p.price)::numeric AS avg_price,
+        model_normalized AS model,
+        color,
+        storage,
+        AVG(price)::numeric AS avg_price,
         COUNT(*)::int AS count,
-        MIN(p.price)::numeric AS min_price,
-        MAX(p.price)::numeric AS max_price
-      FROM products p
-      JOIN suppliers s ON p.supplier_id = s.id
-      WHERE ${whereClause}
-      GROUP BY COALESCE(TRIM(p.model), TRIM(p.name)), TRIM(COALESCE(p.color, '')), TRIM(COALESCE(p.storage, ''))
+        MIN(price)::numeric AS min_price,
+        MAX(price)::numeric AS max_price
+      FROM base
+      GROUP BY model_normalized, color, storage
       HAVING COUNT(*) >= 1
       ORDER BY model, color, storage
     `, values);
