@@ -402,14 +402,17 @@ router.get('/price-averages', async (req, res) => {
     }
 
     // Normalizar modelo para UMA linha: remove variantes (Anatel, E-SIM, LI, Pons, americano, etc.)
+    // Inclui "L I" (com espaço) e "LI" para cobrir todas as formas no banco
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
           REGEXP_REPLACE(
             REGEXP_REPLACE(
-              REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
-              '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
-            '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
+              REGEXP_REPLACE(
+                REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
+                '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
+              '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
+            '\\s*L\\s*I\\s*', ' ', 'gi'),
           '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons)\\s*', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
