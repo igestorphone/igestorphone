@@ -346,15 +346,27 @@ export default function SearchCheapestIPhonePage() {
       return
     }
 
-    const productInfo = product
-      ? `\n${product.name || product.model || 'Produto'}\n${
-          product.model && product.model !== product.name ? `Modelo: ${product.model}\n` : ''
-        }Preço: ${formatPrice(product.price || 0)}\n${product.storage ? `Capacidade: ${product.storage}\n` : ''}${
-          product.color ? `Cor: ${normalizeColor(product.color, product.model || product.name)}\n` : ''
-        }${product.variant ? `Variante: ${product.variant}\n` : ''}`
-      : '\n'
+    let message: string
+    if (product) {
+      const modelStr = (product.model || product.name || 'Produto').replace(/^iPhone\s*/i, '').trim()
+      const parts = [modelStr]
+      if (product.storage) parts.push(product.storage)
+      if (product.color) parts.push(normalizeColor(product.color, product.model || product.name).toUpperCase())
+      if (product.condition_detail) parts.push(product.condition_detail)
+      else if (product.condition) parts.push(product.condition.toUpperCase())
+      const productLine = parts.join(' ')
+      const priceStr = formatPrice(product.price || 0)
+      message = `Olá, tudo bem? Vim pelo iGestorPhone
 
-    const message = `Olá! Tenho interesse no produto:${productInfo}\nPode me enviar mais informações?`
+${productLine}
+${priceStr}
+
+Ainda tem disponível?`
+    } else {
+      message = `Olá, tudo bem? Vim pelo iGestorPhone
+
+Ainda tem disponível?`
+    }
     const url = createWhatsAppUrl(whatsapp, message.trim())
     window.open(url, '_blank')
   }
