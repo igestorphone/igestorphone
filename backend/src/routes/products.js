@@ -401,19 +401,18 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
-    // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ll, Pons, Anatel, etc.) para englobar tudo
-    // " 1 1 " (sobra de Indiano 1 Físico 1 Virtual) removido com REPLACE para evitar escape de regex
+    // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ch, Ndia, etc.) e " 1 1 "/" 01 01 " (Indiano 1 Físico 1 Virtual)
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
           REGEXP_REPLACE(
             REGEXP_REPLACE(
               REGEXP_REPLACE(
-                REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 1 1 ', ' '),
+                REPLACE(REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 1 1 ', ' '), ' 01 01 ', ' '),
                 '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
               '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
             '\\s*L\\s*I\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|fisico|fsico|virtual|pones|nano|tgb)\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb)\\s*', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 

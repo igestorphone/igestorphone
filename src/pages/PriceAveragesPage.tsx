@@ -35,7 +35,7 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove variantes (CPO, Lacrado, Indiano, Pones, Nano, TGB, etc.) para exibição e agrupamento. */
+/** Normaliza nome do modelo no frontend: remove variantes (CPO, Lacrado, Indiano, Ndia, Ch, Pones, Nano, TGB, etc.) e "1 1"/"01 01". */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
@@ -51,9 +51,12 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+CPO\s*/gi, ' ')
     .replace(/\s+Lacrado\s*/gi, ' ')
     .replace(/\s+Indiano\s*/gi, ' ')
+    .replace(/\s+Ndia\s*/gi, ' ')
+    .replace(/\s+Ch\s*/gi, ' ')
     .replace(/\s+F[ií]?sico\s*/gi, ' ')
     .replace(/\s+Virtual\s*/gi, ' ')
     .replace(/\s+TGB\s*/gi, ' ')
+    .replace(/\s+01\s+01\s+/g, ' ')
     .replace(/\s+1\s+1\s+/g, ' ')
   return s.replace(/\s+/g, ' ').trim() || '—'
 }
