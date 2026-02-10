@@ -10,7 +10,8 @@ import {
   Package,
   Info,
   RefreshCw,
-  TrendingUp
+  TrendingUp,
+  Copy
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
@@ -63,6 +64,7 @@ export default function PriceAveragesPage() {
   /** Margem aplicada por modelo (rowKey -> valor em R$). Aplicar só atualiza os selecionados, mantém os demais. */
   const [appliedLucroPerRow, setAppliedLucroPerRow] = useState<Record<string, number>>({})
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [copyFeedback, setCopyFeedback] = useState(false)
 
   const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
     `${(row.model || '').trim()}|${normalizeColor(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
@@ -343,6 +345,33 @@ export default function PriceAveragesPage() {
     URL.revokeObjectURL(url)
   }
 
+  /** Texto puro sem grade para colar no Notas do iPhone (sem vírgulas, sem tabela). */
+  const copyToNotes = async () => {
+    const lines: string[] = []
+    for (const g of sortedGrouped) {
+      const groupLines: string[] = []
+      for (const r of g.rows) {
+        const lucro = appliedLucroPerRow[rowKey(r)]
+        if (lucro == null) continue
+        const color = r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—'
+        const preco = roundTo50(r.avg_price + lucro)
+        groupLines.push(`${g.groupLabel} - ${color} - R$ ${preco}`)
+      }
+      if (groupLines.length > 0) {
+        lines.push(...groupLines)
+        lines.push('')
+      }
+    }
+    const text = lines.join('\n').replace(/\n+$/, '')
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyFeedback(true)
+      setTimeout(() => setCopyFeedback(false), 2000)
+    } catch {
+      setCopyFeedback(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Título e descrição — preto e branco */}
@@ -476,14 +505,25 @@ export default function PriceAveragesPage() {
               Atualizar
             </button>
             {sorted.length > 0 && (
-              <button
-                type="button"
-                onClick={exportCsv}
-                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-800 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Exportar CSV
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-800 dark:bg-white text-white dark:text-black hover:bg-gray-700 dark:hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar CSV
+                </button>
+                <button
+                  type="button"
+                  onClick={copyToNotes}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg text-sm font-medium transition-colors border border-gray-200 dark:border-white/10"
+                  title="Texto sem grade para colar no Notas"
+                >
+                  <Copy className="w-4 h-4" />
+                  {copyFeedback ? 'Copiado!' : 'Copiar para Notas'}
+                </button>
+              </>
             )}
           </div>
         </div>
