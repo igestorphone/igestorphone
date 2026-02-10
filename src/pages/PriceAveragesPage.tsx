@@ -118,8 +118,8 @@ export default function PriceAveragesPage() {
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
-Média dos iPhones <strong>novos</strong> processados <strong>hoje</strong>, por modelo, cor e capacidade.
-          Pesquise o modelo e filtre por cor/capacidade para ver uma única linha com menor valor, maior valor e média. Valores arredondados para R$ 50.
+Média dos iPhones <strong>novos</strong> processados <strong>hoje ou ontem</strong>, por modelo, cor e capacidade.
+          Inclui produtos restaurados. Pesquise o modelo e filtre por cor/capacidade para ver uma única linha com menor, maior e média. Valores arredondados para R$ 50.
         </p>
       </motion.div>
 
@@ -297,8 +297,8 @@ Média dos iPhones <strong>novos</strong> processados <strong>hoje</strong>, por
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm">
                   {searchTerm || selectedColor || selectedStorage
-                    ? 'Nenhum iPhone novo processado hoje com esses filtros. Tente outro modelo, cor ou capacidade.'
-                    : 'Nenhum iPhone novo processado hoje. As médias aparecem após processar listas do dia.'}
+                    ? 'Nenhum iPhone novo com esses filtros (hoje/ontem). Tente outro modelo, cor ou capacidade.'
+                    : 'Nenhum iPhone novo hoje ou ontem. As médias aparecem após processar ou restaurar listas.'}
                 </p>
               </motion.div>
             )}
@@ -314,7 +314,7 @@ Média dos iPhones <strong>novos</strong> processados <strong>hoje</strong>, por
                 <p className="font-medium text-gray-900 dark:text-white mb-1">Como usar</p>
                 <p>
                   Os valores são arredondados para o múltiplo de R$ 50 mais próximo (ex.: 7225 → 7250). 
-                  Use a coluna &quot;Preço sugerido&quot; como base para sua tabela de venda. Só entram iPhones <strong>novos</strong> (lacrado/novo/CPO) processados <strong>hoje</strong>. Variantes (Anatel, E-SIM, etc.) são agrupadas numa única linha.
+                  Use a coluna &quot;Preço sugerido&quot; como base para sua tabela de venda. Só entram iPhones <strong>novos</strong> (lacrado/novo/CPO) processados ou restaurados <strong>hoje ou ontem</strong>. Variantes (Anatel, E-SIM, etc.) são agrupadas numa única linha.
                 </p>
               </div>
             </motion.div>
