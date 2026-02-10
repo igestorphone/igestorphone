@@ -402,18 +402,18 @@ router.get('/price-averages', async (req, res) => {
     }
 
     // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ll, Pons, Anatel, etc.) para englobar tudo
+    // " 1 1 " (sobra de Indiano 1 Físico 1 Virtual) removido com REPLACE para evitar escape de regex
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
           REGEXP_REPLACE(
             REGEXP_REPLACE(
               REGEXP_REPLACE(
-                REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
+                REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 1 1 ', ' '),
                 '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
               '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
             '\\s*L\\s*I\\s*', ' ', 'gi'),
           '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|fisico|fsico|virtual|pones|nano|tgb)\\s*', ' ', 'gi'),
-          '\\s*1\\s*1\\s*', ' ', 'g'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 
@@ -466,7 +466,15 @@ router.get('/price-averages', async (req, res) => {
     res.json({ averages: rows });
   } catch (error) {
     console.error('Erro ao buscar médias de preço:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    const isDev = process.env.NODE_ENV !== 'production';
+    res.status(500).json({
+      message: 'Erro interno do servidor',
+      ...(isDev && {
+        error: error?.message,
+        code: error?.code,
+        detail: error?.detail
+      })
+    });
   }
 });
 
