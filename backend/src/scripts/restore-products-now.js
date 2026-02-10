@@ -6,14 +6,16 @@ dotenv.config();
 /**
  * Script para restaurar produtos que foram desativados recentemente
  * Útil quando produtos foram zerados por engano antes da meia-noite
+ * Uso: node src/scripts/restore-products-now.js   (padrão 24h)
+ *      HOURS=48 node src/scripts/restore-products-now.js
  */
 async function restoreProducts() {
   try {
-    console.log('🔄 Restaurando produtos desativados recentemente...');
+    const hours = parseInt(process.env.HOURS || '24', 10);
+    console.log(`🔄 Restaurando produtos desativados nas últimas ${hours}h...`);
     
-    // Restaurar produtos desativados nas últimas 24 horas
     const cutoffTime = new Date();
-    cutoffTime.setHours(cutoffTime.getHours() - 24);
+    cutoffTime.setHours(cutoffTime.getHours() - hours);
     
     console.log(`   Cutoff time: ${cutoffTime.toISOString()}`);
     
@@ -26,7 +28,7 @@ async function restoreProducts() {
     `, [cutoffTime]);
     
     const totalToRestore = parseInt(countResult.rows[0].total);
-    console.log(`   Produtos desativados nas últimas 24h: ${totalToRestore}`);
+    console.log(`   Produtos desativados nas últimas ${hours}h: ${totalToRestore}`);
     
     if (totalToRestore === 0) {
       console.log('✅ Nenhum produto para restaurar!');

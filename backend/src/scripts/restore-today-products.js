@@ -35,11 +35,12 @@ async function restoreTodayProducts() {
   try {
     console.log('🚨 RESTAURANDO TODOS OS PRODUTOS DE HOJE...\n');
     
-    // Obter data de hoje no timezone do Brasil
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-    
-    console.log(`📅 Data de hoje: ${todayStr}\n`);
+    // Obter data de HOJE no timezone do Brasil (via DB para não depender do fuso do servidor)
+    const dateResult = await query(`
+      SELECT (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date as hoje_brasil
+    `);
+    const todayStr = dateResult.rows[0].hoje_brasil;
+    console.log(`📅 Data de hoje (Brasil): ${todayStr}\n`);
     
     // Primeiro, verificar quantos produtos foram desativados hoje
     const countResult = await query(`

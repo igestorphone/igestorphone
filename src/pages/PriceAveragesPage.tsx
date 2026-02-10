@@ -35,13 +35,15 @@ export default function PriceAveragesPage() {
         color: selectedColor || undefined,
         storage: selectedStorage || undefined
       })
-      return res.data
+      // API retorna { averages: [...] }; apiClient já devolve o body
+      return Array.isArray((res as any)?.averages) ? (res as any) : { averages: [] }
     },
     staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000
+    gcTime: 5 * 60 * 1000,
+    retry: 2
   })
 
-  const averages = data?.averages ?? []
+  const averages = Array.isArray(data?.averages) ? data.averages : []
 
   const sorted = useMemo(() => {
     const list = [...averages]

@@ -356,13 +356,14 @@ router.get('/', [
   }
 });
 
-// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE) — arredondado para múltiplo de 50
+// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE, timezone Brasil) — arredondado para múltiplo de 50
 router.get('/price-averages', async (req, res) => {
   try {
     const search = (req.query.search || '').trim()
     const color = (req.query.color || '').trim()
     const storage = (req.query.storage || '').trim()
 
+    // "Hoje" no timezone de Brasília (evita erro em servidor UTC)
     const conditions = [
       'p.is_active = true',
       's.is_active = true',
@@ -373,7 +374,10 @@ router.get('/price-averages', async (req, res) => {
         OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
-      '(DATE(p.updated_at) = CURRENT_DATE OR DATE(p.created_at) = CURRENT_DATE)'
+      `(
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+      )`
     ]
     const values = []
     let paramCount = 1
