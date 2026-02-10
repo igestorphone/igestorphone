@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -8,7 +8,8 @@ import {
   Palette,
   Loader2,
   Package,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
@@ -28,23 +29,38 @@ export default function PriceAveragesPage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [sortBy, setSortBy] = useState<'model' | 'price-asc' | 'price-desc' | 'count'>('model')
 
-  const { data, isLoading, error } = useQuery({
+  const isModelWithOfficialColors = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase().trim()
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0)
+    return (
+      (searchLower.includes('iphone') && searchWords.includes('17') && !searchWords.includes('pro') && !searchWords.includes('max') && !searchWords.includes('plus') && !searchWords.includes('air')) ||
+      searchLower.includes('16 pro') || searchLower.includes('16 pro max') ||
+      searchLower.includes('17 pro') || searchLower.includes('17 pro max')
+    )
+  }, [searchTerm])
+
+  const { data, isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['products', 'price-averages', searchTerm, selectedColor, selectedStorage],
     queryFn: async () => {
+      const filterColorClientSide = isModelWithOfficialColors && !!selectedColor
       const res = await produtosApi.getPriceAverages({
         search: searchTerm.trim() || undefined,
-        color: selectedColor || undefined,
+        color: filterColorClientSide ? undefined : (selectedColor || undefined),
         storage: selectedStorage || undefined
       })
-      // API retorna { averages: [...] }; apiClient já devolve o body
       return Array.isArray((res as any)?.averages) ? (res as any) : { averages: [] }
     },
-    staleTime: 60 * 1000,
+    staleTime: 45 * 1000,
     gcTime: 5 * 60 * 1000,
-    retry: 2
+    retry: 2,
+    refetchOnWindowFocus: true
   })
 
-  const averages = Array.isArray(data?.averages) ? data.averages : []
+  const averages = useMemo(() => {
+    const raw = Array.isArray(data?.averages) ? data.averages : []
+    if (!isModelWithOfficialColors || !selectedColor) return raw
+    return raw.filter((r) => normalizeColor(r.color, r.model || '') === selectedColor)
+  }, [data?.averages, isModelWithOfficialColors, selectedColor])
 
   const sorted = useMemo(() => {
     const list = [...averages]
@@ -66,10 +82,59 @@ export default function PriceAveragesPage() {
   const uniqueColors = useMemo(() => {
     const set = new Set<string>()
     averages.forEach((r) => {
-      if (r.color && r.color !== '—') set.add(r.color)
+      if (r.color && r.color !== '—') {
+        const normalized = normalizeColor(r.color, r.model || '')
+        if (normalized && normalized !== 'N/A') set.add(normalized)
+      }
     })
     return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR'))
   }, [averages])
+
+  // Cores do modelo (igual Buscar iPhone lacrado): só as oficiais do modelo digitado
+  const filterColors = useMemo(() => {
+    const searchLower = searchTerm.toLowerCase().trim()
+    const searchWords = searchLower.split(/\s+/).filter(w => w.length > 0)
+    const isIPhone17Exact = searchLower.includes('iphone') && searchWords.includes('17') && !searchWords.includes('pro') && !searchWords.includes('max') && !searchWords.includes('plus') && !searchWords.includes('air')
+    const isIPhone16Pro = searchLower.includes('iphone') && (searchLower.includes('16 pro') || searchLower.includes('16 pro max'))
+    const isIPhone17Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('17 pro max'))
+
+    const iPhone17Official = ['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage']
+    const iPhone17ProOfficial = ['Azul Intenso', 'Laranja Cósmico', 'Prateado']
+    const iPhone16ProOfficial = ['Titânio Deserto', 'Titânio Natural', 'Titânio Branco', 'Titânio Preto']
+
+    let officialSet: string[] | null = null
+    let order: string[] | null = null
+    if (isIPhone17Pro) {
+      officialSet = iPhone17ProOfficial
+      order = iPhone17ProOfficial
+    } else if (isIPhone16Pro) {
+      officialSet = iPhone16ProOfficial
+      order = iPhone16ProOfficial
+    } else if (isIPhone17Exact) {
+      officialSet = iPhone17Official
+      order = iPhone17Official
+    }
+
+    if (officialSet && order) {
+      const allowed = new Set(officialSet)
+      const filtered = uniqueColors.filter((c) => allowed.has(c))
+      return filtered.sort((a, b) => {
+        const i = order!.indexOf(a)
+        const j = order!.indexOf(b)
+        if (i !== -1 && j !== -1) return i - j
+        if (i !== -1) return -1
+        if (j !== -1) return 1
+        return a.localeCompare(b, 'pt-BR')
+      })
+    }
+    return uniqueColors
+  }, [searchTerm, uniqueColors])
+
+  useEffect(() => {
+    if (selectedColor && filterColors.length > 0 && !filterColors.includes(selectedColor)) {
+      setSelectedColor('')
+    }
+  }, [filterColors, selectedColor])
 
   const uniqueStorages = useMemo(() => {
     const set = new Set<string>()
@@ -153,7 +218,7 @@ export default function PriceAveragesPage() {
                 className="w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-gray-400 dark:focus:ring-gray-500"
               >
                 <option value="">Todas</option>
-                {uniqueColors.map((c) => (
+                {filterColors.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
@@ -186,6 +251,15 @@ export default function PriceAveragesPage() {
               <option value="price-desc">Preço: maior</option>
               <option value="count">Quantidade</option>
             </select>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Atualizar
+            </button>
             {sorted.length > 0 && (
               <button
                 type="button"
@@ -245,6 +319,14 @@ export default function PriceAveragesPage() {
                         </span>
                         <span className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                           {sorted[0].count} oferta{sorted[0].count !== 1 ? 's' : ''} • arredondado para R$ 50
+                        </span>
+                      </div>
+                      <div className="mt-6 flex items-center justify-center gap-6 text-sm">
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Menor: <strong className="text-gray-900 dark:text-white">{sorted[0].min_price != null ? formatPrice(sorted[0].min_price) : '—'}</strong>
+                        </span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Maior: <strong className="text-gray-900 dark:text-white">{sorted[0].max_price != null ? formatPrice(sorted[0].max_price) : '—'}</strong>
                         </span>
                       </div>
                     </div>
