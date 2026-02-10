@@ -58,6 +58,7 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+TGB\s*/gi, ' ')
     .replace(/\s+01\s+01\s+/g, ' ')
     .replace(/\s+1\s+1\s+/g, ' ')
+    .replace(/\s+1\s+/g, ' ')
   return s.replace(/\s+/g, ' ').trim() || '—'
 }
 
