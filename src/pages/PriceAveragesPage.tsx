@@ -34,14 +34,24 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove LI, Pons, L I, etc. (igual backend) para exibição e agrupamento. */
+/** Normaliza nome do modelo no frontend: remove HN, NANOSIM, LI, Ll, Pons, etc. (igual backend) para exibição e agrupamento. */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
     .replace(/\s+L\s*I\s*/gi, ' ')
     .replace(/\s+LI\s*/gi, ' ')
+    .replace(/\s+Ll\s*/gi, ' ')
+    .replace(/\s+LL\s*/g, ' ')
     .replace(/\s+Pons\s*/gi, ' ')
+    .replace(/\s+HN\s*/gi, ' ')
+    .replace(/\s+NANOSIM\s*/gi, ' ')
   return s.replace(/\s+/g, ' ').trim() || '—'
+}
+
+/** Só iPhone 17 Pro e 17 Pro Max têm média por cor; os demais mostram uma linha por modelo+capacidade (todas as cores juntas). */
+function is17ProOrProMax(model: string): boolean {
+  const m = (model || '').toLowerCase()
+  return m.includes('17 pro max') || (m.includes('17 pro') && !m.includes('17 pro max'))
 }
 
 export default function PriceAveragesPage() {
@@ -128,10 +138,51 @@ export default function PriceAveragesPage() {
   }, [data?.averages, isModelWithOfficialColors, selectedColor])
 
   type Row = { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }
+
+  /** Para 17 Pro/Pro Max: uma linha por cor. Para os demais: uma linha por modelo+capacidade (média englobando todas as cores). */
+  const averagesForDisplay = useMemo(() => {
+    const byModelStorage = new Map<string, Row[]>()
+    for (const r of averages) {
+      const k = `${(r.model || '').trim()}|${(r.storage || '').trim()}`
+      if (!byModelStorage.has(k)) byModelStorage.set(k, [])
+      byModelStorage.get(k)!.push(r)
+    }
+    const out: Row[] = []
+    for (const rows of byModelStorage.values()) {
+      if (rows.length === 0) continue
+      const model = rows[0].model
+      const storage = rows[0].storage
+      if (is17ProOrProMax(model)) {
+        out.push(...rows)
+      } else {
+        let totalCount = 0
+        let weightedSum = 0
+        let minP: number | null = null
+        let maxP: number | null = null
+        for (const r of rows) {
+          totalCount += r.count
+          weightedSum += r.avg_price * r.count
+          if (r.min_price != null) minP = minP == null ? r.min_price : Math.min(minP, r.min_price)
+          if (r.max_price != null) maxP = maxP == null ? r.max_price : Math.max(maxP, r.max_price)
+        }
+        out.push({
+          model,
+          color: '—',
+          storage,
+          avg_price: totalCount > 0 ? weightedSum / totalCount : 0,
+          count: totalCount,
+          min_price: minP,
+          max_price: maxP
+        })
+      }
+    }
+    return out
+  }, [averages])
+
   const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
 
   const sorted = useMemo(() => {
-    const list = [...averages]
+    const list = [...averagesForDisplay]
     switch (sortBy) {
       case 'price-asc':
         return list.sort((a, b) => a.avg_price - b.avg_price)
@@ -157,9 +208,9 @@ export default function PriceAveragesPage() {
     return null
   }
 
-  /** Agrupa por modelo + capacidade; ordena cores dentro do grupo como no Buscar iPhone Novo */
+  /** Agrupa por modelo + capacidade; ordena cores dentro do grupo como no Buscar iPhone Novo (17 Pro); outros têm 1 linha por grupo */
   const sortedGrouped = useMemo(() => {
-    const list = [...averages].sort((a, b) => {
+    const list = [...averagesForDisplay].sort((a, b) => {
       const c = (a.model || '').localeCompare(b.model || '', 'pt-BR')
       if (c !== 0) return c
       const d = storageNum(a.storage) - storageNum(b.storage)
@@ -187,7 +238,7 @@ export default function PriceAveragesPage() {
       current.rows.push(r)
     }
     return groups
-  }, [averages])
+  }, [averagesForDisplay])
 
   useEffect(() => {
     const el = selectAllRef.current
