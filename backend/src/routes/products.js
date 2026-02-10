@@ -356,14 +356,14 @@ router.get('/', [
   }
 });
 
-// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE, timezone Brasil) — arredondado para múltiplo de 50
+// Média de preços por modelo + cor + capacidade (iPhones novos dos últimos 3 dias, timezone Brasil) — arredondado para múltiplo de 50
 router.get('/price-averages', async (req, res) => {
   try {
     const search = (req.query.search || '').trim()
     const color = (req.query.color || '').trim()
     const storage = (req.query.storage || '').trim()
 
-    // "Hoje" no timezone de Brasília (evita erro em servidor UTC)
+    // Últimos 3 dias no timezone de Brasília (inclui produtos restaurados e processados hoje)
     const conditions = [
       'p.is_active = true',
       's.is_active = true',
@@ -375,8 +375,8 @@ router.get('/price-averages', async (req, res) => {
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
       `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date - 3
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date - 3
       )`
     ]
     const values = []
