@@ -34,6 +34,16 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
+/** Normaliza nome do modelo no frontend: remove LI, Pons, L I, etc. (igual backend) para exibição e agrupamento. */
+function normalizeModelForDisplay(model: string): string {
+  if (!model || !model.trim()) return model || '—'
+  let s = model
+    .replace(/\s+L\s*I\s*/gi, ' ')
+    .replace(/\s+LI\s*/gi, ' ')
+    .replace(/\s+Pons\s*/gi, ' ')
+  return s.replace(/\s+/g, ' ').trim() || '—'
+}
+
 export default function PriceAveragesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
@@ -75,16 +85,17 @@ export default function PriceAveragesPage() {
     refetchOnWindowFocus: true
   })
 
-  // Deduplica linhas iguais (modelo + cor + capacidade) que vêm do backend com pequenas variações
+  // Deduplica e normaliza modelo (remove LI, Pons, etc.) para que "iPhone 17 Pro Max LI" e "iPhone 17 Pro Max" virem um só
   const averages = useMemo(() => {
     const raw = Array.isArray(data?.averages) ? data.averages : []
     let list = raw
     if (isModelWithOfficialColors && selectedColor) {
       list = raw.filter((r) => normalizeColor(r.color, r.model || '') === selectedColor)
     }
-    // Agrupa por (model, cor normalizada, storage) e mescla em uma única linha
-    const key = (r: (typeof raw)[0]) =>
-      `${(r.model || '').trim()}|${normalizeColor(r.color, r.model || '')}|${(r.storage || '').trim()}`
+    const key = (r: (typeof raw)[0]) => {
+      const modelNorm = normalizeModelForDisplay(r.model || '')
+      return `${modelNorm}|${normalizeColor(r.color, r.model || '')}|${(r.storage || '').trim()}`
+    }
     const byKey = new Map<string, { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }>()
     for (const r of list) {
       const k = key(r)
@@ -93,9 +104,10 @@ export default function PriceAveragesPage() {
       const avg = Number(r.avg_price) || 0
       const minP = r.min_price != null ? Number(r.min_price) : null
       const maxP = r.max_price != null ? Number(r.max_price) : null
+      const modelDisplay = normalizeModelForDisplay(r.model || '')
       if (!existing) {
         byKey.set(k, {
-          model: r.model || '—',
+          model: modelDisplay,
           color: r.color || '—',
           storage: r.storage || '—',
           avg_price: avg,
@@ -135,14 +147,34 @@ export default function PriceAveragesPage() {
     }
   }, [averages, sortBy])
 
-  /** Agrupa por modelo + capacidade (ex.: iPhone 13 128GB com todas as cores abaixo) para tabela e Excel */
+  /** Ordem de cores por modelo (igual Buscar iPhone Novo): 17 Pro, 16 Pro, 17. */
+  const colorOrderForModel = (model: string): string[] | null => {
+    const m = (model || '').toLowerCase()
+    if (m.includes('17 pro')) return ['Azul Intenso', 'Laranja Cósmico', 'Prateado']
+    if (m.includes('16 pro')) return ['Titânio Deserto', 'Titânio Natural', 'Titânio Branco', 'Titânio Preto']
+    if (m.includes('17') && !m.includes('pro') && !m.includes('max') && !m.includes('plus') && !m.includes('air'))
+      return ['Preto', 'Branco', 'Mist Blue', 'Lavanda', 'Sage']
+    return null
+  }
+
+  /** Agrupa por modelo + capacidade; ordena cores dentro do grupo como no Buscar iPhone Novo */
   const sortedGrouped = useMemo(() => {
     const list = [...averages].sort((a, b) => {
       const c = (a.model || '').localeCompare(b.model || '', 'pt-BR')
       if (c !== 0) return c
       const d = storageNum(a.storage) - storageNum(b.storage)
       if (d !== 0) return d
-      return (normalizeColor(a.color, a.model || '')).localeCompare(normalizeColor(b.color, b.model || ''), 'pt-BR')
+      const order = colorOrderForModel(a.model || '')
+      const colorA = normalizeColor(a.color, a.model || '')
+      const colorB = normalizeColor(b.color, b.model || '')
+      if (order) {
+        const iA = order.indexOf(colorA)
+        const iB = order.indexOf(colorB)
+        if (iA !== -1 && iB !== -1) return iA - iB
+        if (iA !== -1) return -1
+        if (iB !== -1) return 1
+      }
+      return colorA.localeCompare(colorB, 'pt-BR')
     })
     const groups: { groupLabel: string; rows: Row[] }[] = []
     let current: { groupLabel: string; rows: Row[] } | null = null
@@ -520,7 +552,7 @@ export default function PriceAveragesPage() {
                                 <span className="hidden sm:inline">Todos</span>
                               </label>
                             </th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[160px]">
                               Modelo + Capacidade
                             </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -567,7 +599,7 @@ export default function PriceAveragesPage() {
                                     />
                                   </label>
                                 </td>
-                                <td colSpan={7} className="px-4 py-2 font-semibold text-gray-900 dark:text-white">
+                                <td colSpan={7} className="px-4 py-2.5 font-semibold text-gray-900 dark:text-white align-middle">
                                   {group.groupLabel}
                                 </td>
                               </tr>
@@ -597,10 +629,10 @@ export default function PriceAveragesPage() {
                                       />
                                     </label>
                                   </td>
-                                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm">
-                                    {/* vazio: modelo+capacidade já no header do grupo */}
+                                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm min-w-[160px]">
+                                    <span className="invisible select-none">—</span>
                                   </td>
-                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 min-w-[120px]">
                                     {row.color && row.color !== '—'
                                       ? normalizeColor(row.color, row.model || '')
                                       : '—'}
