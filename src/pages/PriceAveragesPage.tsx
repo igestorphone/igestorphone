@@ -115,7 +115,7 @@ export default function PriceAveragesPage() {
     const raw = Array.isArray(data?.averages) ? data.averages : []
     let list = raw
     if (isModelWithOfficialColors && selectedColor) {
-      list = raw.filter((r) => normalizeColor(r.color, r.model || '') === selectedColor)
+      list = raw.filter((r: (typeof raw)[0]) => normalizeColor(r.color, r.model || '') === selectedColor)
     }
     const key = (r: (typeof raw)[0]) => {
       const modelNorm = normalizeModelForDisplay(r.model || '')
