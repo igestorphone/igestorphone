@@ -265,23 +265,24 @@ export default function PriceAveragesPage() {
   }, [averages])
 
   const exportCsv = () => {
-    const headers = ['Modelo + Capacidade', 'Cor', 'Média', 'Preço sugerido (média + lucro)', 'Qtd', 'Mín', 'Máx']
-    const rows: (string | number)[][] = []
+    // Planilha: só Modelo + Capacidade, Cor e Preço sugerido; só linhas com lucro aplicado; quebra de linha entre modelos
+    const headers = ['Modelo + Capacidade', 'Cor', 'Preço sugerido (média + lucro)']
+    const lines: string[] = [headers.join(',')]
     for (const g of sortedGrouped) {
+      const groupLines: string[] = []
       for (const r of g.rows) {
         const lucro = appliedLucroPerRow[rowKey(r)]
-        rows.push([
-          g.groupLabel,
-          r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—',
-          r.avg_price.toFixed(2),
-          lucro != null ? roundTo50(r.avg_price + lucro) : '',
-          r.count,
-          r.min_price ?? '',
-          r.max_price ?? ''
-        ])
+        if (lucro == null) continue
+        const color = r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—'
+        const preco = roundTo50(r.avg_price + lucro)
+        groupLines.push([g.groupLabel, color, preco].join(','))
+      }
+      if (groupLines.length > 0) {
+        lines.push(...groupLines)
+        lines.push('')
       }
     }
-    const csv = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n')
+    const csv = lines.join('\n').replace(/\n+$/, '')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
