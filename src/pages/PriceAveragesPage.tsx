@@ -47,11 +47,6 @@ export default function PriceAveragesPage() {
   const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
     `${(row.model || '').trim()}|${normalizeColor(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
   const selectAllRef = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    const el = selectAllRef.current
-    if (!el) return
-    el.indeterminate = sorted.length > 0 && selectedKeys.size > 0 && selectedKeys.size < sorted.length
-  }, [sorted.length, selectedKeys.size])
 
   const isModelWithOfficialColors = useMemo(() => {
     const searchLower = searchTerm.toLowerCase().trim()
@@ -136,6 +131,12 @@ export default function PriceAveragesPage() {
         )
     }
   }, [averages, sortBy])
+
+  useEffect(() => {
+    const el = selectAllRef.current
+    if (!el) return
+    el.indeterminate = sorted.length > 0 && selectedKeys.size > 0 && selectedKeys.size < sorted.length
+  }, [sorted.length, selectedKeys.size])
 
   const uniqueColors = useMemo(() => {
     const set = new Set<string>()
