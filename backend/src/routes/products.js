@@ -401,7 +401,8 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
-    // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ch, Ndia, etc.) e "1 1"/"01 01" em qualquer espaçamento (Indiano 1 Físico 1 Virtual)
+    // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ch, Ndia, etc.) e "1 1"/"01 01" (Indiano 1 Físico 1 Virtual)
+    // Usa [[:space:]] (POSIX) para compatibilidade em todos os PostgreSQL
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
@@ -411,9 +412,9 @@ router.get('/price-averages', async (req, res) => {
                 REGEXP_REPLACE(
                   REGEXP_REPLACE(
                     REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'),
-                    '\\s+01\\s+01\\s+', ' ', 'g'),
-                  '\\s+1\\s+1\\s+', ' ', 'g'),
-                '\\s+1\\s+', ' ', 'g'),
+                    '[[:space:]]+01[[:space:]]+01[[:space:]]+', ' ', 'g'),
+                  '[[:space:]]+1[[:space:]]+1[[:space:]]+', ' ', 'g'),
+                '[[:space:]]+1[[:space:]]+', ' ', 'g'),
               '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
             '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
           '\\s*L\\s*I\\s*', ' ', 'gi'),

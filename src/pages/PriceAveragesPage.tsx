@@ -551,7 +551,10 @@ export default function PriceAveragesPage() {
 
       {error && (
         <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-4 text-red-600 dark:text-red-400 text-center">
-          Erro ao carregar médias. Tente novamente.
+          <p>Erro ao carregar médias. Tente novamente.</p>
+          {(error as any)?.response?.data?.error && (
+            <p className="mt-2 text-sm opacity-90">{(error as any).response.data.error}</p>
+          )}
         </div>
       )}
 
