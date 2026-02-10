@@ -412,7 +412,7 @@ router.get('/price-averages', async (req, res) => {
                 '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
               '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
             '\\s*L\\s*I\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll)\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|fisico|fsico|virtual|pones|nano|tgb)\\s*', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 

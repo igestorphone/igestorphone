@@ -35,7 +35,7 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove HN, NANOSIM, LI, Ll, Pons, etc. (igual backend) para exibição e agrupamento. */
+/** Normaliza nome do modelo no frontend: remove variantes (CPO, Lacrado, Indiano, Pones, Nano, TGB, etc.) para exibição e agrupamento. */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
@@ -44,8 +44,16 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+Ll\s*/gi, ' ')
     .replace(/\s+LL\s*/g, ' ')
     .replace(/\s+Pons\s*/gi, ' ')
+    .replace(/\s+Pones\s*/gi, ' ')
     .replace(/\s+HN\s*/gi, ' ')
     .replace(/\s+NANOSIM\s*/gi, ' ')
+    .replace(/\s+Nano\s*/gi, ' ')
+    .replace(/\s+CPO\s*/gi, ' ')
+    .replace(/\s+Lacrado\s*/gi, ' ')
+    .replace(/\s+Indiano\s*/gi, ' ')
+    .replace(/\s+F[ií]?sico\s*/gi, ' ')
+    .replace(/\s+Virtual\s*/gi, ' ')
+    .replace(/\s+TGB\s*/gi, ' ')
   return s.replace(/\s+/g, ' ').trim() || '—'
 }
 

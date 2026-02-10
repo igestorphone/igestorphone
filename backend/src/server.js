@@ -227,36 +227,21 @@ async function checkAndCleanupProducts() {
     const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
     
     if (isMidnightWindow) {
-      // Verificar se há produtos antigos para limpar (mais de 3 dias)
-      // Mantém apenas os últimos 3 dias de produtos ativos
+      // Zerar todos os produtos à 00h Brasília (is_active = false)
       const countQuery = await query(`
-        SELECT COUNT(*) as total
-        FROM products
-        WHERE is_active = true
-          AND updated_at < NOW() - INTERVAL '3 days'
-          AND created_at < NOW() - INTERVAL '3 days'
+        SELECT COUNT(*) as total FROM products WHERE is_active = true
       `);
-      
-      const totalToClean = parseInt(countQuery.rows[0].total);
-      
-      if (totalToClean > 0) {
-        logger.info(`🕛 Executando limpeza automática de produtos (Brasília): ${agoraBrasil}`);
-        logger.info(`📊 ${totalToClean} produtos antigos encontrados para limpar (mais de 3 dias)`);
-        
-        // Executar limpeza - produtos com mais de 3 dias
+      const totalAtivos = parseInt(countQuery.rows[0].total);
+
+      if (totalAtivos > 0) {
+        logger.info(`🕛 00h Brasília: zerando todos os produtos (${agoraBrasil})`);
         const result = await query(`
-          UPDATE products 
-          SET is_active = false,
-              updated_at = NOW()
-          WHERE is_active = true
-            AND updated_at < NOW() - INTERVAL '3 days'
-            AND created_at < NOW() - INTERVAL '3 days'
+          UPDATE products SET is_active = false, updated_at = NOW() WHERE is_active = true
         `);
-        
         const deactivatedCount = result.rowCount || 0;
-        logger.info(`✅ ${deactivatedCount} produtos desativados automaticamente (mantendo apenas últimos 3 dias)`);
+        logger.info(`✅ ${deactivatedCount} produtos desativados à meia-noite (Brasília)`);
       } else {
-        logger.debug(`⏰ Horário de limpeza (${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}), mas nenhum produto antigo encontrado`);
+        logger.debug(`⏰ 00h Brasília: nenhum produto ativo para zerar`);
       }
     }
   } catch (error) {
@@ -273,11 +258,10 @@ runMigrations()
       logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 
-      // Scheduler de limpeza automática DESATIVADO para testes (não zerar produtos à meia-noite)
-      // logger.info('⏰ Iniciando scheduler automático de limpeza de produtos...');
-      // cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
-      // logger.info('✅ Scheduler iniciado - verificará meia-noite de Brasília automaticamente');
-      logger.info('⏸️ Scheduler de limpeza de produtos DESATIVADO (produtos não serão zerados à meia-noite)');
+      // Scheduler: zerar todos os produtos à 00h (horário de Brasília)
+      logger.info('⏰ Iniciando scheduler: zerar produtos à 00h Brasília');
+      cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
+      logger.info('✅ Scheduler ativo - verificará 00h Brasília para zerar produtos');
     });
   })
   .catch((err) => {
