@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -39,7 +39,19 @@ export default function PriceAveragesPage() {
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [sortBy, setSortBy] = useState<'model' | 'price-asc' | 'price-desc' | 'count'>('model')
-  const [lucro, setLucro] = useState<number>(0)
+  const [lucroInput, setLucroInput] = useState<number>(0)
+  const [appliedLucro, setAppliedLucro] = useState<number>(0)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [appliedSelection, setAppliedSelection] = useState<Set<string>>(new Set())
+
+  const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
+    `${(row.model || '').trim()}|${normalizeColor(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
+  const selectAllRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const el = selectAllRef.current
+    if (!el) return
+    el.indeterminate = sorted.length > 0 && selectedKeys.size > 0 && selectedKeys.size < sorted.length
+  }, [sorted.length, selectedKeys.size])
 
   const isModelWithOfficialColors = useMemo(() => {
     const searchLower = searchTerm.toLowerCase().trim()
@@ -201,7 +213,7 @@ export default function PriceAveragesPage() {
       r.color,
       r.storage,
       r.avg_price.toFixed(2),
-      roundTo50(r.avg_price + lucro),
+      appliedSelection.has(rowKey(r)) ? roundTo50(r.avg_price + appliedLucro) : '',
       r.count,
       r.min_price ?? '',
       r.max_price ?? ''
@@ -231,7 +243,7 @@ export default function PriceAveragesPage() {
           </h1>
         </div>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
-          Escolha o <strong>modelo</strong>, a <strong>cor</strong> e a <strong>capacidade</strong>. A <strong>média</strong> é exata; use o campo <strong>Lucro (R$)</strong> para ver o preço sugerido (média + lucro arredondado em R$ 50). Só iPhones novos (hoje/ontem).
+          Escolha o <strong>modelo</strong>, a <strong>cor</strong> e a <strong>capacidade</strong>. A <strong>média</strong> é exata. Informe o <strong>Lucro (R$)</strong>, marque os modelos desejados (ou use &quot;Todos&quot;) e clique em <strong>Aplicar</strong> para ver o preço sugerido (média + lucro em R$ 50). Só iPhones novos (hoje/ontem).
         </p>
       </motion.div>
 
@@ -291,7 +303,7 @@ export default function PriceAveragesPage() {
               </select>
             </div>
           </div>
-          {/* Lucro (margem) e ações */}
+          {/* Lucro (margem), seleção e ações */}
           <div className="flex flex-wrap items-center gap-4 pt-1 border-t border-gray-100 dark:border-white/5">
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
@@ -302,12 +314,31 @@ export default function PriceAveragesPage() {
                 type="number"
                 min={0}
                 step={50}
-                value={lucro || ''}
-                onChange={(e) => setLucro(Number(e.target.value) || 0)}
+                value={lucroInput || ''}
+                onChange={(e) => setLucroInput(Number(e.target.value) || 0)}
                 placeholder="0"
                 className="w-28 px-3 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500"
               />
             </div>
+            {sorted.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAppliedLucro(lucroInput)
+                    setAppliedSelection(
+                      sorted.length === 1 ? new Set([rowKey(sorted[0])]) : new Set(selectedKeys)
+                    )
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  Aplicar
+                </button>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedKeys.size} modelo{selectedKeys.size !== 1 ? 's' : ''} selecionado{selectedKeys.size !== 1 ? 's' : ''}
+                </span>
+              </>
+            )}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
@@ -398,16 +429,26 @@ export default function PriceAveragesPage() {
                             type="number"
                             min={0}
                             step={50}
-                            value={lucro || ''}
-                            onChange={(e) => setLucro(Number(e.target.value) || 0)}
+                            value={lucroInput || ''}
+                            onChange={(e) => setLucroInput(Number(e.target.value) || 0)}
                             placeholder="0"
                             className="w-28 px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500/50"
                           />
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppliedLucro(lucroInput)
+                            setAppliedSelection(new Set([rowKey(sorted[0])]))
+                          }}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium"
+                        >
+                          Aplicar
+                        </button>
                         <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-6 py-3">
                           <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Preço sugerido (média + lucro, R$ 50)</span>
                           <span className="block text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                            {formatPrice(roundTo50(sorted[0].avg_price + lucro))}
+                            {formatPrice(roundTo50(sorted[0].avg_price + appliedLucro))}
                           </span>
                         </div>
                       </div>
@@ -431,6 +472,21 @@ export default function PriceAveragesPage() {
                       <table className="w-full text-left">
                         <thead>
                           <tr className="border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900/50">
+                            <th className="pl-3 pr-2 py-3 w-10">
+                              <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <input
+                                  type="checkbox"
+                                  ref={selectAllRef}
+                                  checked={sorted.length > 0 && sorted.every((r) => selectedKeys.has(rowKey(r)))}
+                                  onChange={(e) => {
+                                    if (e.target.checked) setSelectedKeys(new Set(sorted.map((r) => rowKey(r))))
+                                    else setSelectedKeys(new Set())
+                                  }}
+                                  className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
+                                />
+                                <span className="hidden sm:inline">Todos</span>
+                              </label>
+                            </th>
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               Modelo
                             </th>
@@ -466,6 +522,24 @@ export default function PriceAveragesPage() {
                               transition={{ delay: i * 0.02 }}
                               className="hover:bg-gray-50 dark:hover:bg-white/5"
                             >
+                              <td className="pl-3 pr-2 py-3 w-10">
+                                <label className="cursor-pointer flex items-center">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedKeys.has(rowKey(row))}
+                                    onChange={() => {
+                                      const key = rowKey(row)
+                                      setSelectedKeys((prev) => {
+                                        const next = new Set(prev)
+                                        if (next.has(key)) next.delete(key)
+                                        else next.add(key)
+                                        return next
+                                      })
+                                    }}
+                                    className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
+                                  />
+                                </label>
+                              </td>
                               <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">
                                 {row.model || '—'}
                               </td>
@@ -481,7 +555,9 @@ export default function PriceAveragesPage() {
                                 {formatPriceExact(row.avg_price)}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
-                                {formatPrice(roundTo50(row.avg_price + lucro))}
+                                {appliedSelection.has(rowKey(row))
+                                  ? formatPrice(roundTo50(row.avg_price + appliedLucro))
+                                  : '—'}
                               </td>
                               <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                 {row.count}
@@ -528,7 +604,7 @@ export default function PriceAveragesPage() {
               <div>
                 <p className="font-medium text-gray-900 dark:text-white mb-1">Como usar</p>
                 <p>
-                  Digite o modelo (ex.: iPhone 17 Pro Max), escolha a cor e a capacidade. A <strong>média</strong> é exata; o <strong>preço sugerido</strong> (média + lucro) é arredondado em R$ 50. Cores iguais ao Buscar iPhone lacrado.
+                  Digite o modelo, cor e capacidade. A <strong>média</strong> é exata. Defina o <strong>Lucro (R$)</strong>, marque os modelos que deseja (ou &quot;Todos&quot;) e clique em <strong>Aplicar</strong> para ver o preço sugerido em R$ 50. Cores iguais ao Buscar iPhone lacrado.
                 </p>
               </div>
             </motion.div>
