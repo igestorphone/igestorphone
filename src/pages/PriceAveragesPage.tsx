@@ -355,7 +355,7 @@ export default function PriceAveragesPage() {
         if (lucro == null) continue
         const color = r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—'
         const preco = roundTo50(r.avg_price + lucro)
-        groupLines.push(`${g.groupLabel} - ${color} - R$ ${preco}`)
+        groupLines.push(`${g.groupLabel}  ${color}  R$ ${preco}`)
       }
       if (groupLines.length > 0) {
         lines.push(...groupLines)
