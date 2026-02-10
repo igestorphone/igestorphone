@@ -211,12 +211,13 @@ async function checkAndCleanupProducts() {
   try {
     const { query } = await import('./config/database.js');
     
-    // Verificar horário atual de Brasília
+    // Horário em Brasília: UMA conversão só (timestamptz AT TIME ZONE 'America/Sao_Paulo' = hora local SP)
+    // O uso de dois AT TIME ZONE invertia e dava 00h quando em SP eram 18h (bug)
     const timeCheck = await query(`
       SELECT 
-        NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' as agora_brasil,
-        EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::int as hora_brasil,
-        EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))::int as minuto_brasil
+        (NOW() AT TIME ZONE 'America/Sao_Paulo') as agora_brasil,
+        EXTRACT(HOUR FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))::int as hora_brasil,
+        EXTRACT(MINUTE FROM (NOW() AT TIME ZONE 'America/Sao_Paulo'))::int as minuto_brasil
     `);
     
     const horaBrasil = timeCheck.rows[0].hora_brasil;
