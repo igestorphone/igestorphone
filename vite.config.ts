@@ -52,7 +52,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: import.meta.env.DEV,
+    sourcemap: !!import.meta.env?.DEV,
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
