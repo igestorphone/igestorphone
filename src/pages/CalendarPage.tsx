@@ -9,11 +9,21 @@ import {
   User,
   FileText,
   Loader2,
+  Copy,
+  CalendarClock,
+  Trash2,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { calendarApi } from '@/lib/api'
-import { mapApiEventToEvent, type CalendarSaleEvent } from '@/lib/calendarStorage'
+import { mapApiEventToEvent, buildResumoPedido, type CalendarSaleEvent, type CalendarEventItem } from '@/lib/calendarStorage'
 import toast from 'react-hot-toast'
+
+const STATUS_LABELS: Record<string, string> = {
+  agendado: 'Agendado',
+  comprou: 'Comprou',
+  nao_comprou: 'Não comprou',
+  reagendado: 'Reagendado',
+}
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTHS = [
@@ -81,6 +91,15 @@ export default function CalendarPage() {
 
   useEffect(() => { fetchMonth() }, [fetchMonth])
   useEffect(() => { fetchDay() }, [fetchDay])
+
+  // Notificação única de atualização do calendário (novos recursos)
+  useEffect(() => {
+    const key = 'calendar_update_v1_seen'
+    if (typeof sessionStorage !== 'undefined' && !sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1')
+      toast.success('Calendário atualizado: vários produtos por pedido, cor, status, troca, reagendar e resumo para copiar no grupo novo pedido.', { duration: 5000 })
+    }
+  }, [])
 
   const calendarDays = useMemo(() => {
     const first = new Date(year, month, 1)
@@ -277,7 +296,18 @@ export default function CalendarPage() {
               <p className="text-sm text-gray-500 dark:text-white/50">Nenhuma venda neste dia.</p>
             ) : (
               selectedDayEvents.map((ev) => (
-                <EventCard key={ev.id} event={ev} onEdit={() => openEdit(ev)} />
+                <EventCard
+                  key={ev.id}
+                  event={ev}
+                  onEdit={() => openEdit(ev)}
+                  onCopyResumo={() => {
+                    const text = buildResumoPedido(ev)
+                    navigator.clipboard.writeText(text).then(
+                      () => toast.success('Resumo copiado para o grupo novo pedido'),
+                      () => toast.error('Não foi possível copiar')
+                    )
+                  }}
+                />
               ))
             )}
           </div>
@@ -302,10 +332,14 @@ export default function CalendarPage() {
 function EventCard({
   event,
   onEdit,
+  onCopyResumo,
 }: {
   event: CalendarSaleEvent
   onEdit: () => void
+  onCopyResumo: () => void
 }) {
+  const first = event.items[0]
+  const hasMultiple = event.items.length > 1
   return (
     <motion.div
       layout
@@ -316,10 +350,19 @@ function EventCard({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-gray-900 dark:text-white">
-              iPhone {event.iphoneModel}
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400">
+              {STATUS_LABELS[event.status] ?? event.status}
             </span>
-            <span className="text-xs text-gray-500 dark:text-white/50">{event.storage}</span>
+            <span className="font-semibold text-gray-900 dark:text-white">
+              iPhone {first?.iphoneModel ?? event.iphoneModel}
+            </span>
+            <span className="text-xs text-gray-500 dark:text-white/50">{first?.storage ?? event.storage}</span>
+            {(first?.color ?? '').trim() && (
+              <span className="text-xs text-gray-600 dark:text-white/60">• {first?.color}</span>
+            )}
+            {hasMultiple && (
+              <span className="text-xs text-gray-500 dark:text-white/50">+ {event.items.length - 1} item(ns)</span>
+            )}
           </div>
           {event.clientName && (
             <p className="text-xs text-gray-600 dark:text-white/70 mt-0.5 flex items-center gap-1">
@@ -328,40 +371,52 @@ function EventCard({
             </p>
           )}
           <p className="text-xs text-gray-600 dark:text-white/70 mt-1">
-            IMEI ...{event.imeiEnd}
+            IMEI ...{first?.imeiEnd ?? event.imeiEnd}
           </p>
           <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
-            {formatCurrency(event.valorAVista)} à vista · {formatCurrency(event.valorComJuros)} parcelado
+            {formatCurrency(first?.valorAVista ?? event.valorAVista)} à vista · {formatCurrency(first?.valorComJuros ?? event.valorComJuros)} parcelado
           </p>
           <p className="text-xs text-gray-500 dark:text-white/50 mt-0.5">
-            {event.formaPagamento}
+            {first?.formaPagamento ?? event.formaPagamento}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="shrink-0 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
-          aria-label="Editar"
-        >
-          <FileText className="w-4 h-4" />
-        </button>
+        <div className="shrink-0 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={onCopyResumo}
+            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
+            aria-label="Copiar resumo"
+            title="Copiar resumo para grupo novo pedido"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
+            aria-label="Editar"
+          >
+            <FileText className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </motion.div>
   )
 }
 
-const defaultForm = {
-  date: '',
-  time: '',
-  clientName: '',
+const defaultItem = (): CalendarEventItem => ({
+  id: null,
   iphoneModel: '',
   storage: '',
+  color: '',
   imeiEnd: '',
   valorAVista: 0,
   valorComJuros: 0,
   formaPagamento: 'PIX',
+  valorTroca: null,
+  manutencaoDescontada: null,
   notes: '',
-}
+})
 
 function EventModal({
   initialEvent,
@@ -378,63 +433,96 @@ function EventModal({
 }) {
   const isEdit = !!initialEvent
   const [saving, setSaving] = useState(false)
+  const [rescheduling, setRescheduling] = useState(false)
   const [form, setForm] = useState(() => {
     if (initialEvent) {
       return {
         date: initialEvent.date,
         time: initialEvent.time || '',
         clientName: initialEvent.clientName || '',
-        iphoneModel: initialEvent.iphoneModel,
-        storage: initialEvent.storage,
-        imeiEnd: initialEvent.imeiEnd,
-        valorAVista: initialEvent.valorAVista,
-        valorComJuros: initialEvent.valorComJuros,
-        formaPagamento: initialEvent.formaPagamento,
+        status: initialEvent.status || 'agendado',
         notes: initialEvent.notes || '',
+        items: initialEvent.items?.length
+          ? initialEvent.items.map((it) => ({
+              iphoneModel: it.iphoneModel,
+              storage: it.storage,
+              color: it.color ?? '',
+              imeiEnd: it.imeiEnd,
+              valorAVista: it.valorAVista,
+              valorComJuros: it.valorComJuros,
+              formaPagamento: it.formaPagamento,
+              valorTroca: it.valorTroca ?? null,
+              manutencaoDescontada: it.manutencaoDescontada ?? null,
+              notes: it.notes ?? '',
+            }))
+          : [defaultItem()],
       }
     }
-    return { ...defaultForm, date: selectedDate }
+    return {
+      date: selectedDate,
+      time: '',
+      clientName: '',
+      status: 'agendado' as const,
+      notes: '',
+      items: [{ ...defaultItem(), iphoneModel: '', storage: '', imeiEnd: '' }],
+    }
   })
+  const [rescheduleDate, setRescheduleDate] = useState('')
+  const [rescheduleTime, setRescheduleTime] = useState('')
+
+  const addItem = () => {
+    setForm((f) => ({ ...f, items: [...f.items, defaultItem()] }))
+  }
+  const removeItem = (index: number) => {
+    if (form.items.length <= 1) return
+    setForm((f) => ({ ...f, items: f.items.filter((_, i) => i !== index) }))
+  }
+  const updateItem = (index: number, patch: Partial<CalendarEventItem>) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => (i === index ? { ...it, ...patch } : it)),
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.date || !form.iphoneModel.trim() || !form.storage.trim() || !form.imeiEnd.trim()) {
-      toast.error('Preencha data, modelo, armazenamento e final do IMEI.')
+    const valid = form.items.every(
+      (it) => it.iphoneModel?.trim() && it.storage?.trim() && it.imeiEnd?.trim()
+    )
+    if (!form.date || !valid) {
+      toast.error('Preencha data e, em cada item: modelo, armazenamento e final do IMEI.')
       return
     }
-    if (form.valorAVista < 0 || form.valorComJuros < 0) {
+    if (form.items.some((it) => it.valorAVista < 0 || it.valorComJuros < 0)) {
       toast.error('Valores não podem ser negativos.')
       return
     }
     setSaving(true)
     try {
+      const payload = {
+        date: form.date,
+        time: form.time || undefined,
+        clientName: form.clientName || undefined,
+        status: form.status,
+        notes: form.notes || undefined,
+        items: form.items.map((it) => ({
+          iphoneModel: it.iphoneModel.trim(),
+          storage: it.storage.trim(),
+          color: it.color?.trim() || null,
+          imeiEnd: it.imeiEnd.trim(),
+          valorAVista: it.valorAVista,
+          valorComJuros: it.valorComJuros,
+          formaPagamento: it.formaPagamento,
+          valorTroca: it.valorTroca ?? null,
+          manutencaoDescontada: it.manutencaoDescontada ?? null,
+          notes: it.notes?.trim() || null,
+        })),
+      }
       if (isEdit && initialEvent) {
-        await calendarApi.update(Number(initialEvent.id), {
-          date: form.date,
-          time: form.time || undefined,
-          clientName: form.clientName || undefined,
-          iphoneModel: form.iphoneModel.trim(),
-          storage: form.storage.trim(),
-          imeiEnd: form.imeiEnd.trim(),
-          valorAVista: form.valorAVista,
-          valorComJuros: form.valorComJuros,
-          formaPagamento: form.formaPagamento,
-          notes: form.notes || undefined,
-        })
+        await calendarApi.update(Number(initialEvent.id), payload)
         toast.success('Venda atualizada.')
       } else {
-        await calendarApi.create({
-          date: form.date,
-          time: form.time || undefined,
-          clientName: form.clientName || undefined,
-          iphoneModel: form.iphoneModel.trim(),
-          storage: form.storage.trim(),
-          imeiEnd: form.imeiEnd.trim(),
-          valorAVista: form.valorAVista,
-          valorComJuros: form.valorComJuros,
-          formaPagamento: form.formaPagamento,
-          notes: form.notes || undefined,
-        })
+        await calendarApi.create(payload)
         toast.success('Venda registrada no calendário.')
       }
       onSaved()
@@ -444,6 +532,67 @@ function EventModal({
     } finally {
       setSaving(false)
     }
+  }
+
+  const handleReschedule = async () => {
+    if (!initialEvent || !rescheduleDate.trim()) {
+      toast.error('Informe a nova data.')
+      return
+    }
+    setRescheduling(true)
+    try {
+      await calendarApi.reschedule(Number(initialEvent.id), {
+        date: rescheduleDate,
+        time: rescheduleTime.trim() || undefined,
+        setStatusReagendado: true,
+      })
+      toast.success('Evento reagendado.')
+      setRescheduleDate('')
+      setRescheduleTime('')
+      setRescheduling(false)
+      onSaved()
+      setForm((f) => ({ ...f, date: rescheduleDate, time: rescheduleTime || f.time, status: 'reagendado' }))
+    } catch {
+      toast.error('Erro ao reagendar.')
+    } finally {
+      setRescheduling(false)
+    }
+  }
+
+  const copyResumoFromModal = () => {
+    const ev: CalendarSaleEvent = {
+      id: initialEvent?.id ?? '0',
+      date: form.date,
+      time: form.time || undefined,
+      clientName: form.clientName || undefined,
+      status: form.status as CalendarSaleEvent['status'],
+      notes: form.notes || undefined,
+      createdAt: initialEvent?.createdAt ?? new Date().toISOString(),
+      items: form.items.map((it) => ({
+        id: null,
+        iphoneModel: it.iphoneModel,
+        storage: it.storage,
+        color: it.color || null,
+        imeiEnd: it.imeiEnd,
+        valorAVista: it.valorAVista,
+        valorComJuros: it.valorComJuros,
+        formaPagamento: it.formaPagamento,
+        valorTroca: it.valorTroca,
+        manutencaoDescontada: it.manutencaoDescontada,
+        notes: it.notes || undefined,
+      })),
+      iphoneModel: form.items[0]?.iphoneModel ?? '',
+      storage: form.items[0]?.storage ?? '',
+      imeiEnd: form.items[0]?.imeiEnd ?? '',
+      valorAVista: form.items[0]?.valorAVista ?? 0,
+      valorComJuros: form.items[0]?.valorComJuros ?? 0,
+      formaPagamento: form.items[0]?.formaPagamento ?? 'PIX',
+    }
+    const text = buildResumoPedido(ev)
+    navigator.clipboard.writeText(text).then(
+      () => toast.success('Resumo copiado'),
+      () => toast.error('Não foi possível copiar')
+    )
   }
 
   return (
@@ -520,86 +669,149 @@ function EventModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">iPhone (modelo)</label>
-              <input
-                type="text"
-                required
-                placeholder="Ex.: 15 Pro, 16"
-                value={form.iphoneModel}
-                onChange={(e) => setForm((f) => ({ ...f, iphoneModel: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Armazenamento</label>
-              <input
-                type="text"
-                required
-                placeholder="Ex.: 128GB, 256GB"
-                value={form.storage}
-                onChange={(e) => setForm((f) => ({ ...f, storage: e.target.value }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
-              />
-            </div>
-          </div>
-
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Final do IMEI</label>
-            <input
-              type="text"
-              required
-              placeholder="Ex.: 123456"
-              value={form.imeiEnd}
-              onChange={(e) => setForm((f) => ({ ...f, imeiEnd: e.target.value }))}
-              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Valor à vista (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={form.valorAVista || ''}
-                onChange={(e) => setForm((f) => ({ ...f, valorAVista: parseFloat(e.target.value) || 0 }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Valor com juros (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                value={form.valorComJuros || ''}
-                onChange={(e) => setForm((f) => ({ ...f, valorComJuros: parseFloat(e.target.value) || 0 }))}
-                className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Forma de pagamento</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Status</label>
             <select
-              value={form.formaPagamento}
-              onChange={(e) => setForm((f) => ({ ...f, formaPagamento: e.target.value }))}
+              value={form.status}
+              onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as CalendarSaleEvent['status'] }))}
               className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
             >
-              <option value="PIX">PIX</option>
-              <option value="Cartão à vista">Cartão à vista</option>
-              <option value="Cartão parcelado">Cartão parcelado</option>
-              <option value="Boleto">Boleto</option>
-              <option value="Dinheiro">Dinheiro</option>
-              <option value="Outro">Outro</option>
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </div>
 
+          {/* Itens do pedido (produtos) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Observações (opcional)</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-white/80">Produtos</label>
+              <button
+                type="button"
+                onClick={addItem}
+                className="text-sm text-amber-600 dark:text-amber-400 hover:underline"
+              >
+                + Adicionar produto
+              </button>
+            </div>
+            <div className="space-y-4 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+              {form.items.map((item, idx) => (
+                <div key={idx} className="p-3 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50/50 dark:bg-white/5 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-500 dark:text-white/50">Item {idx + 1}</span>
+                    {form.items.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeItem(idx)}
+                        className="p-1 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"
+                        aria-label="Remover item"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Modelo (ex.: 15 Pro, 16)"
+                      value={item.iphoneModel}
+                      onChange={(e) => updateItem(idx, { iphoneModel: e.target.value })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Armazenamento"
+                      value={item.storage}
+                      onChange={(e) => updateItem(idx, { storage: e.target.value })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Cor (opcional)"
+                      value={item.color ?? ''}
+                      onChange={(e) => updateItem(idx, { color: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Final do IMEI"
+                      value={item.imeiEnd}
+                      onChange={(e) => updateItem(idx, { imeiEnd: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="À vista R$"
+                      value={item.valorAVista || ''}
+                      onChange={(e) => updateItem(idx, { valorAVista: parseFloat(e.target.value) || 0 })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="Parcelado R$"
+                      value={item.valorComJuros || ''}
+                      onChange={(e) => updateItem(idx, { valorComJuros: parseFloat(e.target.value) || 0 })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="Valor troca R$ (opcional)"
+                      value={item.valorTroca ?? ''}
+                      onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="Manutenção descont. R$"
+                      value={item.manutencaoDescontada ?? ''}
+                      onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={item.formaPagamento}
+                      onChange={(e) => updateItem(idx, { formaPagamento: e.target.value })}
+                      className="flex-1 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    >
+                      <option value="PIX">PIX</option>
+                      <option value="Cartão à vista">Cartão à vista</option>
+                      <option value="Cartão parcelado">Cartão parcelado</option>
+                      <option value="Boleto">Boleto</option>
+                      <option value="Dinheiro">Dinheiro</option>
+                      <option value="Outro">Outro</option>
+                    </select>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Obs. do item (opcional)"
+                    value={item.notes ?? ''}
+                    onChange={(e) => updateItem(idx, { notes: e.target.value })}
+                    className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-white/80 mb-1">Observações gerais (opcional)</label>
             <textarea
               rows={2}
               placeholder="Algo que o atendente precise saber"
@@ -607,6 +819,57 @@ function EventModal({
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50 resize-none"
             />
+          </div>
+
+          {/* Reagendar (só ao editar) */}
+          {isEdit && initialEvent && (
+            <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/10">
+              <h4 className="text-sm font-medium text-gray-800 dark:text-white flex items-center gap-2 mb-2">
+                <CalendarClock className="w-4 h-4 text-amber-600" />
+                Reagendar
+              </h4>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-white/70 mb-0.5">Nova data</label>
+                  <input
+                    type="date"
+                    value={rescheduleDate}
+                    onChange={(e) => setRescheduleDate(e.target.value)}
+                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 dark:text-white/70 mb-0.5">Nova hora</label>
+                  <input
+                    type="time"
+                    value={rescheduleTime}
+                    onChange={(e) => setRescheduleTime(e.target.value)}
+                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReschedule}
+                  disabled={rescheduling || !rescheduleDate.trim()}
+                  className="py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium disabled:opacity-50 flex items-center gap-1"
+                >
+                  {rescheduling ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  Reagendar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Copiar resumo (grupo novo pedido) */}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={copyResumoFromModal}
+              className="inline-flex items-center gap-2 py-2 px-3 rounded-lg border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white/80 hover:bg-gray-50 dark:hover:bg-white/10 text-sm"
+            >
+              <Copy className="w-4 h-4" />
+              Copiar resumo (grupo novo pedido)
+            </button>
           </div>
 
           <div className="flex gap-3 pt-2">

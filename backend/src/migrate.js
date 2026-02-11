@@ -66,6 +66,25 @@ const migrations = [
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+  `ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'agendado'`,
+  `CREATE TABLE IF NOT EXISTS calendar_event_items (
+    id SERIAL PRIMARY KEY,
+    event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+    iphone_model VARCHAR(120) NOT NULL,
+    storage VARCHAR(50) NOT NULL,
+    color VARCHAR(80),
+    imei_end VARCHAR(20) NOT NULL,
+    valor_a_vista DECIMAL(12,2) NOT NULL DEFAULT 0,
+    valor_com_juros DECIMAL(12,2) NOT NULL DEFAULT 0,
+    forma_pagamento VARCHAR(80) NOT NULL DEFAULT 'PIX',
+    valor_troca DECIMAL(12,2),
+    manutencao_descontada DECIMAL(12,2),
+    notes TEXT
+  )`,
+  `INSERT INTO calendar_event_items (event_id, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento)
+   SELECT id, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento
+   FROM calendar_events e
+   WHERE NOT EXISTS (SELECT 1 FROM calendar_event_items i WHERE i.event_id = e.id)`,
 
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (

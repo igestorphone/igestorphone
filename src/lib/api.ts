@@ -351,6 +351,19 @@ export const usersApi = {
 }
 
 // Calendário compartilhado (vendedor/atendente)
+export interface CalendarEventItemPayload {
+  iphoneModel: string
+  storage: string
+  color?: string | null
+  imeiEnd: string
+  valorAVista: number
+  valorComJuros: number
+  formaPagamento: string
+  valorTroca?: number | null
+  manutencaoDescontada?: number | null
+  notes?: string | null
+}
+
 export const calendarApi = {
   getByMonth: (year: number, month: number) =>
     apiClient.get<{ events: any[] }>('/calendar/events', { params: { year, month } }),
@@ -360,28 +373,31 @@ export const calendarApi = {
     date: string
     time?: string
     clientName?: string
-    iphoneModel: string
-    storage: string
-    imeiEnd: string
-    valorAVista: number
-    valorComJuros: number
-    formaPagamento: string
+    status?: string
     notes?: string
+    items?: CalendarEventItemPayload[]
+    iphoneModel?: string
+    storage?: string
+    imeiEnd?: string
+    valorAVista?: number
+    valorComJuros?: number
+    formaPagamento?: string
+    color?: string | null
+    valorTroca?: number | null
+    manutencaoDescontada?: number | null
   }) =>
     apiClient.post<{ event: any }>('/calendar/events', data),
   update: (id: number, data: Partial<{
     date: string
     time: string
     clientName: string
-    iphoneModel: string
-    storage: string
-    imeiEnd: string
-    valorAVista: number
-    valorComJuros: number
-    formaPagamento: string
+    status: string
     notes: string
+    items: CalendarEventItemPayload[]
   }>) =>
     apiClient.patch<{ event: any }>(`/calendar/events/${id}`, data),
+  reschedule: (id: number, data: { date: string; time?: string; setStatusReagendado?: boolean }) =>
+    apiClient.patch<{ event: any }>(`/calendar/events/${id}/reschedule`, data),
   delete: (id: number) =>
     apiClient.delete(`/calendar/events/${id}`),
 }

@@ -1,38 +1,96 @@
 /**
- * Tipo do evento de venda no calendário (usado no frontend).
- * Backend retorna snake_case; use mapApiEventToEvent() para converter.
+ * Tipos do calendário (evento + itens). Backend retorna snake_case; use mapApiEventToEvent() para converter.
  */
+
+export type CalendarEventStatus = 'agendado' | 'comprou' | 'nao_comprou' | 'reagendado'
+
+export interface CalendarEventItem {
+  id: number | null
+  event_id?: number
+  iphoneModel: string
+  storage: string
+  color?: string | null
+  imeiEnd: string
+  valorAVista: number
+  valorComJuros: number
+  formaPagamento: string
+  valorTroca?: number | null
+  manutencaoDescontada?: number | null
+  notes?: string | null
+}
 
 export interface CalendarSaleEvent {
   id: string
   date: string // YYYY-MM-DD
   time?: string // HH:mm
   clientName?: string
+  status: CalendarEventStatus
+  notes?: string
+  items: CalendarEventItem[]
+  createdAt: string // ISO
+  updatedAt?: string
+  // Legado (primeiro item): para compat e exibição resumida
   iphoneModel: string
   storage: string
   imeiEnd: string
   valorAVista: number
   valorComJuros: number
   formaPagamento: string
-  notes?: string
-  createdAt: string // ISO
 }
 
-/** Converte evento da API (snake_case) para o tipo do front (camelCase). */
+function mapItem(row: any): CalendarEventItem {
+  return {
+    id: row.id != null ? Number(row.id) : null,
+    event_id: row.event_id != null ? Number(row.event_id) : undefined,
+    iphoneModel: row.iphone_model ?? row.iphoneModel ?? '',
+    storage: row.storage ?? '',
+    color: row.color ?? row.color ?? null,
+    imeiEnd: row.imei_end ?? row.imeiEnd ?? '',
+    valorAVista: Number(row.valor_a_vista ?? row.valorAVista) || 0,
+    valorComJuros: Number(row.valor_com_juros ?? row.valorComJuros) || 0,
+    formaPagamento: row.forma_pagamento ?? row.formaPagamento ?? 'PIX',
+    valorTroca: row.valor_troca != null ? Number(row.valor_troca) : row.valorTroca ?? null,
+    manutencaoDescontada: row.manutencao_descontada != null ? Number(row.manutencao_descontada) : row.manutencaoDescontada ?? null,
+    notes: row.notes ?? undefined,
+  }
+}
+
+/** Converte evento da API (com items[]) para o tipo do front. */
 export function mapApiEventToEvent(row: any): CalendarSaleEvent {
+  const items: CalendarEventItem[] = Array.isArray(row.items)
+    ? row.items.map((i: any) => mapItem(i))
+    : [mapItem({
+        iphone_model: row.iphone_model,
+        storage: row.storage,
+        color: row.color,
+        imei_end: row.imei_end,
+        valor_a_vista: row.valor_a_vista,
+        valor_com_juros: row.valor_com_juros,
+        forma_pagamento: row.forma_pagamento,
+        valor_troca: row.valor_troca,
+        manutencao_descontada: row.manutencao_descontada,
+        notes: row.notes,
+      })]
+
+  const first = items[0]
   return {
     id: String(row.id),
     date: row.date,
     time: row.time ?? undefined,
     clientName: row.client_name ?? undefined,
-    iphoneModel: row.iphone_model ?? '',
-    storage: row.storage ?? '',
-    imeiEnd: row.imei_end ?? '',
-    valorAVista: Number(row.valor_a_vista) || 0,
-    valorComJuros: Number(row.valor_com_juros) || 0,
-    formaPagamento: row.forma_pagamento ?? 'PIX',
+    status: (row.status && ['agendado', 'comprou', 'nao_comprou', 'reagendado'].includes(row.status))
+      ? row.status
+      : 'agendado',
     notes: row.notes ?? undefined,
+    items,
     createdAt: row.created_at ?? new Date().toISOString(),
+    updatedAt: row.updated_at,
+    iphoneModel: first?.iphoneModel ?? row.iphone_model ?? '',
+    storage: first?.storage ?? row.storage ?? '',
+    imeiEnd: first?.imeiEnd ?? row.imei_end ?? '',
+    valorAVista: first?.valorAVista ?? Number(row.valor_a_vista) || 0,
+    valorComJuros: first?.valorComJuros ?? Number(row.valor_com_juros) || 0,
+    formaPagamento: first?.formaPagamento ?? row.forma_pagamento ?? 'PIX',
   }
 }
 
@@ -102,4 +160,29 @@ export function getEventsForDate(userId: string, date: string): CalendarSaleEven
 export function getEventsForMonth(userId: string, year: number, month: number): CalendarSaleEvent[] {
   const prefix = `${year}-${String(month).padStart(2, '0')}`
   return getEvents(userId).filter((e) => e.date.startsWith(prefix))
+}
+
+/** Gera texto de resumo do pedido para copiar e enviar no grupo "novo pedido" (WhatsApp). */
+export function buildResumoPedido(event: CalendarSaleEvent): string {
+  const lines: string[] = []
+  lines.push(`📅 ${event.date}${event.time ? ` ${event.time}` : ''}`)
+  if (event.clientName) lines.push(`Cliente: ${event.clientName}`)
+  lines.push('')
+  for (let i = 0; i < event.items.length; i++) {
+    const it = event.items[i]
+    lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}`)
+    lines.push(`IMEI ...${it.imeiEnd}`)
+    lines.push(`À vista: R$ ${it.valorAVista.toFixed(2).replace('.', ',')} | Parcelado: R$ ${it.valorComJuros.toFixed(2).replace('.', ',')}`)
+    if (it.valorTroca != null || it.manutencaoDescontada != null) {
+      const parts = []
+      if (it.valorTroca != null) parts.push(`Troca: R$ ${it.valorTroca.toFixed(2).replace('.', ',')}`)
+      if (it.manutencaoDescontada != null) parts.push(`Manutenção descont.: R$ ${it.manutencaoDescontada.toFixed(2).replace('.', ',')}`)
+      lines.push(parts.join(' | '))
+    }
+    lines.push(`Pagamento: ${it.formaPagamento}`)
+    if (it.notes) lines.push(`Obs: ${it.notes}`)
+    if (i < event.items.length - 1) lines.push('---')
+  }
+  if (event.notes) lines.push('', `Obs. geral: ${event.notes}`)
+  return lines.join('\n')
 }
