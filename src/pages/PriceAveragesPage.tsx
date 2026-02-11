@@ -203,9 +203,20 @@ export default function PriceAveragesPage() {
     return out
   }, [averages])
 
+  /** Capacidade em GB para ordenação: 128→128, 256→256, 512→512, 1TB→1024, 2TB→2048 (ordem 128 < 256 < 512 < 1T < 2T) */
+  const storageSortGb = (s: string) => {
+    const t = (s || '').toLowerCase().trim()
+    if (t.includes('tb')) {
+      const n = parseInt(t.replace(/\D/g, ''), 10) || 0
+      return n * 1024
+    }
+    const gb = parseInt((s || '').replace(/\D/g, ''), 10) || 0
+    return gb
+  }
+
   const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
 
-  /** Ordem por modelo: geração 11→17 (iPhone 11 Pro … 17 Pro Max), depois tipo (base<Plus<Pro<Pro Max<Air<e)), depois capacidade */
+  /** Ordem por modelo: geração 11→17, tipo (base<Plus<Pro<Pro Max<Air<e)), capacidade 128→256→512→1TB→2TB */
   const modelSortKey = (model: string, storage: string) => {
     const m = (model || '').toLowerCase()
     let gen = 99
@@ -220,8 +231,8 @@ export default function PriceAveragesPage() {
     else if (m.includes('plus')) typeOrder = 1
     else if (m.includes('air')) typeOrder = 5
     else if (m.includes('16e') || m.includes('16 e')) typeOrder = 6
-    const cap = storageNum(storage)
-    return `${gen.toString().padStart(2, '0')}-${typeOrder}-${cap.toString().padStart(5, '0')}`
+    const capGb = storageSortGb(storage)
+    return `${gen.toString().padStart(2, '0')}-${typeOrder}-${capGb.toString().padStart(5, '0')}`
   }
 
   const sorted = useMemo(() => {
@@ -353,11 +364,7 @@ export default function PriceAveragesPage() {
     averages.forEach((r) => {
       if (r.storage && r.storage !== '—') set.add(r.storage)
     })
-    return Array.from(set).sort((a, b) => {
-      const numA = parseInt(a.replace(/\D/g, ''), 10) || 0
-      const numB = parseInt(b.replace(/\D/g, ''), 10) || 0
-      return numA - numB
-    })
+    return Array.from(set).sort((a, b) => storageSortGb(a) - storageSortGb(b))
   }, [averages])
 
   const exportCsv = () => {
