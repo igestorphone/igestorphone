@@ -259,10 +259,15 @@ runMigrations()
       logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 
-      // Scheduler: zerar todos os produtos à 00h (horário de Brasília)
-      logger.info('⏰ Iniciando scheduler: zerar produtos à 00h Brasília');
-      cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
-      logger.info('✅ Scheduler ativo - verificará 00h Brasília para zerar produtos');
+      // Scheduler: zerar produtos à 00h Brasília — OFF por padrão (testes); ative com ENABLE_MIDNIGHT_CLEANUP=true
+      const enableMidnightCleanup = process.env.ENABLE_MIDNIGHT_CLEANUP === 'true' || process.env.ENABLE_MIDNIGHT_CLEANUP === '1';
+      if (enableMidnightCleanup) {
+        logger.info('⏰ Iniciando scheduler: zerar produtos à 00h Brasília');
+        cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
+        logger.info('✅ Scheduler ativo');
+      } else {
+        logger.info('⏸️ Scheduler de zerar produtos à 00h DESATIVADO (para ativar: ENABLE_MIDNIGHT_CLEANUP=true)');
+      }
     });
   })
   .catch((err) => {
