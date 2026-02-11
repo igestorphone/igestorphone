@@ -8,6 +8,7 @@ export interface TradeInDevice {
   model: string
   storage: string
   condicao?: 'novo' | 'seminovo' | null
+  obs?: string | null
 }
 
 export interface CalendarEventItem {
@@ -57,6 +58,7 @@ function mapItem(row: any): CalendarEventItem {
         model: t.model ?? t.modelo ?? '',
         storage: t.storage ?? t.armazenamento ?? '',
         condicao: (t.condicao === 'novo' || t.condicao === 'seminovo') ? t.condicao : undefined,
+        obs: t.obs ?? undefined,
       }))
     : row.modelo_troca || row.armazenamento_troca
       ? [{ model: row.modelo_troca ?? '', storage: row.armazenamento_troca ?? '' }]
@@ -210,7 +212,10 @@ export function buildResumoPedido(event: CalendarSaleEvent): string {
     const trocaList = it.tradeInDevices?.length ? it.tradeInDevices : (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : [])
     if (trocaList.length) {
       trocaList.forEach((d) => {
-        if (d.model || d.storage) lines.push(`iPhone na troca: ${[d.model, d.storage].filter(Boolean).join(' ')}${d.condicao ? ` (${d.condicao})` : ''}`)
+        if (d.model || d.storage) {
+          lines.push(`iPhone na troca: ${[d.model, d.storage].filter(Boolean).join(' ')}${d.condicao ? ` (${d.condicao})` : ''}`)
+          if (d.obs?.trim()) lines.push(`  Obs. troca: ${d.obs.trim()}`)
+        }
       })
     }
     if (it.parcelas != null) lines.push(`Parcelas: ${it.parcelas}x`)

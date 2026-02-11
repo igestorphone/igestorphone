@@ -43,8 +43,6 @@ const PAYMENT_OPTIONS = [
   { value: 'Outro', label: 'Outro' },
 ]
 
-const MAX_TRADE_IN_SLOTS = 2
-
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -55,10 +53,9 @@ function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace('.', ',')}`
 }
 
-function padTradeInDevices(devices: TradeInDevice[] | undefined, length: number): TradeInDevice[] {
-  const list = Array.isArray(devices) ? [...devices] : []
-  while (list.length < length) list.push({ model: '', storage: '' })
-  return list.slice(0, length)
+function ensureAtLeastOneTradeIn(devices: TradeInDevice[] | undefined): TradeInDevice[] {
+  const list = Array.isArray(devices) && devices.length ? devices.map((d) => ({ ...d, obs: d.obs ?? '' })) : []
+  return list.length ? list : [{ model: '', storage: '', condicao: undefined, obs: '' }]
 }
 
 function formatDateBr(dateStr: string): string {
@@ -464,7 +461,7 @@ const defaultItem = (): CalendarEventItem => ({
   manutencaoDescontada: null,
   tradeInModel: null,
   tradeInStorage: null,
-  tradeInDevices: padTradeInDevices([], MAX_TRADE_IN_SLOTS),
+  tradeInDevices: [{ model: '', storage: '', condicao: undefined, obs: '' }],
   parcelas: null,
   valorSinal: null,
   condicao: null,
@@ -508,7 +505,7 @@ function EventModal({
               manutencaoDescontada: it.manutencaoDescontada ?? null,
               tradeInModel: it.tradeInModel ?? null,
               tradeInStorage: it.tradeInStorage ?? null,
-              tradeInDevices: padTradeInDevices(it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : []), MAX_TRADE_IN_SLOTS),
+              tradeInDevices: ensureAtLeastOneTradeIn(it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : [])),
               parcelas: it.parcelas ?? null,
               valorSinal: it.valorSinal ?? null,
               condicao: it.condicao ?? null,
@@ -540,6 +537,27 @@ function EventModal({
     setForm((f) => ({
       ...f,
       items: f.items.map((it, i) => (i === index ? { ...it, ...patch } : it)),
+    }))
+  }
+  const addTradeInDevice = (itemIdx: number) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === itemIdx
+          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '', condicao: undefined, obs: '' }] }
+          : it
+      ),
+    }))
+  }
+  const removeTradeInDevice = (itemIdx: number, trocaIdx: number) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => {
+        if (i !== itemIdx) return it
+        const list = [...(it.tradeInDevices ?? [])]
+        if (list.length <= 1) return it
+        return { ...it, tradeInDevices: list.filter((_, ti) => ti !== trocaIdx) }
+      }),
     }))
   }
   const updateTradeInDevice = (itemIdx: number, trocaIdx: number, patch: Partial<TradeInDevice>) => {
@@ -609,7 +627,7 @@ function EventModal({
           manutencaoDescontada: it.manutencaoDescontada ?? null,
           tradeInModel: (it.tradeInDevices?.[0]?.model ?? it.tradeInModel)?.trim() || null,
           tradeInStorage: (it.tradeInDevices?.[0]?.storage ?? it.tradeInStorage)?.trim() || null,
-          trocaAparelhos: it.tradeInDevices?.filter((d) => (d.model?.trim() || d.storage?.trim()))?.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '', condicao: d.condicao ?? null })) ?? null,
+          trocaAparelhos: it.tradeInDevices?.filter((d) => (d.model?.trim() || d.storage?.trim()))?.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '', condicao: d.condicao ?? null, obs: d.obs?.trim() || null })) ?? null,
           parcelas: it.parcelas ?? null,
           valorSinal: it.valorSinal ?? null,
           condicao: (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
@@ -938,62 +956,112 @@ function EventModal({
                       )}
                     </div>
                   </div>
-                  <div className="rounded-lg border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-2 space-y-2">
-                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca (preencha se houver)</p>
-                    {padTradeInDevices(item.tradeInDevices, MAX_TRADE_IN_SLOTS).map((troca, ti) => (
-                      <div key={ti} className="flex flex-wrap items-center gap-2 rounded bg-white/50 dark:bg-black/20 p-2">
-                        <select
-                          value={IPHONE_MODEL_OPTIONS.includes(troca.model) ? troca.model : (troca.model ? 'Outro' : '')}
-                          onChange={(e) => updateTradeInDevice(idx, ti, { model: e.target.value })}
-                          className="flex-1 min-w-[100px] rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                        >
-                          <option value="">Modelo</option>
-                          {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
-                            <option key={opt} value={opt}>iPhone {opt}</option>
-                          ))}
-                          <option value="Outro">Outro</option>
-                        </select>
-                        <select
-                          value={troca.storage}
-                          onChange={(e) => updateTradeInDevice(idx, ti, { storage: e.target.value })}
-                          className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                        >
-                          <option value="">—</option>
-                          {STORAGE_OPTIONS.map((opt) => (
-                            <option key={opt} value={opt}>{opt}</option>
-                          ))}
-                        </select>
-                        <select
-                          value={troca.condicao ?? ''}
-                          onChange={(e) => updateTradeInDevice(idx, ti, { condicao: e.target.value === 'novo' || e.target.value === 'seminovo' ? e.target.value : undefined })}
-                          className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                          title="Condição"
-                        >
-                          <option value="">Cond.</option>
-                          <option value="novo">Novo</option>
-                          <option value="seminovo">Seminovo</option>
-                        </select>
+                  <div className="rounded-xl border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca</p>
+                      <button
+                        type="button"
+                        onClick={() => addTradeInDevice(idx)}
+                        className="text-sm text-amber-600 dark:text-amber-400 hover:underline font-medium"
+                      >
+                        + Adicionar aparelho
+                      </button>
+                    </div>
+                    {ensureAtLeastOneTradeIn(item.tradeInDevices).map((troca, ti) => (
+                      <div key={ti} className="rounded-lg bg-white/60 dark:bg-black/20 p-4 space-y-3 border border-amber-100 dark:border-amber-500/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-amber-700 dark:text-amber-500">
+                            Aparelho na troca {ti + 1}
+                          </span>
+                          {(item.tradeInDevices?.length ?? 1) > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeTradeInDevice(idx, ti)}
+                              className="p-1 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"
+                              aria-label="Remover aparelho"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Modelo</label>
+                            <select
+                              value={IPHONE_MODEL_OPTIONS.includes(troca.model) ? troca.model : (troca.model ? 'Outro' : '')}
+                              onChange={(e) => updateTradeInDevice(idx, ti, { model: e.target.value })}
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                            >
+                              <option value="">Selecione</option>
+                              {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
+                                <option key={opt} value={opt}>iPhone {opt}</option>
+                              ))}
+                              <option value="Outro">Outro</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Armazenamento</label>
+                            <select
+                              value={troca.storage}
+                              onChange={(e) => updateTradeInDevice(idx, ti, { storage: e.target.value })}
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                            >
+                              <option value="">—</option>
+                              {STORAGE_OPTIONS.map((opt) => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Condição</label>
+                            <select
+                              value={troca.condicao ?? ''}
+                              onChange={(e) => updateTradeInDevice(idx, ti, { condicao: e.target.value === 'novo' || e.target.value === 'seminovo' ? e.target.value : undefined })}
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                            >
+                              <option value="">—</option>
+                              <option value="novo">Novo</option>
+                              <option value="seminovo">Seminovo</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Obs. sobre este aparelho (opcional)</label>
+                          <input
+                            type="text"
+                            placeholder="Ex.: tela rachada, bateria 85%..."
+                            value={troca.obs ?? ''}
+                            onChange={(e) => updateTradeInDevice(idx, ti, { obs: e.target.value })}
+                            className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                          />
+                        </div>
                       </div>
                     ))}
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        placeholder="Valor troca R$"
-                        value={item.valorTroca ?? ''}
-                        onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                      />
-                      <input
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        placeholder="Manutenção descont. R$"
-                        value={item.manutencaoDescontada ?? ''}
-                        onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-amber-200/50 dark:border-amber-500/20">
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Valor da troca (R$)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder="0,00"
+                          value={item.valorTroca ?? ''}
+                          onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Manutenção descontada (R$)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          placeholder="0,00"
+                          value={item.manutencaoDescontada ?? ''}
+                          onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
