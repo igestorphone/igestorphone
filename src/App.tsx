@@ -1,4 +1,3 @@
-import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { useAuthStore } from '@/stores/authStore'
@@ -9,43 +8,32 @@ import AuthLayout from '@/components/layout/AuthLayout'
 import MainLayout from '@/components/layout/MainLayout'
 import ProtectedRoute from '@/components/ui/ProtectedRoute'
 
-// Primeiras telas (sem lazy para abrir mais rápido)
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
-
-// Restante das páginas em lazy (reduz bundle inicial no mobile)
-const SearchCheapestIPhonePage = lazy(() => import('@/pages/SearchCheapestIPhonePage'))
-const ConsultListsPage = lazy(() => import('@/pages/ConsultListsPage'))
-const OutsideSPPage = lazy(() => import('@/pages/OutsideSPPage'))
-const ProcessListPage = lazy(() => import('@/pages/ProcessListPage'))
-const ManageUsersPage = lazy(() => import('@/pages/ManageUsersPage'))
-const CreateUserPage = lazy(() => import('@/pages/CreateUserPage'))
-const EditUserPage = lazy(() => import('@/pages/EditUserPage'))
-const StatisticsPage = lazy(() => import('@/pages/StatisticsPage'))
-const ProfilePage = lazy(() => import('@/pages/ProfilePage'))
-const AIPage = lazy(() => import('@/pages/AIPage'))
-const TermsPage = lazy(() => import('@/pages/TermsPage'))
-const SupportPage = lazy(() => import('@/pages/SupportPage'))
-const ManageSuppliersPage = lazy(() => import('@/pages/ManageSuppliersPage'))
-const SupplierSuggestionsPage = lazy(() => import('@/pages/SupplierSuggestionsPage'))
-const BugReportsPage = lazy(() => import('@/pages/BugReportsPage'))
-const GoalsPage = lazy(() => import('@/pages/GoalsPage'))
-const SubscriptionPage = lazy(() => import('@/pages/SubscriptionPage'))
-const PreferencesPage = lazy(() => import('@/pages/PreferencesPage'))
-const RankingPage = lazy(() => import('@/pages/RankingPage'))
-const DevelopmentPlaceholderPage = lazy(() => import('@/pages/DevelopmentPlaceholderPage'))
-const CalendarPage = lazy(() => import('@/pages/CalendarPage'))
-const PriceAveragesPage = lazy(() => import('@/pages/PriceAveragesPage'))
-const FuncionariosCalendarioPage = lazy(() => import('@/pages/FuncionariosCalendarioPage'))
-
-function PageFallback() {
-  return (
-    <div className="min-h-[40vh] flex items-center justify-center bg-gray-50 dark:bg-black">
-      <div className="animate-pulse text-gray-500 dark:text-white/50">Carregando...</div>
-    </div>
-  )
-}
+import SearchCheapestIPhonePage from '@/pages/SearchCheapestIPhonePage'
+import ConsultListsPage from '@/pages/ConsultListsPage'
+import OutsideSPPage from '@/pages/OutsideSPPage'
+import ProcessListPage from '@/pages/ProcessListPage'
+import ManageUsersPage from '@/pages/ManageUsersPage'
+import CreateUserPage from '@/pages/CreateUserPage'
+import EditUserPage from '@/pages/EditUserPage'
+import StatisticsPage from '@/pages/StatisticsPage'
+import ProfilePage from '@/pages/ProfilePage'
+import AIPage from '@/pages/AIPage'
+import TermsPage from '@/pages/TermsPage'
+import SupportPage from '@/pages/SupportPage'
+import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
+import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
+import BugReportsPage from '@/pages/BugReportsPage'
+import GoalsPage from '@/pages/GoalsPage'
+import SubscriptionPage from '@/pages/SubscriptionPage'
+import PreferencesPage from '@/pages/PreferencesPage'
+import RankingPage from '@/pages/RankingPage'
+import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
+import CalendarPage from '@/pages/CalendarPage'
+import PriceAveragesPage from '@/pages/PriceAveragesPage'
+import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -58,8 +46,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      <Suspense fallback={<PageFallback />}>
-        <Routes>
+      <Routes>
         <Route path="/" element={isAuthenticated ? <Navigate to={defaultAuthenticatedPath} /> : <LandingPage />} />
         <Route path="/login" element={
           isAuthenticated ? (
@@ -285,7 +272,6 @@ function App() {
           <Route index element={<FuncionariosCalendarioPage />} />
         </Route>
       </Routes>
-      </Suspense>
       <Analytics />
     </div>
   )
