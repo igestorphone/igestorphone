@@ -243,6 +243,10 @@ router.post('/funcionario-calendario', authenticateToken, [
 
     const user = userResult.rows[0];
 
+    // Permitir login imediato: aprovar e não limitar por access_expires (ignora se colunas não existirem)
+    await query('UPDATE users SET approval_status = $1 WHERE id = $2', ['approved', user.id]).catch(() => {});
+    await query('UPDATE users SET access_expires_at = NULL WHERE id = $1', [user.id]).catch(() => {});
+
     await query(`
       INSERT INTO user_permissions (user_id, permission_name, granted)
       VALUES ($1, 'calendario', true)

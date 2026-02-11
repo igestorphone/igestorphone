@@ -113,7 +113,7 @@ router.post('/login', loginValidation, async (req, res) => {
     const fullSelect = `id, email, password_hash, name, is_active, last_login,
       subscription_status, subscription_expires_at,
       COALESCE(tipo, role, 'user') AS role,
-      access_expires_at, approval_status`;
+      access_expires_at, approval_status, parent_id`;
     const minimalSelect = `id, email, password_hash, name, is_active, last_login,
       subscription_status, subscription_expires_at`;
 
@@ -154,8 +154,12 @@ router.post('/login', loginValidation, async (req, res) => {
         });
       }
     }
-    if (user.approval_status && user.approval_status === 'pending') {
-      return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
+    if (user.approval_status === 'pending') {
+      if (user.parent_id) {
+        await query('UPDATE users SET approval_status = $1 WHERE id = $2', ['approved', user.id]).catch(() => {});
+      } else {
+        return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
+      }
     }
 
     if (!user.is_active) {
