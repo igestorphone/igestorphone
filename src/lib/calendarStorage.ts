@@ -29,6 +29,7 @@ export interface CalendarEventItem {
   parcelas?: number | null
   valorSinal?: number | null
   condicao?: 'novo' | 'seminovo' | null
+  origemProduto?: 'estoque' | 'fornecedor' | null
   notes?: string | null
 }
 
@@ -81,6 +82,7 @@ function mapItem(row: any): CalendarEventItem {
     parcelas: row.parcelas != null ? Number(row.parcelas) : row.parcelas ?? null,
     valorSinal: row.valor_sinal != null ? Number(row.valor_sinal) : row.valorSinal ?? null,
     condicao: (row.condicao === 'novo' || row.condicao === 'seminovo') ? row.condicao : undefined,
+    origemProduto: (row.origem_produto === 'estoque' || row.origem_produto === 'fornecedor') ? row.origem_produto : undefined,
     notes: row.notes ?? undefined,
   }
 }
@@ -105,6 +107,7 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
         parcelas: row.parcelas,
         valor_sinal: row.valor_sinal,
         condicao: row.condicao,
+        origem_produto: row.origem_produto,
         notes: row.notes,
       })]
 
@@ -206,7 +209,8 @@ export function buildResumoPedido(event: CalendarSaleEvent): string {
   lines.push('')
   for (let i = 0; i < event.items.length; i++) {
     const it = event.items[i]
-    lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}${it.condicao ? ` (${it.condicao})` : ''}`)
+    const origemLabel = it.origemProduto === 'estoque' ? 'Estoque' : it.origemProduto === 'fornecedor' ? 'Comprar no fornecedor' : null
+    lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}${it.condicao ? ` (${it.condicao})` : ''}${origemLabel ? ` [${origemLabel}]` : ''}`)
     lines.push(`IMEI ...${it.imeiEnd}`)
     lines.push(`À vista: R$ ${it.valorAVista.toFixed(2).replace('.', ',')} | Parcelado: R$ ${it.valorComJuros.toFixed(2).replace('.', ',')}`)
     const trocaList = it.tradeInDevices?.length ? it.tradeInDevices : (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : [])

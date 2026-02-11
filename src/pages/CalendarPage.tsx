@@ -199,7 +199,7 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto p-4 md:p-6">
+    <div className="max-w-6xl mx-auto p-4 md:p-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -230,114 +230,113 @@ export default function CalendarPage() {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Calendário mês */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.05 }}
-          className="lg:col-span-2 bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-4 md:p-5 shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {MONTHS[month]} {year}
-            </h2>
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={goPrevMonth}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/80 transition-colors"
-                aria-label="Mês anterior"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={goNextMonth}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/80 transition-colors"
-                aria-label="Próximo mês"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Calendário maior - ocupa toda a largura */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.05 }}
+        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-5 md:p-6 shadow-sm mb-6"
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            {MONTHS[month]} {year}
+          </h2>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={goPrevMonth}
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/80 transition-colors"
+              aria-label="Mês anterior"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={goNextMonth}
+              className="p-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/80 transition-colors"
+              aria-label="Próximo mês"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-500 dark:text-white/50 mb-2">
-            {WEEKDAYS.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
-            {calendarDays.map(({ date, day, isCurrentMonth }) => {
-              const count = monthEvents.filter((e) => e.date === date).length
-              const isSelected = selectedDate === date
-              const isToday = date === today
-              return (
-                <button
-                  key={date}
-                  type="button"
-                  onClick={() => setSelectedDate(date)}
-                  className={`
-                    min-h-[44px] md:min-h-[52px] rounded-xl text-sm font-medium transition-colors
-                    ${!isCurrentMonth ? 'text-gray-400 dark:text-white/30' : 'text-gray-900 dark:text-white'}
-                    ${isSelected ? 'ring-2 ring-amber-500 bg-amber-500/20 dark:bg-amber-500/20' : 'hover:bg-gray-100 dark:hover:bg-white/10'}
-                    ${isToday && !isSelected ? 'bg-amber-500/10 dark:bg-amber-500/10' : ''}
-                  `}
-                >
-                  {day}
-                  {count > 0 && (
-                    <span className="block w-1.5 h-1.5 rounded-full bg-amber-500 mx-auto mt-0.5" />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-        </motion.div>
+        <div className="grid grid-cols-7 gap-2 md:gap-3 text-center text-sm font-medium text-gray-500 dark:text-white/50 mb-3">
+          {WEEKDAYS.map((d) => (
+            <div key={d}>{d}</div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-2 md:gap-3">
+          {calendarDays.map(({ date, day, isCurrentMonth }) => {
+            const count = monthEvents.filter((e) => e.date === date).length
+            const isSelected = selectedDate === date
+            const isToday = date === today
+            return (
+              <button
+                key={date}
+                type="button"
+                onClick={() => setSelectedDate(date)}
+                className={`
+                  min-h-[52px] sm:min-h-[60px] md:min-h-[72px] lg:min-h-[80px] rounded-xl text-base font-medium transition-colors
+                  ${!isCurrentMonth ? 'text-gray-400 dark:text-white/30' : 'text-gray-900 dark:text-white'}
+                  ${isSelected ? 'ring-2 ring-amber-500 bg-amber-500/20 dark:bg-amber-500/20' : 'hover:bg-gray-100 dark:hover:bg-white/10'}
+                  ${isToday && !isSelected ? 'bg-amber-500/10 dark:bg-amber-500/10' : ''}
+                `}
+              >
+                {day}
+                {count > 0 && (
+                  <span className="block w-2 h-2 rounded-full bg-amber-500 mx-auto mt-1" />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </motion.div>
 
-        {/* Lista do dia selecionado */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-4 md:p-5 shadow-sm"
-        >
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-amber-500" />
-            {selectedDate ? formatDateBr(selectedDate) : 'Selecione um dia'}
-          </h3>
-          <p className="text-xs text-gray-500 dark:text-white/50 mb-4">
-            Resumo do dia para quando o cliente chegar
-          </p>
-          <div className="space-y-3 max-h-[320px] overflow-y-auto custom-scrollbar">
-            {!selectedDate ? (
-              <p className="text-sm text-gray-500 dark:text-white/50">Clique em um dia no calendário.</p>
-            ) : loadingDay ? (
-              <div className="flex items-center justify-center py-8 text-gray-500 dark:text-white/50">
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            ) : selectedDayEvents.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-white/50">Nenhuma venda neste dia.</p>
-            ) : (
-              [...selectedDayEvents]
-                .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'))
-                .map((ev) => (
-                <EventCard
-                  key={ev.id}
-                  event={ev}
-                  onEdit={() => openEdit(ev)}
-                  onCopyResumo={() => {
-                    const text = buildResumoPedido(ev)
-                    navigator.clipboard.writeText(text).then(
-                      () => toast.success('Resumo copiado para o grupo novo pedido'),
-                      () => toast.error('Não foi possível copiar')
-                    )
-                  }}
-                />
-              ))
-            )}
+      {/* Agendamentos do dia - em horizontal abaixo do calendário */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-4 md:p-5 shadow-sm"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+          <CalendarIcon className="w-5 h-5 text-amber-500 shrink-0" />
+          {selectedDate ? formatDateBr(selectedDate) : 'Selecione um dia'}
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-white/50 mb-4">
+          Resumo do dia para quando o cliente chegar — arraste para ver mais
+        </p>
+        {!selectedDate ? (
+          <p className="text-sm text-gray-500 dark:text-white/50 py-6 text-center">Clique em um dia no calendário.</p>
+        ) : loadingDay ? (
+          <div className="flex items-center justify-center py-12 text-gray-500 dark:text-white/50">
+            <Loader2 className="w-8 h-8 animate-spin" />
           </div>
-        </motion.div>
-      </div>
+        ) : selectedDayEvents.length === 0 ? (
+          <p className="text-sm text-gray-500 dark:text-white/50 py-6 text-center">Nenhuma venda neste dia.</p>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar" style={{ scrollSnapType: 'x proximity' }}>
+            {[...selectedDayEvents]
+              .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'))
+              .map((ev) => (
+                <div key={ev.id} className="shrink-0 w-[280px] min-w-[280px] md:w-[300px] md:min-w-[300px]" style={{ scrollSnapAlign: 'start' }}>
+                  <EventCard
+                    event={ev}
+                    onEdit={() => openEdit(ev)}
+                    onCopyResumo={() => {
+                      const text = buildResumoPedido(ev)
+                      navigator.clipboard.writeText(text).then(
+                        () => toast.success('Resumo copiado para o grupo novo pedido'),
+                        () => toast.error('Não foi possível copiar')
+                      )
+                    }}
+                  />
+                </div>
+              ))}
+          </div>
+        )}
+      </motion.div>
 
       <AnimatePresence>
         {modalOpen && (
@@ -383,18 +382,21 @@ function EventCard({
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`p-3 rounded-xl border transition-colors ${statusStyle}`}
+      className={`p-3 rounded-xl border transition-colors h-full flex flex-col ${statusStyle}`}
     >
-      <div className="flex items-start justify-between gap-2">
+      {event.time && (
+        <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mb-1.5">{event.time}</p>
+      )}
+      <div className="flex items-start justify-between gap-2 flex-1 min-w-0">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${statusBadgeStyle}`}>
               {STATUS_LABELS[event.status] ?? event.status}
             </span>
-            <span className="font-semibold text-gray-900 dark:text-white">
+            <span className="font-semibold text-gray-900 dark:text-white truncate">
               iPhone {first?.iphoneModel ?? event.iphoneModel}
             </span>
-            <span className="text-xs text-gray-500 dark:text-white/50">{first?.storage ?? event.storage}</span>
+            <span className="text-xs text-gray-500 dark:text-white/50 shrink-0">{first?.storage ?? event.storage}</span>
             {(first?.color ?? '').trim() && (
               <span className="text-xs text-gray-600 dark:text-white/60">• {first?.color}</span>
             )}
@@ -465,6 +467,7 @@ const defaultItem = (): CalendarEventItem => ({
   parcelas: null,
   valorSinal: null,
   condicao: null,
+  origemProduto: 'estoque',
   notes: '',
 })
 
@@ -509,6 +512,7 @@ function EventModal({
               parcelas: it.parcelas ?? null,
               valorSinal: it.valorSinal ?? null,
               condicao: it.condicao ?? null,
+              origemProduto: it.origemProduto ?? 'estoque',
               notes: it.notes ?? '',
             }))
           : [defaultItem()],
@@ -631,6 +635,7 @@ function EventModal({
           parcelas: it.parcelas ?? null,
           valorSinal: it.valorSinal ?? null,
           condicao: (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
+          origemProduto: (it.origemProduto === 'estoque' || it.origemProduto === 'fornecedor') ? it.origemProduto : null,
           notes: it.notes?.trim() || null,
         }
         }),
@@ -701,6 +706,7 @@ function EventModal({
         tradeInDevices: it.tradeInDevices ?? [],
         parcelas: it.parcelas ?? null,
         valorSinal: it.valorSinal ?? null,
+        origemProduto: it.origemProduto ?? null,
         notes: it.notes || undefined,
       })),
       iphoneModel: form.items[0]?.iphoneModel ?? '',
@@ -831,6 +837,31 @@ function EventModal({
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
+                  </div>
+                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-white/50 dark:bg-white/5 p-2.5">
+                    <label className="block text-xs font-medium text-gray-600 dark:text-white/70 mb-2">Origem do produto</label>
+                    <div className="flex gap-2">
+                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 dark:has-[:checked]:bg-amber-500/10 border-gray-200 dark:border-white/20">
+                        <input
+                          type="radio"
+                          name={`origem-${idx}`}
+                          checked={(item.origemProduto ?? 'estoque') === 'estoque'}
+                          onChange={() => updateItem(idx, { origemProduto: 'estoque' })}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">Estoque</span>
+                      </label>
+                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 dark:has-[:checked]:bg-amber-500/10 border-gray-200 dark:border-white/20">
+                        <input
+                          type="radio"
+                          name={`origem-${idx}`}
+                          checked={(item.origemProduto ?? 'estoque') === 'fornecedor'}
+                          onChange={() => updateItem(idx, { origemProduto: 'fornecedor' })}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">Comprar no fornecedor</span>
+                      </label>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>

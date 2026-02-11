@@ -367,6 +367,7 @@ export interface CalendarEventItemPayload {
   parcelas?: number | null
   valorSinal?: number | null
   condicao?: 'novo' | 'seminovo' | null
+  origemProduto?: 'estoque' | 'fornecedor' | null
   notes?: string | null
 }
 
