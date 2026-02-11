@@ -216,7 +216,7 @@ export default function PriceAveragesPage() {
 
   const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
 
-  /** Ordem por modelo: geração 11→17, tipo (base<Plus<Pro<Pro Max<Air<e)), capacidade 128→256→512→1TB→2TB */
+  /** Ordem por modelo: geração 11→17, tipo (Air<base<Plus<Pro<Pro Max<e)), capacidade 128→256→512→1TB→2TB. Air primeiro (pouca venda). */
   const modelSortKey = (model: string, storage: string) => {
     const m = (model || '').toLowerCase()
     let gen = 99
@@ -225,12 +225,12 @@ export default function PriceAveragesPage() {
       const genMatch = m.match(/\b(1[1-7])\b/)
       if (genMatch) gen = parseInt(genMatch[1], 10)
     }
-    let typeOrder = 0
-    if (m.includes('pro max')) typeOrder = 4
+    let typeOrder = 1 // base
+    if (m.includes('air')) typeOrder = 0
+    else if (m.includes('pro max')) typeOrder = 4
     else if (m.includes('pro')) typeOrder = 3
-    else if (m.includes('plus')) typeOrder = 1
-    else if (m.includes('air')) typeOrder = 5
-    else if (m.includes('16e') || m.includes('16 e')) typeOrder = 6
+    else if (m.includes('plus')) typeOrder = 2
+    else if (m.includes('16e') || m.includes('16 e')) typeOrder = 5
     const capGb = storageSortGb(storage)
     return `${gen.toString().padStart(2, '0')}-${typeOrder}-${capGb.toString().padStart(5, '0')}`
   }
