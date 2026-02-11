@@ -33,6 +33,11 @@ export const usePermissions = () => {
     return hasPermission
   }
 
+  /** Usuário funcionário: só tem permissão "calendario" – acesso apenas ao calendário do assinante */
+  const canAccessOnlyCalendar = () => {
+    const p = user?.permissions
+    return Array.isArray(p) && p.length === 1 && p[0] === 'calendario'
+  }
 
   const canManageUsers = () => {
     return isAdmin
@@ -47,6 +52,7 @@ export const usePermissions = () => {
     canAccessConsultLists,
     canAccessPriceAverages,
     canAccessSearchCheapest,
+    canAccessOnlyCalendar,
     canManageUsers,
     canAccessAdmin
   }

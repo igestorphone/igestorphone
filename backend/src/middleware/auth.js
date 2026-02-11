@@ -18,7 +18,7 @@ export const authenticateToken = async (req, res, next) => {
     
     // Buscar usuário no banco para verificar se ainda está ativo
     const result = await query(`
-      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at
+      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at, parent_id
       FROM users WHERE id = $1
     `, [decoded.userId]);
 
@@ -66,14 +66,15 @@ export const authenticateToken = async (req, res, next) => {
       await query('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
     }
 
-    // Adicionar dados do usuário ao request
+    // Adicionar dados do usuário ao request (parent_id: funcionário usa o calendário do assinante)
     req.user = {
       id: user.id,
       email: user.email,
       name: user.name,
       role: user.tipo,
       subscription_status: user.subscription_status,
-      subscription_expires_at: user.subscription_expires_at
+      subscription_expires_at: user.subscription_expires_at,
+      parent_id: user.parent_id || null
     };
 
     next();

@@ -1,7 +1,9 @@
 import { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { UserPermissions } from '@/types'
+
+const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile', '/preferences']
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -10,14 +12,19 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, requiredPermission }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore()
+  const { pathname } = useLocation()
 
-  // Check if user is authenticated
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
   }
 
-  // Check if user has required permission
-  if (requiredPermission && !user.permissoes[requiredPermission]) {
+  const onlyCalendar =
+    Array.isArray(user.permissions) && user.permissions.length === 1 && user.permissions[0] === 'calendario'
+  if (onlyCalendar && !ONLY_CALENDAR_ALLOWED_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+    return <Navigate to="/calendar" replace />
+  }
+
+  if (requiredPermission && !user.permissoes?.[requiredPermission]) {
     return <Navigate to="/search-cheapest-iphone" replace />
   }
 

@@ -43,7 +43,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: '0.0.0.0',
+    host: '127.0.0.1', // evita erro uv_interface_addresses em alguns ambientes; use 0.0.0.0 para acesso na rede
     hmr: {
       overlay: true
     },

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { useAuthStore } from '@/stores/authStore'
 import { useIdleLogout } from '@/hooks/useIdleLogout'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // Layouts
 import AuthLayout from '@/components/layout/AuthLayout'
@@ -34,18 +35,24 @@ import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
+import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
+
+const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
+  const { canAccessOnlyCalendar } = usePermissions()
   useIdleLogout()
+
+  const defaultAuthenticatedPath = canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
 
   return (
     <div className="min-h-screen">
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to="/search-cheapest-iphone" /> : <LandingPage />} />
+        <Route path="/" element={isAuthenticated ? <Navigate to={defaultAuthenticatedPath} /> : <LandingPage />} />
         <Route path="/login" element={
           isAuthenticated ? (
-            <Navigate to="/search-cheapest-iphone" />
+            <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>
               <LoginPage />
@@ -55,7 +62,7 @@ function App() {
         {/* Rotas de registro - IMPORTANTE: /register/:token DEVE vir ANTES de /register */}
         <Route path="/register/:token" element={
           isAuthenticated ? (
-            <Navigate to="/search-cheapest-iphone" />
+            <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -64,7 +71,7 @@ function App() {
         } />
         <Route path="/cadastro/:token" element={
           isAuthenticated ? (
-            <Navigate to="/search-cheapest-iphone" />
+            <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -73,7 +80,7 @@ function App() {
         } />
         <Route path="/r/:token" element={
           isAuthenticated ? (
-            <Navigate to="/search-cheapest-iphone" />
+            <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -83,7 +90,7 @@ function App() {
         {/* Rota /register sem token (deve vir DEPOIS das rotas com token) */}
         <Route path="/register" element={
           isAuthenticated ? (
-            <Navigate to="/search-cheapest-iphone" />
+            <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>
               <RegisterPage />
@@ -258,6 +265,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<CalendarPage />} />
+        </Route>
+        <Route path="/funcionarios-calendario" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<FuncionariosCalendarioPage />} />
         </Route>
       </Routes>
       <Analytics />

@@ -92,11 +92,16 @@ async function enrichEventsWithItems(rows) {
   });
 }
 
+// Funcionário (parent_id preenchido) usa o calendário do assinante
+function getCalendarOwnerId(req) {
+  return req.user.parent_id || req.user.id;
+}
+
 // Listar eventos do próprio usuário: por mês (year, month) ou por data (date)
 // GET /api/calendar/events?year=2025&month=2  ou  ?date=2025-02-05
 router.get('/events', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = getCalendarOwnerId(req);
     const { year, month, date } = req.query;
     let result;
     if (date) {
@@ -185,7 +190,7 @@ router.post('/events', authenticateToken, async (req, res) => {
        RETURNING id, user_id, date, time, client_name, status, iphone_model, storage, imei_end,
                  valor_a_vista, valor_com_juros, forma_pagamento, notes, created_at, updated_at`,
       [
-        req.user.id,
+        getCalendarOwnerId(req),
         date,
         time || null,
         clientName || null,
@@ -244,7 +249,7 @@ router.post('/events', authenticateToken, async (req, res) => {
 router.patch('/events/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = getCalendarOwnerId(req);
     const existing = await query(
       'SELECT id, user_id, date, time, client_name, status, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, notes FROM calendar_events WHERE id = $1',
       [id]
@@ -340,7 +345,7 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
 router.patch('/events/:id/reschedule', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = getCalendarOwnerId(req);
     const { date, time, setStatusReagendado } = req.body;
     const existing = await query('SELECT id, user_id FROM calendar_events WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
@@ -385,7 +390,7 @@ router.patch('/events/:id/reschedule', authenticateToken, async (req, res) => {
 router.delete('/events/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = getCalendarOwnerId(req);
     const existing = await query('SELECT id, user_id FROM calendar_events WHERE id = $1', [id]);
     if (existing.rows.length === 0) {
       return res.status(404).json({ message: 'Evento não encontrado' });
