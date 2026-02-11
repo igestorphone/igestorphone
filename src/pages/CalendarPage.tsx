@@ -63,6 +63,17 @@ function formatDateBr(dateStr: string): string {
   return `${d}/${m}/${y}`
 }
 
+/** Garante YYYY-MM-DD para input type="date" (API pode vir como ISO ou Date). */
+function normalizeDateForInput(date: string | undefined): string {
+  if (!date) return ''
+  const s = typeof date === 'string' ? date : (date as unknown as Date).toISOString?.() ?? String(date)
+  const match = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`
+  const iso = s.match(/(\d{4})-(\d{2})-(\d{2})T/)
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+  return ''
+}
+
 export default function CalendarPage() {
   const { user } = useAuthStore()
   const userId = user?.id ?? ''
@@ -235,8 +246,13 @@ export default function CalendarPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.05 }}
-        className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-5 md:p-6 shadow-sm mb-6"
+        className={`relative bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-5 md:p-6 shadow-sm mb-6 ${loadingMonth ? 'opacity-70 pointer-events-none' : ''}`}
       >
+        {loadingMonth && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/50 dark:bg-black/30 z-10">
+            <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+          </div>
+        )}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
             {MONTHS[month]} {year}
@@ -285,7 +301,7 @@ export default function CalendarPage() {
               >
                 {day}
                 {count > 0 && (
-                  <span className="block w-2 h-2 rounded-full bg-amber-500 mx-auto mt-1" />
+                  <span className="block w-2.5 h-2.5 rounded-full bg-green-500 mx-auto mt-1 shadow-sm" title={`${count} agendamento(s)`} />
                 )}
               </button>
             )
@@ -487,16 +503,20 @@ function EventModal({
   const isEdit = !!initialEvent
   const [saving, setSaving] = useState(false)
   const [rescheduling, setRescheduling] = useState(false)
-  const [form, setForm] = useState(() => {
+  type FormState = { date: string; time: string; clientName: string; status: CalendarSaleEvent['status']; notes: string; items: CalendarEventItem[] }
+  const [form, setForm] = useState<FormState>(() => {
     if (initialEvent) {
+      const dateValue = normalizeDateForInput(initialEvent.date) || selectedDate
       return {
-        date: initialEvent.date,
+        date: dateValue,
         time: initialEvent.time || '',
         clientName: initialEvent.clientName || '',
         status: initialEvent.status || 'agendado',
         notes: initialEvent.notes || '',
         items: initialEvent.items?.length
-          ? initialEvent.items.map((it) => ({
+          ? initialEvent.items.map((it): CalendarEventItem => ({
+              id: it.id ?? null,
+              event_id: it.event_id,
               iphoneModel: it.iphoneModel,
               storage: it.storage,
               color: it.color ?? '',
@@ -540,7 +560,7 @@ function EventModal({
   const updateItem = (index: number, patch: Partial<CalendarEventItem>) => {
     setForm((f) => ({
       ...f,
-      items: f.items.map((it, i) => (i === index ? { ...it, ...patch } : it)),
+      items: f.items.map((it, i) => (i === index ? { ...it, ...patch } as CalendarEventItem : it)),
     }))
   }
   const addTradeInDevice = (itemIdx: number) => {
@@ -548,7 +568,7 @@ function EventModal({
       ...f,
       items: f.items.map((it, i) =>
         i === itemIdx
-          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '', condicao: undefined, obs: '' }] }
+          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '', condicao: undefined, obs: '' }] } as CalendarEventItem
           : it
       ),
     }))
@@ -560,7 +580,7 @@ function EventModal({
         if (i !== itemIdx) return it
         const list = [...(it.tradeInDevices ?? [])]
         if (list.length <= 1) return it
-        return { ...it, tradeInDevices: list.filter((_, ti) => ti !== trocaIdx) }
+        return { ...it, tradeInDevices: list.filter((_, ti) => ti !== trocaIdx) } as CalendarEventItem
       }),
     }))
   }
@@ -572,7 +592,7 @@ function EventModal({
         const list = [...(it.tradeInDevices ?? [])]
         if (!list[trocaIdx]) return it
         list[trocaIdx] = { ...list[trocaIdx], ...patch }
-        return { ...it, tradeInDevices: list }
+        return { ...it, tradeInDevices: list } as CalendarEventItem
       }),
     }))
   }
@@ -584,7 +604,7 @@ function EventModal({
         const current = (it.formaPagamento || '').split(',').map((s) => s.trim()).filter(Boolean)
         const has = current.includes(option)
         const next = has ? current.filter((x) => x !== option) : [...current, option]
-        return { ...it, formaPagamento: next.length ? next.join(', ') : 'PIX' }
+        return { ...it, formaPagamento: next.length ? next.join(', ') : 'PIX' } as CalendarEventItem
       }),
     }))
   }
@@ -770,7 +790,7 @@ function EventModal({
               <input
                 type="date"
                 required
-                value={form.date}
+                value={normalizeDateForInput(form.date) || form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                 className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500/50"
               />

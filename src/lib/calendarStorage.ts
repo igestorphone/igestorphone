@@ -112,9 +112,10 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
       })]
 
   const first = items[0]
+  const dateStr = row.date == null ? '' : (typeof row.date === 'string' ? row.date : (row.date as Date).toISOString?.().slice(0, 10) ?? '')
   return {
     id: String(row.id),
-    date: row.date,
+    date: dateStr.slice(0, 10) || '',
     time: row.time ?? undefined,
     clientName: row.client_name ?? undefined,
     status: (row.status && ['agendado', 'comprou', 'nao_comprou', 'reagendado'].includes(row.status))
