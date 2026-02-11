@@ -336,7 +336,7 @@ export default function CalendarPage() {
                     )
                   }}
                 />
-              )))
+              ))
             )}
           </div>
         </motion.div>
