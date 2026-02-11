@@ -401,18 +401,20 @@ router.get('/price-averages', async (req, res) => {
       paramCount++
     }
 
-    // Normalizar modelo: remove variantes (HN, NANOSIM, LI, Ch, Ndia, etc.) e "1 1"/"01 01"/" 1 " só com REPLACE (evita 500 por regex)
+    // Normalizar modelo: Promax→pro max, remove In/Ins/Tb e variantes (evita duplicar 17 Promax vs 17 Pro Max)
     const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
           REGEXP_REPLACE(
             REGEXP_REPLACE(
               REGEXP_REPLACE(
-                REPLACE(REPLACE(REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 01 01 ', ' '), ' 1 1 ', ' '), ' 1 ', ' '),
+                REGEXP_REPLACE(
+                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 01 01 ', ' '), ' 1 1 ', ' '), ' 1 ', ' '), ' in ', ' '), ' ins ', ' '),
+                  'promax', 'pro max', 'gi'),
                 '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
               '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
             '\\s*L\\s*I\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb)\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb|tb)\\s*', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 

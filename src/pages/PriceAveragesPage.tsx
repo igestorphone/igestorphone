@@ -35,10 +35,11 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove variantes (CPO, Lacrado, Indiano, Ndia, Ch, Pones, Nano, TGB, etc.) e "1 1"/"01 01". */
+/** Normaliza nome do modelo no frontend: remove variantes e unifica Promax→Pro Max, In/Ins/Tb. */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
+    .replace(/\bPromax\b/gi, 'Pro Max')
     .replace(/\s+L\s*I\s*/gi, ' ')
     .replace(/\s+LI\s*/gi, ' ')
     .replace(/\s+Ll\s*/gi, ' ')
@@ -52,6 +53,9 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+Lacrado\s*/gi, ' ')
     .replace(/\s+Indiano\s*/gi, ' ')
     .replace(/\s+Ndia\s*/gi, ' ')
+    .replace(/\s+In\s+/gi, ' ')
+    .replace(/\s+Ins\s+/gi, ' ')
+    .replace(/\s+Tb\s+/gi, ' ')
     .replace(/\s+Ch\s*/gi, ' ')
     .replace(/\s+F[ií]?sico\s*/gi, ' ')
     .replace(/\s+Virtual\s*/gi, ' ')
@@ -79,8 +83,12 @@ export default function PriceAveragesPage() {
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
   const [copyFeedback, setCopyFeedback] = useState(false)
 
+  const colorForKey = (color: string, model: string) => {
+    const c = normalizeColor(color || '', model)
+    return c === 'Jp' || c === 'jp' ? '—' : c
+  }
   const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
-    `${(row.model || '').trim()}|${normalizeColor(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
+    `${normalizeModelForDisplay(row.model || '').trim()}|${colorForKey(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
   const selectAllRef = useRef<HTMLInputElement>(null)
 
   const isModelWithOfficialColors = useMemo(() => {
@@ -119,7 +127,7 @@ export default function PriceAveragesPage() {
     }
     const key = (r: (typeof raw)[0]) => {
       const modelNorm = normalizeModelForDisplay(r.model || '')
-      return `${modelNorm}|${normalizeColor(r.color, r.model || '')}|${(r.storage || '').trim()}`
+      return `${modelNorm}|${colorForKey(r.color || '', r.model || '')}|${(r.storage || '').trim()}`
     }
     const byKey = new Map<string, { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }>()
     for (const r of list) {
@@ -131,9 +139,10 @@ export default function PriceAveragesPage() {
       const maxP = r.max_price != null ? Number(r.max_price) : null
       const modelDisplay = normalizeModelForDisplay(r.model || '')
       if (!existing) {
+        const displayColor = r.color && r.color.toLowerCase() !== 'jp' ? (r.color || '—') : '—'
         byKey.set(k, {
           model: modelDisplay,
-          color: r.color || '—',
+          color: displayColor,
           storage: r.storage || '—',
           avg_price: avg,
           count,
@@ -196,6 +205,22 @@ export default function PriceAveragesPage() {
 
   const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
 
+  /** Ordem lógica: geração (17>16>15…) → tipo (base<Plus<Pro<Pro Max<Air<e) → capacidade */
+  const modelSortKey = (model: string, storage: string) => {
+    const m = (model || '').toLowerCase()
+    const genMatch = m.match(/\b(1[1-7]|e)\b/)
+    const gen = genMatch ? (genMatch[1] === 'e' ? 0 : parseInt(genMatch[1], 10)) : 99
+    const genOrder = gen === 0 ? 0 : 100 - gen
+    let typeOrder = 0
+    if (m.includes('pro max')) typeOrder = 4
+    else if (m.includes('pro')) typeOrder = 3
+    else if (m.includes('plus')) typeOrder = 1
+    else if (m.includes('air')) typeOrder = 5
+    else if (m.includes('16e') || m.includes('16 e')) typeOrder = 6
+    const cap = storageNum(storage)
+    return `${genOrder.toString().padStart(3, '0')}-${typeOrder}-${cap.toString().padStart(5, '0')}`
+  }
+
   const sorted = useMemo(() => {
     const list = [...averagesForDisplay]
     switch (sortBy) {
@@ -207,11 +232,14 @@ export default function PriceAveragesPage() {
         return list.sort((a, b) => b.count - a.count)
       case 'model':
       default:
-        return list.sort((a, b) =>
-          (a.model || '').localeCompare(b.model || '', 'pt-BR')
-        )
+        return list.sort((a, b) => {
+          const keyA = modelSortKey(a.model || '', a.storage || '')
+          const keyB = modelSortKey(b.model || '', b.storage || '')
+          if (keyA !== keyB) return keyA.localeCompare(keyB)
+          return (a.model || '').localeCompare(b.model || '', 'pt-BR')
+        })
     }
-  }, [averages, sortBy])
+  }, [averagesForDisplay, sortBy])
 
   /** Ordem de cores por modelo (igual Buscar iPhone Novo): 17 Pro, 16 Pro, 17. */
   const colorOrderForModel = (model: string): string[] | null => {
@@ -223,13 +251,12 @@ export default function PriceAveragesPage() {
     return null
   }
 
-  /** Agrupa por modelo + capacidade; ordena cores dentro do grupo como no Buscar iPhone Novo (17 Pro); outros têm 1 linha por grupo */
+  /** Agrupa por modelo + capacidade; ordena por geração → tipo → storage → cor */
   const sortedGrouped = useMemo(() => {
     const list = [...averagesForDisplay].sort((a, b) => {
-      const c = (a.model || '').localeCompare(b.model || '', 'pt-BR')
-      if (c !== 0) return c
-      const d = storageNum(a.storage) - storageNum(b.storage)
-      if (d !== 0) return d
+      const keyA = modelSortKey(a.model || '', a.storage || '')
+      const keyB = modelSortKey(b.model || '', b.storage || '')
+      if (keyA !== keyB) return keyA.localeCompare(keyB)
       const order = colorOrderForModel(a.model || '')
       const colorA = normalizeColor(a.color, a.model || '')
       const colorB = normalizeColor(b.color, b.model || '')
@@ -741,7 +768,7 @@ export default function PriceAveragesPage() {
                                     <span className="invisible select-none">—</span>
                                   </td>
                                   <td className="px-4 py-3 text-gray-600 dark:text-gray-300 min-w-[120px]">
-                                    {row.color && row.color !== '—'
+                                    {row.color && row.color !== '—' && row.color.toLowerCase() !== 'jp'
                                       ? normalizeColor(row.color, row.model || '')
                                       : '—'}
                                   </td>
