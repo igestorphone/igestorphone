@@ -11,7 +11,7 @@ async function enrichEventsWithItems(rows) {
   const itemsResult = await query(
     `SELECT id, event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros,
             forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca,
-            troca_aparelhos, parcelas, valor_sinal, notes
+            troca_aparelhos, parcelas, valor_sinal, condicao, notes
      FROM calendar_event_items WHERE event_id = ANY($1) ORDER BY event_id, id`,
     [ids]
   );
@@ -39,6 +39,7 @@ async function enrichEventsWithItems(rows) {
       troca_aparelhos: trocaAparelhos,
       parcelas: i.parcelas != null ? parseInt(i.parcelas, 10) : null,
       valor_sinal: i.valor_sinal != null ? parseFloat(i.valor_sinal) : null,
+      condicao: i.condicao ?? undefined,
       notes: i.notes ?? undefined,
     });
   }
@@ -81,6 +82,7 @@ async function enrichEventsWithItems(rows) {
               troca_aparelhos: [],
               parcelas: null,
               valor_sinal: null,
+              condicao: undefined,
               notes: e.notes ?? undefined,
             },
           ],
@@ -203,8 +205,8 @@ router.post('/events', authenticateToken, async (req, res) => {
       const modeloTr = (firstTroca?.model ?? it.tradeInModel ?? '').trim() || null;
       const armTr = (firstTroca?.storage ?? it.tradeInStorage ?? '').trim() || null;
       await query(
-        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16)`,
+        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, condicao, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16, $17)`,
         [
           event.id,
           it.iphoneModel?.trim() || first.iphoneModel,
@@ -218,9 +220,10 @@ router.post('/events', authenticateToken, async (req, res) => {
           it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
           modeloTr,
           armTr,
-          JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '' }))),
+          JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '', condicao: t.condicao ?? null }))),
           it.parcelas != null ? parseInt(it.parcelas, 10) : null,
           it.valorSinal != null ? Number(it.valorSinal) : null,
+          (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
           it.notes ?? null,
         ]
       );
@@ -290,8 +293,8 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
         const modeloTr = (firstTroca?.model ?? it.tradeInModel ?? '').trim() || null;
         const armTr = (firstTroca?.storage ?? it.tradeInStorage ?? '').trim() || null;
         await query(
-          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16)`,
+          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, condicao, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16, $17)`,
           [
             id,
             im,
@@ -305,9 +308,10 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
             it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
             modeloTr,
             armTr,
-            JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '' }))),
+            JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '', condicao: t.condicao ?? null }))),
             it.parcelas != null ? parseInt(it.parcelas, 10) : null,
             it.valorSinal != null ? Number(it.valorSinal) : null,
+            (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
             it.notes ?? null,
           ]
         );

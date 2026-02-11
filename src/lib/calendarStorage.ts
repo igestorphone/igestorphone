@@ -7,6 +7,7 @@ export type CalendarEventStatus = 'agendado' | 'comprou' | 'nao_comprou' | 'reag
 export interface TradeInDevice {
   model: string
   storage: string
+  condicao?: 'novo' | 'seminovo' | null
 }
 
 export interface CalendarEventItem {
@@ -26,6 +27,7 @@ export interface CalendarEventItem {
   tradeInDevices?: TradeInDevice[]
   parcelas?: number | null
   valorSinal?: number | null
+  condicao?: 'novo' | 'seminovo' | null
   notes?: string | null
 }
 
@@ -54,6 +56,7 @@ function mapItem(row: any): CalendarEventItem {
     ? trocaArr.map((t: any) => ({
         model: t.model ?? t.modelo ?? '',
         storage: t.storage ?? t.armazenamento ?? '',
+        condicao: (t.condicao === 'novo' || t.condicao === 'seminovo') ? t.condicao : undefined,
       }))
     : row.modelo_troca || row.armazenamento_troca
       ? [{ model: row.modelo_troca ?? '', storage: row.armazenamento_troca ?? '' }]
@@ -75,6 +78,7 @@ function mapItem(row: any): CalendarEventItem {
     tradeInDevices,
     parcelas: row.parcelas != null ? Number(row.parcelas) : row.parcelas ?? null,
     valorSinal: row.valor_sinal != null ? Number(row.valor_sinal) : row.valorSinal ?? null,
+    condicao: (row.condicao === 'novo' || row.condicao === 'seminovo') ? row.condicao : undefined,
     notes: row.notes ?? undefined,
   }
 }
@@ -98,6 +102,7 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
         troca_aparelhos: row.troca_aparelhos,
         parcelas: row.parcelas,
         valor_sinal: row.valor_sinal,
+        condicao: row.condicao,
         notes: row.notes,
       })]
 
@@ -199,13 +204,13 @@ export function buildResumoPedido(event: CalendarSaleEvent): string {
   lines.push('')
   for (let i = 0; i < event.items.length; i++) {
     const it = event.items[i]
-    lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}`)
+    lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}${it.condicao ? ` (${it.condicao})` : ''}`)
     lines.push(`IMEI ...${it.imeiEnd}`)
     lines.push(`À vista: R$ ${it.valorAVista.toFixed(2).replace('.', ',')} | Parcelado: R$ ${it.valorComJuros.toFixed(2).replace('.', ',')}`)
     const trocaList = it.tradeInDevices?.length ? it.tradeInDevices : (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : [])
     if (trocaList.length) {
       trocaList.forEach((d) => {
-        if (d.model || d.storage) lines.push(`iPhone na troca: ${[d.model, d.storage].filter(Boolean).join(' ')}`)
+        if (d.model || d.storage) lines.push(`iPhone na troca: ${[d.model, d.storage].filter(Boolean).join(' ')}${d.condicao ? ` (${d.condicao})` : ''}`)
       })
     }
     if (it.parcelas != null) lines.push(`Parcelas: ${it.parcelas}x`)

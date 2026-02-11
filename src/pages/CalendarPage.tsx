@@ -423,6 +423,12 @@ function EventCard({
   )
 }
 
+const CONDICAO_OPTIONS = [
+  { value: '', label: 'Condição' },
+  { value: 'novo', label: 'Novo' },
+  { value: 'seminovo', label: 'Seminovo' },
+]
+
 const defaultItem = (): CalendarEventItem => ({
   id: null,
   iphoneModel: '',
@@ -439,6 +445,7 @@ const defaultItem = (): CalendarEventItem => ({
   tradeInDevices: [],
   parcelas: null,
   valorSinal: null,
+  condicao: null,
   notes: '',
 })
 
@@ -482,6 +489,7 @@ function EventModal({
               tradeInDevices: it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : []),
               parcelas: it.parcelas ?? null,
               valorSinal: it.valorSinal ?? null,
+              condicao: it.condicao ?? null,
               notes: it.notes ?? '',
             }))
           : [defaultItem()],
@@ -517,7 +525,7 @@ function EventModal({
       ...f,
       items: f.items.map((it, i) =>
         i === itemIdx
-          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '' }] }
+          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '', condicao: undefined }] }
           : it
       ),
     }))
@@ -592,9 +600,10 @@ function EventModal({
           manutencaoDescontada: it.manutencaoDescontada ?? null,
           tradeInModel: (it.tradeInDevices?.[0]?.model ?? it.tradeInModel)?.trim() || null,
           tradeInStorage: (it.tradeInDevices?.[0]?.storage ?? it.tradeInStorage)?.trim() || null,
-          trocaAparelhos: it.tradeInDevices?.length ? it.tradeInDevices.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '' })) : null,
+          trocaAparelhos: it.tradeInDevices?.length ? it.tradeInDevices.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '', condicao: d.condicao ?? null })) : null,
           parcelas: it.parcelas ?? null,
           valorSinal: it.valorSinal ?? null,
+          condicao: (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
           notes: it.notes?.trim() || null,
         })),
       }
@@ -831,7 +840,7 @@ function EventModal({
                       </select>
                     </div>
                   </div>
-                  <div>
+                  <div className="grid grid-cols-2 gap-2">
                     <input
                       type="text"
                       placeholder="Cor (opcional)"
@@ -839,6 +848,18 @@ function EventModal({
                       onChange={(e) => updateItem(idx, { color: e.target.value })}
                       className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
                     />
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-white/50 mb-0.5">Condição</label>
+                      <select
+                        value={item.condicao ?? ''}
+                        onChange={(e) => updateItem(idx, { condicao: e.target.value === 'novo' || e.target.value === 'seminovo' ? e.target.value : null })}
+                        className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                      >
+                        {CONDICAO_OPTIONS.map((opt) => (
+                          <option key={opt.value || 'vazio'} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <input
@@ -902,6 +923,16 @@ function EventModal({
                           {STORAGE_OPTIONS.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
                           ))}
+                        </select>
+                        <select
+                          value={troca.condicao ?? ''}
+                          onChange={(e) => updateTradeInDevice(idx, ti, { condicao: e.target.value === 'novo' || e.target.value === 'seminovo' ? e.target.value : undefined })}
+                          className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                          title="Condição"
+                        >
+                          <option value="">Cond.</option>
+                          <option value="novo">Novo</option>
+                          <option value="seminovo">Seminovo</option>
                         </select>
                         <button
                           type="button"

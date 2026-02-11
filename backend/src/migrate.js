@@ -90,6 +90,7 @@ const migrations = [
   `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS troca_aparelhos JSONB DEFAULT '[]'::jsonb`,
   `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS parcelas INTEGER`,
   `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS valor_sinal DECIMAL(12,2)`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS condicao VARCHAR(20)`,
 
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (
