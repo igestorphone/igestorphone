@@ -116,12 +116,26 @@ function SearchInputDebounced({
   )
 }
 
-// Relógio isolado: atualização a cada 1s não re-renderiza a página inteira
+// Relógio isolado: no mobile atrasa o interval para não competir com o primeiro toque
 function LiveClock() {
   const [currentTime, setCurrentTime] = useState(() => new Date())
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000)
-    return () => clearInterval(timer)
+    const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    const delay = isTouch ? 1500 : 0
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    let intervalId: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      intervalId = setInterval(() => setCurrentTime(new Date()), 1000)
+    }
+    if (delay > 0) {
+      timeoutId = setTimeout(start, delay)
+    } else {
+      start()
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId)
+      if (intervalId) clearInterval(intervalId)
+    }
   }, [])
   return (
     <div className="flex items-center gap-2">
@@ -130,6 +144,8 @@ function LiveClock() {
     </div>
   )
 }
+
+const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
 export default function SearchCheapestIPhonePage() {
   const queryClient = useQueryClient()
@@ -140,6 +156,14 @@ export default function SearchCheapestIPhonePage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
+  // No mobile: atrasa a query para o shell ficar interativo antes da rede
+  const [queryReady, setQueryReady] = useState(() => !isMobile())
+
+  useEffect(() => {
+    if (queryReady) return
+    const t = setTimeout(() => setQueryReady(true), 200)
+    return () => clearTimeout(t)
+  }, [queryReady])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -151,11 +175,8 @@ export default function SearchCheapestIPhonePage() {
     }
   }, [queryClient])
 
-
-
   // Buscar produtos se houver busca com pelo menos 3 caracteres OU se houver algum filtro selecionado
-  // Se não houver busca nem filtros, buscar todos os produtos do dia
-  const shouldFetchProducts = true // Sempre buscar produtos para mostrar todos os produtos do dia
+  const shouldFetchProducts = true
 
   // 17 Pro e 16 Pro usam cores normalizadas (ex: Laranja Cósmico); o backend filtra pelo valor bruto (ex: Cosmic Orange) e não acha. Não enviar color à API e filtrar no front por cor normalizada.
   const searchLowerForColor = debouncedSearch.toLowerCase().trim()
@@ -183,7 +204,7 @@ export default function SearchCheapestIPhonePage() {
         sort_order: 'asc',
         limit: 5000
       }),
-    enabled: shouldFetchProducts,
+    enabled: shouldFetchProducts && queryReady,
     staleTime: 10000,
     gcTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true,

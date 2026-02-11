@@ -15,6 +15,19 @@
   html {
     scroll-behavior: smooth;
   }
+
+  /* Mobile: toque imediato, sem atraso de 300ms e sem highlight pesado */
+  @media (hover: none) and (pointer: coarse) {
+    button,
+    a,
+    [role="button"],
+    input,
+    select,
+    textarea {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+  }
 }
 
 @layer components {

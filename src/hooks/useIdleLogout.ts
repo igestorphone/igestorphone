@@ -26,6 +26,10 @@ export function useIdleLogout(idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS) {
       touchActivity()
     }
 
+    // No mobile, atrasa a ligação dos listeners para o primeiro toque não competir com a thread
+    const isTouch = typeof window !== 'undefined' && window.matchMedia('(hover: none) and (pointer: coarse)').matches
+    const delayMs = isTouch ? 500 : 0
+
     const performLogout = () => {
       if (didLogoutRef.current) return
       didLogoutRef.current = true
@@ -64,23 +68,33 @@ export function useIdleLogout(idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS) {
       'pointerdown',
     ]
 
-    events.forEach((event) => window.addEventListener(event, onActivity, listenerOptions))
+    let intervalId: ReturnType<typeof setInterval> | null = null
+    const setupListeners = () => {
+      events.forEach((event) => window.addEventListener(event, onActivity, listenerOptions))
+      intervalId = window.setInterval(() => {
+        const last = getLastActivityAt()
+        if (!last) {
+          touchActivity()
+          return
+        }
+        const idleForMs = Date.now() - last
+        if (idleForMs < idleTimeoutMs) return
+        performLogout()
+      }, CHECK_EVERY_MS)
+    }
 
-    const interval = window.setInterval(() => {
-      const last = getLastActivityAt()
-      if (!last) {
-        // Se o storage foi limpo por qualquer motivo, reinicia o timer enquanto logado
-        touchActivity()
-        return
+    if (delayMs > 0) {
+      const t = setTimeout(setupListeners, delayMs)
+      return () => {
+        clearTimeout(t)
+        if (intervalId) window.clearInterval(intervalId)
+        events.forEach((event) => window.removeEventListener(event, onActivity, listenerOptions))
       }
+    }
 
-      const idleForMs = Date.now() - last
-      if (idleForMs < idleTimeoutMs) return
-      performLogout()
-    }, CHECK_EVERY_MS)
-
+    setupListeners()
     return () => {
-      window.clearInterval(interval)
+      if (intervalId) window.clearInterval(intervalId)
       events.forEach((event) => window.removeEventListener(event, onActivity, listenerOptions))
     }
   }, [idleTimeoutMs, isAuthenticated, location.pathname, logout, navigate])
