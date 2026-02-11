@@ -105,15 +105,16 @@ router.post('/login', loginValidation, async (req, res) => {
     }
 
     const { email, password } = req.body;
+    const emailNormalized = (email || '').toString().toLowerCase().trim();
 
-    // Buscar usuário
+    // Buscar usuário (email normalizado para bater com o que foi salvo na criação)
     const result = await query(`
       SELECT 
         id,
         email,
         password_hash,
         name,
-        COALESCE(tipo, 'user') AS role,
+        COALESCE(tipo, role, 'user') AS role,
         subscription_status,
         subscription_expires_at,
         is_active,
@@ -121,8 +122,8 @@ router.post('/login', loginValidation, async (req, res) => {
         access_expires_at,
         approval_status
       FROM users
-      WHERE email = $1
-    `, [email]);
+      WHERE LOWER(TRIM(email)) = $1
+    `, [emailNormalized]);
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Credenciais inválidas' });

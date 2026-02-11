@@ -209,6 +209,7 @@ const migrations = [
 
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES users(id) ON DELETE SET NULL`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,

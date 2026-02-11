@@ -215,9 +215,10 @@ router.post('/funcionario-calendario', authenticateToken, [
     if (req.user.parent_id) {
       return res.status(403).json({ message: 'Apenas o assinante pode criar usuário do calendário.' });
     }
-    const { name, email, senha } = req.body;
+    const { name, senha } = req.body;
+    const email = (req.body.email || '').toString().toLowerCase().trim();
 
-    const existingUser = await query('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUser = await query('SELECT id FROM users WHERE LOWER(TRIM(email)) = $1', [email]);
     if (existingUser.rows.length > 0) {
       return res.status(400).json({ message: 'Email já está em uso' });
     }
@@ -281,6 +282,42 @@ router.get('/meus-funcionarios', authenticateToken, async (req, res) => {
     res.json({ funcionarios: result.rows });
   } catch (error) {
     console.error('Erro ao listar funcionários:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Excluir funcionário (usuário do calendário) – apenas o assinante que criou pode excluir
+router.delete('/funcionario-calendario/:id', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.parent_id) {
+      return res.status(403).json({ message: 'Apenas o assinante pode excluir usuário do calendário.' });
+    }
+    const funcionarioId = parseInt(req.params.id, 10);
+    if (Number.isNaN(funcionarioId)) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+    const check = await query(
+      'SELECT id FROM users WHERE id = $1 AND parent_id = $2',
+      [funcionarioId, req.user.id]
+    );
+    if (check.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuário do calendário não encontrado ou você não pode excluí-lo.' });
+    }
+    await query('DELETE FROM user_permissions WHERE user_id = $1', [funcionarioId]);
+    await query('DELETE FROM users WHERE id = $1', [funcionarioId]);
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      req.user.id,
+      'funcionario_calendario_deleted',
+      JSON.stringify({ deleted_user_id: funcionarioId }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+    res.json({ message: 'Usuário do calendário excluído.' });
+  } catch (error) {
+    console.error('Erro ao excluir funcionário calendário:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });

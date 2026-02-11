@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { UserPlus, Calendar, Users, Mail, Loader2 } from 'lucide-react'
+import { UserPlus, Calendar, Users, Mail, Loader2, Trash2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatDateTime } from '@/lib/utils'
@@ -18,6 +18,7 @@ export default function FuncionariosCalendarioPage() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
   const [form, setForm] = useState({ name: '', email: '', senha: '' })
 
   const loadFuncionarios = async () => {
@@ -59,6 +60,20 @@ export default function FuncionariosCalendarioPage() {
       toast.error(e.response?.data?.message || 'Erro ao criar usuário')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleExcluir = async (id: number, name: string) => {
+    if (!window.confirm(`Excluir o usuário do calendário "${name}"? Ele não poderá mais fazer login.`)) return
+    setDeletingId(id)
+    try {
+      await api.delete(`/users/funcionario-calendario/${id}`)
+      toast.success('Usuário do calendário excluído.')
+      loadFuncionarios()
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Erro ao excluir')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -165,9 +180,24 @@ export default function FuncionariosCalendarioPage() {
                     <p className="text-sm text-gray-500 dark:text-white/60 truncate">{f.email}</p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-500 dark:text-white/50 flex-shrink-0">
-                  Criado em {formatDateTime(f.created_at)}
-                </span>
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-xs text-gray-500 dark:text-white/50">
+                    Criado em {formatDateTime(f.created_at)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleExcluir(f.id, f.name)}
+                    disabled={deletingId === f.id}
+                    className="p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-50"
+                    title="Excluir usuário do calendário"
+                  >
+                    {deletingId === f.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
