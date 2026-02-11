@@ -205,12 +205,15 @@ export default function PriceAveragesPage() {
 
   const storageNum = (s: string) => parseInt((s || '').replace(/\D/g, ''), 10) || 0
 
-  /** Ordem lógica: geração (17>16>15…) → tipo (base<Plus<Pro<Pro Max<Air<e) → capacidade */
+  /** Ordem por modelo: geração 11→17 (iPhone 11 Pro … 17 Pro Max), depois tipo (base<Plus<Pro<Pro Max<Air<e)), depois capacidade */
   const modelSortKey = (model: string, storage: string) => {
     const m = (model || '').toLowerCase()
-    const genMatch = m.match(/\b(1[1-7]|e)\b/)
-    const gen = genMatch ? (genMatch[1] === 'e' ? 0 : parseInt(genMatch[1], 10)) : 99
-    const genOrder = gen === 0 ? 0 : 100 - gen
+    let gen = 99
+    if (m.includes('16e') || m.includes('16 e')) gen = 16
+    else {
+      const genMatch = m.match(/\b(1[1-7])\b/)
+      if (genMatch) gen = parseInt(genMatch[1], 10)
+    }
     let typeOrder = 0
     if (m.includes('pro max')) typeOrder = 4
     else if (m.includes('pro')) typeOrder = 3
@@ -218,7 +221,7 @@ export default function PriceAveragesPage() {
     else if (m.includes('air')) typeOrder = 5
     else if (m.includes('16e') || m.includes('16 e')) typeOrder = 6
     const cap = storageNum(storage)
-    return `${genOrder.toString().padStart(3, '0')}-${typeOrder}-${cap.toString().padStart(5, '0')}`
+    return `${gen.toString().padStart(2, '0')}-${typeOrder}-${cap.toString().padStart(5, '0')}`
   }
 
   const sorted = useMemo(() => {
