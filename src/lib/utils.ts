@@ -69,27 +69,34 @@ export function formatTime(date: Date | string | null | undefined): string {
   }
 }
 
-// Formatação de WhatsApp
+// Códigos de país da região (não adicionar 55 quando já tiver um destes)
+const OTHER_COUNTRY_CODES = ['595', '54', '598', '57', '51', '593', '591', '58', '56', '52', '593']
+
+// Formatação de WhatsApp (Brasil +55, Paraguai +595, etc. — não forçar Brasil em número internacional)
 export function formatWhatsApp(whatsapp: string): string {
-  // Remove todos os caracteres não numéricos
   const numbers = whatsapp.replace(/\D/g, '')
-  
-  // Se começar com 55 (Brasil), mantém
-  if (numbers.startsWith('55')) {
-    return `+${numbers}`
+  if (!numbers.length) return ''
+
+  // Já tem código de país: manter como está (Brasil 55 ou outro)
+  if (numbers.startsWith('55') && numbers.length >= 12) return `+${numbers}`
+  for (const code of OTHER_COUNTRY_CODES) {
+    if (numbers.startsWith(code) && numbers.length >= code.length + 8) return `+${numbers}`
   }
-  
-  // Se começar com 0, remove e adiciona 55
-  if (numbers.startsWith('0')) {
-    return `+55${numbers.substring(1)}`
-  }
-  
-  // Se não tem código do país, adiciona 55
-  if (numbers.length <= 11) {
-    return `+55${numbers}`
-  }
-  
-  return `+${numbers}`
+
+  // Começa com 0: remove e trata o resto
+  const semZero = numbers.startsWith('0') ? numbers.substring(1) : numbers
+
+  // 9 dígitos começando com 9: provável Paraguai (595 9XX XXX XXX)
+  if (semZero.length === 9 && semZero.startsWith('9')) return `+595${semZero}`
+
+  // 10 ou 11 dígitos: provável Brasil (DDD + 9 + número)
+  if (semZero.length >= 10 && semZero.length <= 11) return `+55${semZero}`
+
+  // 12+ dígitos sem código conhecido: assumir que já tem código
+  if (semZero.length >= 12) return `+${semZero}`
+
+  // Fallback: número curto, assumir Brasil
+  return `+55${semZero}`
 }
 
 // Validação de email
