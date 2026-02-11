@@ -38,11 +38,12 @@ const PAYMENT_OPTIONS = [
   { value: 'PIX', label: 'PIX' },
   { value: 'Cartão à vista', label: 'Cartão à vista' },
   { value: 'Cartão parcelado', label: 'Cartão parcelado' },
-  { value: 'Sinal', label: 'Sinal' },
   { value: 'Boleto', label: 'Boleto' },
   { value: 'Dinheiro', label: 'Dinheiro' },
   { value: 'Outro', label: 'Outro' },
 ]
+
+const MAX_TRADE_IN_SLOTS = 2
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTHS = [
@@ -52,6 +53,12 @@ const MONTHS = [
 
 function formatCurrency(value: number): string {
   return `R$ ${value.toFixed(2).replace('.', ',')}`
+}
+
+function padTradeInDevices(devices: TradeInDevice[] | undefined, length: number): TradeInDevice[] {
+  const list = Array.isArray(devices) ? [...devices] : []
+  while (list.length < length) list.push({ model: '', storage: '' })
+  return list.slice(0, length)
 }
 
 function formatDateBr(dateStr: string): string {
@@ -314,7 +321,9 @@ export default function CalendarPage() {
             ) : selectedDayEvents.length === 0 ? (
               <p className="text-sm text-gray-500 dark:text-white/50">Nenhuma venda neste dia.</p>
             ) : (
-              selectedDayEvents.map((ev) => (
+              [...selectedDayEvents]
+                .sort((a, b) => (a.time || '00:00').localeCompare(b.time || '00:00'))
+                .map((ev) => (
                 <EventCard
                   key={ev.id}
                   event={ev}
@@ -327,7 +336,7 @@ export default function CalendarPage() {
                     )
                   }}
                 />
-              ))
+              )))
             )}
           </div>
         </motion.div>
@@ -359,17 +368,30 @@ function EventCard({
 }) {
   const first = event.items[0]
   const hasMultiple = event.items.length > 1
+  const statusStyle =
+    event.status === 'comprou'
+      ? 'border-green-500/30 bg-green-50/80 dark:bg-green-900/20 hover:bg-green-100/80 dark:hover:bg-green-900/30'
+      : event.status === 'nao_comprou'
+        ? 'border-red-500/30 bg-red-50/80 dark:bg-red-900/20 hover:bg-red-100/80 dark:hover:bg-red-900/30'
+        : 'border-gray-200 dark:border-white/20 bg-gray-50/50 dark:bg-white/5 hover:bg-gray-100/50 dark:hover:bg-white/10'
+  const statusBadgeStyle =
+    event.status === 'comprou'
+      ? 'bg-green-100 text-green-800 dark:bg-green-500/30 dark:text-green-300'
+      : event.status === 'nao_comprou'
+        ? 'bg-red-100 text-red-800 dark:bg-red-500/30 dark:text-red-300'
+        : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400'
+
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-3 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50/50 dark:bg-white/5 hover:bg-gray-100/50 dark:hover:bg-white/10 transition-colors"
+      className={`p-3 rounded-xl border transition-colors ${statusStyle}`}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-400">
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${statusBadgeStyle}`}>
               {STATUS_LABELS[event.status] ?? event.status}
             </span>
             <span className="font-semibold text-gray-900 dark:text-white">
@@ -442,7 +464,7 @@ const defaultItem = (): CalendarEventItem => ({
   manutencaoDescontada: null,
   tradeInModel: null,
   tradeInStorage: null,
-  tradeInDevices: [],
+  tradeInDevices: padTradeInDevices([], MAX_TRADE_IN_SLOTS),
   parcelas: null,
   valorSinal: null,
   condicao: null,
@@ -486,7 +508,7 @@ function EventModal({
               manutencaoDescontada: it.manutencaoDescontada ?? null,
               tradeInModel: it.tradeInModel ?? null,
               tradeInStorage: it.tradeInStorage ?? null,
-              tradeInDevices: it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : []),
+              tradeInDevices: padTradeInDevices(it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : []), MAX_TRADE_IN_SLOTS),
               parcelas: it.parcelas ?? null,
               valorSinal: it.valorSinal ?? null,
               condicao: it.condicao ?? null,
@@ -518,26 +540,6 @@ function EventModal({
     setForm((f) => ({
       ...f,
       items: f.items.map((it, i) => (i === index ? { ...it, ...patch } : it)),
-    }))
-  }
-  const addTradeInDevice = (itemIdx: number) => {
-    setForm((f) => ({
-      ...f,
-      items: f.items.map((it, i) =>
-        i === itemIdx
-          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '', condicao: undefined }] }
-          : it
-      ),
-    }))
-  }
-  const removeTradeInDevice = (itemIdx: number, trocaIdx: number) => {
-    setForm((f) => ({
-      ...f,
-      items: f.items.map((it, i) =>
-        i === itemIdx
-          ? { ...it, tradeInDevices: (it.tradeInDevices ?? []).filter((_, ti) => ti !== trocaIdx) }
-          : it
-      ),
     }))
   }
   const updateTradeInDevice = (itemIdx: number, trocaIdx: number, patch: Partial<TradeInDevice>) => {
@@ -588,24 +590,32 @@ function EventModal({
         clientName: form.clientName || undefined,
         status: form.status,
         notes: form.notes || undefined,
-        items: form.items.map((it) => ({
+        items: form.items.map((it) => {
+          let formaPagamento = it.formaPagamento || 'PIX'
+          if (it.valorSinal != null) {
+            const parts = formaPagamento.split(',').map((s) => s.trim()).filter(Boolean)
+            if (!parts.includes('Sinal')) parts.push('Sinal')
+            formaPagamento = parts.join(', ')
+          }
+          return {
           iphoneModel: it.iphoneModel.trim(),
           storage: it.storage.trim(),
           color: it.color?.trim() || null,
           imeiEnd: it.imeiEnd.trim(),
           valorAVista: it.valorAVista,
           valorComJuros: it.valorComJuros,
-          formaPagamento: it.formaPagamento,
+          formaPagamento,
           valorTroca: it.valorTroca ?? null,
           manutencaoDescontada: it.manutencaoDescontada ?? null,
           tradeInModel: (it.tradeInDevices?.[0]?.model ?? it.tradeInModel)?.trim() || null,
           tradeInStorage: (it.tradeInDevices?.[0]?.storage ?? it.tradeInStorage)?.trim() || null,
-          trocaAparelhos: it.tradeInDevices?.length ? it.tradeInDevices.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '', condicao: d.condicao ?? null })) : null,
+          trocaAparelhos: it.tradeInDevices?.filter((d) => (d.model?.trim() || d.storage?.trim()))?.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '', condicao: d.condicao ?? null })) ?? null,
           parcelas: it.parcelas ?? null,
           valorSinal: it.valorSinal ?? null,
           condicao: (it.condicao === 'novo' || it.condicao === 'seminovo') ? it.condicao : null,
           notes: it.notes?.trim() || null,
-        })),
+        }
+        }),
       }
       if (isEdit && initialEvent) {
         await calendarApi.update(Number(initialEvent.id), payload)
@@ -890,18 +900,47 @@ function EventModal({
                       className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
                     />
                   </div>
-                  <div className="rounded-lg border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-2 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca (opcional)</p>
-                      <button
-                        type="button"
-                        onClick={() => addTradeInDevice(idx)}
-                        className="text-xs text-amber-600 dark:text-amber-400 hover:underline"
-                      >
-                        + Adicionar aparelho na troca
-                      </button>
+                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-gray-50/50 dark:bg-white/5 p-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-white/70 mb-2">Sinal?</p>
+                    <div className="flex items-center gap-3">
+                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`sinal-${idx}`}
+                          checked={item.valorSinal == null}
+                          onChange={() => updateItem(idx, { valorSinal: null })}
+                          className="border-gray-300 text-amber-500 focus:ring-amber-500"
+                        />
+                        <span className="text-sm">Não</span>
+                      </label>
+                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name={`sinal-${idx}`}
+                          checked={item.valorSinal != null}
+                          onChange={() => updateItem(idx, { valorSinal: item.valorSinal ?? 0 })}
+                          className="border-gray-300 text-amber-500 focus:ring-amber-500"
+                        />
+                        <span className="text-sm">Sim</span>
+                      </label>
+                      {item.valorSinal != null && (
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-xs text-gray-500 dark:text-white/50">R$</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={item.valorSinal ?? ''}
+                            onChange={(e) => updateItem(idx, { valorSinal: e.target.value === '' ? 0 : parseFloat(e.target.value) })}
+                            className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                          />
+                        </div>
+                      )}
                     </div>
-                    {(item.tradeInDevices ?? []).map((troca, ti) => (
+                  </div>
+                  <div className="rounded-lg border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-2 space-y-2">
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca (preencha se houver)</p>
+                    {padTradeInDevices(item.tradeInDevices, MAX_TRADE_IN_SLOTS).map((troca, ti) => (
                       <div key={ti} className="flex flex-wrap items-center gap-2 rounded bg-white/50 dark:bg-black/20 p-2">
                         <select
                           value={IPHONE_MODEL_OPTIONS.includes(troca.model) ? troca.model : (troca.model ? 'Outro' : '')}
@@ -934,14 +973,6 @@ function EventModal({
                           <option value="novo">Novo</option>
                           <option value="seminovo">Seminovo</option>
                         </select>
-                        <button
-                          type="button"
-                          onClick={() => removeTradeInDevice(idx, ti)}
-                          className="p-1 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"
-                          aria-label="Remover"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
                     ))}
                     <div className="grid grid-cols-2 gap-2">
@@ -967,48 +998,39 @@ function EventModal({
                   </div>
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-gray-600 dark:text-white/70">Forma de pagamento</p>
-                    <div className="flex flex-wrap gap-2">
-                      {PAYMENT_OPTIONS.map((opt) => (
-                        <label key={opt.value} className="inline-flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={hasPaymentOption(item, opt.value)}
-                            onChange={() => togglePaymentOption(idx, opt.value)}
-                            className="rounded border-gray-300 dark:border-white/30 text-amber-500"
-                          />
-                          <span className="text-sm">{opt.label}</span>
-                        </label>
-                      ))}
+                    <div className="flex flex-wrap gap-1.5">
+                      {PAYMENT_OPTIONS.map((opt) => {
+                        const selected = hasPaymentOption(item, opt.value)
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => togglePaymentOption(idx, opt.value)}
+                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                              selected
+                                ? 'bg-amber-500 text-white shadow-sm'
+                                : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20 border border-gray-200 dark:border-white/15'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
                     </div>
-                    <div className="flex flex-wrap gap-3 mt-2">
-                      {hasPaymentOption(item, 'Cartão parcelado') && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500 dark:text-white/50">Parcelas</label>
-                          <input
-                            type="number"
-                            min={1}
-                            max={24}
-                            placeholder="Nº"
-                            value={item.parcelas ?? ''}
-                            onChange={(e) => updateItem(idx, { parcelas: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
-                            className="w-16 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                          />
-                        </div>
-                      )}
-                      {hasPaymentOption(item, 'Sinal') && (
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs text-gray-500 dark:text-white/50">Valor sinal R$</label>
-                          <input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={item.valorSinal ?? ''}
-                            onChange={(e) => updateItem(idx, { valorSinal: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                            className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                          />
-                        </div>
-                      )}
-                    </div>
+                    {hasPaymentOption(item, 'Cartão parcelado') && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <label className="text-xs text-gray-500 dark:text-white/50">Parcelas</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={24}
+                          placeholder="Nº"
+                          value={item.parcelas ?? ''}
+                          onChange={(e) => updateItem(idx, { parcelas: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                          className="w-16 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                    )}
                   </div>
                   <input
                     type="text"
