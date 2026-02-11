@@ -12,7 +12,7 @@ import { useAppStore } from './stores/appStore'
 // Tema inicial (try-catch para modo anônimo/privado onde localStorage pode falhar)
 try {
   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
-  const theme = savedTheme || 'dark'
+  const theme = savedTheme || 'light'
   const root = document.documentElement
   if (theme === 'light') {
     root.classList.remove('dark')

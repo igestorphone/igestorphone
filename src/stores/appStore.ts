@@ -68,7 +68,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   // Initial state
   sidebarOpen: false, // Inicia fechado (especialmente importante no mobile)
   sidebarCollapsed: false,
-  theme: 'dark',
+  theme: 'light',
   notifications: [],
   fornecedores: [],
   produtos: [],
@@ -230,7 +230,7 @@ useAppStore.setState({
 // Initialize theme from localStorage and apply to document
 const initializeTheme = () => {
   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
-  const theme = savedTheme || 'dark' // Default to dark
+  const theme = savedTheme || 'light' // Default to light
   applyThemeToDocument(theme)
   useAppStore.setState({ theme })
 }
