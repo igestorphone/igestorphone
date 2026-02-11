@@ -77,7 +77,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title */}
         <div className="text-center">
-          <p className="text-white/70 text-base">Acesse sua conta para continuar</p>
+          <p className="text-slate-600 text-base">Acesse sua conta para continuar</p>
         </div>
 
         {/* Email field */}
@@ -87,31 +87,19 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
         >
-          <label htmlFor="email" className="block text-sm font-medium text-white/90">
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             Email
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.1, 1],
-                  opacity: [0.4, 0.8, 0.4]
-                }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              >
-                <Mail className="h-5 w-5 text-white/40" />
-              </motion.div>
+              <Mail className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('email')}
               type="email"
               id="email"
-              className={`input-primary w-full pl-11 pr-4 py-3 text-base transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
-                errors.email ? 'input-error' : ''
+              className={`w-full pl-11 pr-4 py-3 text-base bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-colors ${
+                errors.email ? 'border-red-400 focus:ring-red-200 focus:border-red-400' : ''
               }`}
               placeholder="seu@email.com"
             />
@@ -120,9 +108,9 @@ export default function LoginPage() {
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center space-x-2 text-red-400 text-sm"
+              className="flex items-center space-x-2 text-red-600 text-sm"
             >
-              <AlertCircle className="w-4 h-4" />
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errors.email.message}</span>
             </motion.div>
           )}
@@ -135,68 +123,51 @@ export default function LoginPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
         >
-          <label htmlFor="senha" className="block text-sm font-medium text-white/90">
+          <label htmlFor="senha" className="block text-sm font-medium text-slate-700">
             Senha
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <motion.div
-                animate={{ 
-                  scale: [1, 1.1, 1],
-                  opacity: [0.4, 0.8, 0.4]
-                }}
-                transition={{ 
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: 0.5
-                }}
-              >
-                <Lock className="h-5 w-5 text-white/40" />
-              </motion.div>
+              <Lock className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('senha')}
               type={showPassword ? 'text' : 'password'}
               id="senha"
-              className={`input-primary w-full pl-11 pr-11 py-3 text-base transition-all duration-300 hover:bg-white/10 focus:bg-white/10 ${
-                errors.senha ? 'input-error' : ''
+              className={`w-full pl-11 pr-11 py-3 text-base bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 rounded-lg focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-colors ${
+                errors.senha ? 'border-red-400 focus:ring-red-200 focus:border-red-400' : ''
               }`}
               placeholder="Sua senha"
             />
             <motion.button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5 text-white/40 hover:text-white/60 transition-colors" />
-              ) : (
-                <Eye className="h-5 w-5 text-white/40 hover:text-white/60 transition-colors" />
-              )}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </motion.button>
           </div>
           {errors.senha && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center space-x-2 text-red-400 text-sm"
+              className="flex items-center space-x-2 text-red-600 text-sm"
             >
-              <AlertCircle className="w-4 h-4" />
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errors.senha.message}</span>
             </motion.div>
           )}
         </motion.div>
 
-        {/* Submit button */}
+        {/* Submit button — neutro, profissional */}
         <motion.button
           type="submit"
           disabled={isLoading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="btn-primary w-full py-3 text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
+          className="w-full py-3 text-lg font-semibold text-white bg-slate-800 hover:bg-slate-700 rounded-lg shadow-md hover:shadow transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
             <div className="flex items-center justify-center space-x-2">
@@ -210,11 +181,11 @@ export default function LoginPage() {
 
         {/* Link para cadastro */}
         <div className="text-center mt-6">
-          <p className="text-white/60 text-sm">
+          <p className="text-slate-500 text-sm">
             Não tem conta?{' '}
             <Link 
               to="/register" 
-              className="text-white font-semibold hover:text-white/80 transition-colors underline"
+              className="text-slate-700 font-semibold hover:text-slate-900 transition-colors underline underline-offset-2"
             >
               Cadastre-se aqui
             </Link>

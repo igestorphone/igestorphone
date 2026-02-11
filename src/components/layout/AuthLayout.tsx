@@ -28,23 +28,23 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           style={{ backgroundImage: `url(${LOGIN_BG_MOBILE})` }}
           aria-hidden
         />
-        {/* Overlay leve para o card e o logo continuarem legíveis em fundos claros */}
-        <div className="absolute inset-0 bg-black/25" aria-hidden />
+        {/* Overlay bem leve só para dar profundidade */}
+        <div className="absolute inset-0 bg-black/5" aria-hidden />
       </div>
 
-      {/* Content — logo fica só no fundo; caixa escura para contraste no fundo claro */}
+      {/* Content — card claro, profissional, bom contraste no fundo */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="relative z-10 w-full max-w-md"
       >
-        {/* Auth Form */}
+        {/* Auth Form: card branco, sombra suave, borda discreta */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="rounded-2xl p-6 shadow-2xl max-w-md mx-auto border border-white/20 bg-slate-900/90 backdrop-blur-md"
+          className="auth-card-light rounded-2xl p-6 max-w-md mx-auto bg-white/95 backdrop-blur-sm shadow-xl border border-slate-200/80"
         >
           {children}
         </motion.div>
@@ -54,7 +54,7 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8, duration: 0.5 }}
-          className="text-center mt-8 text-white/60 text-sm"
+          className="text-center mt-8 text-slate-500 text-sm"
         >
           <p>© 2025 iGestorPhone. Todos os direitos reservados.</p>
         </motion.div>

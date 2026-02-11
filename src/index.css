@@ -91,6 +91,20 @@
     @apply border-red-400 focus:border-red-400 focus:ring-red-400/20;
   }
   
+  /* Auth card (login/register) – tema claro para contraste com o fundo */
+  .auth-card-light {
+    @apply text-slate-700;
+  }
+  .auth-card-light .input-primary {
+    @apply bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-slate-400 focus:ring-slate-400/20;
+  }
+  .auth-card-light .btn-primary {
+    @apply bg-slate-800 hover:bg-slate-700 text-white font-medium shadow-md hover:shadow-lg;
+  }
+  .auth-card-light a:not(.btn-primary) {
+    @apply text-slate-700 underline-offset-2 hover:text-slate-900;
+  }
+  
   /* Card styles */
   .card {
     @apply bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 shadow-xl;

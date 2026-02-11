@@ -299,8 +299,8 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Title */}
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Criar Conta</h1>
-          <p className="text-white/70 text-base">Preencha seus dados para se cadastrar</p>
+          <h1 className="text-2xl font-bold text-slate-800 mb-2">Criar Conta</h1>
+          <p className="text-slate-600 text-base">Preencha seus dados para se cadastrar</p>
         </div>
 
         {/* Name field */}
@@ -310,12 +310,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
         >
-          <label htmlFor="name" className="block text-sm font-medium text-white/90">
+          <label htmlFor="name" className="block text-sm font-medium text-slate-700">
             Nome Completo
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <User className="h-5 w-5 text-white/40" />
+              <User className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('name')}
@@ -346,12 +346,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
-          <label htmlFor="email" className="block text-sm font-medium text-white/90">
+          <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             Email
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Mail className="h-5 w-5 text-white/40" />
+              <Mail className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('email')}
@@ -382,12 +382,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.6, duration: 0.5 }}
         >
-          <label htmlFor="endereco" className="block text-sm font-medium text-white/90">
+          <label htmlFor="endereco" className="block text-sm font-medium text-slate-700">
             Endereço
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MapPin className="h-5 w-5 text-white/40" />
+              <MapPin className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('endereco')}
@@ -418,12 +418,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.7, duration: 0.5 }}
         >
-          <label htmlFor="data_nascimento" className="block text-sm font-medium text-white/90">
+          <label htmlFor="data_nascimento" className="block text-sm font-medium text-slate-700">
             Data de Nascimento
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Calendar className="h-5 w-5 text-white/40" />
+              <Calendar className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('data_nascimento')}
@@ -453,12 +453,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.75, duration: 0.5 }}
         >
-          <label htmlFor="whatsapp" className="block text-sm font-medium text-white/90">
+          <label htmlFor="whatsapp" className="block text-sm font-medium text-slate-700">
             WhatsApp *
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Phone className="h-5 w-5 text-white/40" />
+              <Phone className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('whatsapp')}
@@ -489,12 +489,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.77, duration: 0.5 }}
         >
-          <label htmlFor="nome_loja" className="block text-sm font-medium text-white/90">
+          <label htmlFor="nome_loja" className="block text-sm font-medium text-slate-700">
             Nome da Loja *
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Building2 className="h-5 w-5 text-white/40" />
+              <Building2 className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('nome_loja')}
@@ -525,12 +525,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.79, duration: 0.5 }}
         >
-          <label htmlFor="cnpj" className="block text-sm font-medium text-white/90">
-            CNPJ <span className="text-white/50">(opcional)</span>
+          <label htmlFor="cnpj" className="block text-sm font-medium text-slate-700">
+            CNPJ <span className="text-slate-500">(opcional)</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FileText className="h-5 w-5 text-white/40" />
+              <FileText className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('cnpj')}
@@ -561,12 +561,12 @@ export default function RegisterPage() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.8, duration: 0.5 }}
         >
-          <label htmlFor="password" className="block text-sm font-medium text-white/90">
+          <label htmlFor="password" className="block text-sm font-medium text-slate-700">
             Senha
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Lock className="h-5 w-5 text-white/40" />
+              <Lock className="h-5 w-5 text-slate-400" />
             </div>
             <input
               {...register('password')}
@@ -585,9 +585,9 @@ export default function RegisterPage() {
               whileTap={{ scale: 0.9 }}
             >
               {showPassword ? (
-                <EyeOff className="h-5 w-5 text-white/40 hover:text-white/60 transition-colors" />
+                <EyeOff className="h-5 w-5 text-slate-400 hover:text-slate-600 transition-colors" />
               ) : (
-                <Eye className="h-5 w-5 text-white/40 hover:text-white/60 transition-colors" />
+                <Eye className="h-5 w-5 text-slate-400 hover:text-slate-600 transition-colors" />
               )}
             </motion.button>
           </div>
@@ -622,9 +622,9 @@ export default function RegisterPage() {
         </motion.button>
 
         <div className="text-center">
-          <p className="text-white/60 text-sm">
+          <p className="text-slate-600 text-sm">
             Já tem uma conta?{' '}
-            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-medium">
+            <Link to="/login" className="text-slate-700 hover:text-slate-900 font-medium underline">
               Fazer login
             </Link>
           </p>
