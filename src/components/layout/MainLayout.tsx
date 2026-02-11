@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import Sidebar from '@/components/ui/Sidebar'
 import Header from '@/components/ui/Header'
 import { useAppStore } from '@/stores/appStore'
@@ -44,41 +44,28 @@ export default function MainLayout() {
         </motion.div>
       )}
 
-      {/* Mobile Sidebar - ONLY on mobile */}
+      {/* Mobile Sidebar - CSS transition (mais fluido no iPhone que Framer) */}
       {!isDesktop && (
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
-              className="fixed inset-y-0 left-0 z-[50] w-64"
-              onClick={(e) => {
-                // Previne que o clique dentro do sidebar feche ele
-                e.stopPropagation()
-              }}
-            >
-              <Sidebar onClose={() => setSidebarOpen(false)} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
-
-      {/* Overlay for mobile only */}
-      {!isDesktop && (
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-[45]"
-              onClick={() => setSidebarOpen(false)}
-              onTouchStart={() => setSidebarOpen(false)}
-            />
-          )}
-        </AnimatePresence>
+        <>
+          <div
+            aria-hidden={!sidebarOpen}
+            className={`fixed inset-y-0 left-0 z-[50] w-64 transform transition-transform duration-200 ease-out will-change-transform ${
+              sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            }`}
+            style={{ touchAction: 'manipulation' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Sidebar onClose={() => setSidebarOpen(false)} />
+          </div>
+          <div
+            aria-hidden={!sidebarOpen}
+            className={`fixed inset-0 bg-black/50 z-[45] transition-opacity duration-200 ${
+              sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+            style={{ touchAction: 'manipulation' }}
+            onClick={() => setSidebarOpen(false)}
+          />
+        </>
       )}
 
       {/* Main content - Adjust margin based on sidebar */}
