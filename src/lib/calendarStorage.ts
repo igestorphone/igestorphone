@@ -88,8 +88,8 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
     iphoneModel: first?.iphoneModel ?? row.iphone_model ?? '',
     storage: first?.storage ?? row.storage ?? '',
     imeiEnd: first?.imeiEnd ?? row.imei_end ?? '',
-    valorAVista: first?.valorAVista ?? Number(row.valor_a_vista) || 0,
-    valorComJuros: first?.valorComJuros ?? Number(row.valor_com_juros) || 0,
+      valorAVista: first?.valorAVista ?? (Number(row.valor_a_vista) || 0),
+      valorComJuros: first?.valorComJuros ?? (Number(row.valor_com_juros) || 0),
     formaPagamento: first?.formaPagamento ?? row.forma_pagamento ?? 'PIX',
   }
 }
