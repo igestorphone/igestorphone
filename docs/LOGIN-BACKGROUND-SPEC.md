@@ -4,6 +4,17 @@ Use estas medidas para criar o fundo da tela de login (mobile e desktop).
 
 ---
 
+## Onde colocar as imagens no projeto
+
+Coloque as artes **sem o logo** (o app já exibe o logo em cima) em:
+
+- **Desktop:** `public/assets/images/login-bg-desktop.png`
+- **Mobile:** `public/assets/images/login-bg-mobile.png`
+
+O layout usa desktop a partir de `md` (768px) e mobile abaixo disso. Se um arquivo não existir, o fundo usa o gradiente padrão.
+
+---
+
 ## Onde o fundo é usado
 
 - Tela de **Login** (`/login`)

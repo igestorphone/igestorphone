@@ -5,28 +5,31 @@ interface AuthLayoutProps {
   children: ReactNode
 }
 
-// Removido componente de neve para melhorar performance no mobile
+// Imagens de fundo: coloque em public/assets/images/
+// - login-bg-desktop.png (desktop, ex.: 1920x1080)
+// - login-bg-mobile.png (mobile, ex.: 414x896)
+// Use artes SEM o logo; o app já exibe o logo em cima.
+const LOGIN_BG_DESKTOP = '/assets/images/login-bg-desktop.png'
+const LOGIN_BG_MOBILE = '/assets/images/login-bg-mobile.png'
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="min-h-screen bg-gradient-primary flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-gradient-primary">
 
-      {/* Background decoration */}
+      {/* Fundo: imagem desktop (md+) e mobile, com fallback no gradient */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl animate-float" />
-        
-        {/* Floating particles */}
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/30 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }} />
-        <div className="absolute top-1/3 right-1/3 w-1 h-1 bg-blue-400/40 rounded-full animate-bounce" style={{ animationDelay: '1s', animationDuration: '4s' }} />
-        <div className="absolute bottom-1/3 left-1/3 w-1.5 h-1.5 bg-purple-400/40 rounded-full animate-bounce" style={{ animationDelay: '2s', animationDuration: '2.5s' }} />
-        <div className="absolute top-2/3 right-1/4 w-1 h-1 bg-pink-400/40 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '3.5s' }} />
-        
-        {/* Animated lines */}
-        <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
-        <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-400/20 to-transparent animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute bottom-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-400/20 to-transparent animate-pulse" style={{ animationDelay: '2s' }} />
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat hidden md:block"
+          style={{ backgroundImage: `url(${LOGIN_BG_DESKTOP})` }}
+          aria-hidden
+        />
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
+          style={{ backgroundImage: `url(${LOGIN_BG_MOBILE})` }}
+          aria-hidden
+        />
+        {/* Overlay leve para o card e o logo continuarem legíveis em fundos claros */}
+        <div className="absolute inset-0 bg-black/25" aria-hidden />
       </div>
 
       {/* Content */}
