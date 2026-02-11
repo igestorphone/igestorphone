@@ -25,6 +25,15 @@ const STATUS_LABELS: Record<string, string> = {
   reagendado: 'Reagendado',
 }
 
+const IPHONE_MODEL_OPTIONS = [
+  '11', '11 Pro', '11 Pro Max', '12', '12 mini', '12 Pro', '12 Pro Max',
+  '13', '13 mini', '13 Pro', '13 Pro Max', '14', '14 Plus', '14 Pro', '14 Pro Max',
+  '15', '15 Plus', '15 Pro', '15 Pro Max', '16', '16 Plus', '16 Pro', '16 Pro Max', '16e',
+  '17', '17 Plus', '17 Air', '17 Pro', '17 Pro Max', 'Outro',
+]
+
+const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB', '2TB']
+
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -415,6 +424,8 @@ const defaultItem = (): CalendarEventItem => ({
   formaPagamento: 'PIX',
   valorTroca: null,
   manutencaoDescontada: null,
+  tradeInModel: null,
+  tradeInStorage: null,
   notes: '',
 })
 
@@ -453,6 +464,8 @@ function EventModal({
               formaPagamento: it.formaPagamento,
               valorTroca: it.valorTroca ?? null,
               manutencaoDescontada: it.manutencaoDescontada ?? null,
+              tradeInModel: it.tradeInModel ?? null,
+              tradeInStorage: it.tradeInStorage ?? null,
               notes: it.notes ?? '',
             }))
           : [defaultItem()],
@@ -515,6 +528,8 @@ function EventModal({
           formaPagamento: it.formaPagamento,
           valorTroca: it.valorTroca ?? null,
           manutencaoDescontada: it.manutencaoDescontada ?? null,
+          tradeInModel: it.tradeInModel?.trim() || null,
+          tradeInStorage: it.tradeInStorage?.trim() || null,
           notes: it.notes?.trim() || null,
         })),
       }
@@ -579,6 +594,8 @@ function EventModal({
         formaPagamento: it.formaPagamento,
         valorTroca: it.valorTroca,
         manutencaoDescontada: it.manutencaoDescontada,
+        tradeInModel: it.tradeInModel ?? null,
+        tradeInStorage: it.tradeInStorage ?? null,
         notes: it.notes || undefined,
       })),
       iphoneModel: form.items[0]?.iphoneModel ?? '',
@@ -711,20 +728,40 @@ function EventModal({
                     )}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Modelo (ex.: 15 Pro, 16)"
-                      value={item.iphoneModel}
-                      onChange={(e) => updateItem(idx, { iphoneModel: e.target.value })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Armazenamento"
-                      value={item.storage}
-                      onChange={(e) => updateItem(idx, { storage: e.target.value })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                    />
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-white/50 mb-0.5">Modelo</label>
+                      <select
+                        value={IPHONE_MODEL_OPTIONS.includes(item.iphoneModel) ? item.iphoneModel : 'Outro'}
+                        onChange={(e) => updateItem(idx, { iphoneModel: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                      >
+                        {IPHONE_MODEL_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt === 'Outro' ? 'Outro (escrever)' : `iPhone ${opt}`}</option>
+                        ))}
+                      </select>
+                      {(!IPHONE_MODEL_OPTIONS.includes(item.iphoneModel) || item.iphoneModel === 'Outro') && (
+                        <input
+                          type="text"
+                          placeholder="Digite o modelo"
+                          value={item.iphoneModel && item.iphoneModel !== 'Outro' ? item.iphoneModel : ''}
+                          onChange={(e) => updateItem(idx, { iphoneModel: e.target.value.trim() || 'Outro' })}
+                          className="mt-1 w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 dark:text-white/50 mb-0.5">Armazenamento</label>
+                      <select
+                        value={STORAGE_OPTIONS.includes(item.storage) ? item.storage : (item.storage || '')}
+                        onChange={(e) => updateItem(idx, { storage: e.target.value })}
+                        className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                      >
+                        <option value="">Selecione</option>
+                        {STORAGE_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <input
@@ -764,25 +801,60 @@ function EventModal({
                       className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="Valor troca R$ (opcional)"
-                      value={item.valorTroca ?? ''}
-                      onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.01}
-                      placeholder="Manutenção descont. R$"
-                      value={item.manutencaoDescontada ?? ''}
-                      onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                    />
+                  <div className="rounded-lg border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-2 space-y-2">
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">iPhone na troca (opcional)</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={IPHONE_MODEL_OPTIONS.includes(item.tradeInModel ?? '') ? (item.tradeInModel ?? '') : (item.tradeInModel ? 'Outro' : '')}
+                        onChange={(e) => updateItem(idx, { tradeInModel: e.target.value || null })}
+                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      >
+                        <option value="">—</option>
+                        {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
+                          <option key={opt} value={opt}>iPhone {opt}</option>
+                        ))}
+                        <option value="Outro">Outro</option>
+                      </select>
+                      <select
+                        value={item.tradeInStorage ?? ''}
+                        onChange={(e) => updateItem(idx, { tradeInStorage: e.target.value || null })}
+                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      >
+                        <option value="">—</option>
+                        {STORAGE_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {(item.tradeInModel === 'Outro' || (item.tradeInModel && !IPHONE_MODEL_OPTIONS.includes(item.tradeInModel))) && (
+                      <input
+                        type="text"
+                        placeholder="Modelo na troca (digite)"
+                        value={item.tradeInModel && item.tradeInModel !== 'Outro' ? item.tradeInModel : ''}
+                        onChange={(e) => updateItem(idx, { tradeInModel: e.target.value.trim() || null })}
+                        className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      />
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        placeholder="Valor troca R$"
+                        value={item.valorTroca ?? ''}
+                        onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        placeholder="Manutenção descont. R$"
+                        value={item.manutencaoDescontada ?? ''}
+                        onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      />
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <select

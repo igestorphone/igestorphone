@@ -21,11 +21,13 @@ O sistema agora está configurado para **GARANTIR** que os produtos só sejam de
 
 1. No painel do Render, vá em **Cron Jobs**
 2. Crie um novo cron job:
-   - **Nome**: `Cleanup Products Midnight Brasil`
+   - **Nome**: `Cleanup Products Midnight Brasil` (ou o nome que aparecer no e-mail, ex.: `cleanup-products-midnight`)
    - **Schedule**: `0 3 * * *` (03:00 UTC = 00:00 em Brasília durante horário padrão)
      - **OU** `0 4 * * *` (04:00 UTC = 00:00 em Brasília durante horário de verão)
-   - **Command**: `cd backend && node src/scripts/cleanup-products-midnight-brasil.js`
-   - **Service**: Selecione seu serviço backend
+   - **Build Command**: use apenas `npm install` (não use `npm run build` — o build do frontend não é necessário para o script e pode falhar no contexto do Cron Job)
+   - **Start Command**: `cd backend && node src/scripts/cleanup-products-midnight-brasil.js`
+   - **Service**: Selecione seu serviço backend (ou o mesmo repositório com as variáveis de ambiente do banco)
+3. **Se o build do Cron Job falhar**: no e-mail do Render, clique em **"View Logs"** para ver o erro exato. Ajuste o **Build Command** para `npm install` (ou deixe em branco se o Render usar o build do serviço principal) e salve.
 
 ### Opção 2: Ajustar Schedule para Horário de Verão
 

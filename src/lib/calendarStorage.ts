@@ -16,6 +16,8 @@ export interface CalendarEventItem {
   formaPagamento: string
   valorTroca?: number | null
   manutencaoDescontada?: number | null
+  tradeInModel?: string | null
+  tradeInStorage?: string | null
   notes?: string | null
 }
 
@@ -51,6 +53,8 @@ function mapItem(row: any): CalendarEventItem {
     formaPagamento: row.forma_pagamento ?? row.formaPagamento ?? 'PIX',
     valorTroca: row.valor_troca != null ? Number(row.valor_troca) : row.valorTroca ?? null,
     manutencaoDescontada: row.manutencao_descontada != null ? Number(row.manutencao_descontada) : row.manutencaoDescontada ?? null,
+    tradeInModel: row.modelo_troca ?? row.tradeInModel ?? null,
+    tradeInStorage: row.armazenamento_troca ?? row.tradeInStorage ?? null,
     notes: row.notes ?? undefined,
   }
 }
@@ -69,6 +73,8 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
         forma_pagamento: row.forma_pagamento,
         valor_troca: row.valor_troca,
         manutencao_descontada: row.manutencao_descontada,
+        modelo_troca: row.modelo_troca,
+        armazenamento_troca: row.armazenamento_troca,
         notes: row.notes,
       })]
 
@@ -173,6 +179,9 @@ export function buildResumoPedido(event: CalendarSaleEvent): string {
     lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}`)
     lines.push(`IMEI ...${it.imeiEnd}`)
     lines.push(`À vista: R$ ${it.valorAVista.toFixed(2).replace('.', ',')} | Parcelado: R$ ${it.valorComJuros.toFixed(2).replace('.', ',')}`)
+    if (it.tradeInModel || it.tradeInStorage) {
+      lines.push(`iPhone na troca: ${[it.tradeInModel, it.tradeInStorage].filter(Boolean).join(' ')}`)
+    }
     if (it.valorTroca != null || it.manutencaoDescontada != null) {
       const parts = []
       if (it.valorTroca != null) parts.push(`Troca: R$ ${it.valorTroca.toFixed(2).replace('.', ',')}`)

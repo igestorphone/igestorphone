@@ -361,6 +361,8 @@ export interface CalendarEventItemPayload {
   formaPagamento: string
   valorTroca?: number | null
   manutencaoDescontada?: number | null
+  tradeInModel?: string | null
+  tradeInStorage?: string | null
   notes?: string | null
 }
 

@@ -85,6 +85,8 @@ const migrations = [
    SELECT id, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento
    FROM calendar_events e
    WHERE NOT EXISTS (SELECT 1 FROM calendar_event_items i WHERE i.event_id = e.id)`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS modelo_troca VARCHAR(120)`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS armazenamento_troca VARCHAR(50)`,
 
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (

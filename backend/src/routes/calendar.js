@@ -10,7 +10,7 @@ async function enrichEventsWithItems(rows) {
   const ids = rows.map((r) => r.id);
   const itemsResult = await query(
     `SELECT id, event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros,
-            forma_pagamento, valor_troca, manutencao_descontada, notes
+            forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes
      FROM calendar_event_items WHERE event_id = ANY($1) ORDER BY event_id, id`,
     [ids]
   );
@@ -29,6 +29,8 @@ async function enrichEventsWithItems(rows) {
       forma_pagamento: i.forma_pagamento || 'PIX',
       valor_troca: i.valor_troca != null ? parseFloat(i.valor_troca) : null,
       manutencao_descontada: i.manutencao_descontada != null ? parseFloat(i.manutencao_descontada) : null,
+      modelo_troca: i.modelo_troca ?? undefined,
+      armazenamento_troca: i.armazenamento_troca ?? undefined,
       notes: i.notes ?? undefined,
     });
   }
@@ -66,6 +68,8 @@ async function enrichEventsWithItems(rows) {
               forma_pagamento: e.forma_pagamento || 'PIX',
               valor_troca: null,
               manutencao_descontada: null,
+              modelo_troca: undefined,
+              armazenamento_troca: undefined,
               notes: e.notes ?? undefined,
             },
           ],
@@ -184,8 +188,8 @@ router.post('/events', authenticateToken, async (req, res) => {
 
     for (const it of itemsToCreate) {
       await query(
-        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
         [
           event.id,
           it.iphoneModel?.trim() || first.iphoneModel,
@@ -197,6 +201,8 @@ router.post('/events', authenticateToken, async (req, res) => {
           it.formaPagamento || 'PIX',
           it.valorTroca != null ? Number(it.valorTroca) : null,
           it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
+          it.tradeInModel?.trim() || null,
+          it.tradeInStorage?.trim() || null,
           it.notes ?? null,
         ]
       );
@@ -262,8 +268,8 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
         const ie = it.imeiEnd?.trim() || existing.rows[0].imei_end;
         if (!im || !st || !ie) continue;
         await query(
-          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
           [
             id,
             im,
@@ -275,6 +281,8 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
             it.formaPagamento || 'PIX',
             it.valorTroca != null ? Number(it.valorTroca) : null,
             it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
+            it.tradeInModel?.trim() || null,
+            it.tradeInStorage?.trim() || null,
             it.notes ?? null,
           ]
         );
