@@ -24,55 +24,29 @@ export const testApi: AxiosInstance = axios.create({
   },
 })
 
-// Request interceptor
+// Request interceptor (sem logs em produção para melhor performance no mobile)
 api.interceptors.request.use(
   (config) => {
-    // Add auth token if available
     const token = localStorage.getItem('auth-storage')
-    console.log('🔑 API Request - URL:', config.url)
-    console.log('🔑 API Request - Token do localStorage:', token)
-    
     if (token) {
       try {
         const authData = JSON.parse(token)
-        console.log('🔑 API Request - AuthData:', authData)
-        console.log('🔑 API Request - AuthData.state:', authData.state)
-        console.log('🔑 API Request - AuthData.state.token:', authData.state?.token)
-        
         if (authData.state?.token) {
           config.headers.Authorization = `Bearer ${authData.state.token}`
-          console.log('🔑 API Request - Token enviado:', authData.state.token)
-        } else {
-          console.log('❌ API Request - Token não encontrado no authData.state')
         }
-      } catch (error) {
-        console.error('Error parsing auth token:', error)
+      } catch (_) {
+        // token inválido
       }
-    } else {
-      console.log('❌ API Request - Nenhum token encontrado no localStorage')
     }
-    
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
 // Response interceptor
 api.interceptors.response.use(
-  (response: AxiosResponse) => {
-    console.log('🔑 API Response - URL:', response.config.url)
-    console.log('🔑 API Response - Status:', response.status)
-    console.log('🔑 API Response - Data:', response.data)
-    return response
-  },
+  (response: AxiosResponse) => response,
   (error) => {
-    console.error('❌ API Error:', error)
-    console.error('❌ API Error - URL:', error.config?.url)
-    console.error('❌ API Error - Status:', error.response?.status)
-    console.error('❌ API Error - Data:', error.response?.data)
-    
     // Handle common errors - apenas para rotas protegidas
     if (error.response?.status === 401) {
       const url = error.config?.url || ''

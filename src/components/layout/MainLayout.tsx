@@ -1,35 +1,35 @@
 import { Outlet } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/ui/Sidebar'
 import Header from '@/components/ui/Header'
 import { useAppStore } from '@/stores/appStore'
 
+const DESKTOP_BREAKPOINT = 1024
+const RESIZE_DEBOUNCE_MS = 150
+
 export default function MainLayout() {
   const { sidebarOpen, sidebarCollapsed, setSidebarOpen } = useAppStore()
-  const [isDesktop, setIsDesktop] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(() => typeof window !== 'undefined' && window.innerWidth >= DESKTOP_BREAKPOINT)
+  const resizeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    const handleResize = () => {
-      const isDesktopSize = window.innerWidth >= 1024
+    const update = () => {
+      const isDesktopSize = window.innerWidth >= DESKTOP_BREAKPOINT
       setIsDesktop(isDesktopSize)
-      // No mobile, garante que o sidebar está fechado ao redimensionar
-      if (!isDesktopSize && sidebarOpen) {
-        setSidebarOpen(false)
-      }
+      if (!isDesktopSize && sidebarOpen) setSidebarOpen(false)
     }
-    
-    // Verifica na inicialização se é mobile e fecha o sidebar
-    const isMobile = window.innerWidth < 1024
-    if (isMobile && sidebarOpen) {
-      setSidebarOpen(false)
+    const handleResize = () => {
+      if (resizeTimeout.current) clearTimeout(resizeTimeout.current)
+      resizeTimeout.current = setTimeout(update, RESIZE_DEBOUNCE_MS)
     }
-    
-    setIsDesktop(!isMobile)
-    handleResize()
+    update()
     window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, []) // Dependências vazias - só executa na montagem
+    return () => {
+      window.removeEventListener('resize', handleResize)
+      if (resizeTimeout.current) clearTimeout(resizeTimeout.current)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black flex transition-colors duration-200 overflow-x-hidden">

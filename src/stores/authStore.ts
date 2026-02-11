@@ -45,17 +45,10 @@ export const useAuthStore = create<AuthStore>()(
             })
             
             const { user, token } = response.data
-            
-            console.log('🔐 Login - Resposta do backend:', response.data)
-            
-            // Mapear o campo 'role' para 'tipo' para compatibilidade
             const userData = {
               ...user,
               tipo: user.role || 'user'
             }
-            
-            console.log('🔐 Login - UserData mapeado:', userData)
-            
             set({
               user: userData,
               token,
@@ -64,11 +57,7 @@ export const useAuthStore = create<AuthStore>()(
               error: null
             })
 
-            // Marca atividade inicial para controle de inatividade
             touchActivity()
-            
-            // Após o login, carregar as permissões
-            console.log('🔐 Login - Carregando permissões...')
             setTimeout(() => {
               get().refreshUser()
             }, 100)
@@ -99,39 +88,15 @@ export const useAuthStore = create<AuthStore>()(
 
       refreshUser: async () => {
         const { token, user } = get()
-        console.log('🔄 refreshUser - Token:', token)
-        console.log('🔄 refreshUser - User atual:', user)
-        
-        if (!token || !user) {
-          console.log('❌ refreshUser - Sem token ou user, saindo')
-          return
-        }
-        
+        if (!token || !user) return
         try {
           const response = await api.get('/users/profile')
-          console.log('🔄 refreshUser - Resposta da API:', response.data)
-          console.log('🔄 refreshUser - User da resposta:', response.data.user)
-          console.log('🔄 refreshUser - Permissões da resposta:', response.data.user.permissions)
-          
           const userData = {
             ...response.data.user,
             tipo: response.data.user.tipo || response.data.user.role || 'user'
           }
-          
-          console.log('🔄 refreshUser - UserData processado:', userData)
-          console.log('🔄 refreshUser - Permissões do usuário:', userData.permissions)
-          console.log('🔄 refreshUser - Tipo do usuário:', userData.tipo)
-          
           set({ user: userData })
-          console.log('✅ refreshUser - Usuário atualizado no store')
-          
-          // Verificar se as permissões foram salvas
-          const currentUser = get().user
-          console.log('✅ refreshUser - Usuário atual no store:', currentUser)
-          console.log('✅ refreshUser - Permissões atuais no store:', currentUser?.permissions)
-        } catch (error) {
-          console.error('❌ Erro ao atualizar usuário:', error)
-          // Se houver erro, fazer logout
+        } catch (_) {
           get().logout()
         }
       },
@@ -144,25 +109,15 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: loading })
       },
 
-      // Função de teste para carregar permissões
       testLoadPermissions: async () => {
-        console.log('🧪 TESTE - Carregando permissões...')
         try {
           const response = await api.get('/users/profile')
-          console.log('🧪 TESTE - Resposta:', response.data)
-          console.log('🧪 TESTE - Permissões:', response.data.user.permissions)
-          
           const userData = {
             ...response.data.user,
             tipo: response.data.user.tipo || response.data.user.role || 'user'
           }
-          
-          console.log('🧪 TESTE - UserData:', userData)
           set({ user: userData })
-          console.log('🧪 TESTE - Usuário atualizado no store')
-        } catch (error) {
-          console.error('🧪 TESTE - Erro:', error)
-        }
+        } catch (_) {}
       }
     }),
     {
@@ -176,14 +131,3 @@ export const useAuthStore = create<AuthStore>()(
   )
 )
 
-// Initialize auth on app start
-const initializeAuth = () => {
-  const { token, user } = useAuthStore.getState()
-  
-  if (token && user) {
-    console.log('Auth initialized successfully')
-  }
-}
-
-// Call initialization
-initializeAuth()
