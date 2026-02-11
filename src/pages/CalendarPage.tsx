@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { calendarApi } from '@/lib/api'
-import { mapApiEventToEvent, buildResumoPedido, type CalendarSaleEvent, type CalendarEventItem } from '@/lib/calendarStorage'
+import { mapApiEventToEvent, buildResumoPedido, type CalendarSaleEvent, type CalendarEventItem, type TradeInDevice } from '@/lib/calendarStorage'
 import toast from 'react-hot-toast'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -33,6 +33,16 @@ const IPHONE_MODEL_OPTIONS = [
 ]
 
 const STORAGE_OPTIONS = ['64GB', '128GB', '256GB', '512GB', '1TB', '2TB']
+
+const PAYMENT_OPTIONS = [
+  { value: 'PIX', label: 'PIX' },
+  { value: 'Cartão à vista', label: 'Cartão à vista' },
+  { value: 'Cartão parcelado', label: 'Cartão parcelado' },
+  { value: 'Sinal', label: 'Sinal' },
+  { value: 'Boleto', label: 'Boleto' },
+  { value: 'Dinheiro', label: 'Dinheiro' },
+  { value: 'Outro', label: 'Outro' },
+]
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 const MONTHS = [
@@ -426,6 +436,9 @@ const defaultItem = (): CalendarEventItem => ({
   manutencaoDescontada: null,
   tradeInModel: null,
   tradeInStorage: null,
+  tradeInDevices: [],
+  parcelas: null,
+  valorSinal: null,
   notes: '',
 })
 
@@ -466,6 +479,9 @@ function EventModal({
               manutencaoDescontada: it.manutencaoDescontada ?? null,
               tradeInModel: it.tradeInModel ?? null,
               tradeInStorage: it.tradeInStorage ?? null,
+              tradeInDevices: it.tradeInDevices ?? (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : []),
+              parcelas: it.parcelas ?? null,
+              valorSinal: it.valorSinal ?? null,
               notes: it.notes ?? '',
             }))
           : [defaultItem()],
@@ -496,6 +512,52 @@ function EventModal({
       items: f.items.map((it, i) => (i === index ? { ...it, ...patch } : it)),
     }))
   }
+  const addTradeInDevice = (itemIdx: number) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === itemIdx
+          ? { ...it, tradeInDevices: [...(it.tradeInDevices ?? []), { model: '', storage: '' }] }
+          : it
+      ),
+    }))
+  }
+  const removeTradeInDevice = (itemIdx: number, trocaIdx: number) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) =>
+        i === itemIdx
+          ? { ...it, tradeInDevices: (it.tradeInDevices ?? []).filter((_, ti) => ti !== trocaIdx) }
+          : it
+      ),
+    }))
+  }
+  const updateTradeInDevice = (itemIdx: number, trocaIdx: number, patch: Partial<TradeInDevice>) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => {
+        if (i !== itemIdx) return it
+        const list = [...(it.tradeInDevices ?? [])]
+        if (!list[trocaIdx]) return it
+        list[trocaIdx] = { ...list[trocaIdx], ...patch }
+        return { ...it, tradeInDevices: list }
+      }),
+    }))
+  }
+  const togglePaymentOption = (itemIdx: number, option: string) => {
+    setForm((f) => ({
+      ...f,
+      items: f.items.map((it, i) => {
+        if (i !== itemIdx) return it
+        const current = (it.formaPagamento || '').split(',').map((s) => s.trim()).filter(Boolean)
+        const has = current.includes(option)
+        const next = has ? current.filter((x) => x !== option) : [...current, option]
+        return { ...it, formaPagamento: next.length ? next.join(', ') : 'PIX' }
+      }),
+    }))
+  }
+  const hasPaymentOption = (item: CalendarEventItem, option: string) =>
+    (item.formaPagamento || '').split(',').map((s) => s.trim()).includes(option)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -528,8 +590,11 @@ function EventModal({
           formaPagamento: it.formaPagamento,
           valorTroca: it.valorTroca ?? null,
           manutencaoDescontada: it.manutencaoDescontada ?? null,
-          tradeInModel: it.tradeInModel?.trim() || null,
-          tradeInStorage: it.tradeInStorage?.trim() || null,
+          tradeInModel: (it.tradeInDevices?.[0]?.model ?? it.tradeInModel)?.trim() || null,
+          tradeInStorage: (it.tradeInDevices?.[0]?.storage ?? it.tradeInStorage)?.trim() || null,
+          trocaAparelhos: it.tradeInDevices?.length ? it.tradeInDevices.map((d) => ({ model: d.model?.trim() ?? '', storage: d.storage?.trim() ?? '' })) : null,
+          parcelas: it.parcelas ?? null,
+          valorSinal: it.valorSinal ?? null,
           notes: it.notes?.trim() || null,
         })),
       }
@@ -596,6 +661,9 @@ function EventModal({
         manutencaoDescontada: it.manutencaoDescontada,
         tradeInModel: it.tradeInModel ?? null,
         tradeInStorage: it.tradeInStorage ?? null,
+        tradeInDevices: it.tradeInDevices ?? [],
+        parcelas: it.parcelas ?? null,
+        valorSinal: it.valorSinal ?? null,
         notes: it.notes || undefined,
       })),
       iphoneModel: form.items[0]?.iphoneModel ?? '',
@@ -625,7 +693,7 @@ function EventModal({
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-white/20"
+        className="w-full max-w-lg md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-white/20"
       >
         <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-white/20 px-4 py-3 flex items-center justify-between">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -711,7 +779,7 @@ function EventModal({
                 + Adicionar produto
               </button>
             </div>
-            <div className="space-y-4 max-h-[280px] overflow-y-auto custom-scrollbar pr-1">
+            <div className="space-y-4 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
               {form.items.map((item, idx) => (
                 <div key={idx} className="p-3 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50/50 dark:bg-white/5 space-y-2">
                   <div className="flex justify-between items-center">
@@ -802,39 +870,49 @@ function EventModal({
                     />
                   </div>
                   <div className="rounded-lg border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-2 space-y-2">
-                    <p className="text-xs font-medium text-amber-800 dark:text-amber-400">iPhone na troca (opcional)</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={IPHONE_MODEL_OPTIONS.includes(item.tradeInModel ?? '') ? (item.tradeInModel ?? '') : (item.tradeInModel ? 'Outro' : '')}
-                        onChange={(e) => updateItem(idx, { tradeInModel: e.target.value || null })}
-                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca (opcional)</p>
+                      <button
+                        type="button"
+                        onClick={() => addTradeInDevice(idx)}
+                        className="text-xs text-amber-600 dark:text-amber-400 hover:underline"
                       >
-                        <option value="">—</option>
-                        {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
-                          <option key={opt} value={opt}>iPhone {opt}</option>
-                        ))}
-                        <option value="Outro">Outro</option>
-                      </select>
-                      <select
-                        value={item.tradeInStorage ?? ''}
-                        onChange={(e) => updateItem(idx, { tradeInStorage: e.target.value || null })}
-                        className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                      >
-                        <option value="">—</option>
-                        {STORAGE_OPTIONS.map((opt) => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                        + Adicionar aparelho na troca
+                      </button>
                     </div>
-                    {(item.tradeInModel === 'Outro' || (item.tradeInModel && !IPHONE_MODEL_OPTIONS.includes(item.tradeInModel))) && (
-                      <input
-                        type="text"
-                        placeholder="Modelo na troca (digite)"
-                        value={item.tradeInModel && item.tradeInModel !== 'Outro' ? item.tradeInModel : ''}
-                        onChange={(e) => updateItem(idx, { tradeInModel: e.target.value.trim() || null })}
-                        className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                      />
-                    )}
+                    {(item.tradeInDevices ?? []).map((troca, ti) => (
+                      <div key={ti} className="flex flex-wrap items-center gap-2 rounded bg-white/50 dark:bg-black/20 p-2">
+                        <select
+                          value={IPHONE_MODEL_OPTIONS.includes(troca.model) ? troca.model : (troca.model ? 'Outro' : '')}
+                          onChange={(e) => updateTradeInDevice(idx, ti, { model: e.target.value })}
+                          className="flex-1 min-w-[100px] rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                        >
+                          <option value="">Modelo</option>
+                          {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
+                            <option key={opt} value={opt}>iPhone {opt}</option>
+                          ))}
+                          <option value="Outro">Outro</option>
+                        </select>
+                        <select
+                          value={troca.storage}
+                          onChange={(e) => updateTradeInDevice(idx, ti, { storage: e.target.value })}
+                          className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                        >
+                          <option value="">—</option>
+                          {STORAGE_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeTradeInDevice(idx, ti)}
+                          className="p-1 rounded text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20"
+                          aria-label="Remover"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
                     <div className="grid grid-cols-2 gap-2">
                       <input
                         type="number"
@@ -856,19 +934,50 @@ function EventModal({
                       />
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <select
-                      value={item.formaPagamento}
-                      onChange={(e) => updateItem(idx, { formaPagamento: e.target.value })}
-                      className="flex-1 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
-                    >
-                      <option value="PIX">PIX</option>
-                      <option value="Cartão à vista">Cartão à vista</option>
-                      <option value="Cartão parcelado">Cartão parcelado</option>
-                      <option value="Boleto">Boleto</option>
-                      <option value="Dinheiro">Dinheiro</option>
-                      <option value="Outro">Outro</option>
-                    </select>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-white/70">Forma de pagamento</p>
+                    <div className="flex flex-wrap gap-2">
+                      {PAYMENT_OPTIONS.map((opt) => (
+                        <label key={opt.value} className="inline-flex items-center gap-1.5 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={hasPaymentOption(item, opt.value)}
+                            onChange={() => togglePaymentOption(idx, opt.value)}
+                            className="rounded border-gray-300 dark:border-white/30 text-amber-500"
+                          />
+                          <span className="text-sm">{opt.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-2">
+                      {hasPaymentOption(item, 'Cartão parcelado') && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-500 dark:text-white/50">Parcelas</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={24}
+                            placeholder="Nº"
+                            value={item.parcelas ?? ''}
+                            onChange={(e) => updateItem(idx, { parcelas: e.target.value === '' ? null : parseInt(e.target.value, 10) })}
+                            className="w-16 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                          />
+                        </div>
+                      )}
+                      {hasPaymentOption(item, 'Sinal') && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-xs text-gray-500 dark:text-white/50">Valor sinal R$</label>
+                          <input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={item.valorSinal ?? ''}
+                            onChange={(e) => updateItem(idx, { valorSinal: e.target.value === '' ? null : parseFloat(e.target.value) })}
+                            className="w-24 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <input
                     type="text"

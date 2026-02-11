@@ -363,6 +363,9 @@ export interface CalendarEventItemPayload {
   manutencaoDescontada?: number | null
   tradeInModel?: string | null
   tradeInStorage?: string | null
+  trocaAparelhos?: { model: string; storage: string }[] | null
+  parcelas?: number | null
+  valorSinal?: number | null
   notes?: string | null
 }
 

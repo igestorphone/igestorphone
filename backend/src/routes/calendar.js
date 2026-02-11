@@ -10,13 +10,18 @@ async function enrichEventsWithItems(rows) {
   const ids = rows.map((r) => r.id);
   const itemsResult = await query(
     `SELECT id, event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros,
-            forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes
+            forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca,
+            troca_aparelhos, parcelas, valor_sinal, notes
      FROM calendar_event_items WHERE event_id = ANY($1) ORDER BY event_id, id`,
     [ids]
   );
   const itemsByEvent = {};
   for (const i of itemsResult.rows) {
     if (!itemsByEvent[i.event_id]) itemsByEvent[i.event_id] = [];
+    let trocaAparelhos = Array.isArray(i.troca_aparelhos) ? i.troca_aparelhos : (i.troca_aparelhos ? JSON.parse(JSON.stringify(i.troca_aparelhos)) : []);
+    if (trocaAparelhos.length === 0 && (i.modelo_troca || i.armazenamento_troca)) {
+      trocaAparelhos = [{ modelo: i.modelo_troca || '', armazenamento: i.armazenamento_troca || '' }];
+    }
     itemsByEvent[i.event_id].push({
       id: i.id,
       event_id: i.event_id,
@@ -31,6 +36,9 @@ async function enrichEventsWithItems(rows) {
       manutencao_descontada: i.manutencao_descontada != null ? parseFloat(i.manutencao_descontada) : null,
       modelo_troca: i.modelo_troca ?? undefined,
       armazenamento_troca: i.armazenamento_troca ?? undefined,
+      troca_aparelhos: trocaAparelhos,
+      parcelas: i.parcelas != null ? parseInt(i.parcelas, 10) : null,
+      valor_sinal: i.valor_sinal != null ? parseFloat(i.valor_sinal) : null,
       notes: i.notes ?? undefined,
     });
   }
@@ -70,6 +78,9 @@ async function enrichEventsWithItems(rows) {
               manutencao_descontada: null,
               modelo_troca: undefined,
               armazenamento_troca: undefined,
+              troca_aparelhos: [],
+              parcelas: null,
+              valor_sinal: null,
               notes: e.notes ?? undefined,
             },
           ],
@@ -187,9 +198,13 @@ router.post('/events', authenticateToken, async (req, res) => {
     const event = result.rows[0];
 
     for (const it of itemsToCreate) {
+      const trocaArr = Array.isArray(it.trocaAparelhos) ? it.trocaAparelhos : [];
+      const firstTroca = trocaArr[0];
+      const modeloTr = (firstTroca?.model ?? it.tradeInModel ?? '').trim() || null;
+      const armTr = (firstTroca?.storage ?? it.tradeInStorage ?? '').trim() || null;
       await query(
-        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+        `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, notes)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16)`,
         [
           event.id,
           it.iphoneModel?.trim() || first.iphoneModel,
@@ -201,8 +216,11 @@ router.post('/events', authenticateToken, async (req, res) => {
           it.formaPagamento || 'PIX',
           it.valorTroca != null ? Number(it.valorTroca) : null,
           it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
-          it.tradeInModel?.trim() || null,
-          it.tradeInStorage?.trim() || null,
+          modeloTr,
+          armTr,
+          JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '' }))),
+          it.parcelas != null ? parseInt(it.parcelas, 10) : null,
+          it.valorSinal != null ? Number(it.valorSinal) : null,
           it.notes ?? null,
         ]
       );
@@ -267,9 +285,13 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
         const st = it.storage?.trim() || existing.rows[0].storage;
         const ie = it.imeiEnd?.trim() || existing.rows[0].imei_end;
         if (!im || !st || !ie) continue;
+        const trocaArr = Array.isArray(it.trocaAparelhos) ? it.trocaAparelhos : [];
+        const firstTroca = trocaArr[0];
+        const modeloTr = (firstTroca?.model ?? it.tradeInModel ?? '').trim() || null;
+        const armTr = (firstTroca?.storage ?? it.tradeInStorage ?? '').trim() || null;
         await query(
-          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, notes)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+          `INSERT INTO calendar_event_items (event_id, iphone_model, storage, color, imei_end, valor_a_vista, valor_com_juros, forma_pagamento, valor_troca, manutencao_descontada, modelo_troca, armazenamento_troca, troca_aparelhos, parcelas, valor_sinal, notes)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb, $14, $15, $16)`,
           [
             id,
             im,
@@ -281,8 +303,11 @@ router.patch('/events/:id', authenticateToken, async (req, res) => {
             it.formaPagamento || 'PIX',
             it.valorTroca != null ? Number(it.valorTroca) : null,
             it.manutencaoDescontada != null ? Number(it.manutencaoDescontada) : null,
-            it.tradeInModel?.trim() || null,
-            it.tradeInStorage?.trim() || null,
+            modeloTr,
+            armTr,
+            JSON.stringify(trocaArr.map((t) => ({ modelo: t.model ?? t.modelo ?? '', armazenamento: t.storage ?? t.armazenamento ?? '' }))),
+            it.parcelas != null ? parseInt(it.parcelas, 10) : null,
+            it.valorSinal != null ? Number(it.valorSinal) : null,
             it.notes ?? null,
           ]
         );

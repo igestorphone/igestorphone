@@ -87,6 +87,9 @@ const migrations = [
    WHERE NOT EXISTS (SELECT 1 FROM calendar_event_items i WHERE i.event_id = e.id)`,
   `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS modelo_troca VARCHAR(120)`,
   `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS armazenamento_troca VARCHAR(50)`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS troca_aparelhos JSONB DEFAULT '[]'::jsonb`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS parcelas INTEGER`,
+  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS valor_sinal DECIMAL(12,2)`,
 
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (

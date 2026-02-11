@@ -4,6 +4,11 @@
 
 export type CalendarEventStatus = 'agendado' | 'comprou' | 'nao_comprou' | 'reagendado'
 
+export interface TradeInDevice {
+  model: string
+  storage: string
+}
+
 export interface CalendarEventItem {
   id: number | null
   event_id?: number
@@ -18,6 +23,9 @@ export interface CalendarEventItem {
   manutencaoDescontada?: number | null
   tradeInModel?: string | null
   tradeInStorage?: string | null
+  tradeInDevices?: TradeInDevice[]
+  parcelas?: number | null
+  valorSinal?: number | null
   notes?: string | null
 }
 
@@ -41,6 +49,15 @@ export interface CalendarSaleEvent {
 }
 
 function mapItem(row: any): CalendarEventItem {
+  const trocaArr = row.troca_aparelhos ?? row.tradeInDevices
+  const tradeInDevices: TradeInDevice[] = Array.isArray(trocaArr)
+    ? trocaArr.map((t: any) => ({
+        model: t.model ?? t.modelo ?? '',
+        storage: t.storage ?? t.armazenamento ?? '',
+      }))
+    : row.modelo_troca || row.armazenamento_troca
+      ? [{ model: row.modelo_troca ?? '', storage: row.armazenamento_troca ?? '' }]
+      : []
   return {
     id: row.id != null ? Number(row.id) : null,
     event_id: row.event_id != null ? Number(row.event_id) : undefined,
@@ -53,8 +70,11 @@ function mapItem(row: any): CalendarEventItem {
     formaPagamento: row.forma_pagamento ?? row.formaPagamento ?? 'PIX',
     valorTroca: row.valor_troca != null ? Number(row.valor_troca) : row.valorTroca ?? null,
     manutencaoDescontada: row.manutencao_descontada != null ? Number(row.manutencao_descontada) : row.manutencaoDescontada ?? null,
-    tradeInModel: row.modelo_troca ?? row.tradeInModel ?? null,
-    tradeInStorage: row.armazenamento_troca ?? row.tradeInStorage ?? null,
+    tradeInModel: row.modelo_troca ?? row.tradeInModel ?? (tradeInDevices[0]?.model || null),
+    tradeInStorage: row.armazenamento_troca ?? row.tradeInStorage ?? (tradeInDevices[0]?.storage || null),
+    tradeInDevices,
+    parcelas: row.parcelas != null ? Number(row.parcelas) : row.parcelas ?? null,
+    valorSinal: row.valor_sinal != null ? Number(row.valor_sinal) : row.valorSinal ?? null,
     notes: row.notes ?? undefined,
   }
 }
@@ -75,6 +95,9 @@ export function mapApiEventToEvent(row: any): CalendarSaleEvent {
         manutencao_descontada: row.manutencao_descontada,
         modelo_troca: row.modelo_troca,
         armazenamento_troca: row.armazenamento_troca,
+        troca_aparelhos: row.troca_aparelhos,
+        parcelas: row.parcelas,
+        valor_sinal: row.valor_sinal,
         notes: row.notes,
       })]
 
@@ -179,9 +202,14 @@ export function buildResumoPedido(event: CalendarSaleEvent): string {
     lines.push(`iPhone ${it.iphoneModel} ${it.storage}${it.color ? ` - ${it.color}` : ''}`)
     lines.push(`IMEI ...${it.imeiEnd}`)
     lines.push(`À vista: R$ ${it.valorAVista.toFixed(2).replace('.', ',')} | Parcelado: R$ ${it.valorComJuros.toFixed(2).replace('.', ',')}`)
-    if (it.tradeInModel || it.tradeInStorage) {
-      lines.push(`iPhone na troca: ${[it.tradeInModel, it.tradeInStorage].filter(Boolean).join(' ')}`)
+    const trocaList = it.tradeInDevices?.length ? it.tradeInDevices : (it.tradeInModel || it.tradeInStorage ? [{ model: it.tradeInModel ?? '', storage: it.tradeInStorage ?? '' }] : [])
+    if (trocaList.length) {
+      trocaList.forEach((d) => {
+        if (d.model || d.storage) lines.push(`iPhone na troca: ${[d.model, d.storage].filter(Boolean).join(' ')}`)
+      })
     }
+    if (it.parcelas != null) lines.push(`Parcelas: ${it.parcelas}x`)
+    if (it.valorSinal != null) lines.push(`Sinal: R$ ${it.valorSinal.toFixed(2).replace('.', ',')}`)
     if (it.valorTroca != null || it.manutencaoDescontada != null) {
       const parts = []
       if (it.valorTroca != null) parts.push(`Troca: R$ ${it.valorTroca.toFixed(2).replace('.', ',')}`)
