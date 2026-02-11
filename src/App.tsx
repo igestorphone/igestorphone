@@ -28,7 +28,6 @@ import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
 import BugReportsPage from '@/pages/BugReportsPage'
 import GoalsPage from '@/pages/GoalsPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
-import PreferencesPage from '@/pages/PreferencesPage'
 import RankingPage from '@/pages/RankingPage'
 import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
@@ -242,13 +241,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<SubscriptionPage />} />
-        </Route>
-        <Route path="/preferences" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<PreferencesPage />} />
         </Route>
         <Route path="/ranking" element={
           <ProtectedRoute>

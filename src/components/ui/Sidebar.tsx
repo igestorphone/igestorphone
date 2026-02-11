@@ -46,18 +46,19 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [isConfigOpen, setIsConfigOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(true)
 
-  // Funcionário (só calendário): apenas Calendário + Meus Dados + Preferências
+  // Funcionário (só calendário): apenas Calendário + Meus Dados
   const onlyCalendarNavigation = [
     { name: 'Calendário', href: '/calendar', icon: Calendar },
   ]
   const onlyCalendarConfig = [
     { name: 'Meus Dados', href: '/profile', icon: Users },
-    { name: 'Preferências', href: '/preferences', icon: Settings },
   ]
 
   // Navegação principal (topo)
   const mainNavigation = [
     { name: 'Buscar iPhone Novo', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
+    { name: 'Buscar iPhone Seminovo', href: '/search-iphone-seminovo', icon: Search },
+    { name: 'Buscar Android', href: '/search-android', icon: Search },
     { name: 'Média de Preço', href: '/price-averages', icon: BarChart3, permission: 'medias_preco' },
     { name: 'Calendário', href: '/calendar', icon: Calendar },
   ]
@@ -67,7 +68,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     { name: 'Meus Dados', href: '/profile', icon: Users },
     { name: 'Plano & Assinatura', href: '/subscription', icon: CreditCard },
     { name: 'Usuário do calendário', href: '/funcionarios-calendario', icon: UserPlus },
-    { name: 'Preferências', href: '/preferences', icon: Settings },
   ]
 
   const adminNavigation = [
@@ -230,7 +230,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           ))}
         </div>
 
-        {/* Seção Configurações: Meus dados, Plano & Assinatura, Preferências (ou só Meus Dados + Preferências para funcionário) */}
+        {/* Seção Configurações: Meus dados, Plano & Assinatura (ou só Meus Dados para funcionário) */}
         {!sidebarCollapsed && (
           <div className="mt-6">
             <button

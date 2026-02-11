@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -15,9 +14,7 @@ import {
   Package,
   Wifi,
   Clock,
-  AlertTriangle,
-  Smartphone,
-  Smartphone as AndroidIcon
+  AlertTriangle
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -962,40 +959,6 @@ Ainda tem disponível?`
           </AnimatePresence>
         </motion.div>
 
-        {/* Opções em breve: Seminovo e Android */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-        >
-          <NavLink
-            to="/search-iphone-seminovo"
-            className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400">
-              <Smartphone className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Buscar iPhone Seminovo</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Em breve. iPhone recondicionado e seminovo.</p>
-            </div>
-            <span className="text-xs font-medium text-gray-400 dark:text-gray-500 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/10">Em desenvolvimento</span>
-          </NavLink>
-          <NavLink
-            to="/search-android"
-            className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-          >
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-400">
-              <AndroidIcon className="w-6 h-6" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-gray-900 dark:text-white">Buscar Android</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Em breve. Pesquisa de aparelhos Android.</p>
-            </div>
-            <span className="text-xs font-medium text-gray-400 dark:text-gray-500 px-2 py-1 rounded-lg bg-gray-100 dark:bg-white/10">Em desenvolvimento</span>
-          </NavLink>
-        </motion.div>
           </div>
 
         {/* Modal de Alerta de Segurança */}
