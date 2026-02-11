@@ -276,7 +276,7 @@ router.get('/meus-funcionarios', authenticateToken, async (req, res) => {
     const result = await query(`
       SELECT id, name, email, tipo, created_at, is_active
       FROM users
-      WHERE parent_id = $1
+      WHERE parent_id = $1 AND is_active = true
       ORDER BY created_at DESC
     `, [req.user.id]);
     res.json({ funcionarios: result.rows });
@@ -286,7 +286,7 @@ router.get('/meus-funcionarios', authenticateToken, async (req, res) => {
   }
 });
 
-// Excluir funcionário (usuário do calendário) – apenas o assinante que criou pode excluir
+// Excluir funcionário (usuário do calendário) – desativa para não quebrar FKs; só o assinante que criou pode excluir
 router.delete('/funcionario-calendario/:id', authenticateToken, async (req, res) => {
   try {
     if (req.user.parent_id) {
@@ -303,8 +303,8 @@ router.delete('/funcionario-calendario/:id', authenticateToken, async (req, res)
     if (check.rows.length === 0) {
       return res.status(404).json({ message: 'Usuário do calendário não encontrado ou você não pode excluí-lo.' });
     }
-    await query('DELETE FROM user_permissions WHERE user_id = $1', [funcionarioId]);
-    await query('DELETE FROM users WHERE id = $1', [funcionarioId]);
+    // Soft-delete: desativa o usuário (ele deixa de poder logar); evita erro de FK em produção
+    await query('UPDATE users SET is_active = false WHERE id = $1', [funcionarioId]);
     await query(`
       INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
       VALUES ($1, $2, $3, $4, $5)

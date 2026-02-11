@@ -71,7 +71,9 @@ export default function FuncionariosCalendarioPage() {
       toast.success('Usuário do calendário excluído.')
       loadFuncionarios()
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Erro ao excluir')
+      const msg = e.response?.data?.message || e.message || 'Erro ao excluir'
+      toast.error(msg)
+      console.error('Erro ao excluir funcionário:', e.response?.data || e)
     } finally {
       setDeletingId(null)
     }

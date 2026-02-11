@@ -105,59 +105,61 @@ router.post('/login', loginValidation, async (req, res) => {
     }
 
     const { email, password } = req.body;
-    const emailNormalized = (email || '').toString().toLowerCase().trim();
+    const emailStr = (email || '').toString().trim();
+    const emailNormalized = emailStr.toLowerCase();
 
-    // Buscar usuário (email normalizado para bater com o que foi salvo na criação)
-    const result = await query(`
-      SELECT 
-        id,
-        email,
-        password_hash,
-        name,
-        COALESCE(tipo, role, 'user') AS role,
-        subscription_status,
-        subscription_expires_at,
-        is_active,
-        last_login,
-        access_expires_at,
-        approval_status
-      FROM users
-      WHERE LOWER(TRIM(email)) = $1
-    `, [emailNormalized]);
+    const baseWhere = 'WHERE LOWER(TRIM(email)) = $1';
+    const fallbackWhere = 'WHERE TRIM(email) = $1';
+    const fullSelect = `id, email, password_hash, name, is_active, last_login,
+      subscription_status, subscription_expires_at,
+      COALESCE(tipo, role, 'user') AS role,
+      access_expires_at, approval_status`;
+    const minimalSelect = `id, email, password_hash, name, is_active, last_login,
+      subscription_status, subscription_expires_at`;
+
+    let result;
+    try {
+      result = await query(`SELECT ${fullSelect} FROM users ${baseWhere}`, [emailNormalized]);
+    } catch (err) {
+      if (err.message && err.message.includes('column')) {
+        result = await query(`SELECT ${minimalSelect} FROM users ${baseWhere}`, [emailNormalized]);
+        if (result.rows.length > 0) result.rows[0].role = 'user';
+      } else throw err;
+    }
+    if (result.rows.length === 0 && emailStr !== emailNormalized) {
+      try {
+        result = await query(`SELECT ${fullSelect} FROM users ${fallbackWhere}`, [emailStr]);
+      } catch (err) {
+        if (err.message && err.message.includes('column')) {
+          result = await query(`SELECT ${minimalSelect} FROM users ${fallbackWhere}`, [emailStr]);
+          if (result.rows.length > 0) result.rows[0].role = 'user';
+        } else throw err;
+      }
+    }
 
     if (result.rows.length === 0) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
     }
 
     const user = result.rows[0];
-
-    // Verificar se usuário está aprovado (apenas se a coluna existir e não for nula)
-    if (user.approval_status && user.approval_status === 'pending') {
-      return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
-    }
-
-    // Verificar se usuário está ativo
-    if (!user.is_active) {
-      return res.status(401).json({ message: 'Conta desativada' });
-    }
-
-    // Verificar se o acesso expirou
+    user.role = user.role || 'user';
     if (user.access_expires_at) {
       const now = new Date();
       const accessExpiresAt = new Date(user.access_expires_at);
-      
       if (now > accessExpiresAt) {
-        // Desativar usuário automaticamente
-        await query(
-          'UPDATE users SET is_active = false WHERE id = $1',
-          [user.id]
-        );
-        
-        return res.status(403).json({ 
+        await query('UPDATE users SET is_active = false WHERE id = $1', [user.id]);
+        return res.status(403).json({
           message: 'Seu período de acesso expirou. Entre em contato com o administrador.',
           access_expired: true
         });
       }
+    }
+    if (user.approval_status && user.approval_status === 'pending') {
+      return res.status(403).json({ message: 'Aguardando aprovação do administrador' });
+    }
+
+    if (!user.is_active) {
+      return res.status(401).json({ message: 'Conta desativada' });
     }
 
     // Verificar senha
