@@ -21,7 +21,6 @@ export const ROUTES = {
   // Support routes
   SUPPORT: '/support',
   TERMS: '/terms',
-  AI: '/ai',
 } as const
 
 export const PUBLIC_ROUTES = [ROUTES.SPLASH, ROUTES.LOGIN]
@@ -32,7 +31,6 @@ export const PROTECTED_ROUTES = [
   ROUTES.STATISTICS,
   ROUTES.SEARCH_CHEAPEST,
   ROUTES.PROFILE,
-  ROUTES.AI,
   ROUTES.SUPPORT,
   ROUTES.TERMS,
 ]

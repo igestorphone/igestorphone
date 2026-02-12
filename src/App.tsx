@@ -20,7 +20,6 @@ import CreateUserPage from '@/pages/CreateUserPage'
 import EditUserPage from '@/pages/EditUserPage'
 import StatisticsPage from '@/pages/StatisticsPage'
 import ProfilePage from '@/pages/ProfilePage'
-import AIPage from '@/pages/AIPage'
 import TermsPage from '@/pages/TermsPage'
 import SupportPage from '@/pages/SupportPage'
 import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
@@ -213,13 +212,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<ProfilePage />} />
-        </Route>
-        <Route path="/ai" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<AIPage />} />
         </Route>
         <Route path="/terms" element={
           <ProtectedRoute>

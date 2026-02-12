@@ -7,7 +7,6 @@ import {
   Search,
   Settings,
   X,
-  Brain,
   Building2,
   UserPlus,
   Bug,
@@ -71,12 +70,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
   ]
 
   const adminNavigation = [
-    {
-      name: 'Inteligência Artificial',
-      href: '/ai',
-      icon: Brain,
-      category: 'admin'
-    },
     {
       name: 'Processar Lista Apple',
       href: '/process-list',
