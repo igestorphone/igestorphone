@@ -24,13 +24,13 @@ const heroStats = [
 
 const highlights = [
   {
-    title: 'IA a seu favor',
-    description: 'Padronize listas cruas, detecte variações de armazenamento e mergulhe em insights instantâneos.',
+    title: 'Compare preços',
+    description: 'Pesquise iPhones e veja os melhores preços dos fornecedores em tempo real.',
     icon: Sparkles
   },
   {
-    title: 'Gestão centralizada',
-    description: 'Histórico completo de fornecedores, metas e notas em um painel pensado para times Apple.',
+    title: 'Calendário de vendas',
+    description: 'Acompanhe médias, tendências e planeje suas compras com base em dados reais.',
     icon: Workflow
   },
   {
@@ -47,19 +47,19 @@ const highlights = [
 
 const steps = [
   {
-    title: 'Envie suas listas',
-    description: 'Importe arquivos, cole mensagens ou crie integrações. A IA cuida do resto.',
-    highlight: 'Compatível com CSV, texto e WhatsApp.'
+    title: 'Pesquise o iPhone',
+    description: 'Busque o modelo que deseja: iPhone 16, 15, cores, armazenamento. Tudo organizado e fácil de encontrar.',
+    highlight: 'Modelos e variantes em um só lugar.'
   },
   {
-    title: 'Valide em minutos',
-    description: 'Veja tudo normalizado, com variantes como ANATEL, e-SIM e cores identificadas.',
-    highlight: 'Processamento automático e histórico salvo.'
+    title: 'Ache o menor preço',
+    description: 'Compare preços entre fornecedores em tempo real e veja qual oferece o melhor custo-benefício.',
+    highlight: 'Atualização automática dos valores.'
   },
   {
-    title: 'Execute com clareza',
-    description: 'Acompanhe metas, notas e fornecedores em tempo real e feche mais vendas.',
-    highlight: 'Painel completo em nuvem, 24/7.'
+    title: 'Compre economizando',
+    description: 'Feche a compra com o fornecedor que tem o melhor preço e maximize sua margem.',
+    highlight: 'Calendário de vendas e médias para planejar.'
   }
 ]
 
