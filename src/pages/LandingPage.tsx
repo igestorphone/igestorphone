@@ -12,7 +12,8 @@ import {
   Zap
 } from 'lucide-react'
 
-const WHATSAPP_URL = 'https://wa.me/5511983132474?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
+const WHATSAPP_ATENDIMENTO = 'https://wa.me/5511941007348?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
+const WHATSAPP_SAC = 'https://wa.me/5511922961688'
 const LOGO_URL = '/assets/images/logo.png'
 
 const heroStats = [
@@ -151,7 +152,7 @@ export default function LandingPage() {
               Entrar
             </Link>
             <a
-              href={WHATSAPP_URL}
+              href={WHATSAPP_ATENDIMENTO}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
@@ -193,7 +194,7 @@ export default function LandingPage() {
                 className="mt-10 flex flex-col gap-3 sm:flex-row"
               >
                 <motion.a
-                  href={WHATSAPP_URL}
+                  href={WHATSAPP_ATENDIMENTO}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-black"
@@ -435,7 +436,7 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-8">
                   <a
-                    href={WHATSAPP_URL}
+                    href={WHATSAPP_ATENDIMENTO}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
@@ -478,7 +479,7 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-8">
                   <a
-                    href={WHATSAPP_URL}
+                    href={WHATSAPP_ATENDIMENTO}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex w-full items-center justify-center rounded-xl bg-white py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90"
@@ -521,7 +522,7 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-8">
                   <a
-                    href={WHATSAPP_URL}
+                    href={WHATSAPP_ATENDIMENTO}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
@@ -611,7 +612,7 @@ export default function LandingPage() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
               <motion.a
-                href={WHATSAPP_URL}
+                href={WHATSAPP_ATENDIMENTO}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black"
@@ -640,9 +641,15 @@ export default function LandingPage() {
       <footer className="border-t border-white/[0.06] py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/40 md:flex-row md:text-left">
           <p>© {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.</p>
-          <div className="flex items-center gap-6">
-            <Link to="/terms" className="transition-colors hover:text-white/70">Termos de uso</Link>
-            <Link to="/support" className="transition-colors hover:text-white/70">Suporte</Link>
+          <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-6">
+            <div className="flex items-center gap-4">
+              <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white/70">Atendimento: (11) 94100-7348</a>
+              <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white/70">SAC: (11) 92296-1688</a>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link to="/terms" className="transition-colors hover:text-white/70">Termos de uso</Link>
+              <Link to="/support" className="transition-colors hover:text-white/70">Suporte</Link>
+            </div>
           </div>
         </div>
       </footer>

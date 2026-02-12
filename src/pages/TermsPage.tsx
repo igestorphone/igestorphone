@@ -232,12 +232,12 @@ export default function TermsPage() {
                   <Phone className="w-5 h-5 text-green-400 mr-3" />
                   <span className="text-white/80">WhatsApp: </span>
                   <a 
-                    href="https://wa.me/5511983132474" 
+                    href="https://wa.me/5511922961688" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-green-400 hover:text-green-300 ml-2"
                   >
-                    (11) 98313-2474
+                    (11) 92296-1688
                   </a>
                 </div>
               </div>

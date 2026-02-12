@@ -217,13 +217,13 @@ export default function SupportPage() {
                     Suporte rápido e direto via WhatsApp.
                   </p>
                   <a
-                    href="https://wa.me/5511983132474"
+                    href="https://wa.me/5511922961688"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors"
                   >
                     <Phone className="w-4 h-4 mr-2" />
-                    (11) 98313-2474
+                    (11) 92296-1688
                   </a>
                 </div>
               </div>
@@ -359,7 +359,7 @@ export default function SupportPage() {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">Ações Rápidas</h2>
           <div className="grid md:grid-cols-3 gap-4">
             <a
-              href="https://wa.me/5511983132474"
+              href="https://wa.me/5511922961688"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center p-4 bg-green-100 dark:bg-green-500/20 hover:bg-green-200 dark:hover:bg-green-500/30 rounded-lg border border-green-300 dark:border-green-500/30 transition-colors"
