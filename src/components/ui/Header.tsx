@@ -77,20 +77,17 @@ export default function Header() {
                 )}
               </div>
             </button>
-            {/* Logo + nome no mobile - estilo similar ao concorrente */}
+            {/* Logo no mobile - centralizado, maior */}
             <Link
               to="/search-cheapest-iphone"
-              className="lg:hidden flex items-center gap-2 min-w-0 flex-1"
+              className="lg:hidden flex items-center justify-center min-w-0 flex-1"
               onClick={() => sidebarOpen && setSidebarOpen(false)}
             >
               <img
                 src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
                 alt="iGestorPhone"
-                className="h-8 w-8 shrink-0 rounded-lg object-contain"
+                className="h-12 w-auto max-w-[160px] object-contain"
               />
-              <span className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                iGestorPhone
-              </span>
             </Link>
           </div>
 
