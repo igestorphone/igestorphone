@@ -32,6 +32,7 @@ import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
+import PostLoginLoadingPage from '@/pages/PostLoginLoadingPage'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -94,6 +95,11 @@ function App() {
           )
         } />
         <Route path="/dashboard" element={<Navigate to="/search-cheapest-iphone" replace />} />
+        <Route path="/entrando" element={
+          <ProtectedRoute>
+            <PostLoginLoadingPage />
+          </ProtectedRoute>
+        } />
         <Route path="/search-iphone-seminovo" element={
           <ProtectedRoute>
             <MainLayout />

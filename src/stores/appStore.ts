@@ -80,11 +80,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   // UI Actions
   toggleSidebar: () => {
-    startTransition(() => set((state) => ({ sidebarOpen: !state.sidebarOpen })))
+    set((state) => ({ sidebarOpen: !state.sidebarOpen }))
   },
 
   setSidebarOpen: (open: boolean) => {
-    startTransition(() => set({ sidebarOpen: open }))
+    set({ sidebarOpen: open })
   },
 
   toggleSidebarCollapsed: () => {

@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { UserPermissions } from '@/types'
 
-const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile']
+const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile', '/entrando']
 
 interface ProtectedRouteProps {
   children: ReactNode
