@@ -59,7 +59,7 @@ export default function Header() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
   return (
-    <header className="bg-white dark:bg-black backdrop-blur-xl border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl relative z-50">
+    <header className="sticky top-0 z-50 bg-white dark:bg-black backdrop-blur-xl border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 relative">
           {/* Left side */}

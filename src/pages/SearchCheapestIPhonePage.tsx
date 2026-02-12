@@ -7,6 +7,7 @@ import {
   Palette,
   ShoppingCart,
   ChevronDown,
+  ChevronUp,
   ChevronLeft,
   ChevronRight,
   ArrowUpDown,
@@ -16,7 +17,8 @@ import {
   Package,
   Wifi,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  SlidersHorizontal
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -160,6 +162,7 @@ export default function SearchCheapestIPhonePage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
+  const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
@@ -494,8 +497,24 @@ Ainda tem disponível?`
           transition={{ duration: 0.4, delay: 0.2 }}
           className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
-          {/* Filters row */}
-          <div className="overflow-x-auto -mx-4 px-4">
+          {/* Mobile: botão Mostrar/Ocultar filtros */}
+          <button
+            type="button"
+            onClick={() => setShowFiltersMobile((s) => !s)}
+            className="md:hidden w-full flex items-center justify-between py-2 px-3 rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors mb-3"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-white">
+              <SlidersHorizontal className="w-4 h-4" />
+              {showFiltersMobile ? 'Ocultar filtros' : 'Mostrar filtros'}
+            </span>
+            {showFiltersMobile ? (
+              <ChevronUp className="w-5 h-5 text-gray-500 dark:text-white/60" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-gray-500 dark:text-white/60" />
+            )}
+          </button>
+          {/* Filters row - no mobile só quando expandido */}
+          <div className={`overflow-x-auto -mx-4 px-4 ${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
