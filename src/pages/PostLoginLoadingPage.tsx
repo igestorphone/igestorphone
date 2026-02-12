@@ -20,15 +20,13 @@ export default function PostLoginLoadingPage() {
     const prefetch = async () => {
       if (canAccessOnlyCalendar()) return
       try {
-        // Prefetch busca "iPhone" (comum) - quando usuário digitar, cache já estará quente
         await queryClient.prefetchQuery({
-          queryKey: ['produtos', 'iPhone', '', '', '', ''],
+          queryKey: ['produtos', '', '', '', '', ''],
           queryFn: () =>
             produtosApi.getAll({
-              search: 'iPhone',
               sort_by: 'price',
               sort_order: 'asc',
-              limit: 500
+              limit: 5000
             }),
           staleTime: 10000
         })
