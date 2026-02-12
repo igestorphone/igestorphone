@@ -97,37 +97,56 @@ const faqs = [
 ]
 
 const fadeUp = (delay = 0) => ({
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 24 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.6, delay }
+  transition: { duration: 0.5, delay, ease: [0.25, 0.46, 0.45, 0.94] }
 })
+
+const viewport = { once: true, amount: 0.12 }
+const fadeInView = (delay = 0) => ({
+  initial: { opacity: 0, y: 28 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport,
+  transition: { duration: 0.55, delay, ease: [0.25, 0.46, 0.45, 0.94] }
+})
+
+const cardHover = {
+  rest: { scale: 1 },
+  hover: { scale: 1.02 },
+  tap: { scale: 0.99 }
+}
+const buttonHover = {
+  rest: { scale: 1 },
+  hover: { scale: 1.03 },
+  tap: { scale: 0.98 }
+}
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen bg-slate-950 text-white">
+    <div className="relative min-h-screen bg-black text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-32 top-24 h-72 w-72 rounded-full bg-blue-600/30 blur-[120px]" />
-        <div className="absolute -right-20 top-1/3 h-80 w-80 rounded-full bg-emerald-500/20 blur-[140px]" />
-        <div className="absolute bottom-0 left-1/2 h-64 w-[520px] -translate-x-1/2 rounded-full bg-blue-900/30 blur-[120px]" />
+        <div className="absolute left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-white/[0.02] blur-[100px]" />
+        <div className="absolute -left-40 top-1/4 h-64 w-64 rounded-full bg-white/[0.03] blur-[80px]" />
+        <div className="absolute -right-40 bottom-1/4 h-64 w-64 rounded-full bg-white/[0.03] blur-[80px]" />
       </div>
 
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link to="/" className="flex items-center space-x-3">
-            <img src={LOGO_URL} alt="iGestorPhone" className="h-9 w-9 rounded-full border border-white/20 bg-white/10 p-1" />
-            <span className="text-xl font-semibold tracking-wide">iGestorPhone</span>
+      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-black/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={LOGO_URL} alt="iGestorPhone" className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 p-1" />
+            <span className="text-lg font-semibold tracking-tight text-white">iGestorPhone</span>
           </Link>
-          <nav className="hidden items-center space-x-6 text-sm font-medium text-white/70 md:flex">
-            <a href="#features" className="transition hover:text-white">Recursos</a>
-            <a href="#steps" className="transition hover:text-white">Como funciona</a>
-            <a href="#pricing" className="transition hover:text-white">Preço</a>
-            <a href="#depoimentos" className="transition hover:text-white">Depoimentos</a>
-            <a href="#faq" className="transition hover:text-white">FAQ</a>
+          <nav className="hidden items-center gap-8 text-sm font-medium text-white/60 md:flex">
+            <a href="#features" className="transition-colors hover:text-white">Recursos</a>
+            <a href="#steps" className="transition-colors hover:text-white">Como funciona</a>
+            <a href="#pricing" className="transition-colors hover:text-white">Preço</a>
+            <a href="#depoimentos" className="transition-colors hover:text-white">Depoimentos</a>
+            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </nav>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="hidden rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:border-white/60 md:inline-flex"
+              className="hidden rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/90 transition-colors hover:border-white/20 hover:bg-white/5 md:inline-flex"
             >
               Entrar
             </Link>
@@ -135,7 +154,7 @@ export default function LandingPage() {
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-full bg-emerald-500 px-5 py-2 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
+              className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
             >
               Falar com especialista
             </a>
@@ -144,59 +163,73 @@ export default function LandingPage() {
       </header>
 
       <main>
-        <section className="relative overflow-hidden pb-24 pt-20">
-          <div className="mx-auto flex max-w-6xl flex-col-reverse items-center gap-14 px-6 md:flex-row md:items-start md:gap-10">
+        <section className="relative overflow-hidden pb-28 pt-24">
+          <div className="mx-auto flex max-w-6xl flex-col-reverse items-center gap-16 px-6 md:flex-row md:items-start md:gap-12">
             <div className="w-full text-center md:w-1/2 md:text-left">
               <motion.div {...fadeUp(0)}>
-                <span className="inline-flex items-center space-x-2 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
-                  <Sparkles className="h-4 w-4 text-blue-200" />
-                  <span>Automação para revendas Apple</span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.25em] text-white/60">
+                  <Sparkles className="h-3.5 w-3.5 text-white/50" />
+                  Automação para revendas Apple
                 </span>
               </motion.div>
               <motion.h1
                 {...fadeUp(0.1)}
-                className="mt-6 text-4xl font-bold leading-tight sm:text-5xl md:text-6xl"
+                className="mt-8 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[3.25rem]"
               >
                 Centralize fornecedores, listas e metas a partir de{' '}
-                <span className="bg-gradient-to-r from-blue-400 to-emerald-300 bg-clip-text text-transparent">
-                  R$ 79,99/mês
+                <span className="bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+                  R$ 100/mês
                 </span>
               </motion.h1>
               <motion.p
                 {...fadeUp(0.2)}
-                className="mt-6 text-lg text-white/70"
+                className="mt-6 max-w-lg text-base leading-relaxed text-white/50 md:text-lg"
               >
-                Esqueça planilhas e mensagens perdidas. O iGestorPhone usa IA para organizar listas,
-                identificar variantes e entregar dashboards que aceleram vendas na sua operação Apple.
+                Esqueça planilhas e mensagens perdidas. IA para organizar listas,
+                identificar variantes e dashboards que aceleram vendas na sua operação Apple.
               </motion.p>
               <motion.div
                 {...fadeUp(0.3)}
-                className="mt-8 flex flex-col gap-3 sm:flex-row"
+                className="mt-10 flex flex-col gap-3 sm:flex-row"
               >
-                <a
+                <motion.a
                   href={WHATSAPP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-full bg-blue-600 px-7 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/20 transition hover:bg-blue-500"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-black"
+                  variants={buttonHover}
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap="tap"
+                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                 >
-                  Quero uma demonstração <ArrowRight className="ml-2 h-5 w-5" />
-                </a>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center rounded-full border border-white/20 px-7 py-3 text-base font-semibold text-white transition hover:border-white/50"
-                >
-                  Já sou cliente
-                </Link>
+                  Quero uma demonstração <ArrowRight className="h-4 w-4" />
+                </motion.a>
+                <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.02] px-6 py-3.5 text-base font-medium text-white transition-colors hover:border-white/25 hover:bg-white/[0.06]"
+                  >
+                    Já sou cliente
+                  </Link>
+                </motion.div>
               </motion.div>
               <motion.div
-                {...fadeUp(0.4)}
-                className="mt-10 grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 backdrop-blur md:grid-cols-3"
+                className="mt-12 grid gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 md:grid-cols-3"
+                initial="hidden"
+                animate="visible"
+                variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
               >
                 {heroStats.map(stat => (
-                  <div key={stat.label} className="text-left">
-                    <p className="text-xl font-semibold text-white">{stat.value}</p>
-                    <p className="mt-1 text-xs uppercase tracking-wide text-white/60">{stat.label}</p>
-                  </div>
+                  <motion.div
+                    key={stat.label}
+                    variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }}
+                    transition={{ duration: 0.4 }}
+                    className="text-left"
+                  >
+                    <p className="text-2xl font-semibold tracking-tight text-white">{stat.value}</p>
+                    <p className="mt-1 text-[11px] font-medium uppercase tracking-widest text-white/40">{stat.label}</p>
+                  </motion.div>
                 ))}
               </motion.div>
             </div>
@@ -204,387 +237,412 @@ export default function LandingPage() {
             <motion.div
               {...fadeUp(0.2)}
               className="relative w-full max-w-xl md:w-1/2"
+              whileHover={{ y: -4 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
-              <div className="absolute inset-0 -z-10 rounded-3xl bg-gradient-to-br from-blue-500/40 via-blue-500/10 to-transparent blur-3xl" />
-              <div className="group relative overflow-hidden rounded-[32px] border border-white/10 bg-white/5 p-1 backdrop-blur">
-                <div className="relative rounded-[28px] bg-slate-950/80 p-6">
+              <div className="absolute -inset-px rounded-3xl bg-gradient-to-b from-white/10 to-transparent opacity-50" />
+              <motion.div
+                className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-[1px]"
+                initial={{ boxShadow: '0 0 0 0 rgba(255,255,255,0)' }}
+                whileHover={{ boxShadow: '0 20px 40px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)' }}
+                transition={{ duration: 0.3 }}
+              >
+                <div className="relative rounded-[22px] bg-black/80 p-6 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <img src={LOGO_URL} alt="iGestorPhone" className="h-10 w-10 rounded-full border border-white/10 bg-white/10 p-1" />
+                    <div className="flex items-center gap-3">
+                      <img src={LOGO_URL} alt="iGestorPhone" className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 p-1" />
                       <div>
                         <p className="text-sm font-semibold text-white">iGestorPhone</p>
-                        <p className="text-xs text-white/60">Dashboard em tempo real</p>
+                        <p className="text-xs text-white/50">Dashboard em tempo real</p>
                       </div>
                     </div>
-                    <span className="rounded-full bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-100">IA ativa</span>
-                  </div>
-
-                  <div className="mt-6 grid gap-4 md:grid-cols-2">
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-white/70">Listas processadas hoje</p>
-                      <p className="mt-2 flex items-center text-2xl font-semibold text-white">
-                        243 <span className="ml-2 text-xs font-medium text-emerald-300">+18% vs ontem</span>
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                      <p className="text-sm text-white/70">Fornecedores monitorados</p>
-                      <p className="mt-2 flex items-center text-2xl font-semibold text-white">
-                        37 <span className="ml-2 text-xs font-medium text-blue-200">4 novos semana</span>
-                      </p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 md:col-span-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-white/70">Top linha do dia</p>
-                          <p className="mt-1 text-white">iPhone 16 Pro • Azul • e-SIM • 256 GB</p>
-                        </div>
-                        <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
-                          R$ 6.350
-                        </span>
-                      </div>
-                      <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-blue-400 via-blue-500 to-emerald-400" />
-                      </div>
-                    </div>
+                    <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/70">IA ativa</span>
                   </div>
 
                   <div className="mt-6 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm text-white/70">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+                      <p className="text-xs font-medium uppercase tracking-wider text-white/50">Listas processadas hoje</p>
+                      <p className="mt-2 flex items-baseline gap-2 text-xl font-semibold text-white">
+                        243 <span className="text-[10px] font-medium text-white/50">+18% vs ontem</span>
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+                      <p className="text-xs font-medium uppercase tracking-wider text-white/50">Fornecedores monitorados</p>
+                      <p className="mt-2 flex items-baseline gap-2 text-xl font-semibold text-white">
+                        37 <span className="text-[10px] font-medium text-white/50">4 novos na semana</span>
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 md:col-span-2">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">Metas da semana</span>
-                        <Rocket className="h-4 w-4 text-emerald-200" />
+                        <div>
+                          <p className="text-xs font-medium uppercase tracking-wider text-white/50">Top linha do dia</p>
+                          <p className="mt-1 text-sm text-white">iPhone 16 Pro • Azul • e-SIM • 256 GB</p>
+                        </div>
+                        <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
+                          R$ 6.350
+                        </span>
                       </div>
-                      <p className="mt-2 text-xs uppercase tracking-wide text-white/40">Listas priorizadas:</p>
-                      <ul className="mt-1 space-y-1 text-xs text-white/60">
+                      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                        <div className="h-full w-3/4 rounded-full bg-white/30" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-white/90">Metas da semana</span>
+                        <Rocket className="h-4 w-4 text-white/40" />
+                      </div>
+                      <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-white/40">Listas priorizadas</p>
+                      <ul className="mt-1 space-y-0.5 text-xs text-white/50">
                         <li>• TM • IA automática</li>
                         <li>• AFZ • Conferência manual</li>
                       </ul>
                     </div>
-                    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-3 text-sm text-white/70">
+                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-white">Notas rápidas</span>
-                        <Zap className="h-4 w-4 text-blue-200" />
+                        <span className="font-medium text-white/90">Notas rápidas</span>
+                        <Zap className="h-4 w-4 text-white/40" />
                       </div>
-                      <ul className="mt-2 space-y-1 text-xs text-white/60">
+                      <ul className="mt-2 space-y-0.5 text-xs text-white/50">
                         <li>• Reprocessar listas da manhã</li>
-                        <li>• Atualizar status fornecedor MEU CELULAR SP</li>
-                        <li>• Checar metas de metas & notas</li>
+                        <li>• Atualizar status fornecedor</li>
                       </ul>
                     </div>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </motion.div>
           </div>
         </section>
 
-        <section id="features" className="bg-slate-950/60 py-20">
+        <section id="features" className="scroll-mt-20 border-t border-white/[0.06] py-24">
           <div className="mx-auto max-w-6xl px-6">
-            <motion.div {...fadeUp(0)} className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/40">Recursos-chave</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Feito para acelerar operações Apple</h2>
-              <p className="mt-4 text-white/60 sm:mx-auto sm:max-w-3xl">
-                Desde a captura da lista até a tomada de decisão, cada módulo do iGestorPhone foi construído
-                com lojistas Apple em mente.
+            <motion.div {...fadeInView(0)} className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Recursos</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Feito para operações Apple</h2>
+              <p className="mt-4 text-white/50 sm:mx-auto sm:max-w-2xl text-sm leading-relaxed">
+                Da captura da lista à decisão. Cada módulo pensado para lojistas Apple.
               </p>
             </motion.div>
-            <div className="mt-12 grid gap-8 lg:grid-cols-2">
+            <motion.div
+              className="mt-14 grid gap-4 lg:grid-cols-2"
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
+            >
               {highlights.map(({ title, description, icon: Icon }, index) => (
                 <motion.div
                   key={title}
-                  {...fadeUp(0.1 + index * 0.05)}
-                  className="group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-7 backdrop-blur transition hover:border-white/25 hover:bg-white/[0.06]"
+                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
+                  transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="group relative flex items-start gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1] hover:bg-white/[0.04]"
+                  whileHover={{ y: -2 }}
                 >
-                  <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-blue-500/10 blur-3xl transition duration-500 group-hover:scale-125" />
-                  <div className="relative flex items-start space-x-4">
-                    <div className="rounded-2xl bg-gradient-to-br from-blue-500/20 via-blue-400/10 to-transparent p-3 text-blue-200">
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{title}</h3>
-                      <p className="mt-2 text-sm text-white/70">{description}</p>
-                    </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/70 transition-colors group-hover:bg-white/[0.08]">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-white">{title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-white/50">{description}</p>
                   </div>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section id="steps" className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-20">
+        <section id="steps" className="scroll-mt-20 border-t border-white/[0.06] py-24">
           <div className="mx-auto max-w-5xl px-6">
-            <motion.div {...fadeUp(0)} className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/40">Como funciona</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-                Em três passos você transforma seu fluxo
-              </h2>
+            <motion.div {...fadeInView(0)} className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Como funciona</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Três passos para transformar seu fluxo</h2>
             </motion.div>
-            <div className="mt-12 grid gap-8 md:grid-cols-3">
+            <motion.div
+              className="mt-14 grid gap-6 md:grid-cols-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              variants={{ visible: { transition: { staggerChildren: 0.1 } }, hidden: {} }}
+            >
               {steps.map((step, index) => (
                 <motion.div
                   key={step.title}
-                  {...fadeUp(0.1 + index * 0.05)}
-                  className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.05] p-6 backdrop-blur transition hover:border-white/20"
+                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 24 } }}
+                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1]"
+                  whileHover={{ y: -3 }}
                 >
-                  <div className="absolute right-4 top-4 text-6xl font-black text-white/5">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-bold text-white/80">
                     {index + 1}
                   </div>
-                  <h3 className="text-lg font-semibold text-white">{step.title}</h3>
-                  <p className="mt-3 text-sm text-white/70">{step.description}</p>
-                  <div className="mt-4 inline-flex items-center rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-200">
+                  <h3 className="text-base font-semibold text-white">{step.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-white/50">{step.description}</p>
+                  <span className="mt-4 inline-block rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-white/60">
                     {step.highlight}
-                  </div>
+                  </span>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section id="pricing" className="bg-slate-950 py-20">
+        <section id="pricing" className="scroll-mt-20 border-t border-white/[0.06] py-24">
           <div className="mx-auto max-w-5xl px-6">
-            <motion.div {...fadeUp(0)} className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/40">Preço transparente</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Sem planos confusos. Um valor justo.</h2>
-              <p className="mt-4 text-white/60 sm:mx-auto sm:max-w-2xl">
-                Você foca em vender. Nós garantimos que fornecedores, listas e indicadores estejam alinhados diariamente.
+            <motion.div {...fadeInView(0)} className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Preço</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Simples e transparente</h2>
+              <p className="mt-4 text-sm text-white/50 sm:mx-auto sm:max-w-xl">
+                Mesmos recursos em todos os planos. Quanto maior o compromisso, menor o valor mensal.
               </p>
             </motion.div>
 
-            <div className="mt-12 grid gap-6 md:grid-cols-3">
+            <motion.div
+              className="mt-14 grid gap-4 md:grid-cols-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              variants={{ visible: { transition: { staggerChildren: 0.1 } }, hidden: {} }}
+            >
               {/* Plano Mensal */}
               <motion.div
-                {...fadeUp(0.1)}
-                className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 p-8 shadow-2xl"
+                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
+                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12]"
+                whileHover={{ y: -4 }}
               >
-                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-                <div className="relative">
-                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-                    Mensal
-                  </span>
-                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
-                  <p className="mt-2 text-sm text-white/60">
-                    Ideal para começar
+                <span className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
+                  Mensal
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
+                <p className="mt-1 text-sm text-white/50">Ideal para começar</p>
+                <div className="mt-6">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">por mês</p>
+                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
+                    R$ <span className="text-white">150</span>
                   </p>
-                  <div className="mt-6">
-                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento mensal</p>
-                    <p className="mt-2 text-4xl font-bold text-white">
-                      R$ <span className="text-blue-300">119</span>,99
-                    </p>
-                    <p className="mt-1 text-xs text-white/50">por mês</p>
-                  </div>
-                  <ul className="mt-6 space-y-3 text-sm text-white/70">
-                    {[
-                      'Processamento ilimitado de listas com IA',
-                      'Metas, notas e alertas',
-                      'Gestão de fornecedores',
-                      'Suporte via WhatsApp'
-                    ].map(item => (
-                      <li key={item} className="flex items-start space-x-2">
-                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-8">
-                    <a
-                      href={WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
-                    >
-                      Assinar agora
-                    </a>
-                  </div>
+                  <p className="mt-1 text-xs text-white/45">cobrança mensal</p>
+                </div>
+                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
+                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
+                    <li key={item} className="flex items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-white/50" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8">
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                  >
+                    Assinar
+                  </a>
                 </div>
               </motion.div>
 
               {/* Plano Trimestral - Destaque */}
               <motion.div
-                {...fadeUp(0.15)}
-                className="relative overflow-hidden rounded-3xl border-2 border-emerald-500/50 bg-gradient-to-br from-slate-900 via-emerald-900/20 to-slate-950 p-8 shadow-2xl"
+                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
+                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="relative rounded-2xl border-2 border-white/20 bg-white/[0.04] p-6 transition-colors hover:border-white/30"
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
-                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-emerald-500/20 blur-3xl" />
-                <div className="absolute right-4 top-4">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500 px-3 py-1 text-xs font-semibold text-emerald-950">
-                    Mais Popular
-                  </span>
-                </div>
-                <div className="relative">
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-200">
-                    Trimestral
-                  </span>
-                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
-                  <p className="mt-2 text-sm text-white/60">
-                    Economia de 25%
+                <span className="absolute right-4 top-4 rounded-lg bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-black">
+                  Popular
+                </span>
+                <span className="inline-flex rounded-lg border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/90">
+                  Trimestral
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
+                <p className="mt-1 text-sm text-white/60">Economia de 13%</p>
+                <div className="mt-6">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">equivalente a</p>
+                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
+                    R$ <span className="text-white">130</span>
                   </p>
-                  <div className="mt-6">
-                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento trimestral</p>
-                    <p className="mt-2 text-4xl font-bold text-white">
-                      R$ <span className="text-emerald-300">89</span>,99
-                    </p>
-                    <p className="mt-1 text-xs text-white/50">por mês</p>
-                    <p className="mt-2 text-xs text-emerald-300 line-through">R$ 119,99</p>
-                  </div>
-                  <ul className="mt-6 space-y-3 text-sm text-white/70">
-                    {[
-                      'Processamento ilimitado de listas com IA',
-                      'Metas, notas e alertas',
-                      'Gestão de fornecedores',
-                      'Suporte via WhatsApp'
-                    ].map(item => (
-                      <li key={item} className="flex items-start space-x-2">
-                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-8">
-                    <a
-                      href={WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
-                    >
-                      Assinar agora
-                    </a>
-                  </div>
+                  <p className="mt-1 text-xs text-white/45">por mês · cobrança trimestral</p>
+                  <p className="mt-1 text-xs text-white/40 line-through">R$ 150/mês</p>
+                </div>
+                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
+                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
+                    <li key={item} className="flex items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-white/50" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8">
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center rounded-xl bg-white py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+                  >
+                    Assinar
+                  </a>
                 </div>
               </motion.div>
 
               {/* Plano Anual */}
               <motion.div
-                {...fadeUp(0.2)}
-                className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-slate-900/80 to-slate-950 p-8 shadow-2xl"
+                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
+                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
+                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12]"
+                whileHover={{ y: -4 }}
               >
-                <div className="absolute -right-16 -top-16 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl" />
-                <div className="relative">
-                  <span className="inline-flex items-center rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-200">
-                    Anual
-                  </span>
-                  <h3 className="mt-4 text-2xl font-semibold text-white">iGestorPhone</h3>
-                  <p className="mt-2 text-sm text-white/60">
-                    Melhor economia - 33% off
+                <span className="absolute right-4 top-4 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/70">
+                  Melhor valor
+                </span>
+                <span className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
+                  Anual
+                </span>
+                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
+                <p className="mt-1 text-sm text-white/50">Economia de 33%</p>
+                <div className="mt-6">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">equivalente a</p>
+                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
+                    R$ <span className="text-white">100</span>
                   </p>
-                  <div className="mt-6">
-                    <p className="text-sm uppercase tracking-wide text-white/60">Investimento anual</p>
-                    <p className="mt-2 text-4xl font-bold text-white">
-                      R$ <span className="text-blue-300">79</span>,99
-                    </p>
-                    <p className="mt-1 text-xs text-white/50">por mês</p>
-                    <p className="mt-2 text-xs text-white/50 line-through">R$ 119,99</p>
-                  </div>
-                  <ul className="mt-6 space-y-3 text-sm text-white/70">
-                    {[
-                      'Processamento ilimitado de listas com IA',
-                      'Metas, notas e alertas',
-                      'Gestão de fornecedores',
-                      'Suporte via WhatsApp'
-                    ].map(item => (
-                      <li key={item} className="flex items-start space-x-2">
-                        <Check className="mt-[3px] h-4 w-4 flex-shrink-0 text-emerald-300" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-8">
-                    <a
-                      href={WHATSAPP_URL}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center rounded-full bg-emerald-500 px-6 py-3 text-sm font-semibold text-emerald-950 transition hover:bg-emerald-400"
-                    >
-                      Assinar agora
-                    </a>
-                  </div>
+                  <p className="mt-1 text-xs text-white/45">por mês · cobrança anual</p>
+                  <p className="mt-1 text-xs text-white/40 line-through">R$ 150/mês</p>
+                </div>
+                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
+                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
+                    <li key={item} className="flex items-center gap-2">
+                      <Check className="h-4 w-4 shrink-0 text-white/50" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8">
+                  <a
+                    href={WHATSAPP_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                  >
+                    Assinar
+                  </a>
                 </div>
               </motion.div>
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section id="depoimentos" className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 py-20">
+        <section id="depoimentos" className="scroll-mt-20 border-t border-white/[0.06] py-24">
           <div className="mx-auto max-w-5xl px-6">
-            <motion.div {...fadeUp(0)} className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/40">Depoimentos</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">Operações que já transformamos</h2>
+            <motion.div {...fadeInView(0)} className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Depoimentos</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Quem já usa</h2>
             </motion.div>
-            <div className="mt-12 grid gap-6 md:grid-cols-3">
-              {testimonials.map((testimonial, index) => (
+            <motion.div
+              className="mt-14 grid gap-4 md:grid-cols-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
+            >
+              {testimonials.map((testimonial) => (
                 <motion.div
                   key={testimonial.role}
-                  {...fadeUp(0.1 + index * 0.05)}
-                  className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-left backdrop-blur transition hover:border-white/20"
+                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
+                  transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1]"
+                  whileHover={{ y: -2 }}
                 >
-                  <div className="absolute -right-16 -top-10 h-32 w-32 rounded-full bg-blue-500/5 blur-3xl" />
-                  <p className="relative text-sm text-white/75">{testimonial.content}</p>
-                  <p className="relative mt-4 text-xs font-medium uppercase tracking-wide text-white/40">
+                  <p className="text-sm leading-relaxed text-white/70">"{testimonial.content.replace(/^"|"$/g, '')}"</p>
+                  <p className="mt-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
                     {testimonial.role}
                   </p>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section id="faq" className="bg-slate-950 py-20">
-          <div className="mx-auto max-w-4xl px-6">
-            <motion.div {...fadeUp(0)} className="text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-white/40">Perguntas frequentes</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white">Tudo que você precisa saber antes de começar</h2>
+        <section id="faq" className="scroll-mt-20 border-t border-white/[0.06] py-24">
+          <div className="mx-auto max-w-3xl px-6">
+            <motion.div {...fadeInView(0)} className="text-center">
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">FAQ</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Perguntas frequentes</h2>
             </motion.div>
-            <div className="mt-12 space-y-4">
-              {faqs.map((faq, index) => (
+            <motion.div
+              className="mt-14 space-y-3"
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewport}
+              variants={{ visible: { transition: { staggerChildren: 0.05 } }, hidden: {} }}
+            >
+              {faqs.map((faq) => (
                 <motion.details
                   key={faq.question}
-                  {...fadeUp(0.05 + index * 0.03)}
-                  className="group rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur transition hover:border-white/20"
+                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 12 } }}
+                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="group rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 transition-colors hover:border-white/[0.1] [&[open]]:border-white/[0.12]"
                 >
-                  <summary className="cursor-pointer text-base font-semibold text-white outline-none transition group-open:text-blue-200">
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
                     {faq.question}
                   </summary>
-                  <p className="mt-3 text-sm text-white/70">{faq.answer}</p>
+                  <p className="mt-3 text-sm leading-relaxed text-white/55">{faq.answer}</p>
                 </motion.details>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
-        <section className="bg-gradient-to-r from-blue-600 via-blue-500 to-emerald-500 py-16 text-white">
-          <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-6 px-6 text-center md:flex-row md:text-left">
+        <motion.section
+          className="border-t border-white/[0.06] py-20"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={viewport}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-8 px-6 text-center md:flex-row md:text-left">
             <div>
-              <h2 className="text-3xl font-semibold">Pronto para elevar sua operação Apple?</h2>
-              <p className="mt-2 max-w-xl text-sm text-white/80">
-                Agende uma demonstração personalizada, veja como a IA cuida das listas e já saia com um plano
-                para sua equipe vender mais com menos esforço.
+              <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Pronto para começar?</h2>
+              <p className="mt-2 max-w-md text-sm text-white/50">
+                Demonstração personalizada. Veja a IA em ação e escolha o plano ideal para sua equipe.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a
+              <motion.a
                 href={WHATSAPP_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-full bg-white px-6 py-3 text-sm font-semibold text-blue-600 transition hover:bg-white/90"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black"
+                variants={buttonHover}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <MessageCircle className="mr-2 h-5 w-5" />
+                <MessageCircle className="h-4 w-4" />
                 Falar com especialista
-              </a>
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center rounded-full border border-white/60 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
-              >
-                Entrar no sistema
-              </Link>
+              </motion.a>
+              <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.02] px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.06]"
+                >
+                  Entrar no sistema
+                </Link>
+              </motion.div>
             </div>
           </div>
-        </section>
+        </motion.section>
       </main>
 
-      <footer className="border-t border-white/10 bg-slate-950 py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/50 md:flex-row md:text-left">
+      <footer className="border-t border-white/[0.06] py-8">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/40 md:flex-row md:text-left">
           <p>© {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.</p>
-          <div className="flex items-center space-x-4">
-            <Link to="/terms" className="hover:text-white/80">Termos de uso</Link>
-            <Link to="/support" className="hover:text-white/80">Suporte</Link>
+          <div className="flex items-center gap-6">
+            <Link to="/terms" className="transition-colors hover:text-white/70">Termos de uso</Link>
+            <Link to="/support" className="transition-colors hover:text-white/70">Suporte</Link>
           </div>
         </div>
       </footer>
