@@ -55,9 +55,7 @@ export default function Header() {
     setShowUserMenu(false)
   }
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen)
-  }
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
   return (
     <header className="bg-white dark:bg-black backdrop-blur-xl border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl relative z-50">
@@ -70,16 +68,13 @@ export default function Header() {
               onClick={toggleSidebar}
               className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center"
             >
-              <motion.div
-                animate={{ rotate: sidebarOpen ? 90 : 0 }}
-                transition={{ duration: 0.2 }}
-              >
+              <div className={`transition-transform duration-200 ${sidebarOpen ? 'rotate-90' : ''}`}>
                 {sidebarOpen ? (
                   <X className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
                 ) : (
                   <Menu className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
                 )}
-              </motion.div>
+              </div>
             </button>
           </div>
 

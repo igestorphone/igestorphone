@@ -135,10 +135,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const NavItem = ({ item, onClick }: { item: any; onClick: () => void }) => {
     const handleClick = () => {
-      // No mobile, fecha o sidebar ao clicar em um link
-      if (window.innerWidth < 1024) {
-        onClose()
-      }
+      if (window.innerWidth < 1024) onClose()
       onClick()
     }
 

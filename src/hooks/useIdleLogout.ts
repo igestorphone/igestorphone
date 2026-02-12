@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore'
 
 const DEFAULT_IDLE_TIMEOUT_MS = 5 * 60 * 60 * 1000 // 5 horas sem atividade = logout
 const CHECK_EVERY_MS = 15 * 1000
-const TOUCH_THROTTLE_MS = 2000
+const TOUCH_THROTTLE_MS = 3000
 
 export function useIdleLogout(idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS) {
   const navigate = useNavigate()
@@ -57,15 +57,13 @@ export function useIdleLogout(idleTimeoutMs: number = DEFAULT_IDLE_TIMEOUT_MS) {
       touchThrottled()
     }
 
-    const listenerOptions: AddEventListenerOptions = { passive: true, capture: true }
+    // capture: false = handler roda DEPOIS do alvo (clique chega no botão antes)
+    const listenerOptions: AddEventListenerOptions = { passive: true, capture: false }
     const events: Array<keyof WindowEventMap> = [
-      'mousemove',
       'mousedown',
       'keydown',
       'touchstart',
       'scroll',
-      'wheel',
-      'pointerdown',
     ]
 
     let intervalId: ReturnType<typeof setInterval> | null = null
