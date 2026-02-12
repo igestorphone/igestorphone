@@ -7,6 +7,8 @@ import {
   Palette,
   ShoppingCart,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ArrowUpDown,
   Loader2,
   MessageCircle,
@@ -158,6 +160,8 @@ export default function SearchCheapestIPhonePage() {
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [currentPage, setCurrentPage] = useState(1)
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
   const [queryReady, setQueryReady] = useState(() => !isMobile())
 
@@ -166,6 +170,10 @@ export default function SearchCheapestIPhonePage() {
     const t = setTimeout(() => setQueryReady(true), 200)
     return () => clearTimeout(t)
   }, [queryReady])
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [debouncedSearch, selectedDate, selectedCategory, selectedStorage, selectedColor])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -359,6 +367,15 @@ export default function SearchCheapestIPhonePage() {
       suppliersCount: uniqueSuppliers.size
     }
   }, [productsQuery.data])
+
+  const pagination = useMemo(() => {
+    const all = productsQuery.data || []
+    const total = all.length
+    const totalPages = Math.max(1, Math.ceil(total / itemsPerPage))
+    const start = (currentPage - 1) * itemsPerPage
+    const paginated = all.slice(start, start + itemsPerPage)
+    return { paginated, total, totalPages }
+  }, [productsQuery.data, currentPage, itemsPerPage])
 
   const handleWhatsApp = (whatsapp: string, product?: any) => {
     if (!whatsapp) {
@@ -662,14 +679,55 @@ Ainda tem disponível?`
                 transition={{ duration: 0.3 }}
               >
                 <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {productsQuery.data.length} {productsQuery.data.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
-                    </h3>
-                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                      <ArrowUpDown className="w-4 h-4" />
-                      <span>Ordenado por: Menor Preço</span>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {pagination.total} {pagination.total === 1 ? 'produto' : 'produtos'}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                        <span>Por página:</span>
+                        <select
+                          value={itemsPerPage}
+                          onChange={(e) => {
+                            setItemsPerPage(Number(e.target.value))
+                            setCurrentPage(1)
+                          }}
+                          className="px-2 py-1 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-white/10 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value={10}>10</option>
+                          <option value={25}>25</option>
+                          <option value={50}>50</option>
+                          <option value={100}>100</option>
+                        </select>
+                      </div>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-300">
+                        <ArrowUpDown className="w-4 h-4 inline mr-1" />
+                        Ordenado por: Menor Preço
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage <= 1}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-white/10 text-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/20 transition-colors"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Anterior
+                    </button>
+                    <span className="text-sm font-medium text-gray-700 dark:text-white">
+                      Página {currentPage} de {pagination.totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
+                      disabled={currentPage >= pagination.totalPages}
+                      className="flex items-center gap-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/20 bg-white dark:bg-white/10 text-gray-700 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/20 transition-colors"
+                    >
+                      Próx.
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                   {priceHistoryQuery.data && Array.isArray((priceHistoryQuery.data as any).prices) && (priceHistoryQuery.data as any).prices.length > 0 && (
                     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
@@ -737,18 +795,18 @@ Ainda tem disponível?`
                     </thead>
                     <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-white/10">
                       <AnimatePresence>
-                        {productsQuery.data.map((product: any, index: number) => (
+                        {pagination.paginated.map((product: any, index: number) => (
                           <motion.tr
-                            key={`${product.id}-${index}`}
+                            key={`${product.id}-${(currentPage - 1) * itemsPerPage + index}`}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.2, delay: index * 0.02 }}
+                            transition={{ duration: 0.2 }}
                             className="hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
                           >
                             <td className="px-2 py-3 whitespace-normal">
                               <div className="flex items-center">
-                                {index === 0 && (
+                                {currentPage === 1 && index === 0 && (
                                   <motion.span
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
@@ -812,7 +870,7 @@ Ainda tem disponível?`
                                 <span className="text-sm font-bold text-green-400">
                                   {formatPrice(product.price || 0)}
                                 </span>
-                                {index === 0 && (
+                                {currentPage === 1 && index === 0 && (
                                   <motion.span
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
@@ -867,20 +925,20 @@ Ainda tem disponível?`
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4 p-4">
                   <AnimatePresence>
-                    {productsQuery.data.map((product: any, index: number) => (
+                    {pagination.paginated.map((product: any, index: number) => (
                       <motion.div
-                        key={`${product.id}-${index}`}
+                        key={`${product.id}-${(currentPage - 1) * itemsPerPage + index}`}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2, delay: index * 0.02 }}
+                        transition={{ duration: 0.2 }}
                         className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-gray-200 dark:border-white/20"
                       >
                         {/* Header with product name and badge */}
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              {index === 0 && (
+                              {currentPage === 1 && index === 0 && (
                                 <motion.span
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
@@ -902,7 +960,7 @@ Ainda tem disponível?`
                             <div className="text-xl font-bold text-green-600 dark:text-green-400">
                               {formatPrice(product.price || 0)}
                             </div>
-                            {index === 0 && (
+                            {currentPage === 1 && index === 0 && (
                               <motion.span
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
