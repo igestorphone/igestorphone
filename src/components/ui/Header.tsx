@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
@@ -62,11 +63,11 @@ export default function Header() {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 relative">
           {/* Left side */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             {/* Mobile menu button - min 44px tap target (iOS) */}
             <button
               onClick={toggleSidebar}
-              className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center"
+              className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center shrink-0"
             >
               <div className={`transition-transform duration-200 ${sidebarOpen ? 'rotate-90' : ''}`}>
                 {sidebarOpen ? (
@@ -76,10 +77,25 @@ export default function Header() {
                 )}
               </div>
             </button>
+            {/* Logo + nome no mobile - estilo similar ao concorrente */}
+            <Link
+              to="/search-cheapest-iphone"
+              className="lg:hidden flex items-center gap-2 min-w-0 flex-1"
+              onClick={() => sidebarOpen && setSidebarOpen(false)}
+            >
+              <img
+                src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
+                alt="iGestorPhone"
+                className="h-8 w-8 shrink-0 rounded-lg object-contain"
+              />
+              <span className="font-semibold text-gray-900 dark:text-white truncate text-base">
+                iGestorPhone
+              </span>
+            </Link>
           </div>
 
           {/* Right side */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 shrink-0">
             {/* Toggle Theme Button */}
             <button
               onClick={toggleTheme}
