@@ -177,8 +177,16 @@ export default function SearchCheapestIPhonePage() {
     }
   }, [queryClient])
 
-  // Buscar produtos se houver busca com pelo menos 3 caracteres OU se houver algum filtro selecionado
-  const shouldFetchProducts = true
+  // Mobile: só busca quando digitar ≥3 chars (evita travar). Desktop: busca ao entrar.
+  const hasSearchOrFilter = debouncedSearch.length >= 3 || selectedDate || selectedCategory || selectedStorage || selectedColor
+  const [isMobileView, setIsMobileView] = useState(() => isMobile())
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const handler = () => setIsMobileView(mq.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+  const shouldFetchProducts = isMobileView ? hasSearchOrFilter : true
 
   // 17 Pro e 16 Pro usam cores normalizadas (ex: Laranja Cósmico); o backend filtra pelo valor bruto (ex: Cosmic Orange) e não acha. Não enviar color à API e filtrar no front por cor normalizada.
   const searchLowerForColor = debouncedSearch.toLowerCase().trim()
@@ -204,7 +212,7 @@ export default function SearchCheapestIPhonePage() {
         date: selectedDate || undefined,
         sort_by: 'price',
         sort_order: 'asc',
-        limit: 5000
+        limit: 500
       }),
     enabled: shouldFetchProducts && queryReady,
     staleTime: 10000,
@@ -467,7 +475,7 @@ Ainda tem disponível?`
           transition={{ duration: 0.4, delay: 0.1 }}
           className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
-          <SearchInputDebounced onDebouncedChange={setDebouncedSearch} placeholder="Buscar produtos..." />
+          <SearchInputDebounced onDebouncedChange={setDebouncedSearch} placeholder="Buscar (mín. 3 caracteres, ex: iPhone 16)..." />
         </motion.div>
 
         {/* Update status and filters */}
@@ -650,8 +658,14 @@ Ainda tem disponível?`
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 dark:bg-white/10 backdrop-blur-sm mb-4 border border-gray-200 dark:border-white/20">
                   <Search className="w-10 h-10 text-gray-400 dark:text-gray-300" />
                 </div>
-                <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Nenhum produto encontrado</p>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">Digite um termo de busca ou ajuste os filtros</p>
+                <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  {!shouldFetchProducts ? 'Digite para buscar' : 'Nenhum produto encontrado'}
+                </p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {!shouldFetchProducts
+                    ? 'Digite pelo menos 3 caracteres (ex: iPhone 16, iPhone 15 Pro)'
+                    : 'Ajuste os filtros ou tente outro termo de busca'}
+                </p>
               </motion.div>
             ) : (
               <motion.div
@@ -736,27 +750,17 @@ Ainda tem disponível?`
                       </tr>
                     </thead>
                     <tbody className="bg-white dark:bg-black divide-y divide-gray-200 dark:divide-white/10">
-                      <AnimatePresence>
-                        {productsQuery.data.map((product: any, index: number) => (
-                          <motion.tr
+                      {productsQuery.data.map((product: any, index: number) => (
+                          <tr
                             key={`${product.id}-${index}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.2, delay: index * 0.02 }}
                             className="hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
                           >
                             <td className="px-2 py-3 whitespace-normal">
                               <div className="flex items-center">
                                 {index === 0 && (
-                                  <motion.span
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 200 }}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold mr-1.5 flex-shrink-0"
-                                  >
+                                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold mr-1.5 flex-shrink-0">
                                     1
-                                  </motion.span>
+                                  </span>
                                 )}
                                 <div className="min-w-0">
                                   <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
@@ -813,36 +817,27 @@ Ainda tem disponível?`
                                   {formatPrice(product.price || 0)}
                                 </span>
                                 {index === 0 && (
-                                  <motion.span
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    transition={{ type: 'spring', stiffness: 200 }}
-                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30"
-                                  >
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30">
                                     Mais Barato
-                                  </motion.span>
+                                  </span>
                                 )}
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-center">
                               <div className="flex items-center justify-center space-x-1">
                                 {product.whatsapp ? (
-                                  <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
+                                  <button
                                     onClick={() => handleWhatsApp(product.whatsapp, product)}
                                     className="bg-green-500 hover:bg-green-600 text-white px-2 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all shadow-lg"
                                     title="Contatar no WhatsApp"
                                   >
                                     <MessageCircle className="w-4 h-4" />
                                     <span className="hidden lg:inline">WhatsApp</span>
-                                  </motion.button>
+                                  </button>
                                 ) : (
                                   <div className="text-[10px] text-gray-400 px-1 py-0.5">Sem WhatsApp</div>
                                 )}
-                                <motion.button
-                                  whileHover={{ scale: 1.1 }}
-                                  whileTap={{ scale: 0.95 }}
+                                <button
                                   onClick={() => {
                                     const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
@@ -854,26 +849,20 @@ Ainda tem disponível?`
                                   title="Copiar informações"
                                 >
                                   <Copy className="w-4 h-4" />
-                                </motion.button>
+                                </button>
                               </div>
                             </td>
-                          </motion.tr>
-                  ))}
-                      </AnimatePresence>
+                          </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
 
                 {/* Mobile Card View */}
                 <div className="md:hidden space-y-4 p-4">
-                  <AnimatePresence>
                     {productsQuery.data.map((product: any, index: number) => (
-                      <motion.div
+                      <div
                         key={`${product.id}-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.2, delay: index * 0.02 }}
                         className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-gray-200 dark:border-white/20"
                       >
                         {/* Header with product name and badge */}
@@ -881,14 +870,9 @@ Ainda tem disponível?`
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               {index === 0 && (
-                                <motion.span
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 200 }}
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold"
-                                >
+                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold">
                                   1
-                                </motion.span>
+                                </span>
                               )}
                               <h3 className="text-base font-bold text-gray-900 dark:text-white">
                                 {product.name || product.model || 'N/A'}
@@ -903,14 +887,9 @@ Ainda tem disponível?`
                               {formatPrice(product.price || 0)}
                             </div>
                             {index === 0 && (
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200 }}
-                                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30"
-                              >
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30">
                                 Mais Barato
-                              </motion.span>
+                              </span>
                             )}
                           </div>
                         </div>
@@ -947,19 +926,17 @@ Ainda tem disponível?`
                         {/* Actions */}
                         <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-white/10">
                           {product.whatsapp ? (
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
+                            <button
                               onClick={() => handleWhatsApp(product.whatsapp, product)}
                               className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all shadow-lg"
                             >
                               <MessageCircle className="w-5 h-5" />
                               <span>WhatsApp</span>
-                            </motion.button>
+                            </button>
                           ) : (
                             <div className="flex-1 text-xs text-gray-400 px-4 py-3 text-center">Sem WhatsApp</div>
                           )}
-                          <motion.button
-                            whileTap={{ scale: 0.95 }}
+                          <button
                             onClick={() => {
                               const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
@@ -971,11 +948,10 @@ Ainda tem disponível?`
                             title="Copiar informações"
                           >
                             <Copy className="w-5 h-5" />
-                          </motion.button>
+                          </button>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
-                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

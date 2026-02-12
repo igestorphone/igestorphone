@@ -6,7 +6,6 @@ import { produtosApi } from '@/lib/api'
 import { Loader2 } from 'lucide-react'
 
 const MIN_LOADING_MS = 3500
-const PREFETCH_QUERY_KEY = ['produtos', '', '', '', '', '']
 
 export default function PostLoginLoadingPage() {
   const navigate = useNavigate()
@@ -21,13 +20,15 @@ export default function PostLoginLoadingPage() {
     const prefetch = async () => {
       if (canAccessOnlyCalendar()) return
       try {
+        // Prefetch busca "iPhone" (comum) - quando usuário digitar, cache já estará quente
         await queryClient.prefetchQuery({
-          queryKey: PREFETCH_QUERY_KEY,
+          queryKey: ['produtos', 'iPhone', '', '', '', ''],
           queryFn: () =>
             produtosApi.getAll({
+              search: 'iPhone',
               sort_by: 'price',
               sort_order: 'asc',
-              limit: 5000
+              limit: 500
             }),
           staleTime: 10000
         })
