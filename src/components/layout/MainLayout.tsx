@@ -44,23 +44,23 @@ export default function MainLayout() {
         </motion.div>
       )}
 
-      {/* Mobile Sidebar - CSS transition (mais fluido no iPhone que Framer) */}
+      {/* Mobile Sidebar - overlay NÃO sobrepõe sidebar (evita tap roubado no iOS) */}
       {!isDesktop && (
         <>
           <div
             aria-hidden={!sidebarOpen}
-            className={`fixed inset-y-0 left-0 z-[50] w-64 transform transition-transform duration-200 ease-out will-change-transform ${
+            className={`fixed inset-y-0 left-0 z-[50] w-64 transform transition-transform duration-200 ease-out ${
               sidebarOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
-            style={{ touchAction: 'manipulation' }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
           >
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </div>
+          {/* Overlay só cobre área à direita do sidebar - toques no menu não passam pro overlay */}
           <div
             aria-hidden={!sidebarOpen}
-            className={`fixed inset-0 bg-black/50 z-[45] transition-opacity duration-200 ${
-              sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            className={`fixed top-0 right-0 bottom-0 z-[45] bg-black/50 transition-opacity duration-200 ${
+              sidebarOpen ? 'opacity-100 left-64' : 'opacity-0 left-full pointer-events-none'
             }`}
             style={{ touchAction: 'manipulation' }}
             onClick={() => setSidebarOpen(false)}

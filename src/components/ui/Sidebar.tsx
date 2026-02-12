@@ -147,7 +147,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         to={item.href}
         onClick={handleClick}
         className={({ isActive }) =>
-          `flex items-center ${sidebarCollapsed ? 'justify-center px-3' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-200 group ${
+          `flex items-center min-h-[44px] ${sidebarCollapsed ? 'justify-center px-3' : 'space-x-3 px-4'} py-3 rounded-lg transition-all duration-200 group active:opacity-90 ${
             isActive
               ? 'bg-blue-500/20 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30'
               : 'text-gray-700 dark:text-white/70 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10'
@@ -207,7 +207,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </button>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors lg:hidden"
+            className="min-w-[44px] min-h-[44px] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors lg:hidden flex items-center justify-center"
           >
             <X className="w-5 h-5 text-gray-700 dark:text-white" />
           </button>

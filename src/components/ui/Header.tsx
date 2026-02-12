@@ -65,10 +65,10 @@ export default function Header() {
         <div className="flex items-center justify-between h-20 relative">
           {/* Left side */}
           <div className="flex items-center space-x-4">
-            {/* Mobile menu button - apenas no mobile */}
+            {/* Mobile menu button - min 44px tap target (iOS) */}
             <button
               onClick={toggleSidebar}
-              className="p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group"
+              className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center"
             >
               <motion.div
                 animate={{ rotate: sidebarOpen ? 90 : 0 }}

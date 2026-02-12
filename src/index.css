@@ -16,7 +16,7 @@
     scroll-behavior: smooth;
   }
 
-  /* Mobile: toque imediato, sem atraso de 300ms e sem highlight pesado */
+  /* Mobile: toque imediato, sem atraso 300ms, sem highlight, área de toque maior */
   @media (hover: none) and (pointer: coarse) {
     button,
     a,
@@ -26,6 +26,10 @@
     textarea {
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
+    }
+    /* Links e botões: área mínima 44px (Apple HIG) para toque confiável */
+    nav a {
+      min-height: 44px;
     }
   }
 }
