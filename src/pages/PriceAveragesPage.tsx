@@ -121,6 +121,23 @@ function normalizeStorage(s: string): string {
   return t || ''
 }
 
+/** Modelo sem capacidade nem variantes: "iPhone 17 Pro Max 256gb ip" → "iPhone 17 Pro Max". Usado para agrupar e exibir (capacidade vem só do storage). */
+function modelBase(model: string): string {
+  const normalized = normalizeModelForDisplay(model || '')
+  return normalized
+    .replace(/\s*\d+\s*(?:gb|GB|tb|TB)\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || '—'
+}
+
+/** Extrai storage de model+storage para casos em que storage está vazio ou duplicado no model. */
+function getCanonicalStorage(model: string, storage: string): string {
+  const fromStorage = normalizeStorage(storage || '')
+  if (fromStorage) return fromStorage
+  const combined = `${model || ''} ${storage || ''}`.trim()
+  return normalizeStorage(combined) || ''
+}
+
 export default function PriceAveragesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
@@ -137,7 +154,7 @@ export default function PriceAveragesPage() {
     return c === 'Jp' || c === 'jp' ? '—' : c
   }
   const rowKey = (row: { model?: string; color?: string; storage?: string }) =>
-    `${normalizeModelForDisplay(row.model || '').trim()}|${colorForKey(row.color || '', row.model || '')}|${(row.storage || '').trim()}`
+    `${modelBase(row.model || '')}|${colorForKey(row.color || '', row.model || '')}|${normalizeStorage(row.storage || '') || (row.storage || '').trim()}`
   const selectAllRef = useRef<HTMLInputElement>(null)
 
   const isModelWithOfficialColors = useMemo(() => {
@@ -167,7 +184,7 @@ export default function PriceAveragesPage() {
     refetchOnWindowFocus: true
   })
 
-  // Deduplica e normaliza modelo (remove LI, Pons, etc.) para que "iPhone 17 Pro Max LI" e "iPhone 17 Pro Max" virem um só
+  // Deduplica: modelo base + capacidade + cor. Sem variantes (Ind, -Sim, ip, LAC, etc.) e sem capacidade duplicada.
   const averages = useMemo(() => {
     const raw = Array.isArray(data?.averages) ? data.averages : []
     let list = raw
@@ -175,9 +192,9 @@ export default function PriceAveragesPage() {
       list = raw.filter((r: (typeof raw)[0]) => normalizeColor(r.color, r.model || '') === selectedColor)
     }
     const key = (r: (typeof raw)[0]) => {
-      const modelNorm = normalizeModelForDisplay(r.model || '')
-      const storageNorm = (r.storage || '').trim().toUpperCase().replace(/\s+/g, ' ')
-      return `${modelNorm}|${colorForKey(r.color || '', r.model || '')}|${storageNorm}`
+      const base = modelBase(r.model || '')
+      const st = getCanonicalStorage(r.model || '', r.storage || '')
+      return `${base}|${colorForKey(r.color || '', r.model || '')}|${st}`
     }
     const byKey = new Map<string, { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }>()
     for (const r of list) {
@@ -187,13 +204,14 @@ export default function PriceAveragesPage() {
       const avg = Number(r.avg_price) || 0
       const minP = r.min_price != null ? Number(r.min_price) : null
       const maxP = r.max_price != null ? Number(r.max_price) : null
-      const modelDisplay = normalizeModelForDisplay(r.model || '')
+      const base = modelBase(r.model || '')
+      const st = getCanonicalStorage(r.model || '', r.storage || '')
       if (!existing) {
         const displayColor = r.color && r.color.toLowerCase() !== 'jp' ? (r.color || '—') : '—'
         byKey.set(k, {
-          model: modelDisplay,
+          model: base,
           color: displayColor,
-          storage: r.storage || '—',
+          storage: st || '—',
           avg_price: avg,
           count,
           min_price: minP,
@@ -223,12 +241,12 @@ export default function PriceAveragesPage() {
     colorsByPrice?: Record<string, { avg: number; count: number }>
   }
 
-  /** UMA linha por modelo+capacidade. Para 17 Pro/Pro Max: cores em colorsByPrice na mesma linha. */
+  /** UMA linha por modelo+capacidade. Para 17 Pro/Pro Max: cores em colorsByPrice na mesma linha. Sem duplicatas. */
   const averagesForDisplay = useMemo(() => {
     const byModelStorage = new Map<string, Row[]>()
     for (const r of averages) {
-      const storageNorm = normalizeStorage(r.storage || '') || (r.storage || '').trim()
-      const k = `${(r.model || '').trim()}|${storageNorm}`
+      const st = normalizeStorage(r.storage || '') || (r.storage || '').trim()
+      const k = `${(r.model || '').trim()}|${st}`
       if (!byModelStorage.has(k)) byModelStorage.set(k, [])
       byModelStorage.get(k)!.push(r)
     }
@@ -364,8 +382,8 @@ export default function PriceAveragesPage() {
         return keyA.localeCompare(keyB)
       })
       .map((r) => {
-        const storageClean = (r.storage || '').trim().toUpperCase().replace(/\s+/g, ' ').replace(/(\d+)\s*TB/i, '$1TB').replace(/(\d+)\s*GB/i, '$1GB')
-        const label = `${(r.model || '').trim()} ${storageClean}`.trim() || '—'
+        const st = normalizeStorage(r.storage || '') || (r.storage || '').trim()
+        const label = `${(r.model || '').trim()} ${st}`.trim() || '—'
         return { groupLabel: label, rows: [r], is17Pro: is17ProOrProMax(r.model || '') }
       })
   }, [averagesForDisplay])
