@@ -35,14 +35,43 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove variantes (Ind/Us, LI, Pons, etc.) e unifica Promax→Pro Max. */
+/** Normaliza nome do modelo no frontend: remove variantes (E-Sim, Anatel, 128gbb, etc.) e unifica Promax→Pro Max para agrupar médias. */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
+    // iPhone -13, -14, etc. → iPhone 13, 14
+    .replace(/iPhone\s*-\s*(\d+)/gi, 'iPhone $1')
+    // 16-E, 16e → 16 E (iPhone 16e)
+    .replace(/(\d+)\s*[-]?\s*E\b/gi, '$1 E')
     .replace(/\bPromax\b/gi, 'Pro Max')
+    // Variantes de chip/SIM
+    .replace(/\s+E-?[Ss]im\s*/gi, ' ')
+    .replace(/\s+-[Ss]im\s*/gi, ' ')
+    .replace(/\s+[Ee]sim\s*/gi, ' ')
+    .replace(/\s+Anatel\s*/gi, ' ')
+    .replace(/\s+ip\s+Anatel\s*/gi, ' ')
+    .replace(/\s+\([Cc]hip\s*\)\s*/gi, ' ')
+    // Variantes de região
+    .replace(/\bJp\b/gi, ' ')
+    .replace(/\s+\/A\s*/g, ' ')
+    .replace(/\s+Jp\/A\s*/gi, ' ')
+    .replace(/\s+J\/A\s*/gi, ' ')
+    .replace(/\bUsa\s+/gi, ' ')
+    .replace(/\bUs\s+/gi, ' ')
+    .replace(/\s+Japon[eê]s\s*/gi, ' ')
+    // Typos de capacidade: 128gbb → 128gb, (128gbb) → 128gb
+    .replace(/(\d+)gbb/gi, '$1gb')
+    .replace(/\s*\((\d+)gb\)\s*/gi, ' $1gb ')
+    .replace(/\s*\((\d+)gbb\)\s*/gi, ' $1gb ')
+    // 1tbt, 1tbtgb, 2tbt, etc. → 1tb
+    .replace(/(\d+)tbtgb/gi, '$1tb')
+    .replace(/(\d+)tbt\s/gi, '$1tb ')
+    // Remove duplicata de capacidade (ex: 64gb 64GB ou 1tb Tb 1TB → 64gb / 1tb)
+    .replace(/(\d+)\s*(?:gb|GB)\s+\d+\s*(?:gb|GB)/gi, '$1gb')
+    .replace(/(\d+)\s*(?:tb|TB)\s+\d+\s*(?:tb|TB)/gi, '$1tb')
+    // Outras variantes
     .replace(/\s+Diversos\s*/gi, ' ')
     .replace(/\bInd\s+/gi, ' ')
-    .replace(/\bUs\s+/gi, ' ')
     .replace(/\s+L\s*I\s*/gi, ' ')
     .replace(/\s+LI\s*/gi, ' ')
     .replace(/\s+Ll\s*/gi, ' ')
@@ -130,7 +159,8 @@ export default function PriceAveragesPage() {
     }
     const key = (r: (typeof raw)[0]) => {
       const modelNorm = normalizeModelForDisplay(r.model || '')
-      return `${modelNorm}|${colorForKey(r.color || '', r.model || '')}|${(r.storage || '').trim()}`
+      const storageNorm = (r.storage || '').trim().toUpperCase().replace(/\s+/g, ' ')
+      return `${modelNorm}|${colorForKey(r.color || '', r.model || '')}|${storageNorm}`
     }
     const byKey = new Map<string, { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }>()
     for (const r of list) {
