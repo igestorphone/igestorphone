@@ -400,22 +400,8 @@ router.get('/price-averages', async (req, res) => {
     paramCount++
   }
 
-  const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
-      REGEXP_REPLACE(
-        REGEXP_REPLACE(
-          REGEXP_REPLACE(
-            REGEXP_REPLACE(
-              REGEXP_REPLACE(
-                REGEXP_REPLACE(
-                  REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REGEXP_REPLACE(COALESCE(p.model, p.name), '[^a-zA-Z0-9\\s]', '', 'g'), ' 01 01 ', ' '), ' 1 1 ', ' '), ' 1 ', ' '), ' in ', ' '), ' ins ', ' '),
-                  'promax', 'pro max', 'gi'),
-                '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
-              '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
-            '\\s*L\\s*I\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb|tb|diversos)\\s*', ' ', 'gi'),
-          '\\s+(ind|us)\\s+', ' ', 'gi'),
-        '\\s+[a-zA-Z]\\s*$', '', 'g'),
-        '\\s+', ' ', 'g')))`
+  // Normaliza modelo (o frontend faz normalização adicional: Promax→Pro Max, remove LI/Pons/etc)
+  const normalizedModelExpr = `LOWER(TRIM(COALESCE(p.model, p.name)))`
 
   const whereClause = conditions.join(' AND ');
   try {
