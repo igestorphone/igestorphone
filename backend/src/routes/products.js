@@ -359,14 +359,15 @@ router.get('/', [
 // Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE, timezone Brasil)
 // Modelo normalizado: agrupa variantes (Anatel, E-SIM, com Chip, etc.) em uma única linha
 router.get('/price-averages', async (req, res) => {
-  try {
-    const search = (req.query.search || '').trim()
-    const color = (req.query.color || '').trim()
-    const storage = (req.query.storage || '').trim()
+  const search = (req.query.search || '').trim()
+  const color = (req.query.color || '').trim()
+  const storage = (req.query.storage || '').trim()
+  const values = []
+  let paramCount = 1
 
-    // Apenas HOJE no timezone de Brasília — médias zeram junto com produtos à meia-noite
-    const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
-    const conditions = [
+  // HOJE ou ontem no timezone de Brasília
+  const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
+  const conditions = [
       'p.is_active = true',
       's.is_active = true',
       'p.price > 0',
@@ -377,32 +378,29 @@ router.get('/price-averages', async (req, res) => {
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
       `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
       )`
     ]
-    const values = []
-    let paramCount = 1
 
-    if (search) {
-      const term = `%${search.toLowerCase()}%`
-      conditions.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
-      values.push(term)
-      paramCount++
-    }
-    if (color) {
-      conditions.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
-      values.push(color)
-      paramCount++
-    }
-    if (storage) {
-      conditions.push(`p.storage = $${paramCount}`)
-      values.push(storage)
-      paramCount++
-    }
+  if (search) {
+    const term = `%${search.toLowerCase()}%`
+    conditions.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
+    values.push(term)
+    paramCount++
+  }
+  if (color) {
+    conditions.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
+    values.push(color)
+    paramCount++
+  }
+  if (storage) {
+    conditions.push(`p.storage = $${paramCount}`)
+    values.push(storage)
+    paramCount++
+  }
 
-    // Normalizar modelo: Promax→pro max, remove In/Ins/Tb e variantes (evita duplicar 17 Promax vs 17 Pro Max)
-    const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
+  const normalizedModelExpr = `LOWER(TRIM(REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
           REGEXP_REPLACE(
@@ -417,9 +415,10 @@ router.get('/price-averages', async (req, res) => {
           '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb|tb|diversos)\\s*', ' ', 'gi'),
           '\\s+(ind|us)\\s+', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
-      '\\s+', ' ', 'g')))`
+        '\\s+', ' ', 'g')))`
 
-    const whereClause = conditions.join(' AND ')
+  const whereClause = conditions.join(' AND ');
+  try {
     const result = await query(`
       WITH base AS (
         SELECT
@@ -445,29 +444,67 @@ router.get('/price-averages', async (req, res) => {
       ORDER BY model_key, color, storage
     `, values);
 
-    const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
+  const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
+  const toDisplayModel = (key) => {
+    if (!key || key === '—') return '—';
+    const rest = key.replace(/^iphone\s*/i, '').trim();
+    return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone';
+  };
 
-    // Exibir modelo bonito: "iPhone 17 Pro Max" (primeira letra de cada palavra maiúscula)
-    const toDisplayModel = (key) => {
-      if (!key || key === '—') return '—'
-      const rest = key.replace(/^iphone\s*/i, '').trim()
-      return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone'
-    }
+  const rows = result.rows.map((r) => ({
+    model: toDisplayModel(r.model_key),
+    color: r.color || '—',
+    storage: r.storage || '—',
+    avg_price: Number(r.avg_price),
+    count: r.count,
+    min_price: r.min_price != null ? roundTo50(r.min_price) : null,
+    max_price: r.max_price != null ? roundTo50(r.max_price) : null,
+  }));
 
-    // Média sem arredondamento; mín/máx arredondados em R$ 50
-    const rows = result.rows.map((r) => ({
-      model: toDisplayModel(r.model_key),
-      color: r.color || '—',
-      storage: r.storage || '—',
-      avg_price: Number(r.avg_price),
-      count: r.count,
-      min_price: r.min_price != null ? roundTo50(r.min_price) : null,
-      max_price: r.max_price != null ? roundTo50(r.max_price) : null,
-    }));
-
-    res.json({ averages: rows });
+  res.json({ averages: rows });
   } catch (error) {
     console.error('Erro ao buscar médias de preço:', error);
+    // Fallback: se condition_detail não existir, tentar com condition = 'Novo' apenas
+    const errMsg = (error?.message || '').toLowerCase();
+    if (errMsg.includes('condition_detail') || errMsg.includes('is_active') || errMsg.includes('column') || errMsg.includes('does not exist')) {
+      try {
+        const fallbackCond = conditions
+          .filter((c) => !c.includes('p.is_active'))
+          .map((c) => (c.includes('condition_detail') ? '(p.condition = \'Novo\')' : c))
+          .join(' AND ');
+        const result2 = await query(`
+          WITH base AS (
+            SELECT p.price, ${normalizedModelExpr} AS model_canonical,
+              TRIM(COALESCE(p.color, '')) AS color, TRIM(COALESCE(p.storage, '')) AS storage
+            FROM products p JOIN suppliers s ON p.supplier_id = s.id
+            WHERE ${fallbackCond}
+          )
+          SELECT model_canonical AS model_key, color, storage,
+            AVG(price)::numeric AS avg_price, COUNT(*)::int AS count,
+            MIN(price)::numeric AS min_price, MAX(price)::numeric AS max_price
+          FROM base GROUP BY model_canonical, color, storage HAVING COUNT(*) >= 1
+          ORDER BY model_key, color, storage
+        `, values);
+        const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
+        const toDisplayModel = (key) => {
+          if (!key || key === '—') return '—';
+          const rest = key.replace(/^iphone\s*/i, '').trim();
+          return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone';
+        };
+        const rows = result2.rows.map((r) => ({
+          model: toDisplayModel(r.model_key),
+          color: r.color || '—',
+          storage: r.storage || '—',
+          avg_price: Number(r.avg_price),
+          count: r.count,
+          min_price: r.min_price != null ? roundTo50(r.min_price) : null,
+          max_price: r.max_price != null ? roundTo50(r.max_price) : null,
+        }));
+        return res.json({ averages: rows });
+      } catch (fallbackErr) {
+        console.error('Fallback também falhou:', fallbackErr);
+      }
+    }
     const isDev = process.env.NODE_ENV !== 'production';
     res.status(500).json({
       message: 'Erro interno do servidor',
