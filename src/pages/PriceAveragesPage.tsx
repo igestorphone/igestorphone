@@ -53,13 +53,15 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+ip\s+Anatel\s*/gi, ' ')
     .replace(/\s+ip\s+/gi, ' ')
     .replace(/\s*\([Cc]hip\s*\)\s*/gi, ' ')
-    // Variantes de região (J = abreviação de Jp/Japão)
+    // Variantes de região/chip (J, Jp, JJ = Japão; Us, Usa = EUA; LAC = Lacrado/América Latina)
     .replace(/\bJp\b/gi, ' ')
+    .replace(/\bJJ\b/gi, ' ')
     .replace(/\s+J\s+/g, ' ')
     .replace(/\s+Jp\/A\s*/gi, ' ')
     .replace(/\s+J\/A\s*/gi, ' ')
-    .replace(/\bUsa\s+/gi, ' ')
-    .replace(/\bUs\s+/gi, ' ')
+    .replace(/\bUsa\b/gi, ' ')
+    .replace(/\bUs\b/gi, ' ')
+    .replace(/\bLAC\b/gi, ' ')
     .replace(/\s+Japon[eê]s\s*/gi, ' ')
     // Typos de capacidade: 128gbb → 128gb, (128gbb) → 128gb
     .replace(/(\d+)gbb/gi, '$1gb')
@@ -106,6 +108,17 @@ function normalizeModelForDisplay(model: string): string {
 function is17ProOrProMax(model: string): boolean {
   const m = (model || '').toLowerCase()
   return m.includes('17 pro max') || (m.includes('17 pro') && !m.includes('17 pro max'))
+}
+
+/** Normaliza capacidade para agrupar: 256gb→256GB, 1tb→1TB (uma linha por GB). */
+function normalizeStorage(s: string): string {
+  if (!s || !s.trim()) return ''
+  const t = s.trim().toUpperCase().replace(/\s+/g, ' ')
+  const tb = t.match(/(\d+)\s*TB/i)
+  const gb = t.match(/(\d+)\s*GB/i)
+  if (tb) return `${tb[1]}TB`
+  if (gb) return `${gb[1]}GB`
+  return t || ''
 }
 
 export default function PriceAveragesPage() {
@@ -198,13 +211,24 @@ export default function PriceAveragesPage() {
     return Array.from(byKey.values())
   }, [data?.averages, isModelWithOfficialColors, selectedColor])
 
-  type Row = { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }
+  type Row = {
+    model: string
+    color: string
+    storage: string
+    avg_price: number
+    count: number
+    min_price: number | null
+    max_price: number | null
+    /** Para 17 Pro/Pro Max: média por cor (Azul Intenso, Laranja Cósmico, Prateado) */
+    colorsByPrice?: Record<string, { avg: number; count: number }>
+  }
 
-  /** Para 17 Pro/Pro Max: uma linha por cor. Para os demais: uma linha por modelo+capacidade (média englobando todas as cores). */
+  /** UMA linha por modelo+capacidade. Para 17 Pro/Pro Max: cores em colorsByPrice na mesma linha. */
   const averagesForDisplay = useMemo(() => {
     const byModelStorage = new Map<string, Row[]>()
     for (const r of averages) {
-      const k = `${(r.model || '').trim()}|${(r.storage || '').trim()}`
+      const storageNorm = normalizeStorage(r.storage || '') || (r.storage || '').trim()
+      const k = `${(r.model || '').trim()}|${storageNorm}`
       if (!byModelStorage.has(k)) byModelStorage.set(k, [])
       byModelStorage.get(k)!.push(r)
     }
@@ -214,12 +238,41 @@ export default function PriceAveragesPage() {
       const model = rows[0].model
       const storage = rows[0].storage
       if (is17ProOrProMax(model)) {
-        out.push(...rows)
+        const colorsByPrice: Record<string, { avg: number; count: number }> = {}
+        let totalCount = 0
+        let weightedSum = 0
+        let minP: number | null = null
+        let maxP: number | null = null
+        const displayStorage = normalizeStorage(rows[0].storage || '') || rows[0].storage
+        for (const r of rows) {
+          const c = normalizeColor(r.color || '', model)
+          if (c && c !== '—') {
+            if (!colorsByPrice[c]) colorsByPrice[c] = { avg: 0, count: 0 }
+            const tot = colorsByPrice[c].count + r.count
+            colorsByPrice[c].avg = tot > 0 ? (colorsByPrice[c].avg * colorsByPrice[c].count + r.avg_price * r.count) / tot : r.avg_price
+            colorsByPrice[c].count += r.count
+          }
+          totalCount += r.count
+          weightedSum += r.avg_price * r.count
+          if (r.min_price != null) minP = minP == null ? r.min_price : Math.min(minP, r.min_price)
+          if (r.max_price != null) maxP = maxP == null ? r.max_price : Math.max(maxP, r.max_price)
+        }
+        out.push({
+          model,
+          color: '—',
+          storage: displayStorage || storage,
+          avg_price: totalCount > 0 ? weightedSum / totalCount : 0,
+          count: totalCount,
+          min_price: minP,
+          max_price: maxP,
+          colorsByPrice: Object.keys(colorsByPrice).length > 0 ? colorsByPrice : undefined
+        })
       } else {
         let totalCount = 0
         let weightedSum = 0
         let minP: number | null = null
         let maxP: number | null = null
+        const displayStorageElse = normalizeStorage(rows[0].storage || '') || rows[0].storage
         for (const r of rows) {
           totalCount += r.count
           weightedSum += r.avg_price * r.count
@@ -229,7 +282,7 @@ export default function PriceAveragesPage() {
         out.push({
           model,
           color: '—',
-          storage,
+          storage: displayStorageElse || storage,
           avg_price: totalCount > 0 ? weightedSum / totalCount : 0,
           count: totalCount,
           min_price: minP,
@@ -302,36 +355,22 @@ export default function PriceAveragesPage() {
     return null
   }
 
-  /** Agrupa por modelo + capacidade; ordena por geração → tipo → storage → cor */
+  /** Uma linha por modelo+capacidade (rows já colapsados). */
   const sortedGrouped = useMemo(() => {
-    const list = [...averagesForDisplay].sort((a, b) => {
-      const keyA = modelSortKey(a.model || '', a.storage || '')
-      const keyB = modelSortKey(b.model || '', b.storage || '')
-      if (keyA !== keyB) return keyA.localeCompare(keyB)
-      const order = colorOrderForModel(a.model || '')
-      const colorA = normalizeColor(a.color, a.model || '')
-      const colorB = normalizeColor(b.color, b.model || '')
-      if (order) {
-        const iA = order.indexOf(colorA)
-        const iB = order.indexOf(colorB)
-        if (iA !== -1 && iB !== -1) return iA - iB
-        if (iA !== -1) return -1
-        if (iB !== -1) return 1
-      }
-      return colorA.localeCompare(colorB, 'pt-BR')
-    })
-    const groups: { groupLabel: string; rows: Row[] }[] = []
-    let current: { groupLabel: string; rows: Row[] } | null = null
-    for (const r of list) {
-      const label = `${(r.model || '').trim()} ${(r.storage || '').trim()}`.trim() || '—'
-      if (!current || current.groupLabel !== label) {
-        current = { groupLabel: label, rows: [] }
-        groups.push(current)
-      }
-      current.rows.push(r)
-    }
-    return groups
+    return [...averagesForDisplay]
+      .sort((a, b) => {
+        const keyA = modelSortKey(a.model || '', a.storage || '')
+        const keyB = modelSortKey(b.model || '', b.storage || '')
+        return keyA.localeCompare(keyB)
+      })
+      .map((r) => {
+        const storageClean = (r.storage || '').trim().toUpperCase().replace(/\s+/g, ' ').replace(/(\d+)\s*TB/i, '$1TB').replace(/(\d+)\s*GB/i, '$1GB')
+        const label = `${(r.model || '').trim()} ${storageClean}`.trim() || '—'
+        return { groupLabel: label, rows: [r], is17Pro: is17ProOrProMax(r.model || '') }
+      })
   }, [averagesForDisplay])
+
+  const has17ProInResults = useMemo(() => sortedGrouped.some((g) => g.is17Pro), [sortedGrouped])
 
   useEffect(() => {
     const el = selectAllRef.current
@@ -405,7 +444,6 @@ export default function PriceAveragesPage() {
   }, [averages])
 
   const exportCsv = () => {
-    // Planilha: só Modelo + Capacidade, Cor e Preço sugerido; só linhas com lucro aplicado; quebra de linha entre modelos
     const headers = ['Modelo + Capacidade', 'Cor', 'Preço sugerido (média + lucro)']
     const lines: string[] = [headers.join(',')]
     for (const g of sortedGrouped) {
@@ -413,9 +451,13 @@ export default function PriceAveragesPage() {
       for (const r of g.rows) {
         const lucro = appliedLucroPerRow[rowKey(r)]
         if (lucro == null) continue
-        const color = r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—'
-        const preco = roundTo50(r.avg_price + lucro)
-        groupLines.push([g.groupLabel, color, preco].join(','))
+        if (r.colorsByPrice && Object.keys(r.colorsByPrice).length > 0) {
+          for (const [color, data] of Object.entries(r.colorsByPrice)) {
+            groupLines.push([g.groupLabel, color, roundTo50(data.avg + lucro)].join(','))
+          }
+        } else {
+          groupLines.push([g.groupLabel, '—', roundTo50(r.avg_price + lucro)].join(','))
+        }
       }
       if (groupLines.length > 0) {
         lines.push(...groupLines)
@@ -440,9 +482,13 @@ export default function PriceAveragesPage() {
       for (const r of g.rows) {
         const lucro = appliedLucroPerRow[rowKey(r)]
         if (lucro == null) continue
-        const color = r.color && r.color !== '—' ? normalizeColor(r.color, r.model || '') : '—'
-        const preco = roundTo50(r.avg_price + lucro)
-        groupLines.push(`${g.groupLabel}  ${color}  R$ ${preco}`)
+        if (r.colorsByPrice && Object.keys(r.colorsByPrice).length > 0) {
+          for (const [color, data] of Object.entries(r.colorsByPrice)) {
+            groupLines.push(`${g.groupLabel}  ${color}  R$ ${roundTo50(data.avg + lucro)}`)
+          }
+        } else {
+          groupLines.push(`${g.groupLabel}  —  R$ ${roundTo50(r.avg_price + lucro)}`)
+        }
       }
       if (groupLines.length > 0) {
         lines.push(...groupLines)
@@ -734,12 +780,22 @@ export default function PriceAveragesPage() {
                                 <span className="hidden sm:inline">Todos</span>
                               </label>
                             </th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[160px]">
+                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[180px]">
                               Modelo + Capacidade
                             </th>
-                            <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Cor
-                            </th>
+                            {has17ProInResults && (
+                              <>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                  Azul Intenso
+                                </th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                  Laranja Cósmico
+                                </th>
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                  Prateado
+                                </th>
+                              </>
+                            )}
                             <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                               Média
                             </th>
@@ -760,32 +816,12 @@ export default function PriceAveragesPage() {
                         <tbody className="divide-y divide-gray-200 dark:divide-white/10">
                           {sortedGrouped.map((group, gi) => (
                             <Fragment key={`group-${gi}`}>
-                              <tr
-                                className="bg-gray-100 dark:bg-gray-900/80 border-b border-gray-200 dark:border-white/10"
-                              >
-                                <td className="pl-3 pr-2 py-2 w-10 align-middle">
-                                  <label className="cursor-pointer flex items-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={group.rows.every((r) => selectedKeys.has(rowKey(r)))}
-                                      onChange={(e) => {
-                                        const keys = group.rows.map((r) => rowKey(r))
-                                        setSelectedKeys((prev) => {
-                                          const next = new Set(prev)
-                                          if (e.target.checked) keys.forEach((k) => next.add(k))
-                                          else keys.forEach((k) => next.delete(k))
-                                          return next
-                                        })
-                                      }}
-                                      className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500"
-                                    />
-                                  </label>
-                                </td>
-                                <td colSpan={7} className="px-4 py-2.5 font-semibold text-gray-900 dark:text-white align-middle">
-                                  {group.groupLabel}
-                                </td>
-                              </tr>
-                              {group.rows.map((row, i) => (
+                              {group.rows.map((row, i) => {
+                                const cp = row.colorsByPrice
+                                const azul = cp?.['Azul Intenso']?.avg ?? cp?.['Azul']?.avg
+                                const laranja = cp?.['Laranja Cósmico']?.avg ?? cp?.['Laranja']?.avg
+                                const prateado = cp?.['Prateado']?.avg ?? cp?.['🤍']?.avg
+                                return (
                                 <motion.tr
                                   key={rowKey(row)}
                                   initial={{ opacity: 0, x: -8 }}
@@ -811,15 +847,23 @@ export default function PriceAveragesPage() {
                                       />
                                     </label>
                                   </td>
-                                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-sm min-w-[160px]">
-                                    <span className="invisible select-none">—</span>
+                                  <td className="px-4 py-3 font-medium text-gray-900 dark:text-white min-w-[180px]">
+                                    {group.groupLabel}
                                   </td>
-                                  <td className="px-4 py-3 text-gray-600 dark:text-gray-300 min-w-[120px]">
-                                    {row.color && row.color !== '—' && row.color.toLowerCase() !== 'jp'
-                                      ? normalizeColor(row.color, row.model || '')
-                                      : '—'}
-                                  </td>
-                                  <td className="px-4 py-3 text-right text-gray-900 dark:text-white">
+                                  {has17ProInResults && (
+                                    <>
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                        {group.is17Pro && azul != null ? formatPrice(azul) : '—'}
+                                      </td>
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                        {group.is17Pro && laranja != null ? formatPrice(laranja) : '—'}
+                                      </td>
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                        {group.is17Pro && prateado != null ? formatPrice(prateado) : '—'}
+                                      </td>
+                                    </>
+                                  )}
+                                  <td className="px-4 py-3 text-right text-gray-900 dark:text-white font-medium">
                                     {formatPriceExact(row.avg_price)}
                                   </td>
                                   <td className="px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">
@@ -838,7 +882,8 @@ export default function PriceAveragesPage() {
                                     {row.max_price != null ? formatPrice(row.max_price) : '—'}
                                   </td>
                                 </motion.tr>
-                              ))}
+                                )
+                              })}
                             </Fragment>
                           ))}
                         </tbody>
