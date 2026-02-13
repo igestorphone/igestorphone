@@ -844,7 +844,7 @@ function EventModal({
             </div>
             <div className="space-y-4 max-h-[380px] overflow-y-auto custom-scrollbar pr-1">
               {form.items.map((item, idx) => (
-                <div key={idx} className="p-3 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50/50 dark:bg-white/5 space-y-2">
+                <div key={idx} className="p-3 rounded-xl border border-gray-200 dark:border-white/20 bg-gray-50 dark:bg-white/5 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-medium text-gray-500 dark:text-white/50">Item {idx + 1}</span>
                     {form.items.length > 1 && (
@@ -858,10 +858,10 @@ function EventModal({
                       </button>
                     )}
                   </div>
-                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-white/50 dark:bg-white/5 p-2.5">
+                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-gray-50 dark:bg-white/5 p-2.5">
                     <label className="block text-xs font-medium text-gray-600 dark:text-white/70 mb-2">Origem do produto</label>
                     <div className="flex gap-2">
-                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 dark:has-[:checked]:bg-amber-500/10 border-gray-200 dark:border-white/20">
+                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-gray-100 has-[:checked]:text-gray-900 dark:has-[:checked]:bg-amber-500/10 dark:has-[:checked]:text-white border-gray-200 dark:border-white/20 text-gray-600 dark:text-white/80">
                         <input
                           type="radio"
                           name={`origem-${idx}`}
@@ -871,7 +871,7 @@ function EventModal({
                         />
                         <span className="text-sm font-medium">Estoque</span>
                       </label>
-                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 dark:has-[:checked]:bg-amber-500/10 border-gray-200 dark:border-white/20">
+                      <label className="flex-1 flex items-center justify-center gap-2 rounded-lg border-2 py-2.5 cursor-pointer transition-colors has-[:checked]:border-amber-500 has-[:checked]:bg-gray-100 has-[:checked]:text-gray-900 dark:has-[:checked]:bg-amber-500/10 dark:has-[:checked]:text-white border-gray-200 dark:border-white/20 text-gray-600 dark:text-white/80">
                         <input
                           type="radio"
                           name={`origem-${idx}`}
@@ -901,7 +901,7 @@ function EventModal({
                           placeholder="Digite o modelo"
                           value={item.iphoneModel && item.iphoneModel !== 'Outro' ? item.iphoneModel : ''}
                           onChange={(e) => updateItem(idx, { iphoneModel: e.target.value.trim() || 'Outro' })}
-                          className="mt-1 w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                          className="mt-1 w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                         />
                       )}
                     </div>
@@ -925,7 +925,7 @@ function EventModal({
                       placeholder="Cor (opcional)"
                       value={item.color ?? ''}
                       onChange={(e) => updateItem(idx, { color: e.target.value })}
-                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                     />
                     <div>
                       <label className="block text-xs text-gray-500 dark:text-white/50 mb-0.5">Condição</label>
@@ -946,7 +946,7 @@ function EventModal({
                       placeholder="Final do IMEI"
                       value={item.imeiEnd}
                       onChange={(e) => updateItem(idx, { imeiEnd: e.target.value })}
-                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -957,7 +957,7 @@ function EventModal({
                       placeholder="À vista R$"
                       value={item.valorAVista || ''}
                       onChange={(e) => updateItem(idx, { valorAVista: parseFloat(e.target.value) || 0 })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                     />
                     <input
                       type="number"
@@ -966,10 +966,10 @@ function EventModal({
                       placeholder="Parcelado R$"
                       value={item.valorComJuros || ''}
                       onChange={(e) => updateItem(idx, { valorComJuros: parseFloat(e.target.value) || 0 })}
-                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                      className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                     />
                   </div>
-                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-gray-50/50 dark:bg-white/5 p-2">
+                  <div className="rounded-lg border border-gray-200 dark:border-white/15 bg-gray-50 dark:bg-white/5 p-2">
                     <p className="text-xs font-medium text-gray-600 dark:text-white/70 mb-2">Sinal?</p>
                     <div className="flex items-center gap-3">
                       <label className="inline-flex items-center gap-2 cursor-pointer">
@@ -1007,7 +1007,7 @@ function EventModal({
                       )}
                     </div>
                   </div>
-                  <div className="rounded-xl border border-amber-200/50 dark:border-amber-500/20 bg-amber-50/30 dark:bg-amber-500/5 p-4 space-y-4">
+                  <div className="rounded-xl border border-gray-200 dark:border-amber-500/20 bg-gray-50 dark:bg-amber-500/5 p-4 space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-amber-800 dark:text-amber-400">Aparelhos na troca</p>
                       <button
@@ -1019,7 +1019,7 @@ function EventModal({
                       </button>
                     </div>
                     {ensureAtLeastOneTradeIn(item.tradeInDevices).map((troca, ti) => (
-                      <div key={ti} className="rounded-lg bg-white/60 dark:bg-black/20 p-4 space-y-3 border border-amber-100 dark:border-amber-500/10">
+                      <div key={ti} className="rounded-lg bg-white dark:bg-black/20 p-4 space-y-3 border border-gray-200 dark:border-amber-500/10">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-amber-700 dark:text-amber-500">
                             Aparelho na troca {ti + 1}
@@ -1041,7 +1041,7 @@ function EventModal({
                             <select
                               value={IPHONE_MODEL_OPTIONS.includes(troca.model) ? troca.model : (troca.model ? 'Outro' : '')}
                               onChange={(e) => updateTradeInDevice(idx, ti, { model: e.target.value })}
-                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                             >
                               <option value="">Selecione</option>
                               {IPHONE_MODEL_OPTIONS.filter((o) => o !== 'Outro').map((opt) => (
@@ -1055,7 +1055,7 @@ function EventModal({
                             <select
                               value={troca.storage}
                               onChange={(e) => updateTradeInDevice(idx, ti, { storage: e.target.value })}
-                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                             >
                               <option value="">—</option>
                               {STORAGE_OPTIONS.map((opt) => (
@@ -1068,7 +1068,7 @@ function EventModal({
                             <select
                               value={troca.condicao ?? ''}
                               onChange={(e) => updateTradeInDevice(idx, ti, { condicao: e.target.value === 'novo' || e.target.value === 'seminovo' ? e.target.value : undefined })}
-                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                              className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                             >
                               <option value="">—</option>
                               <option value="novo">Novo</option>
@@ -1083,12 +1083,12 @@ function EventModal({
                             placeholder="Ex.: tela rachada, bateria 85%..."
                             value={troca.obs ?? ''}
                             onChange={(e) => updateTradeInDevice(idx, ti, { obs: e.target.value })}
-                            className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                            className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                           />
                         </div>
                       </div>
                     ))}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-amber-200/50 dark:border-amber-500/20">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-gray-200 dark:border-amber-500/20">
                       <div>
                         <label className="block text-xs text-gray-500 dark:text-white/50 mb-1">Valor da troca (R$)</label>
                         <input
@@ -1098,7 +1098,7 @@ function EventModal({
                           placeholder="0,00"
                           value={item.valorTroca ?? ''}
                           onChange={(e) => updateItem(idx, { valorTroca: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                         />
                       </div>
                       <div>
@@ -1110,7 +1110,7 @@ function EventModal({
                           placeholder="0,00"
                           value={item.manutencaoDescontada ?? ''}
                           onChange={(e) => updateItem(idx, { manutencaoDescontada: e.target.value === '' ? null : parseFloat(e.target.value) })}
-                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm"
+                          className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-2 text-sm text-gray-900 dark:text-white"
                         />
                       </div>
                     </div>
@@ -1156,7 +1156,7 @@ function EventModal({
                     placeholder="Obs. do item (opcional)"
                     value={item.notes ?? ''}
                     onChange={(e) => updateItem(idx, { notes: e.target.value })}
-                    className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    className="w-full rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                   />
                 </div>
               ))}
@@ -1176,7 +1176,7 @@ function EventModal({
 
           {/* Reagendar (só ao editar) */}
           {isEdit && initialEvent && (
-            <div className="p-3 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/10">
+            <div className="p-3 rounded-xl border border-gray-200 dark:border-amber-500/30 bg-gray-50 dark:bg-amber-500/10">
               <h4 className="text-sm font-medium text-gray-800 dark:text-white flex items-center gap-2 mb-2">
                 <CalendarClock className="w-4 h-4 text-amber-600" />
                 Reagendar
@@ -1188,7 +1188,7 @@ function EventModal({
                     type="date"
                     value={rescheduleDate}
                     onChange={(e) => setRescheduleDate(e.target.value)}
-                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                   />
                 </div>
                 <div>
@@ -1197,7 +1197,7 @@ function EventModal({
                     type="time"
                     value={rescheduleTime}
                     onChange={(e) => setRescheduleTime(e.target.value)}
-                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm"
+                    className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1.5 text-sm text-gray-900 dark:text-white"
                   />
                 </div>
                 <button
