@@ -160,6 +160,7 @@ export default function SearchCheapestIPhonePage() {
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
+  const [selectedRam, setSelectedRam] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
@@ -176,7 +177,7 @@ export default function SearchCheapestIPhonePage() {
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearch, selectedDate, selectedCategory, selectedStorage, selectedColor])
+  }, [debouncedSearch, selectedDate, selectedCategory, selectedStorage, selectedRam, selectedColor])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -204,6 +205,7 @@ export default function SearchCheapestIPhonePage() {
       selectedDate,
       selectedCategory,
       selectedStorage,
+      selectedRam,
       selectedColor
     ],
     queryFn: () =>
@@ -256,6 +258,7 @@ export default function SearchCheapestIPhonePage() {
     const products = productsQuery.data || []
     const colors = new Set<string>()
     const storages = new Set<string>()
+    const rams = new Set<string>()
     const suppliers = new Set<string>()
     const categories = new Set<string>()
 
@@ -295,6 +298,19 @@ export default function SearchCheapestIPhonePage() {
         }
       }
       if (product.storage) storages.add(product.storage)
+      // RAM: region (8GB, 16GB), specifications.ram ou parse do model para MacBook
+      const ramVal = product.specifications?.ram || product.region
+      if (ramVal && typeof ramVal === 'string') {
+        const m = ramVal.match(/(\d+)\s*GB/i)
+        if (m) rams.add(`${m[1]}GB`)
+      }
+      if (product.model?.toLowerCase().includes('macbook')) {
+        const matches = (product.model || '').matchAll(/(\d+)\s*GB/gi)
+        for (const m of matches) {
+          const gb = parseInt(m[1], 10)
+          if (gb <= 96) rams.add(`${gb}GB`) // 8, 16, 24, 32... (evita 256GB como RAM)
+        }
+      }
       if (product.supplier_name) suppliers.add(product.supplier_name)
       if (product.model) {
         if (product.model.includes('iPhone')) categories.add('iPhone')
@@ -348,13 +364,35 @@ export default function SearchCheapestIPhonePage() {
         const bNum = parseInt(b.replace(/\D/g, '')) || 0
         return aNum - bNum
       }),
+      rams: Array.from(rams).sort((a, b) => {
+        const aNum = parseInt(a.replace(/\D/g, '')) || 0
+        const bNum = parseInt(b.replace(/\D/g, '')) || 0
+        return aNum - bNum
+      }),
       suppliers: Array.from(suppliers).sort(),
       categories: Array.from(categories).sort()
     }
   }, [productsQuery.data, debouncedSearch])
 
+  const filteredProducts = useMemo(() => {
+    const all = productsQuery.data || []
+    if (!selectedRam) return all
+    return all.filter((p: any) => {
+      const ramVal = p.specifications?.ram || p.region
+      if (ramVal && typeof ramVal === 'string') {
+        const m = ramVal.match(/(\d+)\s*GB/i)
+        if (m && `${m[1]}GB` === selectedRam) return true
+      }
+      if (p.model?.toLowerCase().includes('macbook')) {
+        const modelMatch = (p.model || '').match(/(\d+)\s*GB/i)
+        if (modelMatch && `${modelMatch[1]}GB` === selectedRam) return true
+      }
+      return false
+    })
+  }, [productsQuery.data, selectedRam])
+
   const stats = useMemo(() => {
-    const products = productsQuery.data || []
+    const products = filteredProducts
     if (products.length === 0) {
       return { total: 0, averagePrice: 0, minPrice: 0, maxPrice: 0, suppliersCount: 0 }
     }
@@ -369,16 +407,16 @@ export default function SearchCheapestIPhonePage() {
       maxPrice: prices.length ? Math.max(...prices) : 0,
       suppliersCount: uniqueSuppliers.size
     }
-  }, [productsQuery.data])
+  }, [filteredProducts])
 
   const pagination = useMemo(() => {
-    const all = productsQuery.data || []
+    const all = filteredProducts
     const total = all.length
     const totalPages = Math.max(1, Math.ceil(total / itemsPerPage))
     const start = (currentPage - 1) * itemsPerPage
     const paginated = all.slice(start, start + itemsPerPage)
     return { paginated, total, totalPages }
-  }, [productsQuery.data, currentPage, itemsPerPage])
+  }, [filteredProducts, currentPage, itemsPerPage])
 
   const handleWhatsApp = (whatsapp: string, product?: any) => {
     if (!whatsapp) {
@@ -549,14 +587,14 @@ Ainda tem disponível?`
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Package className="w-4 h-4 mr-1.5" />
-                Capacidade / MM
+                SSD / Armazenamento
               </label>
               <select
                 value={selectedStorage}
                 onChange={(e) => setSelectedStorage(e.target.value)}
                 className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                <option value="">Todas as Capacida...</option>
+                <option value="">Todas</option>
                 {dynamicFilters.storages.length > 0 ? (
                   dynamicFilters.storages.map((storage) => (
                     <option key={storage} value={storage}>
@@ -579,13 +617,25 @@ Ainda tem disponível?`
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Building2 className="w-4 h-4 mr-1.5" />
-                Região / GB-RAM
+                GB de RAM
               </label>
               <select
-                value=""
+                value={selectedRam}
+                onChange={(e) => setSelectedRam(e.target.value)}
                 className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                <option value="">Todas as Regiões</option>
+                <option value="">Todas</option>
+                {dynamicFilters.rams.length > 0 ? (
+                  dynamicFilters.rams.map((ram) => (
+                    <option key={ram} value={ram}>{ram}</option>
+                  ))
+                ) : (
+                  <>
+                    <option value="8GB">8GB</option>
+                    <option value="16GB">16GB</option>
+                    <option value="24GB">24GB</option>
+                  </>
+                )}
               </select>
               <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
@@ -745,8 +795,11 @@ Ainda tem disponível?`
                         <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
                           <div className="flex items-center space-x-1">
                             <BarChart3 className="w-3 h-3" />
-                            <span>Capacidade</span>
+                            <span>Storage</span>
                           </div>
+                        </th>
+                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[80px]">
+                          <span>RAM</span>
                         </th>
                         <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
                           <div className="flex items-center space-x-1">
@@ -821,6 +874,24 @@ Ainda tem disponível?`
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
                                 {product.storage || 'N/A'}
                               </span>
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-gray-300">
+                              {(() => {
+                                const ramVal = product.specifications?.ram || product.region
+                                if (ramVal && typeof ramVal === 'string') {
+                                  const m = ramVal.match(/(\d+)\s*GB/i)
+                                  if (m && parseInt(m[1], 10) <= 96) return `${m[1]}GB`
+                                }
+                                if (product.model?.toLowerCase().includes('macbook')) {
+                                  const matches = [...(product.model || '').matchAll(/(\d+)\s*GB/gi)]
+                                  const ramGb = matches.find((m) => {
+                                    const gb = parseInt(m[1], 10)
+                                    return gb <= 96
+                                  })
+                                  if (ramGb) return `${ramGb[1]}GB`
+                                }
+                                return '—'
+                              })()}
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
