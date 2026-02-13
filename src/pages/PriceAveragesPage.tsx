@@ -803,13 +803,13 @@ export default function PriceAveragesPage() {
                             </th>
                             {has17ProInResults && (
                               <>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                                   Azul Intenso
                                 </th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                                   Laranja Cósmico
                                 </th>
-                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right hidden sm:table-cell">
+                                <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">
                                   Prateado
                                 </th>
                               </>
@@ -870,13 +870,13 @@ export default function PriceAveragesPage() {
                                   </td>
                                   {has17ProInResults && (
                                     <>
-                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                         {group.is17Pro && azul != null ? formatPrice(azul) : '—'}
                                       </td>
-                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                         {group.is17Pro && laranja != null ? formatPrice(laranja) : '—'}
                                       </td>
-                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400 hidden sm:table-cell">
+                                      <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">
                                         {group.is17Pro && prateado != null ? formatPrice(prateado) : '—'}
                                       </td>
                                     </>
