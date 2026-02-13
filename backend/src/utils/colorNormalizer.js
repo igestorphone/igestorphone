@@ -493,27 +493,39 @@ const modelColorMappings = {
     'prata': 'Prata',
     'silver': 'Prata',
   },
-  // MacBook Air M1, 2020
+  // MacBook Air M1, 2020 — apenas 3 cores: Cinza-espacial, Prateado, Dourado
   'macbook air m1': {
     'dourado': 'Dourado',
     'gold': 'Dourado',
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'cinza espacial': 'Cinza Espacial',
-    'space gray': 'Cinza Espacial',
-    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prateado',
+    'cinza espacial': 'Cinza-espacial',
+    'cinza-espacial': 'Cinza-espacial',
+    'space gray': 'Cinza-espacial',
+    'space grey': 'Cinza-espacial',
+    'spacegrey': 'Cinza-espacial',
+    'spacegray': 'Cinza-espacial',
+    'spg': 'Cinza-espacial', // abreviação usada por fornecedores
   },
-  // MacBook Air M2, 2022
+  // MacBook Air M2, 2022 — 4 cores: Meia-noite, Estelar, Cinza-espacial, Prateado
   'macbook air m2': {
-    'meia noite': 'Meia Noite',
-    'midnight': 'Meia Noite',
+    'meia noite': 'Meia-noite',
+    'meia-noite': 'Meia-noite',
+    'midnight': 'Meia-noite',
     'estelar': 'Estelar',
     'starlight': 'Estelar',
+    'champagne': 'Estelar',
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'cinza espacial': 'Cinza Espacial',
-    'space gray': 'Cinza Espacial',
-    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prateado',
+    'cinza espacial': 'Cinza-espacial',
+    'cinza-espacial': 'Cinza-espacial',
+    'space gray': 'Cinza-espacial',
+    'space grey': 'Cinza-espacial',
+    'spacegrey': 'Cinza-espacial',
+    'spacegray': 'Cinza-espacial',
+    'spg': 'Cinza-espacial', // abreviação usada por fornecedores
   },
   // MacBook Air M3, 2024
   'macbook air m3': {
@@ -527,24 +539,33 @@ const modelColorMappings = {
     'space gray': 'Cinza Espacial',
     'spacegrey': 'Cinza Espacial',
   },
-  // MacBook Air M4
+  // MacBook Air M4 — 4 cores: Sky Blue, Midnight, Starlight, Silver
   'macbook air m4': {
-    'azul céu': 'Azul Céu',
-    'sky blue': 'Azul Céu',
-    'prateado': 'Prateado',
-    'silver': 'Prateado',
+    'azul céu': 'Azul céu',
+    'azul ceu': 'Azul céu',
+    'sky blue': 'Azul céu',
+    'skyblue': 'Azul céu',
+    'meia noite': 'Meia-noite',
+    'meia-noite': 'Meia-noite',
+    'midnight': 'Meia-noite',
     'estelar': 'Estelar',
     'starlight': 'Estelar',
-    'meia noite': 'Meia Noite',
-    'midnight': 'Meia Noite',
+    'prateado': 'Prateado',
+    'silver': 'Prateado',
+    'prata': 'Prateado',
   },
-  // MacBook Pro M1, 2020
+  // MacBook Pro M1, 2020/2021 — apenas 2 cores: Cinza-espacial, Prateado
   'macbook pro m1': {
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'cinza espacial': 'Cinza Espacial',
-    'space gray': 'Cinza Espacial',
-    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prateado',
+    'cinza espacial': 'Cinza-espacial',
+    'cinza-espacial': 'Cinza-espacial',
+    'space gray': 'Cinza-espacial',
+    'space grey': 'Cinza-espacial',
+    'spacegrey': 'Cinza-espacial',
+    'spacegray': 'Cinza-espacial',
+    'spg': 'Cinza-espacial', // abreviação usada por fornecedores
   },
   // MacBook Pro M1 Pro/Max, 2021
   'macbook pro m1 pro': {
@@ -561,13 +582,18 @@ const modelColorMappings = {
     'space gray': 'Cinza Espacial',
     'spacegrey': 'Cinza Espacial',
   },
-  // MacBook Pro M2, 2022
+  // MacBook Pro M2, 2022 — 2 cores: Cinza-espacial, Prateado
   'macbook pro m2': {
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'cinza espacial': 'Cinza Espacial',
-    'space gray': 'Cinza Espacial',
-    'spacegrey': 'Cinza Espacial',
+    'prata': 'Prateado',
+    'cinza espacial': 'Cinza-espacial',
+    'cinza-espacial': 'Cinza-espacial',
+    'space gray': 'Cinza-espacial',
+    'space grey': 'Cinza-espacial',
+    'spacegrey': 'Cinza-espacial',
+    'spacegray': 'Cinza-espacial',
+    'spg': 'Cinza-espacial', // abreviação usada por fornecedores
   },
   // MacBook Pro M2 Pro/Max, 2023
   'macbook pro m2 pro': {
@@ -612,24 +638,33 @@ const modelColorMappings = {
     'preto espacial': 'Preto Espacial',
     'space black': 'Preto Espacial',
   },
-  // MacBook Pro M4/M4 Pro/M4 Max, 2024
+  // MacBook Pro M4/M4 Pro/M4 Max, 2024 — 2 cores: Preto-espacial, Prateado
   'macbook pro m4': {
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'preto espacial': 'Preto Espacial',
-    'space black': 'Preto Espacial',
+    'prata': 'Prateado',
+    'preto espacial': 'Preto-espacial',
+    'preto-espacial': 'Preto-espacial',
+    'space black': 'Preto-espacial',
+    'spaceblack': 'Preto-espacial',
   },
   'macbook pro m4 pro': {
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'preto espacial': 'Preto Espacial',
-    'space black': 'Preto Espacial',
+    'prata': 'Prateado',
+    'preto espacial': 'Preto-espacial',
+    'preto-espacial': 'Preto-espacial',
+    'space black': 'Preto-espacial',
+    'spaceblack': 'Preto-espacial',
   },
   'macbook pro m4 max': {
     'prateado': 'Prateado',
     'silver': 'Prateado',
-    'preto espacial': 'Preto Espacial',
-    'space black': 'Preto Espacial',
+    'prata': 'Prateado',
+    'preto espacial': 'Preto-espacial',
+    'preto-espacial': 'Preto-espacial',
+    'space black': 'Preto-espacial',
+    'spaceblack': 'Preto-espacial',
   },
   // Apple Watch SE 2ª geração
   'apple watch se 2': {
@@ -961,6 +996,9 @@ function getColorSearchConditions(normalizedColor) {
     'cosmic orange': ['cosmic orange', 'laranja cósmico'],
     'deep blue': ['deep blue', 'azul profundo'],
     'silver': ['silver', 'prata', 'prateado'],
+    'cinza-espacial': ['cinza-espacial', 'cinza espacial', 'space gray', 'space grey', 'spacegray', 'spacegrey', 'spg'],
+    'meia-noite': ['meia-noite', 'meia noite', 'midnight'],
+    'preto-espacial': ['preto-espacial', 'preto espacial', 'space black', 'spaceblack'],
     'sky blue': ['sky blue', 'azul céu'],
     'light gold': ['light gold', 'dourado claro'],
     'cloud white': ['cloud white', 'branco nuvem'],
