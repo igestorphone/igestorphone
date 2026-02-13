@@ -51,7 +51,7 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+Esim\s*/gi, ' ')
     .replace(/\s+Anatel\s*/gi, ' ')
     .replace(/\s+ip\s+Anatel\s*/gi, ' ')
-    .replace(/\s+ip\s+/gi, ' ')
+    .replace(/\bip\b/gi, ' ') // ip no início, meio ou fim
     .replace(/\s*\([Cc]hip\s*\)\s*/gi, ' ')
     // Variantes de região/chip (J, Jp, JJ = Japão; Us, Usa = EUA; LAC = Lacrado/América Latina)
     .replace(/\bJp\b/gi, ' ')
@@ -77,7 +77,7 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/(\d+)\s*(?:tb|TB)\s+\d+\s*(?:tb|TB)/gi, '$1tb')
     // Outras variantes
     .replace(/\s+Diversos\s*/gi, ' ')
-    .replace(/\bInd\s+/gi, ' ')
+    .replace(/\bInd\b/gi, ' ')
     .replace(/\s+L\s*I\s*/gi, ' ')
     .replace(/\s+LI\s*/gi, ' ')
     .replace(/\s+Ll\s*/gi, ' ')
