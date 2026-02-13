@@ -53,8 +53,9 @@ function normalizeModelForDisplay(model: string): string {
     .replace(/\s+ip\s+Anatel\s*/gi, ' ')
     .replace(/\s+ip\s+/gi, ' ')
     .replace(/\s*\([Cc]hip\s*\)\s*/gi, ' ')
-    // Variantes de região
+    // Variantes de região (J = abreviação de Jp/Japão)
     .replace(/\bJp\b/gi, ' ')
+    .replace(/\s+J\s+/g, ' ')
     .replace(/\s+Jp\/A\s*/gi, ' ')
     .replace(/\s+J\/A\s*/gi, ' ')
     .replace(/\bUsa\s+/gi, ' ')
