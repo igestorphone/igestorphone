@@ -364,7 +364,7 @@ router.get('/price-averages', async (req, res) => {
     const color = (req.query.color || '').trim()
     const storage = (req.query.storage || '').trim()
 
-    // Hoje ou ontem no timezone de Brasília — para não perder produtos recém processados (fuso/timestamp)
+    // Apenas HOJE no timezone de Brasília — médias zeram junto com produtos à meia-noite
     const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
     const conditions = [
       'p.is_active = true',
@@ -377,8 +377,8 @@ router.get('/price-averages', async (req, res) => {
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
       `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
       )`
     ]
     const values = []
@@ -414,7 +414,8 @@ router.get('/price-averages', async (req, res) => {
                 '\\s*\\d+\\s*GB\\s*', ' ', 'gi'),
               '\\s*\\d+\\s*TB\\s*', ' ', 'gi'),
             '\\s*L\\s*I\\s*', ' ', 'gi'),
-          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb|tb)\\s*', ' ', 'gi'),
+          '\\s*(anatel|e-?sim|com chip|chip anatel|chip|ch|americano|ja|jpn|jp|lla|latam|usa|asia|eu|br|li|pons|hn|nanosim|ll|cpo|lacrado|indiano|ndia|fisico|fsico|virtual|pones|nano|tgb|tb|diversos)\\s*', ' ', 'gi'),
+          '\\s+(ind|us)\\s+', ' ', 'gi'),
         '\\s+[a-zA-Z]\\s*$', '', 'g'),
       '\\s+', ' ', 'g')))`
 

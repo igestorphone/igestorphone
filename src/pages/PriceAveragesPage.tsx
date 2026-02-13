@@ -35,11 +35,14 @@ const formatPriceExact = (price: number) =>
 
 const roundTo50 = (v: number) => Math.round(v / 50) * 50
 
-/** Normaliza nome do modelo no frontend: remove variantes e unifica Promax→Pro Max, In/Ins/Tb. */
+/** Normaliza nome do modelo no frontend: remove variantes (Ind/Us, LI, Pons, etc.) e unifica Promax→Pro Max. */
 function normalizeModelForDisplay(model: string): string {
   if (!model || !model.trim()) return model || '—'
   let s = model
     .replace(/\bPromax\b/gi, 'Pro Max')
+    .replace(/\s+Diversos\s*/gi, ' ')
+    .replace(/\bInd\s+/gi, ' ')
+    .replace(/\bUs\s+/gi, ' ')
     .replace(/\s+L\s*I\s*/gi, ' ')
     .replace(/\s+LI\s*/gi, ' ')
     .replace(/\s+Ll\s*/gi, ' ')
