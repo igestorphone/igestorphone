@@ -19,10 +19,7 @@ import {
   Wifi,
   Clock,
   AlertTriangle,
-  SlidersHorizontal,
-  Apple,
-  Smartphone,
-  RefreshCw
+  SlidersHorizontal
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -575,10 +572,10 @@ Ainda tem disponível?`
         >
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {([
-              { mode: 'novo' as const, Icon: Apple, label: 'Apple Novo', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
-              { mode: 'seminovo' as const, Icon: RefreshCw, label: 'iPhone Seminovo', emoji: '📲', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
-              { mode: 'android' as const, Icon: Smartphone, label: 'Android', emoji: '🤖', activeClass: 'bg-green-600 text-white border-green-600' }
-            ]).map(({ mode, Icon, label, emoji, activeClass }) => (
+              { mode: 'novo' as const, label: 'Apple Novo', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
+              { mode: 'seminovo' as const, label: 'iPhone Seminovo', emoji: '📲', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+              { mode: 'android' as const, label: 'Android', emoji: '🤖', activeClass: 'bg-green-600 text-white border-green-600' }
+            ]).map(({ mode, label, emoji, activeClass }) => (
               <button
                 key={mode}
                 type="button"
@@ -589,8 +586,7 @@ Ainda tem disponível?`
                     : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
-                <span className="text-base" aria-hidden>{emoji}</span>
-                <Icon className="w-5 h-5 shrink-0" strokeWidth={2.2} />
+                <span className="text-lg" aria-hidden>{emoji}</span>
                 <span>{label}</span>
               </button>
             ))}
