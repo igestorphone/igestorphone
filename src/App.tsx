@@ -28,7 +28,6 @@ import BugReportsPage from '@/pages/BugReportsPage'
 import GoalsPage from '@/pages/GoalsPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
 import RankingPage from '@/pages/RankingPage'
-import DevelopmentPlaceholderPage from '@/pages/DevelopmentPlaceholderPage'
 import CalendarPage from '@/pages/CalendarPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
@@ -100,20 +99,8 @@ function App() {
             <PostLoginLoadingPage />
           </ProtectedRoute>
         } />
-        <Route path="/search-iphone-seminovo" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DevelopmentPlaceholderPage />} />
-        </Route>
-        <Route path="/search-android" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<DevelopmentPlaceholderPage />} />
-        </Route>
+        <Route path="/search-iphone-seminovo" element={<Navigate to="/search-cheapest-iphone?mode=seminovo" replace />} />
+        <Route path="/search-android" element={<Navigate to="/search-cheapest-iphone?mode=android" replace />} />
         <Route path="/consult-lists" element={
           <ProtectedRoute>
             <MainLayout />
@@ -149,6 +136,8 @@ function App() {
         }>
           <Route index element={<ProcessListPage />} />
         </Route>
+        <Route path="/process-list-seminovo" element={<Navigate to="/process-list?mode=seminovo" replace />} />
+        <Route path="/process-list-android" element={<Navigate to="/process-list?mode=android" replace />} />
         <Route path="/manage-users" element={
           <ProtectedRoute>
             <MainLayout />

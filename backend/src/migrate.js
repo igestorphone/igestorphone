@@ -207,6 +207,12 @@ const migrations = [
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Colunas extras em products (condition_detail, variant, is_active, product_type)
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS condition_detail VARCHAR(50)`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS variant VARCHAR(50)`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`,
+  `ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'apple'`,
+
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,

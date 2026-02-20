@@ -203,6 +203,10 @@ export const utilsApi = {
   getServerStatus: async () => {
     const response = await api.get('/health')
     return response.data
+  },
+  getGlobalStats: async (): Promise<{ total_products: number; total_suppliers: number }> => {
+    const response = await api.get('/utils/stats')
+    return response.data
   }
 }
 

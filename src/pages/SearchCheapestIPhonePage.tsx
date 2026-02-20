@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -18,7 +19,10 @@ import {
   Wifi,
   Clock,
   AlertTriangle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Apple,
+  Smartphone,
+  RefreshCw
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -153,10 +157,31 @@ function LiveClock() {
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
-export default function SearchCheapestIPhonePage() {
+type SearchMode = 'novo' | 'seminovo' | 'android'
+
+function getDefaultSearchForMode(mode: SearchMode): string {
+  if (mode === 'seminovo') return 'iphone '
+  if (mode === 'android') return ''
+  return ''
+}
+
+export default function SearchCheapestIPhonePage({ initialSearchMode }: { initialSearchMode?: SearchMode }) {
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const modeFromUrl = searchParams.get('mode') as SearchMode | null
+  const urlModeValid = modeFromUrl === 'novo' || modeFromUrl === 'seminovo' || modeFromUrl === 'android'
+  const [searchMode, setSearchModeState] = useState<SearchMode>(() =>
+    initialSearchMode ?? (urlModeValid ? modeFromUrl! : 'novo')
+  )
+
+  const setSearchMode = (mode: SearchMode) => {
+    setSearchModeState(mode)
+    setSearchParams({ mode }, { replace: true })
+    setDebouncedSearch(getDefaultSearchForMode(mode))
+  }
+
+  const [debouncedSearch, setDebouncedSearch] = useState(() => getDefaultSearchForMode(searchMode))
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
@@ -201,6 +226,7 @@ export default function SearchCheapestIPhonePage() {
   const productsQuery = useQuery({
     queryKey: [
       'produtos',
+      searchMode,
       debouncedSearch,
       selectedDate,
       selectedCategory,
@@ -208,9 +234,9 @@ export default function SearchCheapestIPhonePage() {
       selectedRam,
       selectedColor
     ],
-    queryFn: () =>
-      produtosApi.getAll({
-        search: debouncedSearch.length >= 3 ? debouncedSearch : undefined,
+    queryFn: () => {
+      const params: any = {
+        search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
         condition: selectedCategory,
         storage: selectedStorage,
         color: filterColorClientSide ? undefined : selectedColor || undefined,
@@ -218,7 +244,11 @@ export default function SearchCheapestIPhonePage() {
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
-      }),
+      }
+      if (searchMode === 'seminovo') params.condition_type = 'seminovos'
+      if (searchMode === 'android') params.product_type = 'android'
+      return produtosApi.getAll(params)
+    },
     enabled: shouldFetchProducts && queryReady,
     staleTime: 10000,
     gcTime: 2 * 60 * 1000,
@@ -473,28 +503,38 @@ Ainda tem disponível?`
     staleTime: 5000
   })
 
+  const globalStatsQuery = useQuery({
+    queryKey: ['global-stats'],
+    queryFn: () => utilsApi.getGlobalStats(),
+    staleTime: 60000,
+    refetchOnWindowFocus: false
+  })
+
+  const totalProducts = globalStatsQuery.data?.total_products ?? 0
+  const totalSuppliers = globalStatsQuery.data?.total_suppliers ?? 0
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div className="space-y-4 p-4 md:p-6 max-w-full">
-        {/* Status bar - Barra superior com informações */}
+        {/* Status bar - Total geral (fixa ao rolar), não separada por tipo */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 flex items-center justify-between flex-wrap gap-4"
+          className="sticky top-0 z-10 bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 flex items-center justify-between flex-wrap gap-4"
         >
-          {/* Left side - Statistics */}
+          {/* Totais gerais (tudo no sistema) */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {productsQuery.data?.length || 0} produtos
+                {totalProducts.toLocaleString('pt-BR')} produtos
               </span>
             </div>
             <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {stats.suppliersCount} fornecedores
+                {totalSuppliers.toLocaleString('pt-BR')} fornecedores
               </span>
             </div>
           </div>
@@ -518,6 +558,36 @@ Ainda tem disponível?`
           </div>
         </motion.div>
 
+        {/* Tipo de busca: Apple | Semi-novo | Android (estilo concorrente) */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.05 }}
+          className="bg-white dark:bg-black rounded-xl shadow-sm p-4 border border-gray-200 dark:border-white/10"
+        >
+          <div className="flex flex-wrap gap-2 sm:gap-3">
+            {([
+              { mode: 'novo' as const, Icon: Apple, label: 'Apple Novo', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
+              { mode: 'seminovo' as const, Icon: RefreshCw, label: 'iPhone Seminovo', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+              { mode: 'android' as const, Icon: Smartphone, label: 'Android', activeClass: 'bg-green-600 text-white border-green-600' }
+            ]).map(({ mode, Icon, label, activeClass }) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setSearchMode(mode)}
+                className={`flex items-center justify-center gap-2 py-3 px-4 sm:px-5 rounded-lg border-2 text-sm font-semibold transition-all min-w-[120px] ${
+                  searchMode === mode
+                    ? `${activeClass} shadow-md scale-[1.02]`
+                    : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-900 dark:hover:text-white'
+                }`}
+              >
+                <Icon className="w-5 h-5 shrink-0" strokeWidth={2.2} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Search - input isolado para não re-renderizar a página ao digitar */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -525,7 +595,17 @@ Ainda tem disponível?`
           transition={{ duration: 0.4, delay: 0.1 }}
           className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
         >
-          <SearchInputDebounced onDebouncedChange={setDebouncedSearch} placeholder="Buscar produtos..." />
+          <SearchInputDebounced
+            key={searchMode}
+            onDebouncedChange={setDebouncedSearch}
+            placeholder={
+              searchMode === 'android'
+                ? 'Ex: Samsung, Xiaomi, Motorola...'
+                : searchMode === 'seminovo'
+                  ? 'Ex: iPhone 15, iPhone 14...'
+                  : 'Ex: iPhone 16, MacBook, AirPods...'
+            }
+          />
         </motion.div>
 
         {/* Update status and filters */}

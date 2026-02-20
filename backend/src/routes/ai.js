@@ -49,7 +49,7 @@ const detectVariant = (product) => {
 // Validação de lista de produtos com IA
 router.post('/validate-list', authenticateToken, requireSubscription('active'), async (req, res) => {
   try {
-    const { rawListText, products } = req.body;
+    const { rawListText, products, list_type: listType } = req.body;
 
     // Validar que pelo menos um dos dois foi enviado
     if (!rawListText && (!products || !Array.isArray(products) || products.length === 0)) {
@@ -89,10 +89,10 @@ router.post('/validate-list', authenticateToken, requireSubscription('active'), 
       });
     }
 
-    // Se recebeu texto bruto, enviar para IA processar tudo
+    // Se recebeu texto bruto, enviar para IA processar tudo (listType: lacrada | seminovo | android)
     // Se recebeu produtos já parseados, usar o método antigo (compatibilidade)
     const aiValidationResult = rawListText 
-      ? await aiService.validateProductListFromText(rawListText)
+      ? await aiService.validateProductListFromText(rawListText, { listType: listType || 'lacrada' })
       : await aiService.validateProductList(products || []);
 
     res.json({
@@ -411,62 +411,53 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { supplier_id, supplier_name, supplier_whatsapp, validated_products, raw_list_text } = req.body;
+    const { supplier_id, supplier_name, supplier_whatsapp, validated_products, raw_list_text, list_type: listType } = req.body;
+    const listKind = listType === 'seminovo' ? 'seminovo' : listType === 'android' ? 'android' : 'lacrada';
 
     if (!validated_products || validated_products.length === 0) {
       return res.status(400).json({ message: 'Nenhum produto válido para salvar' });
     }
 
-    // FILTRO CRÍTICO: Remover produtos de vitrine/seminovos ANTES de salvar
-    // Mesmo que a IA tenha retornado, precisamos garantir que NENHUM produto de vitrine seja salvo
-    const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
+    // Filtrar conforme o tipo de lista (lacrada = só Novo; seminovo = só Seminovo; android = todos)
+    const condicoesInvalidas = ['SWAP', 'VITRINE', 'USADO', 'RECONDICIONADO'];
     const produtosValidos = validated_products.filter(product => {
-      // Verificar condition - deve ser "Novo"
-      if (product.condition && product.condition.toLowerCase() !== 'novo') {
-        console.log(`🚫 Produto rejeitado (condition inválida): ${product.name} - condition: ${product.condition}`);
-        return false;
+      const cond = (product.condition || '').toLowerCase();
+      if (listKind === 'lacrada') {
+        if (cond !== 'novo') {
+          console.log(`🚫 [Lacrada] Rejeitado (não é Novo): ${product.name} - condition: ${product.condition}`);
+          return false;
+        }
+        const detail = (product.condition_detail || '').toUpperCase();
+        if (condicoesInvalidas.some(inv => detail.includes(inv))) return false;
+        const variant = (product.variant || '').toUpperCase();
+        if (condicoesInvalidas.some(inv => variant.includes(inv))) return false;
+        const name = (product.name || '').toUpperCase();
+        const model = (product.model || '').toUpperCase();
+        if (condicoesInvalidas.some(inv => name.includes(inv) || model.includes(inv))) return false;
+        return true;
       }
-      
-      // Verificar condition_detail
-      const detail = (product.condition_detail || '').toUpperCase();
-      if (condicoesInvalidas.some(invalida => detail.includes(invalida))) {
-        console.log(`🚫 Produto rejeitado (condition_detail vitrine): ${product.name} - condition_detail: ${detail}`);
-        return false;
+      if (listKind === 'seminovo') {
+        if (cond !== 'seminovo') {
+          console.log(`🚫 [Seminovo] Rejeitado (não é Seminovo): ${product.name} - condition: ${product.condition}`);
+          return false;
+        }
+        return true;
       }
-      
-      // Verificar variant
-      const variant = (product.variant || '').toUpperCase();
-      if (condicoesInvalidas.some(invalida => variant.includes(invalida))) {
-        console.log(`🚫 Produto rejeitado (variant vitrine): ${product.name} - variant: ${variant}`);
-        return false;
-      }
-      
-      // Verificar name e model
-      const name = (product.name || '').toUpperCase();
-      const model = (product.model || '').toUpperCase();
-      const notes = (product.notes || '').toUpperCase();
-      
-      if (condicoesInvalidas.some(invalida => 
-        name.includes(invalida) || 
-        model.includes(invalida) || 
-        notes.includes(invalida)
-      )) {
-        console.log(`🚫 Produto rejeitado (vitrine no nome/modelo): ${product.name} - name: ${name}, model: ${model}`);
-        return false;
-      }
-      
+      // android: aceitar qualquer condition (Novo/Seminovo)
       return true;
     });
 
     if (produtosValidos.length === 0) {
-      return res.status(400).json({ 
-        message: 'Nenhum produto válido para salvar. Todos os produtos foram filtrados (apenas produtos NOVOS, LACRADOS ou CPO são aceitos).',
-        filtered_count: validated_products.length
-      });
+      const msg = listKind === 'lacrada'
+        ? 'Nenhum produto válido para salvar. Apenas produtos NOVOS/LACRADOS/CPO são aceitos.'
+        : listKind === 'seminovo'
+          ? 'Nenhum produto válido. Apenas produtos com condition Seminovo são aceitos.'
+          : 'Nenhum produto válido para salvar.';
+      return res.status(400).json({ message: msg, filtered_count: validated_products.length });
     }
 
     if (produtosValidos.length < validated_products.length) {
-      console.log(`⚠️ ${validated_products.length - produtosValidos.length} produtos de vitrine/seminovos foram filtrados antes de salvar`);
+      console.log(`⚠️ ${validated_products.length - produtosValidos.length} produtos filtrados antes de salvar (list_type=${listKind})`);
     }
 
     // Usar apenas produtos válidos
@@ -540,6 +531,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     console.log(`🔄 Preparando para processar lista do fornecedor ${finalSupplierId} (${today})...`);
 
     const keysInList = new Set(); // chaves (model|color|storage|condition) dos produtos desta lista
+    const productType = listKind === 'android' ? 'android' : 'apple';
 
     // Salvar produtos validados
     const savedProducts = [];
@@ -588,11 +580,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         const listKey = `${(normalizedModel || '').toLowerCase().trim()}|${(normalizedColor || '').toLowerCase().trim()}|${(normalizedStorage || '').trim()}|${condition}`;
         keysInList.add(listKey);
 
+        const productTypeFilter = productType === 'android' ? "AND COALESCE(product_type, 'apple') = 'android'" : "AND COALESCE(product_type, 'apple') = 'apple'";
         if (normalizedModel) {
-          // Busca por modelo: compara modelo, cor, armazenamento e condição
-          // Buscar mesmo produtos inativos (que foram desativados hoje) para reativá-los
-          // Usa comparação exata normalizada para evitar duplicados
-          // Procura primeiro por match exato, depois por match parcial se necessário
+          // Busca por modelo: compara modelo, cor, armazenamento, condição e product_type
           existingProduct = await query(`
             SELECT id FROM products 
             WHERE supplier_id = $1 
@@ -600,6 +590,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
               AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
               AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
               AND condition = $5
+              ${productTypeFilter}
             ORDER BY updated_at DESC
             LIMIT 1
           `, [
@@ -610,10 +601,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             condition
           ]);
           
-          // Se não encontrou com match exato, tentar match parcial (para casos onde o modelo pode ter pequenas diferenças)
           if (existingProduct.rows.length === 0) {
-            // Busca parcial: modelo similar (diferença apenas em espaços ou formatação)
-            const modelPattern = normalizedModel.replace(/\s+/g, '\\s*'); // Permite espaços variáveis
+            const modelPattern = normalizedModel.replace(/\s+/g, '\\s*');
             existingProduct = await query(`
               SELECT id FROM products 
               WHERE supplier_id = $1 
@@ -621,6 +610,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
                 AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
                 AND condition = $5
+                ${productTypeFilter}
               ORDER BY updated_at DESC
               LIMIT 1
             `, [
@@ -632,8 +622,6 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             ]);
           }
         } else {
-          // Se não tem modelo, buscar por nome completo, cor, armazenamento e condição
-          // Buscar mesmo produtos inativos (que foram desativados hoje) para reativá-los
           existingProduct = await query(`
             SELECT id FROM products 
             WHERE supplier_id = $1 
@@ -641,6 +629,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
               AND COALESCE(TRIM(LOWER(COALESCE(color, ''))), '') = COALESCE(TRIM(LOWER($3)), '')
               AND COALESCE(TRIM(LOWER(COALESCE(storage, ''))), '') = COALESCE(TRIM(LOWER($4)), '')
               AND condition = $5
+              ${productTypeFilter}
             ORDER BY updated_at DESC
             LIMIT 1
           `, [
@@ -666,17 +655,19 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 variant = $6,
                 condition_detail = $7,
                 is_active = $8,
+                product_type = $9,
                 updated_at = NOW()
-            WHERE id = $9
+            WHERE id = $10
           `, [
             product.price,
             product.name,
             product.model || null,
-            normalizedColor || product.color || null, // Salvar cor normalizada
+            normalizedColor || product.color || null,
             product.storage || null,
             normalizedVariant,
             conditionDetail || null,
-            true, // Garantir que está ativo
+            true,
+            productType,
             productId
           ]);
 
@@ -707,22 +698,23 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           const productResult = await query(`
             INSERT INTO products (
               supplier_id, name, model, color, storage, condition, condition_detail, variant,
-              price, stock_quantity, is_active
+              price, stock_quantity, is_active, product_type
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING id
           `, [
             finalSupplierId,
             product.name,
             product.model || null,
-            normalizedColor || product.color || null, // Salvar cor normalizada
+            normalizedColor || product.color || null,
             product.storage || null,
             condition,
             conditionDetail || null,
             normalizedVariant,
             product.price,
-            1, // stock_quantity padrão
-            true // is_active
+            1,
+            true,
+            productType
           ]);
 
           const productId = productResult.rows[0].id;
@@ -753,12 +745,16 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       console.error(`  📋 Erros detalhados:`, saveErrors);
     }
 
-    // Desativar produtos deste fornecedor que NÃO estão na lista processada
-    // (evita aparecer produto antigo/errado, ex: 17 Pro Max preto que não existe na lista)
+    // Desativar produtos deste fornecedor + mesmo tipo que NÃO estão na lista processada
+    const deactivateFilter = listKind === 'android'
+      ? "AND COALESCE(product_type, 'apple') = 'android'"
+      : listKind === 'seminovo'
+        ? "AND condition = 'Seminovo' AND COALESCE(product_type, 'apple') = 'apple'"
+        : "AND condition = 'Novo' AND COALESCE(product_type, 'apple') = 'apple'";
     const allActive = await query(`
       SELECT id, model, color, storage, condition
       FROM products
-      WHERE supplier_id = $1 AND is_active = true
+      WHERE supplier_id = $1 AND is_active = true ${deactivateFilter}
     `, [finalSupplierId]);
     const idsToDeactivate = [];
     for (const row of allActive.rows) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, RefreshCw, AlertTriangle } from 'lucide-react'
+import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, RefreshCw, AlertTriangle, Apple, Smartphone } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
@@ -11,7 +12,21 @@ const buildApiUrl = (path: string) => {
   return `${API_BASE_URL}${normalizedPath}`
 }
 
-export default function ProcessListPage() {
+type ListType = 'lacrada' | 'seminovo' | 'android'
+
+export default function ProcessListPage({ initialListType }: { initialListType?: ListType }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const modeFromUrl = searchParams.get('mode') as ListType | null
+  const urlModeValid = modeFromUrl === 'lacrada' || modeFromUrl === 'seminovo' || modeFromUrl === 'android'
+  const [listType, setListType] = useState<ListType>(() =>
+    initialListType ?? (urlModeValid ? modeFromUrl! : 'lacrada')
+  )
+
+  const setListMode = (mode: ListType) => {
+    setListType(mode)
+    setSearchParams({ mode }, { replace: true })
+  }
+
   const { user } = useAuthStore()
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [rawList, setRawList] = useState('')
@@ -218,14 +233,14 @@ export default function ProcessListPage() {
       console.log('🔍 ProcessList - Primeiras linhas:', rawList.split('\n').slice(0, 5))
       console.log('🔍 ProcessList - Token disponível:', token ? 'Sim' : 'Não')
 
-      // Enviar lista BRUTA para IA processar tudo
+      // Enviar lista BRUTA para IA processar (list_type: lacrada | seminovo | android)
       const response = await fetch(apiUrl, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-        body: JSON.stringify({ rawListText: rawList })
+        body: JSON.stringify({ rawListText: rawList, list_type: listType })
         })
       
       console.log('🔍 ProcessList - Response status:', response.status)
@@ -359,11 +374,12 @@ export default function ProcessListPage() {
         console.log('🔍 ProcessList - Primeiros produtos:', validProducts.slice(0, 3))
         
         const requestBody = {
-          supplier_id: supplierId ? parseInt(supplierId) : undefined, // Enviar ID se disponível
+          supplier_id: supplierId ? parseInt(supplierId) : undefined,
           supplier_name: supplierName,
           supplier_whatsapp: supplierWhatsapp,
           validated_products: validProducts,
-          raw_list_text: rawList
+          raw_list_text: rawList,
+          list_type: listType
         }
         
         console.log('🔍 ProcessList - Request body:', {
@@ -654,6 +670,36 @@ export default function ProcessListPage() {
 
   return (
     <div className="space-y-6">
+      {/* Seletor: Lacrada | Seminovo | Android (1 página, não mistura) */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4"
+      >
+        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">O que você vai processar?</p>
+        <div className="flex flex-wrap gap-2">
+          {([
+            { mode: 'lacrada' as const, Icon: Apple, label: 'Apple Lacrada', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
+            { mode: 'seminovo' as const, Icon: RefreshCw, label: 'Apple Seminovo', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+            { mode: 'android' as const, Icon: Smartphone, label: 'Android', activeClass: 'bg-green-600 text-white border-green-600' }
+          ]).map(({ mode, Icon, label, activeClass }) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setListMode(mode)}
+              className={`flex items-center gap-2 py-2.5 px-4 rounded-lg border-2 text-sm font-semibold transition-all ${
+                listType === mode
+                  ? `${activeClass} shadow-md`
+                  : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20'
+              }`}
+            >
+              <Icon className="w-5 h-5 shrink-0" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -661,8 +707,16 @@ export default function ProcessListPage() {
         className="text-center mb-8"
       >
         <div className="text-center mb-4">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Processar Lista Apple</h1>
-          <p className="text-gray-600 dark:text-white/70">Cole a lista do fornecedor e a IA processará automaticamente todos os produtos Apple</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              {listType === 'android' ? 'Processar Lista Android' : listType === 'seminovo' ? 'Processar Lista Apple Seminovo' : 'Processar Lista Apple Lacrada'}
+            </h1>
+          <p className="text-gray-600 dark:text-white/70">
+            {listType === 'android'
+              ? 'Cole aqui apenas a lista de aparelhos Android (ex.: Xiaomi, Samsung). A IA extrairá os produtos.'
+              : listType === 'seminovo'
+                ? 'Cole aqui apenas a lista de Apple seminovos. A IA extrairá os produtos.'
+                : 'Cole aqui apenas iPhones/Apple lacrados (MacBook, AirPods, Apple Watch lacrado). A IA processará automaticamente.'}
+          </p>
           <p className="text-gray-500 dark:text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
           
           {/* Botão de emergência para restaurar produtos */}
@@ -948,7 +1002,7 @@ export default function ProcessListPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-white/70 text-sm mb-2">
-                Cole aqui a lista completa do fornecedor. A IA processará automaticamente todos os produtos Apple.
+                {listType === 'android' ? 'Cole aqui apenas a lista Android.' : listType === 'seminovo' ? 'Cole aqui apenas a lista de Apple seminovos.' : 'Cole aqui apenas a lista Apple lacrada (iPhone, MacBook, AirPods, Apple Watch).'}
               </label>
               <textarea
                 value={rawList}

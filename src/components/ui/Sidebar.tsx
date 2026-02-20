@@ -55,9 +55,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   // Navegação principal (topo)
   const mainNavigation = [
-    { name: 'Buscar iPhone Novo', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
-    { name: 'Buscar iPhone Seminovo', href: '/search-iphone-seminovo', icon: Search },
-    { name: 'Buscar Android', href: '/search-android', icon: Search },
+    { name: 'Buscar mais barato', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
     { name: 'Média de Preço', href: '/price-averages', icon: BarChart3, permission: 'medias_preco' },
     { name: 'Calendário', href: '/calendar', icon: Calendar },
   ]
@@ -71,7 +69,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const adminNavigation = [
     {
-      name: 'Processar Lista Apple',
+      name: 'Processar lista',
       href: '/process-list',
       icon: FileText,
       category: 'admin'

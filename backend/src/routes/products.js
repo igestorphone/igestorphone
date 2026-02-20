@@ -23,13 +23,14 @@ router.get('/', [
     return ['Novo', 'Seminovo', 'Usado', 'Recondicionado'].includes(value);
   }),
   queryValidator('condition_type').optional().custom((value) => {
-    // Aceitar string vazia ou valor válido para filtrar por tipo de condição
-    // "lacrados_novos" = LACRADO, NOVO, CPO
-    // "seminovos" = SWAP, VITRINE, SEMINOVO
     if (value === '' || value === undefined || value === null) return true;
     return ['lacrados_novos', 'seminovos'].includes(value);
   }),
-  queryValidator('color').optional().trim(), // Adicionar validação para color
+  queryValidator('product_type').optional().custom((value) => {
+    if (value === '' || value === undefined || value === null) return true;
+    return ['apple', 'android'].includes(value);
+  }),
+  queryValidator('color').optional().trim(),
   queryValidator('storage').optional().trim(), // Adicionar validação para storage
   queryValidator('date').optional().trim(), // Adicionar validação para date (YYYY-MM-DD)
   queryValidator('sort_by').optional().isIn(['name', 'price', 'created_at']),
@@ -53,15 +54,16 @@ router.get('/', [
       max_price,
       condition,
       condition_type,
+      product_type,
       date,
       sort_by = 'created_at',
       sort_order = 'desc'
     } = req.query;
 
-    // Limpar valores vazios
     const cleanSupplierId = supplier_id === '' || supplier_id === undefined || supplier_id === null ? null : supplier_id;
     const cleanCondition = condition === '' || condition === undefined || condition === null ? null : condition;
     const cleanConditionType = condition_type === '' || condition_type === undefined || condition_type === null ? null : condition_type;
+    const cleanProductType = product_type === '' || product_type === undefined || product_type === null ? null : product_type;
     const cleanDate = date === '' || date === undefined || date === null ? null : date;
 
     const offset = (page - 1) * limit;
@@ -270,12 +272,17 @@ router.get('/', [
           OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
         )`;
       } else if (cleanConditionType === 'seminovos') {
-        // Filtrar produtos com condition_detail = SWAP, VITRINE, SEMINOVO ou condition = Seminovo sem condition_detail específico
         whereClause += ` AND (
           p.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')
           OR (p.condition = 'Seminovo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
         )`;
       }
+    }
+
+    if (cleanProductType) {
+      whereClause += ` AND COALESCE(p.product_type, 'apple') = $${paramCount}`;
+      values.push(cleanProductType);
+      paramCount++;
     }
 
     // Adicionar filtros adicionais se necessário

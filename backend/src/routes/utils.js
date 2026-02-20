@@ -1,7 +1,28 @@
 import express from 'express';
 import axios from 'axios';
+import { query } from '../config/database.js';
+import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
+
+// Totais gerais (produtos e fornecedores ativos) — para barra da página Buscar mais barato
+router.get('/stats', authenticateToken, async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM products WHERE is_active = true AND price > 0 AND price IS NOT NULL) AS total_products,
+        (SELECT COUNT(*)::int FROM suppliers WHERE is_active = true) AS total_suppliers
+    `);
+    const row = result.rows[0];
+    res.json({
+      total_products: row?.total_products ?? 0,
+      total_suppliers: row?.total_suppliers ?? 0
+    });
+  } catch (err) {
+    console.error('Erro ao buscar stats:', err);
+    res.status(500).json({ total_products: 0, total_suppliers: 0 });
+  }
+});
 
 // Buscar cotação do dólar em tempo real
 router.get('/dollar-rate', async (req, res) => {

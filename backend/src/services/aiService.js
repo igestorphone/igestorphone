@@ -277,13 +277,42 @@ class AIService {
   }
 
   // Validação inteligente de listas de produtos a partir de texto bruto
-  async validateProductListFromText(rawListText) {
+  // options.listType: 'lacrada' (default) | 'seminovo' | 'android' — usuário já cola lista filtrada
+  async validateProductListFromText(rawListText, options = {}) {
+    const listType = options.listType || 'lacrada';
     try {
-      // Limpar lista: remover seções de "semi novo", "swap", "vitrine" que podem confundir a IA
-      // Remover linhas que contenham apenas esses termos ou seções marcadas
       let cleanedList = rawListText;
+      // Para seminovo/android o usuário já colou lista filtrada — não cortar seções
+      const skipSeminovoSectionCut = listType === 'seminovo' || listType === 'android';
       
-      // Remover seções de seminovos que podem estar no final ou meio da lista
+      if (skipSeminovoSectionCut) {
+        cleanedList = rawListText.replace(/\r\n/g, '\n').trim();
+      }
+
+      // Lista seminovo ou android: usuário já colou filtrada — prompt direto
+      if (listType === 'seminovo' || listType === 'android') {
+        const isSeminovo = listType === 'seminovo';
+        const systemPrompt = isSeminovo
+          ? 'Você extrai produtos Apple SEMINOVOS de uma lista. O usuário colou APENAS seminovos. Retorne JSON com array validated_products. Cada item: name, model, color, storage, price (número), condition (sempre "Seminovo"), condition_detail ("SEMINOVO" ou vazio). Normalize preços (R$ 1.500 = 1500). Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Seminovo" } ] }.'
+          : 'Você extrai produtos ANDROID (Samsung, Xiaomi, Motorola, etc.) de uma lista. O usuário colou APENAS Android. Retorne JSON com array validated_products. Cada item: name, model, color, storage, price (número), condition ("Novo" ou "Seminovo" conforme a lista). Normalize preços. Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Novo" ou "Seminovo" } ] }.';
+        const userPrompt = `Extraia todos os produtos desta lista (${isSeminovo ? 'Apple seminovos' : 'Android'}).\n\n${cleanedList}`;
+        const { outputText } = await this.createAIResponse({
+          systemPrompt,
+          userPrompt,
+          temperature: 0.2,
+          maxOutputTokens: 4000
+        });
+        const parsed = this.parseAIResponse(outputText);
+        if (parsed.validated_products && parsed.validated_products.length > 0) {
+          parsed.validated_products.forEach(p => {
+            if (!p.condition) p.condition = isSeminovo ? 'Seminovo' : 'Novo';
+            if (isSeminovo && !p.condition_detail) p.condition_detail = 'SEMINOVO';
+          });
+        }
+        return parsed;
+      }
+      
+      // Remover seções de seminovos que podem estar no final ou meio da lista (apenas para lacrada)
       // NOTA: Não remover linhas com "(DESATIVADO)" se estiverem em seção de LACRADOS
       const seminovoMarkers = [
         /💎\s*[Ss]emi\s*[Nn]ovo.*💎/gi,
