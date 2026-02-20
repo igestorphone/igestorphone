@@ -245,8 +245,16 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         sort_order: 'asc',
         limit: 5000
       }
-      if (searchMode === 'seminovo') params.condition_type = 'seminovos'
-      if (searchMode === 'android') params.product_type = 'android'
+      // Cada opção carrega APENAS o tipo selecionado (nunca misturar Apple novo com Android/Xiaomi)
+      if (searchMode === 'novo') {
+        params.condition_type = 'lacrados_novos'
+        params.product_type = 'apple'
+      } else if (searchMode === 'seminovo') {
+        params.condition_type = 'seminovos'
+        params.product_type = 'apple'
+      } else {
+        params.product_type = 'android'
+      }
       return produtosApi.getAll(params)
     },
     enabled: shouldFetchProducts && queryReady,
@@ -567,10 +575,10 @@ Ainda tem disponível?`
         >
           <div className="flex flex-wrap gap-2 sm:gap-3">
             {([
-              { mode: 'novo' as const, Icon: Apple, label: 'Apple Novo', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
-              { mode: 'seminovo' as const, Icon: RefreshCw, label: 'iPhone Seminovo', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
-              { mode: 'android' as const, Icon: Smartphone, label: 'Android', activeClass: 'bg-green-600 text-white border-green-600' }
-            ]).map(({ mode, Icon, label, activeClass }) => (
+              { mode: 'novo' as const, Icon: Apple, label: 'Apple Novo', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
+              { mode: 'seminovo' as const, Icon: RefreshCw, label: 'iPhone Seminovo', emoji: '📲', activeClass: 'bg-emerald-600 text-white border-emerald-600' },
+              { mode: 'android' as const, Icon: Smartphone, label: 'Android', emoji: '🤖', activeClass: 'bg-green-600 text-white border-green-600' }
+            ]).map(({ mode, Icon, label, emoji, activeClass }) => (
               <button
                 key={mode}
                 type="button"
@@ -581,6 +589,7 @@ Ainda tem disponível?`
                     : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
+                <span className="text-base" aria-hidden>{emoji}</span>
                 <Icon className="w-5 h-5 shrink-0" strokeWidth={2.2} />
                 <span>{label}</span>
               </button>
