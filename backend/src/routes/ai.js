@@ -403,7 +403,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
   body('validated_products').isArray().withMessage('Lista de produtos validados é obrigatória'),
   body('validated_products.*.name').notEmpty().withMessage('Nome do produto é obrigatório'),
   body('validated_products.*.price').isFloat({ min: 0 }).withMessage('Preço deve ser um número positivo'),
-  body('raw_list_text').optional().isString()
+  body('raw_list_text').optional().isString(),
+  body('list_type').optional().isIn(['lacrada', 'seminovo', 'android']).withMessage('list_type deve ser lacrada, seminovo ou android')
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
