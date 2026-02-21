@@ -5,13 +5,26 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Totais gerais (produtos e fornecedores ativos) — para barra da página Buscar mais barato
+// Totais do DIA (produtos e fornecedores processados hoje — dos 3 tipos: novo, seminovo, android)
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const result = await query(`
+      WITH hoje_br AS (
+        SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AS dia
+      ),
+      produtos_hoje AS (
+        SELECT p.id, p.supplier_id
+        FROM products p
+        CROSS JOIN hoje_br h
+        WHERE p.is_active = true AND p.price > 0 AND p.price IS NOT NULL
+          AND (
+            (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = h.dia
+            OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = h.dia
+          )
+      )
       SELECT
-        (SELECT COUNT(*)::int FROM products WHERE is_active = true AND price > 0 AND price IS NOT NULL) AS total_products,
-        (SELECT COUNT(*)::int FROM suppliers WHERE is_active = true) AS total_suppliers
+        (SELECT COUNT(*)::int FROM produtos_hoje) AS total_products,
+        (SELECT COUNT(DISTINCT supplier_id)::int FROM produtos_hoje) AS total_suppliers
     `);
     const row = result.rows[0];
     res.json({

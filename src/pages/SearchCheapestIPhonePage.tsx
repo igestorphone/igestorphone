@@ -508,38 +508,37 @@ Ainda tem disponível?`
     staleTime: 5000
   })
 
-  const globalStatsQuery = useQuery({
-    queryKey: ['global-stats'],
+  const todayStatsQuery = useQuery({
+    queryKey: ['stats-hoje'],
     queryFn: () => utilsApi.getGlobalStats(),
-    staleTime: 60000,
-    refetchOnWindowFocus: false
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true
   })
 
-  const totalProducts = globalStatsQuery.data?.total_products ?? 0
-  const totalSuppliers = globalStatsQuery.data?.total_suppliers ?? 0
+  const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
+  const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div className="space-y-4 p-4 md:p-6 max-w-full">
-        {/* Status bar - Total geral (fixa ao rolar), não separada por tipo */}
+        {/* Status bar - Totais do DIA (produtos e fornecedores processados hoje — novo + seminovo + android) */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className="sticky top-0 z-10 bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 flex items-center justify-between flex-wrap gap-4"
         >
-          {/* Totais gerais (tudo no sistema) */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {totalProducts.toLocaleString('pt-BR')} produtos
+                {totalProductsToday.toLocaleString('pt-BR')} produtos <span className="text-gray-500 dark:text-gray-400 font-normal">(hoje)</span>
               </span>
             </div>
             <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {totalSuppliers.toLocaleString('pt-BR')} fornecedores
+                {totalSuppliersToday.toLocaleString('pt-BR')} fornecedores processados <span className="text-gray-500 dark:text-gray-400 font-normal">(hoje)</span>
               </span>
             </div>
           </div>
