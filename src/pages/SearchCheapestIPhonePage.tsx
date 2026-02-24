@@ -266,12 +266,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       else if (response?.data?.products) products = response.data.products
       else if (response?.data && Array.isArray(response.data)) products = response.data
 
-      if (filterColorClientSide && selectedColor) {
-        products = products.filter(
-          (p: any) => normalizeColor(p.color, p.model || p.name) === selectedColor
-        )
-      }
-
+      // Filtro por cor para 17 Pro/16 Pro é aplicado no useMemo filteredProducts (para o dropdown de cores continuar mostrando todas as opções)
       const getVariantPriority = (variant?: string | null) =>
         variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
 
@@ -410,7 +405,16 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }, [productsQuery.data, debouncedSearch])
 
   const filteredProducts = useMemo(() => {
-    const all = productsQuery.data || []
+    let all = productsQuery.data || []
+    const searchLower = debouncedSearch.toLowerCase().trim()
+    const is17Or16Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('16 pro'))
+    if (is17Or16Pro && selectedColor) {
+      const colorNorm = (c: string, m: string) => (normalizeColor(c, m) || '').trim().replace(/\s+/g, ' ')
+      const selectedNorm = selectedColor.trim().replace(/\s+/g, ' ')
+      all = all.filter(
+        (p: any) => colorNorm(p.color || '', p.model || p.name) === selectedNorm
+      )
+    }
     if (!selectedRam) return all
     return all.filter((p: any) => {
       const ramVal = p.specifications?.ram || p.region
@@ -424,7 +428,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       }
       return false
     })
-  }, [productsQuery.data, selectedRam])
+  }, [productsQuery.data, selectedRam, selectedColor, debouncedSearch])
 
   const stats = useMemo(() => {
     const products = filteredProducts

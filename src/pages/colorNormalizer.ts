@@ -431,9 +431,10 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     '🟠': 'Laranja Cósmico',
     '🧡': 'Laranja Cósmico',
     '🔶': 'Laranja Cósmico',
-    // Azul Intenso (Deep Blue)
+    // Azul Intenso (Deep Blue / Intense Blue — nomes que vêm dos fornecedores)
     'azul intenso': 'Azul Intenso',
     'deep blue': 'Azul Intenso',
+    'intense blue': 'Azul Intenso',
     'azul profundo': 'Azul Intenso',
     'azul': 'Azul Intenso',
     'blue': 'Azul Intenso',
@@ -461,9 +462,10 @@ export const modelColorMappings: Record<string, Record<string, string>> = {
     '🟠': 'Laranja Cósmico',
     '🧡': 'Laranja Cósmico',
     '🔶': 'Laranja Cósmico',
-    // Azul Intenso (Deep Blue)
+    // Azul Intenso (Deep Blue / Intense Blue)
     'azul intenso': 'Azul Intenso',
     'deep blue': 'Azul Intenso',
+    'intense blue': 'Azul Intenso',
     'azul profundo': 'Azul Intenso',
     'azul': 'Azul Intenso',
     'blue': 'Azul Intenso',
