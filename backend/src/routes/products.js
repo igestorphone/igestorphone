@@ -2,8 +2,17 @@ import express from 'express';
 import { body, validationResult, query as queryValidator } from 'express-validator';
 import { query } from '../config/database.js';
 import { requireSubscription } from '../middleware/auth.js';
+import { normalizeColor } from '../utils/colorNormalizer.js';
 
 const router = express.Router();
+
+/** Normaliza modelo: remove lac, lacrado, anatel, e-sim, etc. para evitar duplicatas */
+function normalizeModelForAverages(rawModel) {
+  if (!rawModel || typeof rawModel !== 'string') return '';
+  let m = rawModel.toLowerCase().trim();
+  m = m.replace(/\s+(lac|lacrado|anatel|e-?sim|e sim|com\s*chip|li|pons|dual\s*sim)\s*$/gi, '').trim();
+  return m;
+}
 
 // Buscar produtos com filtros
 router.get('/', [
@@ -443,12 +452,51 @@ router.get('/price-averages', async (req, res) => {
     const rest = key.replace(/^iphone\s*/i, '').trim();
     return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone';
   };
+  const normStorage = (s) => {
+    if (!s) return '—';
+    const m = String(s).toUpperCase().trim().match(/(\d+)\s*GB?/i);
+    return m ? `${m[1]}GB` : String(s).toUpperCase();
+  };
 
-  const rows = result.rows.map((r) => ({
+  // Normalizar e mergear: evita "17 Pro Max 256GB lac" vs "17 Pro Max 256GB" como linhas separadas
+  const merged = new Map();
+  for (const r of result.rows) {
+    const normModel = normalizeModelForAverages(r.model_key);
+    const normColor = normalizeColor(r.color || '', r.model_key || '') || r.color || '—';
+    const normStr = normStorage(r.storage);
+    const key = `${normModel}|${normColor}|${normStr}`;
+    const avg = Number(r.avg_price);
+    const count = r.count;
+    const minP = r.min_price != null ? Number(r.min_price) : null;
+    const maxP = r.max_price != null ? Number(r.max_price) : null;
+
+    if (merged.has(key)) {
+      const prev = merged.get(key);
+      const totalCount = prev.count + count;
+      prev.avg_price = (prev.avg_price * prev.count + avg * count) / totalCount;
+      prev.count = totalCount;
+      prev.min_price = Math.min(prev.min_price ?? Infinity, minP ?? Infinity);
+      prev.max_price = Math.max(prev.max_price ?? -Infinity, maxP ?? -Infinity);
+      if (prev.min_price === Infinity) prev.min_price = null;
+      if (prev.max_price === -Infinity) prev.max_price = null;
+    } else {
+      merged.set(key, {
+        model_key: normModel,
+        color: normColor,
+        storage: normStr,
+        avg_price: avg,
+        count,
+        min_price: minP,
+        max_price: maxP,
+      });
+    }
+  }
+
+  const rows = Array.from(merged.values()).map((r) => ({
     model: toDisplayModel(r.model_key),
     color: r.color || '—',
     storage: r.storage || '—',
-    avg_price: Number(r.avg_price),
+    avg_price: r.avg_price,
     count: r.count,
     min_price: r.min_price != null ? roundTo50(r.min_price) : null,
     max_price: r.max_price != null ? roundTo50(r.max_price) : null,

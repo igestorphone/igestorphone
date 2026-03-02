@@ -259,14 +259,17 @@ runMigrations()
       logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 
-      // Scheduler: zerar produtos à 00h Brasília — OFF por padrão (testes); ative com ENABLE_MIDNIGHT_CLEANUP=true
-      const enableMidnightCleanup = process.env.ENABLE_MIDNIGHT_CLEANUP === 'true' || process.env.ENABLE_MIDNIGHT_CLEANUP === '1';
+      // Scheduler: zerar produtos à 00h Brasília — em produção LIGADO por padrão; em dev desligado (testes)
+      const explicitOff = process.env.ENABLE_MIDNIGHT_CLEANUP === 'false' || process.env.ENABLE_MIDNIGHT_CLEANUP === '0';
+      const explicitOn = process.env.ENABLE_MIDNIGHT_CLEANUP === 'true' || process.env.ENABLE_MIDNIGHT_CLEANUP === '1';
+      const isProduction = process.env.NODE_ENV === 'production';
+      const enableMidnightCleanup = explicitOn || (isProduction && !explicitOff);
       if (enableMidnightCleanup) {
         logger.info('⏰ Iniciando scheduler: zerar produtos à 00h Brasília');
         cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
         logger.info('✅ Scheduler ativo');
       } else {
-        logger.info('⏸️ Scheduler de zerar produtos à 00h DESATIVADO (para ativar: ENABLE_MIDNIGHT_CLEANUP=true)');
+        logger.info('⏸️ Scheduler de zerar produtos à 00h DESATIVADO (em dev: normal; em prod use ENABLE_MIDNIGHT_CLEANUP=true para forçar)');
       }
     });
   })
