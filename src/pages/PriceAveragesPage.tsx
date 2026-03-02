@@ -9,7 +9,7 @@ import {
   BarChart3,
   Copy,
   Download,
-  Percent,
+  Banknote,
   Loader2,
   RefreshCw,
 } from 'lucide-react'
@@ -78,7 +78,7 @@ function getAvgAnyColor(averages: AvgRow[], model: string, storage: string): num
 }
 
 export default function PriceAveragesPage() {
-  const [marginPercent, setMarginPercent] = useState(0)
+  const [marginReais, setMarginReais] = useState(0)
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages'],
@@ -89,8 +89,8 @@ export default function PriceAveragesPage() {
   const lookup = useMemo(() => buildLookup(data?.averages || []), [data?.averages])
 
   const applyMargin = (price: number) => {
-    if (marginPercent <= 0) return price
-    return Math.round(price * (1 + marginPercent / 100) / 50) * 50
+    if (marginReais <= 0) return price
+    return Math.round((price + marginReais) / 50) * 50
   }
 
   const buildRows = () => {
@@ -113,14 +113,18 @@ export default function PriceAveragesPage() {
   }
 
   const displayRows = useMemo(() => buildRows(), [lookup, data?.averages])
+  const has17ProData = useMemo(() => displayRows.some((r) => r.is17Pro), [displayRows])
 
   const exportCsv = () => {
-    const header = ['Modelo', 'Armazenamento', 'Laranja', 'Azul', 'Prata', 'Média geral']
+    const colorCols = has17ProData ? ['Laranja', 'Azul', 'Prata'] : []
+    const header = ['Modelo', 'Armazenamento', ...colorCols, 'Média geral']
     const lines = [header.join(';')]
     for (const row of displayRows) {
-      const cols = row.is17Pro
+      const cols = has17ProData && row.is17Pro
         ? row.cells.map((c) => (c ? formatPrice(applyMargin(c.avg_price)) : ''))
-        : ['', '', '']
+        : has17ProData && !row.is17Pro
+          ? ['', '', '']
+          : []
       const mediaVal = row.mediaGeral != null ? formatPrice(applyMargin(row.mediaGeral)) : ''
       lines.push([row.model, row.storage, ...cols, mediaVal].join(';'))
     }
@@ -135,12 +139,15 @@ export default function PriceAveragesPage() {
   }
 
   const copyToClipboard = () => {
-    const header = ['Modelo', 'Armazenamento', 'Laranja', 'Azul', 'Prata', 'Média geral']
+    const colorCols = has17ProData ? ['Laranja', 'Azul', 'Prata'] : []
+    const header = ['Modelo', 'Armazenamento', ...colorCols, 'Média geral']
     const lines = [header.join('\t')]
     for (const row of displayRows) {
-      const cols = row.is17Pro
+      const cols = has17ProData && row.is17Pro
         ? row.cells.map((c) => (c ? formatPrice(applyMargin(c.avg_price)) : '—'))
-        : ['—', '—', '—']
+        : has17ProData && !row.is17Pro
+          ? ['—', '—', '—']
+          : []
       const mediaVal = row.mediaGeral != null ? formatPrice(applyMargin(row.mediaGeral)) : '—'
       lines.push([row.model, row.storage, ...cols, mediaVal].join('\t'))
     }
@@ -172,17 +179,17 @@ export default function PriceAveragesPage() {
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <Percent className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              <Banknote className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               <input
                 type="number"
                 min={0}
-                max={100}
-                step={0.5}
-                value={marginPercent}
-                onChange={(e) => setMarginPercent(Number(e.target.value) || 0)}
-                className="w-20 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                step={50}
+                placeholder="0"
+                value={marginReais}
+                onChange={(e) => setMarginReais(Number(e.target.value) || 0)}
+                className="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
               />
-              <span className="text-sm text-gray-500 dark:text-gray-400">% margem</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">R$ margem</span>
             </div>
             <button
               onClick={() => refetch()}
@@ -214,21 +221,25 @@ export default function PriceAveragesPage() {
         </div>
 
         <div className="overflow-x-auto -mx-2">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className={`w-full text-sm ${has17ProData ? 'min-w-[640px]' : 'min-w-[320px]'}`}>
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/10">
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Modelo</th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Armazenamento</th>
-                <th className="text-left py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">Laranja</th>
-                <th className="text-left py-3 px-3 font-semibold text-blue-600 dark:text-blue-400">Azul</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-500 dark:text-gray-400">Prata</th>
+                {has17ProData && (
+                  <>
+                    <th className="text-left py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">Laranja</th>
+                    <th className="text-left py-3 px-3 font-semibold text-blue-600 dark:text-blue-400">Azul</th>
+                    <th className="text-left py-3 px-3 font-semibold text-gray-500 dark:text-gray-400">Prata</th>
+                  </>
+                )}
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Média geral</th>
               </tr>
             </thead>
             <tbody>
               {displayRows.length === 0 && !isFetching && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={has17ProData ? 6 : 3} className="py-12 text-center text-gray-500 dark:text-gray-400">
                     Nenhuma média disponível. Processe listas de fornecedores primeiro.
                   </td>
                 </tr>
@@ -253,25 +264,26 @@ export default function PriceAveragesPage() {
                   >
                     <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">{row.model}</td>
                     <td className="py-3 px-3 text-gray-700 dark:text-gray-300">{row.storage}</td>
-                    {IPHONE_17_PRO_COLORS.map((col, j) => {
-                      const cell = row.is17Pro ? row.cells[j] : null
-                      return (
-                        <td key={col.key} className="py-3 px-3">
-                          {cell ? (
-                            <span className="font-medium">
-                              {formatPrice(applyMargin(cell.avg_price))}
-                              {cell.count > 1 && (
-                                <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                                  (n={cell.count})
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="text-gray-400 dark:text-gray-500">—</span>
-                          )}
-                        </td>
-                      )
-                    })}
+                    {has17ProData &&
+                      IPHONE_17_PRO_COLORS.map((col, j) => {
+                        const cell = row.is17Pro ? row.cells[j] : null
+                        return (
+                          <td key={col.key} className="py-3 px-3">
+                            {cell ? (
+                              <span className="font-medium">
+                                {formatPrice(applyMargin(cell.avg_price))}
+                                {cell.count > 1 && (
+                                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                                    (n={cell.count})
+                                  </span>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 dark:text-gray-500">—</span>
+                            )}
+                          </td>
+                        )
+                      })}
                     <td className="py-3 px-3 font-semibold text-gray-900 dark:text-white">
                       {mediaGeral != null ? formatPrice(mediaGeral) : '—'}
                     </td>
