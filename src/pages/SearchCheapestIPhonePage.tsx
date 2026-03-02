@@ -94,31 +94,97 @@ const formatTime = (date: Date) =>
     timeZone: 'America/Sao_Paulo'
   })
 
-// Input de busca com estado local: só o input re-renderiza ao digitar, evitando delay
+// Sugestões para efeito de digitação por modo
+const TYPING_SUGGESTIONS: Record<string, string[]> = {
+  novo: ['iPhone 17 Pro Max', 'iPhone 16 Pro', 'MacBook Air', 'AirPods Pro'],
+  seminovo: ['iPhone 15 Pro', 'iPhone 14 Pro Max', 'iPhone 13'],
+  android: ['Samsung Galaxy', 'Xiaomi', 'Motorola Edge']
+}
+
+// Input de busca com estado local + efeito de digitação quando vazio
 function SearchInputDebounced({
   onDebouncedChange,
-  placeholder = 'Buscar produtos...'
+  placeholder = 'Buscar produtos...',
+  typingSuggestions,
+  searchMode = 'novo'
 }: {
   onDebouncedChange: (value: string) => void
   placeholder?: string
+  typingSuggestions?: string[]
+  searchMode?: string
 }) {
   const [localValue, setLocalValue] = useState('')
+  const [typingText, setTypingText] = useState('')
+
   useEffect(() => {
     const timer = setTimeout(() => onDebouncedChange(localValue.trim() || ''), 400)
     return () => clearTimeout(timer)
   }, [localValue, onDebouncedChange])
+
+  // Efeito de digitação: só quando input vazio
+  const suggestions = typingSuggestions ?? TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
+  useEffect(() => {
+    if (localValue) {
+      setTypingText('')
+      return
+    }
+    let index = 0
+    let charIndex = 0
+    let isDeleting = false
+    let t: ReturnType<typeof setTimeout>
+
+    const type = () => {
+      const current = suggestions[index] || ''
+      if (isDeleting) {
+        if (charIndex > 0) {
+          charIndex--
+          setTypingText(current.slice(0, charIndex))
+          t = setTimeout(type, 40)
+        } else {
+          isDeleting = false
+          index = (index + 1) % suggestions.length
+          t = setTimeout(type, 500)
+        }
+      } else {
+        if (charIndex < current.length) {
+          charIndex++
+          setTypingText(current.slice(0, charIndex))
+          t = setTimeout(type, 80)
+        } else {
+          t = setTimeout(() => {
+            isDeleting = true
+            type()
+          }, 2200)
+        }
+      }
+    }
+
+      t = setTimeout(type, 600)
+    return () => clearTimeout(t)
+  }, [localValue, searchMode])
+
+  const showTypingEffect = !localValue
   return (
     <div className="relative">
-      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 z-10" />
       <input
         type="search"
         inputMode="search"
         autoComplete="off"
-        placeholder={placeholder}
+        placeholder={showTypingEffect ? ' ' : placeholder}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all touch-manipulation min-h-[44px]"
       />
+      {showTypingEffect && (
+        <div
+          className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500 select-none overflow-hidden"
+          aria-hidden
+        >
+          <span>{typingText}</span>
+          <span className="animate-pulse">|</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -606,6 +672,7 @@ Ainda tem disponível?`
           <SearchInputDebounced
             key={searchMode}
             onDebouncedChange={setDebouncedSearch}
+            searchMode={searchMode}
             placeholder={
               searchMode === 'android'
                 ? 'Ex: Samsung, Xiaomi, Motorola...'
