@@ -119,10 +119,26 @@ export default function ProfilePage() {
               Informações da Conta
             </h3>
             <div className="space-y-3">
+              {user?.subscription?.plan_name && (
+                <div className="flex items-center justify-between">
+                  <span className="text-gray-600 dark:text-white/70 text-sm">Plano</span>
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                    {user.subscription.plan_name}
+                  </span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-white/70 text-sm">Status</span>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-600 dark:text-green-400">
-                  Ativa
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  user?.subscription_status === 'active' ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+                  user?.subscription_status === 'overdue' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                  user?.subscription_status === 'pending_payment' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                  'bg-gray-500/20 text-gray-600 dark:text-gray-400'
+                }`}>
+                  {user?.subscription_status === 'active' ? 'Ativa' :
+                   user?.subscription_status === 'overdue' ? 'Pagamento atrasado' :
+                   user?.subscription_status === 'pending_payment' ? 'Aguardando pagamento' :
+                   user?.subscription_status || 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">

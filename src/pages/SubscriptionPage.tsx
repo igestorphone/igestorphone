@@ -114,7 +114,15 @@ export default function SubscriptionPage() {
         </span>
       )
     }
-    if (statusLower === 'trial' || statusLower === 'trial') {
+    if (statusLower === 'past_due' || statusLower === 'overdue') {
+      return (
+        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+          <AlertCircle className="w-4 h-4" />
+          Pagamento atrasado
+        </span>
+      )
+    }
+    if (statusLower === 'trial') {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
           Trial
@@ -130,8 +138,8 @@ export default function SubscriptionPage() {
 
   const getPlanBadge = (planName?: string) => {
     if (!planName) return null
-    
-    const planLower = planName.toLowerCase()
+    const displayName = planName.replace(/iGestorPhone\s*/i, '')
+    const planLower = displayName.toLowerCase()
     if (planLower.includes('pro') || planLower === 'pro') {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400">
@@ -147,9 +155,24 @@ export default function SubscriptionPage() {
         </span>
       )
     }
+    if (['mensal', 'trimestral', 'anual', 'teste'].some(p => planLower.includes(p))) {
+      const colors: Record<string, string> = {
+        mensal: 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-400',
+        trimestral: 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-400',
+        anual: 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400',
+        teste: 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
+      }
+      const color = Object.keys(colors).find(k => planLower.includes(k)) ? colors[Object.keys(colors).find(k => planLower.includes(k))!] : 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400'
+      return (
+        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${color}`}>
+          <Crown className="w-4 h-4" />
+          {displayName}
+        </span>
+      )
+    }
     return (
       <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400">
-        {planName.toUpperCase()}
+        {displayName}
       </span>
     )
   }

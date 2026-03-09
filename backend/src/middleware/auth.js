@@ -32,6 +32,28 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Conta desativada' });
     }
 
+    // pending_payment: só pode acessar rotas de checkout (profile para dados, create-subscription)
+    if (user.subscription_status === 'pending_payment') {
+      const path = (req.originalUrl || req.path || '').split('?')[0];
+      const allowed = ['/api/users/profile', '/api/asaas/create-subscription', '/api/asaas/plans'].some(
+        (p) => path === p || path.startsWith(p + '/')
+      );
+      if (!allowed) {
+        return res.status(403).json({
+          message: 'Complete o pagamento para acessar o sistema',
+          subscription_status: 'pending_payment',
+        });
+      }
+    }
+
+    // overdue/expired: pagamento atrasado
+    if (user.subscription_status === 'overdue' || user.subscription_status === 'expired') {
+      return res.status(403).json({
+        message: 'Pagamento atrasado. Regularize para continuar acessando.',
+        subscription_status: user.subscription_status,
+      });
+    }
+
     // Verificar inatividade (logout após 15 minutos sem atividade)
     const nowMs = Date.now();
     const lastActivityMs = user.last_activity_at ? new Date(user.last_activity_at).getTime() : null;

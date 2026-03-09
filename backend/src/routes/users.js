@@ -184,10 +184,10 @@ router.get('/profile', authenticateToken, async (req, res) => {
     
     user.permissions = permissionsResult.rows.map(row => row.permission_name);
     
-    // Buscar assinatura ativa
+    // Buscar assinatura (ativa ou última, para exibir plano mesmo se overdue)
     const subscriptionResult = await query(`
       SELECT * FROM subscriptions 
-      WHERE user_id = $1 AND status = 'active' 
+      WHERE user_id = $1 
       ORDER BY created_at DESC 
       LIMIT 1
     `, [req.user.id]);
@@ -616,10 +616,12 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
       paramCount++;
     }
 
-    // Buscar usuários - usar campos básicos que sempre existem
+    // Buscar usuários com plano da última assinatura
     const usersResult = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
+             (SELECT plan_name FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_name,
+             (SELECT plan_type FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_type
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC
@@ -831,10 +833,10 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
     
     user.permissions = permissionsResult.rows.map(row => row.permission_name);
     
-    // Buscar assinatura ativa
+    // Buscar última assinatura (para exibir plano inclusive se overdue)
     const subscriptionResult = await query(`
       SELECT * FROM subscriptions 
-      WHERE user_id = $1 AND status = 'active' 
+      WHERE user_id = $1 
       ORDER BY created_at DESC 
       LIMIT 1
     `, [id]);

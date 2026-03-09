@@ -18,6 +18,10 @@ export default function ProtectedRoute({ children, requiredPermission }: Protect
     return <Navigate to="/login" replace />
   }
 
+  if (user.subscription_status === 'pending_payment' || user.subscription_status === 'overdue') {
+    return <Navigate to="/checkout" replace />
+  }
+
   const onlyCalendar =
     Array.isArray(user.permissions) && user.permissions.length === 1 && user.permissions[0] === 'calendario'
   if (onlyCalendar && !ONLY_CALENDAR_ALLOWED_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) {

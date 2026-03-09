@@ -208,6 +208,26 @@ app.use(errorHandler);
 
 // Scheduler automático para limpeza de produtos à meia-noite de Brasília
 let cleanupInterval = null;
+let subscriptionOverdueInterval = null;
+
+/** Verifica assinaturas vencidas há 1+ dia e marca como overdue (pagamento atrasado) */
+async function checkSubscriptionOverdue() {
+  try {
+    const { query } = await import('./config/database.js');
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const result = await query(
+      `UPDATE users SET subscription_status = 'overdue'
+       WHERE subscription_status = 'active' AND subscription_expires_at IS NOT NULL AND subscription_expires_at < $1
+       RETURNING id, email`,
+      [oneDayAgo]
+    );
+    if (result.rowCount > 0) {
+      logger.info(`📋 Assinaturas vencidas: ${result.rowCount} usuário(s) marcado(s) como pagamento atrasado`);
+    }
+  } catch (error) {
+    logger.error('❌ Erro ao verificar assinaturas vencidas:', error);
+  }
+}
 
 async function checkAndCleanupProducts() {
   try {
@@ -273,6 +293,14 @@ runMigrations()
       } else {
         logger.info('⏸️ Scheduler de zerar produtos à 00h DESATIVADO (em dev: normal; em prod use ENABLE_MIDNIGHT_CLEANUP=true para forçar)');
       }
+
+      // Scheduler: assinaturas vencidas há 1+ dia → overdue (pagamento atrasado)
+      const runOverdueCheck = () => {
+        checkSubscriptionOverdue().catch(() => {});
+      };
+      runOverdueCheck(); // executa ao subir
+      subscriptionOverdueInterval = setInterval(runOverdueCheck, 60 * 60 * 1000); // a cada 1h
+      logger.info('📋 Scheduler de assinaturas vencidas ativo (1x/hora)');
     });
   })
   .catch((err) => {
@@ -294,17 +322,15 @@ process.on('unhandledRejection', (reason, promise) => {
 // Cleanup ao encerrar o servidor
 process.on('SIGTERM', () => {
   logger.info('🛑 Encerrando servidor...');
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-  }
+  if (cleanupInterval) clearInterval(cleanupInterval);
+  if (subscriptionOverdueInterval) clearInterval(subscriptionOverdueInterval);
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
   logger.info('🛑 Encerrando servidor...');
-  if (cleanupInterval) {
-    clearInterval(cleanupInterval);
-  }
+  if (cleanupInterval) clearInterval(cleanupInterval);
+  if (subscriptionOverdueInterval) clearInterval(subscriptionOverdueInterval);
   process.exit(0);
 });
 

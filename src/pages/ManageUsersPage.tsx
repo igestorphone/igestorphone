@@ -25,11 +25,14 @@ interface User {
   permissions?: string[];
   subscription?: {
     plan_type: string;
+    plan_name?: string;
     duration_months: number;
     price: number;
     status: string;
     end_date: string;
   };
+  plan_name?: string;
+  plan_type?: string;
   approval_status?: string;
   access_expires_at?: string;
   access_duration_days?: number;
@@ -569,9 +572,15 @@ export default function ManageUsersPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{user.name}</h3>
                   <p className="text-gray-600 dark:text-white/70 text-sm">{user.email}</p>
-                  <div className="flex items-center space-x-2 mt-2">
+                  <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
                     {getStatusBadge(user.is_active)}
+                    {(user.plan_name || user.subscription?.plan_name) && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                        <CreditCard className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+                        {(user.plan_name || user.subscription?.plan_name)?.replace(/iGestorPhone\s*/i, '')}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

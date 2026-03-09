@@ -185,8 +185,8 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
         name,
         cpfCnpj.replace(/\D/g, ''),
         phone || null,
-        'trial',
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        'pending_payment',
+        null,
       ]
     );
     const user = result.rows[0];
@@ -267,6 +267,16 @@ router.post('/webhook', async (req, res) => {
           `UPDATE subscriptions SET status = 'past_due' WHERE asaas_subscription_id = $1`,
           [subscriptionId]
         );
+        const subResult = await query(
+          `SELECT user_id FROM subscriptions WHERE asaas_subscription_id = $1`,
+          [subscriptionId]
+        );
+        if (subResult.rows.length > 0) {
+          await query(
+            `UPDATE users SET subscription_status = 'overdue' WHERE id = $1`,
+            [subResult.rows[0].user_id]
+          );
+        }
       }
     }
 

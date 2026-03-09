@@ -202,6 +202,12 @@ export default function CheckoutPage() {
           <img src="/assets/images/logo-dark.png" alt="iGestorPhone" className="h-10 w-auto object-contain" />
         </div>
 
+        {user?.subscription_status === 'overdue' && (
+          <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-400">
+            <AlertCircle className="h-5 w-5 shrink-0" />
+            <span>Pagamento atrasado. Regularize para continuar acessando o sistema.</span>
+          </div>
+        )}
         <div className="mb-10 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6">
           <h1 className="text-2xl font-bold">Finalizar assinatura</h1>
           <p className="mt-2 flex items-center gap-2 text-cyan-400">

@@ -37,11 +37,14 @@ import CheckoutPage from '@/pages/CheckoutPage'
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
 function App() {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
   const { canAccessOnlyCalendar } = usePermissions()
   useIdleLogout()
 
-  const defaultAuthenticatedPath = canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
+  const defaultAuthenticatedPath = (() => {
+    if (user?.subscription_status === 'pending_payment' || user?.subscription_status === 'overdue') return '/checkout'
+    return canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
+  })()
 
   return (
     <div className="min-h-screen">
