@@ -33,6 +33,7 @@ interface User {
   };
   plan_name?: string;
   plan_type?: string;
+  subscription_status?: string;
   approval_status?: string;
   access_expires_at?: string;
   access_duration_days?: number;
@@ -346,14 +347,29 @@ export default function ManageUsersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (isActive: boolean) => {
+  const getStatusBadge = (user: User) => {
+    const sub = user.subscription_status;
+    if (sub === 'pending_payment') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+          Aguardando pagamento
+        </span>
+      );
+    }
+    if (sub === 'overdue') {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+          Pagamento atrasado
+        </span>
+      );
+    }
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-        isActive 
-          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+        user.is_active
+          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
           : 'bg-red-500/20 text-red-400 border border-red-500/30'
       }`}>
-        {isActive ? 'Ativo' : 'Inativo'}
+        {user.is_active ? 'Ativo' : 'Inativo'}
       </span>
     );
   };
@@ -574,7 +590,7 @@ export default function ManageUsersPage() {
                   <p className="text-gray-600 dark:text-white/70 text-sm">{user.email}</p>
                   <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
-                    {getStatusBadge(user.is_active)}
+                    {getStatusBadge(user)}
                     {(user.plan_name || user.subscription?.plan_name) && (
                       <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                         <CreditCard className="w-3 h-3 inline mr-0.5 -mt-0.5" />

@@ -75,7 +75,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
   const [pixData, setPixData] = useState<{ encodedImage?: string; payload?: string } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success'>('idle')
-  const { isAuthenticated, user, login, refreshUser } = useAuthStore()
+  const { isAuthenticated, user, login, logout, refreshUser } = useAuthStore()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -83,6 +83,15 @@ export default function CheckoutPage() {
       setStep('payment')
     }
   }, [isAuthenticated, user, step])
+
+  const handleVoltarParaAuth = () => {
+    logout()
+    setStep('auth')
+    setMode('login')
+    setError(null)
+    setPixData(null)
+    setPaymentStatus('idle')
+  }
 
   const loginForm = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
   const registerForm = useForm<RegisterForm>({ resolver: zodResolver(registerSchema) })
@@ -356,6 +365,18 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, x: 10 }}
               className="space-y-6"
             >
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-white/70">
+                  Logado como <span className="font-medium text-cyan-400">{user?.email}</span>
+                </p>
+                <button
+                  type="button"
+                  onClick={handleVoltarParaAuth}
+                  className="text-xs text-white/50 hover:text-cyan-400 transition-colors"
+                >
+                  Trocar conta
+                </button>
+              </div>
               {!user?.cpf_cnpj && !extraCpf && (
                 <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                   <p className="text-sm text-white/80">Informe seu CPF para continuar o pagamento</p>
@@ -416,11 +437,11 @@ export default function CheckoutPage() {
             >
               <button
                 type="button"
-                onClick={() => setStep('payment')}
-                className="flex items-center gap-2 text-sm text-white/60 hover:text-white"
+                onClick={() => { setStep('payment'); setError(null) }}
+                className="flex items-center gap-2 text-sm text-white/60 hover:text-cyan-400 transition-colors"
               >
                 <ChevronLeft className="h-4 w-4" />
-                Voltar
+                Voltar para formas de pagamento
               </button>
               {error && (
                 <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
@@ -526,6 +547,14 @@ export default function CheckoutPage() {
               exit={{ opacity: 0 }}
               className="space-y-6"
             >
+              <button
+                type="button"
+                onClick={() => { setStep('payment'); setPixData(null); setError(null) }}
+                className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-cyan-400 transition-colors"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Voltar para formas de pagamento
+              </button>
               <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
                 <p className="text-sm text-white/60 mb-4">Escaneie o QR Code com o app do seu banco</p>
                 {pixData.encodedImage && (

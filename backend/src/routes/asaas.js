@@ -107,7 +107,7 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
 
     if (billingType === 'CREDIT_CARD') {
       await query(
-        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1 WHERE id = $2`,
+        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
         [endDate, user.id]
       );
       return res.json({
@@ -176,8 +176,8 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     const result = await query(
-      `INSERT INTO users (email, password_hash, name, cpf_cnpj, phone, subscription_status, subscription_expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO users (email, password_hash, name, cpf_cnpj, phone, subscription_status, subscription_expires_at, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, false)
        RETURNING id, email, name, role, subscription_status, cpf_cnpj, phone`,
       [
         email,
@@ -253,7 +253,7 @@ router.post('/webhook', async (req, res) => {
         [new Date(payment.paymentDate || Date.now()), endDate, subscriptionId]
       );
       await query(
-        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1 WHERE id = $2`,
+        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
         [endDate, sub.user_id]
       );
 
