@@ -14,7 +14,7 @@ import {
 
 const WHATSAPP_ATENDIMENTO = 'https://wa.me/5511941007348?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
 const WHATSAPP_SAC = 'https://wa.me/5511922961688'
-const LOGO_URL = '/assets/images/logo.png'
+const LOGO_URL = '/assets/images/logo-dark.png'
 
 const heroStats = [
   { value: '+12 mil', label: 'Listas processadas' },
@@ -124,30 +124,30 @@ const buttonHover = {
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen bg-black text-white">
+    <div className="relative min-h-screen bg-[#0a0a0f] text-white">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-white/[0.02] blur-[100px]" />
-        <div className="absolute -left-40 top-1/4 h-64 w-64 rounded-full bg-white/[0.03] blur-[80px]" />
-        <div className="absolute -right-40 bottom-1/4 h-64 w-64 rounded-full bg-white/[0.03] blur-[80px]" />
+        <div className="absolute left-1/2 top-0 h-[700px] w-[900px] -translate-x-1/2 rounded-full bg-cyan-500/[0.06] blur-[120px]" />
+        <div className="absolute -left-40 top-1/3 h-80 w-80 rounded-full bg-blue-500/[0.05] blur-[100px]" />
+        <div className="absolute -right-40 bottom-1/3 h-80 w-80 rounded-full bg-indigo-500/[0.05] blur-[100px]" />
+        <div className="absolute left-1/2 bottom-0 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-cyan-400/[0.03] blur-[80px]" />
       </div>
 
-      <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-black/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-[#0a0a0f]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={LOGO_URL} alt="iGestorPhone" className="h-9 w-9 rounded-xl border border-white/10 bg-white/5 p-1" />
-            <span className="text-lg font-semibold tracking-tight text-white">iGestorPhone</span>
+          <Link to="/" className="flex items-center gap-3 group">
+            <img src={LOGO_URL} alt="iGestorPhone" className="h-11 w-auto max-w-[140px] object-contain transition-transform group-hover:scale-105" />
           </Link>
-          <nav className="hidden items-center gap-8 text-sm font-medium text-white/60 md:flex">
-            <a href="#features" className="transition-colors hover:text-white">Recursos</a>
-            <a href="#steps" className="transition-colors hover:text-white">Como funciona</a>
-            <a href="#pricing" className="transition-colors hover:text-white">Preço</a>
-            <a href="#depoimentos" className="transition-colors hover:text-white">Depoimentos</a>
-            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
+          <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 md:flex">
+            <a href="#features" className="transition-colors hover:text-cyan-400">Recursos</a>
+            <a href="#steps" className="transition-colors hover:text-cyan-400">Como funciona</a>
+            <a href="#pricing" className="transition-colors hover:text-cyan-400">Preço</a>
+            <a href="#depoimentos" className="transition-colors hover:text-cyan-400">Depoimentos</a>
+            <a href="#faq" className="transition-colors hover:text-cyan-400">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="hidden rounded-xl border border-white/10 px-4 py-2.5 text-sm font-medium text-white/90 transition-colors hover:border-white/20 hover:bg-white/5 md:inline-flex"
+              className="hidden rounded-xl border border-cyan-500/30 px-4 py-2.5 text-sm font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10 md:inline-flex"
             >
               Entrar
             </Link>
@@ -155,7 +155,7 @@ export default function LandingPage() {
               href={WHATSAPP_ATENDIMENTO}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+              className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 hover:scale-[1.02]"
             >
               Falar com especialista
             </a>
@@ -168,8 +168,8 @@ export default function LandingPage() {
           <div className="mx-auto flex max-w-6xl flex-col-reverse items-center gap-16 px-6 md:flex-row md:items-start md:gap-12">
             <div className="w-full text-center md:w-1/2 md:text-left">
               <motion.div {...fadeUp(0)}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-[11px] font-medium uppercase tracking-[0.25em] text-white/60">
-                  <Sparkles className="h-3.5 w-3.5 text-white/50" />
+                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.25em] text-cyan-400">
+                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
                   Automação para revendas Apple
                 </span>
               </motion.div>
@@ -178,7 +178,7 @@ export default function LandingPage() {
                 className="mt-8 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[3.25rem]"
               >
                 Centralize fornecedores, listas e metas a partir de{' '}
-                <span className="bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
                   R$ 100/mês
                 </span>
               </motion.h1>
@@ -197,7 +197,7 @@ export default function LandingPage() {
                   href={WHATSAPP_ATENDIMENTO}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-black"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40"
                   variants={buttonHover}
                   initial="rest"
                   whileHover="hover"
@@ -209,7 +209,7 @@ export default function LandingPage() {
                 <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
                   <Link
                     to="/login"
-                    className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.02] px-6 py-3.5 text-base font-medium text-white transition-colors hover:border-white/25 hover:bg-white/[0.06]"
+                    className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-6 py-3.5 text-base font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
                   >
                     Já sou cliente
                   </Link>
@@ -251,7 +251,7 @@ export default function LandingPage() {
                 <div className="relative rounded-[22px] bg-black/80 p-6 backdrop-blur-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <img src={LOGO_URL} alt="iGestorPhone" className="h-10 w-10 rounded-xl border border-white/10 bg-white/5 p-1" />
+                      <img src={LOGO_URL} alt="iGestorPhone" className="h-12 w-auto object-contain" />
                       <div>
                         <p className="text-sm font-semibold text-white">iGestorPhone</p>
                         <p className="text-xs text-white/50">Dashboard em tempo real</p>
@@ -339,10 +339,10 @@ export default function LandingPage() {
                   key={title}
                   variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
                   transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="group relative flex items-start gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1] hover:bg-white/[0.04]"
+                  className="group relative flex items-start gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:border-cyan-500/20 hover:bg-cyan-500/5"
                   whileHover={{ y: -2 }}
                 >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.04] text-white/70 transition-colors group-hover:bg-white/[0.08]">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 transition-colors group-hover:from-cyan-500/30 group-hover:to-blue-500/30">
                     <Icon className="h-5 w-5" />
                   </div>
                   <div>
@@ -376,7 +376,7 @@ export default function LandingPage() {
                   className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1]"
                   whileHover={{ y: -3 }}
                 >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-lg font-bold text-white/80">
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-lg font-bold text-cyan-400">
                     {index + 1}
                   </div>
                   <h3 className="text-base font-semibold text-white">{step.title}</h3>
@@ -437,7 +437,7 @@ export default function LandingPage() {
                 <div className="mt-8">
                   <Link
                     to="/checkout?plan=mensal"
-                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                    className="flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 py-3 text-sm font-semibold text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
                   >
                     Assinar
                   </Link>
@@ -448,10 +448,10 @@ export default function LandingPage() {
               <motion.div
                 variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
                 transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="relative rounded-2xl border-2 border-white/20 bg-white/[0.04] p-6 transition-colors hover:border-white/30"
+                className="relative rounded-2xl border-2 border-cyan-500/40 bg-gradient-to-b from-cyan-500/10 to-transparent p-6 transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10"
                 whileHover={{ y: -4, transition: { duration: 0.2 } }}
               >
-                <span className="absolute right-4 top-4 rounded-lg bg-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-black">
+                <span className="absolute right-4 top-4 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
                   Popular
                 </span>
                 <span className="inline-flex rounded-lg border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/90">
@@ -478,7 +478,7 @@ export default function LandingPage() {
                 <div className="mt-8">
                   <Link
                     to="/checkout?plan=trimestral"
-                    className="flex w-full items-center justify-center rounded-xl bg-white py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90"
+                    className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40"
                   >
                     Assinar
                   </Link>
@@ -519,7 +519,7 @@ export default function LandingPage() {
                 <div className="mt-8">
                   <Link
                     to="/checkout?plan=anual"
-                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                    className="flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 py-3 text-sm font-semibold text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
                   >
                     Assinar
                   </Link>
@@ -560,7 +560,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="scroll-mt-20 border-t border-white/[0.06] py-24">
+        <section id="faq" className="scroll-mt-20 border-t border-white/[0.08] py-24">
           <div className="mx-auto max-w-3xl px-6">
             <motion.div {...fadeInView(0)} className="text-center">
               <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">FAQ</p>
@@ -578,7 +578,7 @@ export default function LandingPage() {
                   key={faq.question}
                   variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 12 } }}
                   transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="group rounded-xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 transition-colors hover:border-white/[0.1] [&[open]]:border-white/[0.12]"
+                  className="group rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 transition-colors hover:border-cyan-500/20 [&[open]]:border-cyan-500/20 [&[open]]:bg-cyan-500/5"
                 >
                   <summary className="cursor-pointer list-none text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
                     {faq.question}
@@ -609,7 +609,7 @@ export default function LandingPage() {
                 href={WHATSAPP_ATENDIMENTO}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-black"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25"
                 variants={buttonHover}
                 initial="rest"
                 whileHover="hover"
@@ -622,7 +622,7 @@ export default function LandingPage() {
               <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center rounded-xl border border-white/15 bg-white/[0.02] px-6 py-3.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.06]"
+                  className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-6 py-3.5 text-sm font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
                 >
                   Entrar no sistema
                 </Link>
@@ -632,17 +632,17 @@ export default function LandingPage() {
         </motion.section>
       </main>
 
-      <footer className="border-t border-white/[0.06] py-8">
+      <footer className="border-t border-white/[0.08] py-8">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/40 md:flex-row md:text-left">
           <p>© {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.</p>
           <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-6">
             <div className="flex items-center gap-4">
-              <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white/70">Atendimento: (11) 94100-7348</a>
-              <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-white/70">SAC: (11) 92296-1688</a>
+              <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">Atendimento: (11) 94100-7348</a>
+              <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">SAC: (11) 92296-1688</a>
             </div>
             <div className="flex items-center gap-6">
-              <Link to="/terms" className="transition-colors hover:text-white/70">Termos de uso</Link>
-              <Link to="/support" className="transition-colors hover:text-white/70">Suporte</Link>
+              <Link to="/terms" className="transition-colors hover:text-cyan-400">Termos de uso</Link>
+              <Link to="/support" className="transition-colors hover:text-cyan-400">Suporte</Link>
             </div>
           </div>
         </div>

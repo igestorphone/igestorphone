@@ -115,8 +115,9 @@ export default function CheckoutPage() {
         cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),
         phone: data.phone?.replace(/\D/g, '') || undefined
       })
+      const userData = res.user
       useAuthStore.setState({
-        user: { ...res.user, tipo: res.user.role || 'user' },
+        user: { ...userData, tipo: userData?.role || 'user' },
         token: res.token,
         isAuthenticated: true
       })
@@ -185,17 +186,25 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[#0a0a0f] text-white">
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        <div className="absolute left-1/2 top-0 h-[500px] w-[600px] -translate-x-1/2 rounded-full bg-cyan-500/[0.08] blur-[100px]" />
+        <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-blue-500/[0.05] blur-[80px]" />
+      </div>
       <div className="mx-auto max-w-md px-6 py-12">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white">
-          <ChevronLeft className="h-4 w-4" />
-          Voltar
-        </Link>
+        <div className="mb-8 flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-cyan-400">
+            <ChevronLeft className="h-4 w-4" />
+            Voltar
+          </Link>
+          <img src="/assets/images/logo-dark.png" alt="iGestorPhone" className="h-10 w-auto object-contain" />
+        </div>
 
-        <div className="mt-8 mb-10">
+        <div className="mb-10 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-6">
           <h1 className="text-2xl font-bold">Finalizar assinatura</h1>
-          <p className="mt-1 text-white/60">
-            Plano {PLAN_LABELS[plan]} · R$ {PLAN_VALUES[plan].toFixed(2).replace('.', ',')}
+          <p className="mt-2 flex items-center gap-2 text-cyan-400">
+            <span className="rounded-lg bg-cyan-500/20 px-2 py-0.5 text-sm font-medium">{PLAN_LABELS[plan]}</span>
+            <span className="text-white/80">R$ {PLAN_VALUES[plan].toFixed(2).replace('.', ',')}</span>
           </p>
         </div>
 
@@ -212,14 +221,14 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => { setMode('login'); setError(null) }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === 'login' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'login' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
                 >
                   Entrar
                 </button>
                 <button
                   type="button"
                   onClick={() => { setMode('register'); setError(null) }}
-                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${mode === 'register' ? 'bg-white text-black' : 'text-white/60 hover:text-white'}`}
+                  className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'register' ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20' : 'text-white/60 hover:text-white'}`}
                 >
                   Cadastrar
                 </button>
@@ -260,7 +269,7 @@ export default function CheckoutPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-xl bg-white py-3.5 font-semibold text-black flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-opacity hover:opacity-95 disabled:opacity-70"
                   >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Entrar'}
                   </button>
@@ -322,7 +331,7 @@ export default function CheckoutPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-xl bg-white py-3.5 font-semibold text-black flex items-center justify-center gap-2"
+                    className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-opacity hover:opacity-95 disabled:opacity-70"
                   >
                     {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Cadastrar e continuar'}
                   </button>
@@ -369,17 +378,17 @@ export default function CheckoutPage() {
                   type="button"
                   onClick={() => { setError(null); onSubmitPayment('PIX') }}
                   disabled={loading || !(user?.cpf_cnpj || extraCpf)}
-                  className="flex-1 rounded-xl border border-white/20 bg-white/5 py-4 flex flex-col items-center gap-2 hover:bg-white/10 disabled:opacity-50"
+                  className="flex-1 rounded-xl border-2 border-cyan-500/30 bg-cyan-500/10 py-4 flex flex-col items-center gap-2 transition-all hover:border-cyan-400/50 hover:bg-cyan-500/20 disabled:opacity-50"
                 >
-                  <QrCode className="h-8 w-8 text-white/80" />
-                  <span className="font-medium">PIX</span>
+                  <QrCode className="h-8 w-8 text-cyan-400" />
+                  <span className="font-medium text-cyan-400">PIX</span>
                   <span className="text-xs text-white/50">Pagamento instantâneo</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setStep('card')}
                   disabled={loading || !(user?.cpf_cnpj || extraCpf)}
-                  className="flex-1 rounded-xl border border-white/20 bg-white/5 py-4 flex flex-col items-center gap-2 hover:bg-white/10 disabled:opacity-50"
+                  className="flex-1 rounded-xl border-2 border-white/20 bg-white/5 py-4 flex flex-col items-center gap-2 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 disabled:opacity-50"
                 >
                   <CreditCard className="h-8 w-8 text-white/80" />
                   <span className="font-medium">Cartão</span>
@@ -493,7 +502,7 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full rounded-xl bg-white py-3.5 font-semibold text-black flex items-center justify-center gap-2"
+                  className="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-opacity hover:opacity-95 disabled:opacity-70"
                 >
                   {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Pagar agora'}
                 </button>
@@ -524,7 +533,7 @@ export default function CheckoutPage() {
                     <button
                       type="button"
                       onClick={copyPixPayload}
-                      className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20"
+                      className="inline-flex items-center gap-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30 px-4 py-2 text-sm text-cyan-400 hover:bg-cyan-500/30 transition-colors"
                     >
                       <Copy className="h-4 w-4" />
                       Copiar código
@@ -551,14 +560,14 @@ export default function CheckoutPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="text-center py-8"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/20 text-green-400 mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500/30 to-green-500/30 text-cyan-400 mb-6">
                 <Check className="h-8 w-8" />
               </div>
               <h2 className="text-xl font-bold">Assinatura ativada!</h2>
               <p className="mt-2 text-white/60">Você já pode acessar todos os recursos do iGestorPhone.</p>
               <button
                 onClick={() => navigate('/search-cheapest-iphone', { replace: true })}
-                className="mt-8 w-full rounded-xl bg-white py-3.5 font-semibold text-black"
+                className="mt-8 w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-500/25 transition-opacity hover:opacity-95"
               >
                 Acessar o sistema
               </button>
