@@ -1240,62 +1240,58 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     }
 
     const client = await getClient();
-    const run = async (text, params) => {
+    const runOpt = async (text, params) => {
       try {
-        return await client.query(text, params);
+        await client.query(text, params);
       } catch (err) {
-        console.warn('[delete user] Query falhou (tabela pode não existir):', text.substring(0, 60), err.message);
-        throw err;
-      }
-    };
-    const runOptional = async (text, params) => {
-      try {
-        return await client.query(text, params);
-      } catch (err) {
-        console.warn('[delete user] Tabela opcional ignorada:', err.message);
+        console.warn('[delete user] Ignorado:', err.message);
       }
     };
 
     try {
       await client.query('BEGIN');
 
-      // Excluir registros relacionados (ordem importa por FKs)
-      await runOptional('DELETE FROM user_permissions WHERE user_id = $1', [id]);
-      await run('DELETE FROM subscriptions WHERE user_id = $1', [id]);
-      await run('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
-      await run('DELETE FROM calendar_events WHERE user_id = $1', [id]);
-      await run('DELETE FROM goals WHERE user_id = $1', [id]);
-      await run('DELETE FROM notes WHERE user_id = $1', [id]);
-      await run('DELETE FROM support_tickets WHERE user_id = $1', [id]);
-      await run('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
-      await runOptional('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]);
-      await run('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
-      await runOptional('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]);
-      await runOptional('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]);
+      // Limpar FKs (tabelas opcionais ou que podem não existir)
+      await runOpt('DELETE FROM user_permissions WHERE user_id = $1', [id]);
+      await runOpt('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]);
+      await runOpt('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]);
+      await runOpt('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]);
 
-      // Deletar usuário (remove da base - email fica livre para novo cadastro)
-      await run('DELETE FROM users WHERE id = $1', [id]);
+      // Deletar explicitamente (CASCADE pode não estar configurado em todas as tabelas)
+      await client.query('DELETE FROM subscriptions WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
+      await client.query('DELETE FROM calendar_events WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM goals WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM notes WHERE user_id = $1', [id]);
+      await client.query('DELETE FROM support_tickets WHERE user_id = $1', [id]);
+      await client.query('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
+      await client.query('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
+      await client.query('DELETE FROM users WHERE id = $1', [id]);
 
       await client.query('COMMIT');
     } catch (txError) {
       await client.query('ROLLBACK').catch(() => {});
-      console.error('[delete user] Erro na transação:', txError.message);
+      console.error('[delete user] Erro:', txError.message, txError.code);
       throw txError;
     } finally {
       client.release();
     }
 
-    // Log da ação
-    await query(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [
-      req.user.id,
-      'user_deleted',
-      JSON.stringify({ deleted_user_id: id, deleted_user_email: existingUser.rows[0].email }),
-      req.ip,
-      req.get('User-Agent')
-    ]);
+    // Log (não falha a resposta se der erro)
+    try {
+      await query(`
+        INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [
+        req.user.id,
+        'user_deleted',
+        JSON.stringify({ deleted_user_id: id, deleted_user_email: existingUser.rows[0].email }),
+        req.ip,
+        req.get('User-Agent')
+      ]);
+    } catch (logErr) {
+      console.warn('[delete user] Log falhou:', logErr.message);
+    }
 
     res.json({ message: 'Usuário deletado com sucesso' });
 
