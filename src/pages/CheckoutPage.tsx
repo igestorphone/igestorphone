@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/stores/authStore'
 import { asaasApi } from '@/lib/api'
+import { getErrorMessage } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   CreditCard,
@@ -122,7 +123,7 @@ export default function CheckoutPage() {
       toast.success('Cadastro realizado!')
       setStep('payment')
     } catch (e: any) {
-      setError(e.message || 'Erro ao cadastrar')
+      setError(getErrorMessage(e) || 'Erro ao cadastrar')
     } finally {
       setLoading(false)
     }
@@ -168,7 +169,7 @@ export default function CheckoutPage() {
         setStep('pix')
       }
     } catch (e: any) {
-      const msg = e.message || 'Erro ao processar pagamento'
+      const msg = getErrorMessage(e) || 'Erro ao processar pagamento'
       setError(msg)
       if (msg.includes('CPF')) toast.error('Informe o CPF no cadastro')
     } finally {

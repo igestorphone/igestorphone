@@ -156,7 +156,11 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      const first = errors.array()[0];
+      return res.status(400).json({
+        message: first?.msg || 'Verifique os dados preenchidos.',
+        errors: errors.array()
+      });
     }
 
     const { name, email, password, cpfCnpj, phone } = req.body;
