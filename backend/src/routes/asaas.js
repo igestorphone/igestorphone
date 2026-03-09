@@ -1,0 +1,276 @@
+import express from 'express';
+import { body, param, validationResult } from 'express-validator';
+import { query } from '../config/database.js';
+import { authenticateToken } from '../middleware/auth.js';
+import * as asaasService from '../services/asaas.js';
+
+const router = express.Router();
+
+// Planos disponíveis (público - para a landing/checkout)
+router.get('/plans', (req, res) => {
+  const plans = Object.entries(asaasService.PLANS).map(([key, p]) => ({
+    id: key,
+    name: p.name,
+    planName: p.planName,
+    value: p.value,
+    cycle: p.cycle,
+    durationMonths: p.durationMonths,
+  }));
+  res.json({ plans });
+});
+
+// Criar assinatura (requer autenticação + cpf/phone no user ou no body)
+const createSubscriptionValidation = [
+  body('planKey').isIn(['mensal', 'trimestral', 'anual']),
+  body('billingType').isIn(['PIX', 'CREDIT_CARD']),
+  body('cpfCnpj').optional().isString().trim(),
+  body('phone').optional().isString().trim(),
+  body('creditCard').optional().isObject(),
+  body('creditCardHolderInfo').optional().isObject(),
+];
+
+router.post('/create-subscription', authenticateToken, createSubscriptionValidation, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { planKey, billingType, cpfCnpj, phone, creditCard, creditCardHolderInfo } = req.body;
+
+    const userResult = await query(
+      `SELECT id, name, email, cpf_cnpj, phone, asaas_customer_id FROM users WHERE id = $1`,
+      [req.user.id]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+    const user = userResult.rows[0];
+
+    const cpf = cpfCnpj || user.cpf_cnpj;
+    const userPhone = phone || user.phone;
+
+    if (!cpf) {
+      return res.status(400).json({
+        message: 'CPF ou CNPJ é obrigatório. Informe no checkout.',
+        code: 'CPF_REQUIRED',
+      });
+    }
+
+    const userWithCpf = { ...user, cpf_cnpj: cpf, phone: userPhone };
+
+    const customer = await asaasService.getOrCreateCustomer(
+      userWithCpf,
+      user.asaas_customer_id
+    );
+
+    if (!user.asaas_customer_id) {
+      await query(
+        `UPDATE users SET asaas_customer_id = $1, cpf_cnpj = $2, phone = $3 WHERE id = $4`,
+        [customer.id, cpf, userPhone || null, user.id]
+      );
+    }
+
+    const subscription = await asaasService.createSubscription({
+      customerId: customer.id,
+      planKey,
+      billingType,
+      creditCard,
+      creditCardHolderInfo,
+    });
+
+    // Inserir assinatura no banco (status pendente até webhook PAYMENT_RECEIVED)
+    const plan = asaasService.PLANS[planKey];
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + plan.durationMonths);
+
+    await query(
+      `INSERT INTO subscriptions (
+        user_id, plan_name, status, asaas_subscription_id,
+        plan_type, duration_months, price, payment_method,
+        start_date, end_date, auto_renew
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)`,
+      [
+        user.id,
+        plan.planName,
+        billingType === 'CREDIT_CARD' ? 'active' : 'PENDING',
+        subscription.id,
+        planKey,
+        plan.durationMonths,
+        plan.value,
+        billingType.toLowerCase(),
+        startDate,
+        endDate,
+      ]
+    );
+
+    if (billingType === 'CREDIT_CARD') {
+      await query(
+        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1 WHERE id = $2`,
+        [endDate, user.id]
+      );
+      return res.json({
+        success: true,
+        subscriptionId: subscription.id,
+        status: 'active',
+        message: 'Assinatura ativada com sucesso!',
+      });
+    }
+
+    // PIX: buscar primeira cobrança e QR Code
+    const payment = await asaasService.getSubscriptionFirstPayment(subscription.id);
+    const pixData = await asaasService.getPixQrCode(payment.id);
+
+    return res.json({
+      success: true,
+      subscriptionId: subscription.id,
+      paymentId: payment.id,
+      status: 'PENDING',
+      pix: {
+        encodedImage: pixData.encodedImage,
+        payload: pixData.payload || pixData.copyPaste,
+        expirationDate: pixData.expirationDate || payment.dueDate,
+      },
+      message: 'Escaneie o QR Code ou use o Pix Copia e Cola para pagar.',
+    });
+  } catch (error) {
+    console.error('Erro ao criar assinatura Asaas:', error);
+    res.status(500).json({
+      message: error.message || 'Erro ao criar assinatura',
+      code: error.code,
+    });
+  }
+});
+
+// Registrar com CPF/telefone (para checkout de novos usuários)
+const registerCheckoutValidation = [
+  body('name').trim().isLength({ min: 2 }),
+  body('email').isEmail().normalizeEmail(),
+  body('password').isLength({ min: 6 }),
+  body('cpfCnpj').trim().notEmpty().withMessage('CPF é obrigatório'),
+  body('phone').optional().trim(),
+];
+
+router.post('/register-checkout', registerCheckoutValidation, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { name, email, password, cpfCnpj, phone } = req.body;
+    const bcrypt = (await import('bcryptjs')).default;
+    const jwt = (await import('jsonwebtoken')).default;
+
+    const existing = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ message: 'Este e-mail já está cadastrado. Faça login.' });
+    }
+
+    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    const result = await query(
+      `INSERT INTO users (email, password_hash, name, cpf_cnpj, phone, subscription_status, subscription_expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING id, email, name, role, subscription_status, cpf_cnpj, phone`,
+      [
+        email,
+        passwordHash,
+        name,
+        cpfCnpj.replace(/\D/g, ''),
+        phone || null,
+        'trial',
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      ]
+    );
+    const user = result.rows[0];
+
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    res.status(201).json({
+      message: 'Cadastro realizado. Prosseguir para pagamento.',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        subscription_status: user.subscription_status,
+        cpf_cnpj: user.cpf_cnpj,
+        phone: user.phone,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error('Erro no registro checkout:', error);
+    res.status(500).json({ message: 'Erro ao cadastrar' });
+  }
+});
+
+// Webhook Asaas (PÚBLICO - sem authenticateToken)
+// Configurar URL em: https://www.asaas.com/config/integrations → Webhook
+// Ex: https://seudominio.com/api/asaas/webhook
+router.post('/webhook', async (req, res) => {
+  try {
+    const { event, payment } = req.body;
+    if (!event || !payment) {
+      return res.status(400).send('Payload inválido');
+    }
+
+    if (event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_ANTICIPATED') {
+      const subscriptionId = payment.subscription;
+      if (!subscriptionId) {
+        // Cobrança avulsa, não é assinatura
+        return res.status(200).send('OK');
+      }
+
+      const subResult = await query(
+        `SELECT s.id, s.user_id, s.plan_name, s.duration_months
+         FROM subscriptions s
+         WHERE s.asaas_subscription_id = $1`,
+        [subscriptionId]
+      );
+      if (subResult.rows.length === 0) {
+        console.warn('Webhook: assinatura não encontrada', subscriptionId);
+        return res.status(200).send('OK');
+      }
+
+      const sub = subResult.rows[0];
+      const endDate = new Date(payment.dueDate || new Date());
+      endDate.setMonth(endDate.getMonth() + (sub.duration_months || 1));
+
+      await query(
+        `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
+        [new Date(payment.paymentDate || Date.now()), endDate, subscriptionId]
+      );
+      await query(
+        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1 WHERE id = $2`,
+        [endDate, sub.user_id]
+      );
+
+      console.log(`Webhook Asaas: pagamento confirmado - user ${sub.user_id}, subscription ${subscriptionId}`);
+    }
+
+    if (event === 'PAYMENT_OVERDUE' || event === 'PAYMENT_DELETED') {
+      const subscriptionId = payment.subscription;
+      if (subscriptionId) {
+        await query(
+          `UPDATE subscriptions SET status = 'past_due' WHERE asaas_subscription_id = $1`,
+          [subscriptionId]
+        );
+      }
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Erro no webhook Asaas:', error);
+    res.status(500).send('Erro');
+  }
+});
+
+export default router;

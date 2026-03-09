@@ -213,6 +213,12 @@ const migrations = [
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS product_type VARCHAR(50) DEFAULT 'apple'`,
 
+  // Asaas: customer e subscription IDs
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(255)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS cpf_cnpj VARCHAR(20)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30)`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS asaas_subscription_id VARCHAR(255)`,
+
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,

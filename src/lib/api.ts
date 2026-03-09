@@ -130,6 +130,31 @@ export const subscriptionsApi = {
     apiClient.get<any>('/subscriptions/my-subscription'),
 }
 
+export const asaasApi = {
+  getPlans: () =>
+    apiClient.get<{ plans: Array<{ id: string; name: string; planName: string; value: number; cycle: string; durationMonths: number }> }>('/asaas/plans'),
+
+  registerCheckout: (data: { name: string; email: string; password: string; cpfCnpj: string; phone?: string }) =>
+    testApi.post<{ message: string; user: any; token: string }>('/asaas/register-checkout', data),
+
+  createSubscription: (data: {
+    planKey: 'mensal' | 'trimestral' | 'anual'
+    billingType: 'PIX' | 'CREDIT_CARD'
+    cpfCnpj?: string
+    phone?: string
+    creditCard?: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string }
+    creditCardHolderInfo?: { name: string; email: string; cpfCnpj: string; postalCode?: string; addressNumber?: string; mobilePhone?: string }
+  }) =>
+    apiClient.post<{
+      success: boolean
+      subscriptionId?: string
+      paymentId?: string
+      status: string
+      pix?: { encodedImage: string; payload: string; expirationDate: string }
+      message?: string
+    }>('/asaas/create-subscription', data),
+}
+
 export const fornecedoresApi = {
   getAll: (params?: any) =>
     apiClient.get<any[]>('/suppliers', { params }),

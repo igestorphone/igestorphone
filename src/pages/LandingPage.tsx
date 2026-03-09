@@ -435,14 +435,12 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <div className="mt-8">
-                  <a
-                    href={WHATSAPP_ATENDIMENTO}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/checkout?plan=mensal"
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
                   >
                     Assinar
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
 
@@ -478,14 +476,12 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <div className="mt-8">
-                  <a
-                    href={WHATSAPP_ATENDIMENTO}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/checkout?plan=trimestral"
                     className="flex w-full items-center justify-center rounded-xl bg-white py-3 text-sm font-semibold text-black transition-opacity hover:opacity-90"
                   >
                     Assinar
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
 
@@ -521,14 +517,12 @@ export default function LandingPage() {
                   ))}
                 </ul>
                 <div className="mt-8">
-                  <a
-                    href={WHATSAPP_ATENDIMENTO}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <Link
+                    to="/checkout?plan=anual"
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
                   >
                     Assinar
-                  </a>
+                  </Link>
                 </div>
               </motion.div>
             </motion.div>

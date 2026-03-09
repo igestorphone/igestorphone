@@ -25,6 +25,7 @@ import notesRoutes from './routes/notes.js';
 import calendarRoutes from './routes/calendar.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
+import asaasRoutes from './routes/asaas.js';
 import { runMigrations } from './migrate.js';
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -152,6 +153,7 @@ app.use((req, res, next) => {
 // Rotas públicas
 app.use('/api/auth', authRoutes);
 app.use('/api', registrationRoutes); // Rotas de registro (algumas públicas, outras protegidas)
+app.use('/api/asaas', asaasRoutes);  // Planos, webhook e checkout (create-subscription exige auth)
 
 // Rotas de teste (sem autenticação)
 app.use('/api/test', userRoutes);

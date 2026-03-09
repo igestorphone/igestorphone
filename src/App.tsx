@@ -32,6 +32,7 @@ import CalendarPage from '@/pages/CalendarPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 import PostLoginLoadingPage from '@/pages/PostLoginLoadingPage'
+import CheckoutPage from '@/pages/CheckoutPage'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -93,6 +94,7 @@ function App() {
             </AuthLayout>
           )
         } />
+        <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/dashboard" element={<Navigate to="/search-cheapest-iphone" replace />} />
         <Route path="/entrando" element={
           <ProtectedRoute>
