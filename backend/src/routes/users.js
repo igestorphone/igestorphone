@@ -838,8 +838,8 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
         await q('DELETE FROM goals WHERE user_id = $1', [u.id]);
         await q('DELETE FROM notes WHERE user_id = $1', [u.id]);
         await q('DELETE FROM support_tickets WHERE user_id = $1', [u.id]);
-        await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [u.id, u.id]);
-        await runOptional(client, 'UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [u.id, u.id]);
+        await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [u.id]);
+        await runOptional(client, 'UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [u.id]);
         await q('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [u.id]);
         await runOptional(client, 'UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [u.id]);
         await runOptional(client, 'UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [u.id]);
@@ -1251,7 +1251,7 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     try {
       // Tabelas opcionais: rodar FORA da transação (se falhar não aborta o resto)
       await runOpt('DELETE FROM user_permissions WHERE user_id = $1', [id]);
-      await runOpt('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]);
+      await runOpt('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id]);
       await runOpt('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]);
       await runOpt('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]);
 
@@ -1262,7 +1262,7 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
       await client.query('DELETE FROM goals WHERE user_id = $1', [id]);
       await client.query('DELETE FROM notes WHERE user_id = $1', [id]);
       await client.query('DELETE FROM support_tickets WHERE user_id = $1', [id]);
-      await client.query('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
+      await client.query('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id]);
       await client.query('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
       await client.query('DELETE FROM users WHERE id = $1', [id]);
       await client.query('COMMIT');
