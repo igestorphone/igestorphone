@@ -66,7 +66,8 @@ type CardForm = z.infer<typeof cardSchema>
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const planParam = (searchParams.get('plan') || 'mensal') as PlanKey
-  const [plan, setPlan] = useState<PlanKey>(['teste', 'mensal', 'trimestral', 'anual'].includes(planParam) ? planParam : 'mensal')
+  const validPlans: PlanKey[] = ['mensal', 'trimestral', 'anual']
+  const [plan, setPlan] = useState<PlanKey>(validPlans.includes(planParam) ? planParam : 'mensal')
   const [step, setStep] = useState<'auth' | 'payment' | 'card' | 'pix' | 'success'>('auth')
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [extraCpf, setExtraCpf] = useState('')

@@ -634,12 +634,17 @@ export default function ManageUsersPage() {
                   <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
                     {getStatusBadge(user)}
-                    {(user.plan_name || user.subscription?.plan_name) && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                        <CreditCard className="w-3 h-3 inline mr-0.5 -mt-0.5" />
-                        {(user.plan_name || user.subscription?.plan_name)?.replace(/iGestorPhone\s*/i, '')}
-                      </span>
-                    )}
+                    {(() => {
+                      const p = (user.plan_name || user.subscription?.plan_name) || '';
+                      const isTeste = /teste|R\$\s*5/i.test(p) || user.plan_type === 'teste';
+                      if (!p || isTeste) return null;
+                      return (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <CreditCard className="w-3 h-3 inline mr-0.5 -mt-0.5" />
+                          {p.replace(/iGestorPhone\s*/i, '')}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

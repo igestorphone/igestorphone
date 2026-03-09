@@ -6,16 +6,18 @@ import * as asaasService from '../services/asaas.js';
 
 const router = express.Router();
 
-// Planos disponíveis (público - para a landing/checkout)
+// Planos disponíveis (público - teste oculto)
 router.get('/plans', (req, res) => {
-  const plans = Object.entries(asaasService.PLANS).map(([key, p]) => ({
-    id: key,
-    name: p.name,
-    planName: p.planName,
-    value: p.value,
-    cycle: p.cycle,
-    durationMonths: p.durationMonths,
-  }));
+  const plans = Object.entries(asaasService.PLANS)
+    .filter(([key]) => key !== 'teste')
+    .map(([key, p]) => ({
+      id: key,
+      name: p.name,
+      planName: p.planName,
+      value: p.value,
+      cycle: p.cycle,
+      durationMonths: p.durationMonths,
+    }));
   res.json({ plans });
 });
 
