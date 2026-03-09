@@ -46,12 +46,15 @@ function App() {
     return canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
   })()
 
+  // "/" e "/login" permitem ver a landing/login mesmo com pending_payment (para o botão Voltar funcionar)
+  const canSeeLanding = !isAuthenticated || user?.subscription_status === 'pending_payment' || user?.subscription_status === 'overdue'
+
   return (
     <div className="min-h-screen">
       <Routes>
-        <Route path="/" element={isAuthenticated ? <Navigate to={defaultAuthenticatedPath} /> : <LandingPage />} />
+        <Route path="/" element={canSeeLanding ? <LandingPage /> : <Navigate to={defaultAuthenticatedPath} />} />
         <Route path="/login" element={
-          isAuthenticated ? (
+          isAuthenticated && !['pending_payment', 'overdue'].includes(user?.subscription_status || '') ? (
             <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>

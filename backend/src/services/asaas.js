@@ -12,8 +12,8 @@ const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
 const PLANS = {
   teste: {
     name: 'Teste',
-    planName: 'iGestorPhone Teste (R$ 1)',
-    value: 1,
+    planName: 'iGestorPhone Teste (R$ 5)',
+    value: 5,
     cycle: 'MONTHLY',
     durationMonths: 1,
   },

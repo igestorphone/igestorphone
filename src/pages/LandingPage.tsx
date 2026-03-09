@@ -637,7 +637,7 @@ export default function LandingPage() {
           <p className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
             © {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.
             <Link to="/checkout?plan=teste" className="rounded px-2 py-0.5 text-cyan-400/80 hover:text-cyan-400 hover:bg-cyan-500/10 transition-colors">
-              Testar pagamento (R$ 1)
+              Testar pagamento (R$ 5)
             </Link>
           </p>
           <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-6">

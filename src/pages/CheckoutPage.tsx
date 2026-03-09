@@ -22,14 +22,14 @@ import {
 type PlanKey = 'teste' | 'mensal' | 'trimestral' | 'anual'
 
 const PLAN_LABELS: Record<PlanKey, string> = {
-  teste: 'Teste (R$ 1)',
+  teste: 'Teste (R$ 5)',
   mensal: 'Mensal',
   trimestral: 'Trimestral',
   anual: 'Anual'
 }
 
 const PLAN_VALUES: Record<PlanKey, number> = {
-  teste: 1,
+  teste: 5,
   mensal: 150,
   trimestral: 390,
   anual: 1200
@@ -195,9 +195,9 @@ export default function CheckoutPage() {
       </div>
       <div className="mx-auto max-w-md px-6 py-12">
         <div className="mb-8 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-cyan-400">
+          <Link to="/" replace className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-cyan-400">
             <ChevronLeft className="h-4 w-4" />
-            Voltar
+            Voltar para a página inicial
           </Link>
           <img src="/assets/images/logo-dark.png" alt="iGestorPhone" className="h-10 w-auto object-contain" />
         </div>
