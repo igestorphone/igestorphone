@@ -134,7 +134,7 @@ export const asaasApi = {
   getPlans: () =>
     apiClient.get<{ plans: Array<{ id: string; name: string; planName: string; value: number; cycle: string; durationMonths: number }> }>('/asaas/plans'),
 
-  registerCheckout: async (data: { name: string; email: string; password: string; cpfCnpj: string; phone?: string }) => {
+  registerCheckout: async (data: { name: string; email: string; password: string; cpfCnpj: string; phone: string }) => {
     const res = await testApi.post<{ message: string; user: any; token: string }>('/asaas/register-checkout', data)
     return res.data
   },

@@ -145,11 +145,12 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
 
 // Registrar com CPF/telefone (para checkout de novos usuários)
 const registerCheckoutValidation = [
-  body('name').trim().isLength({ min: 2 }),
-  body('email').isEmail().normalizeEmail(),
-  body('password').isLength({ min: 6 }),
+  body('name').trim().isLength({ min: 2 }).withMessage('Nome é obrigatório'),
+  body('email').isEmail().normalizeEmail().withMessage('Email inválido'),
+  body('password').isLength({ min: 6 }).withMessage('Senha deve ter no mínimo 6 caracteres'),
   body('cpfCnpj').trim().notEmpty().withMessage('CPF é obrigatório'),
-  body('phone').optional().trim(),
+  body('phone').trim().notEmpty().withMessage('Telefone é obrigatório')
+    .custom((v) => (v || '').replace(/\D/g, '').length >= 10).withMessage('Telefone inválido (informe com DDD)'),
 ];
 
 router.post('/register-checkout', registerCheckoutValidation, async (req, res) => {

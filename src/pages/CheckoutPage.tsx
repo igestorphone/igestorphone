@@ -37,16 +37,16 @@ const PLAN_VALUES: Record<PlanKey, number> = {
 
 // Step 1: Login/Register
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.string().min(1, 'Email é obrigatório').email('Digite um email válido'),
   password: z.string().min(6, 'Mínimo 6 caracteres')
 })
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Nome com pelo menos 2 caracteres'),
-  email: z.string().email('Email inválido'),
+  email: z.string().min(1, 'Email é obrigatório').email('Digite um email válido'),
   password: z.string().min(6, 'Mínimo 6 caracteres'),
   cpfCnpj: z.string().min(11, 'CPF inválido').refine(v => /^\d{11}$|^\d{14}$/.test(v.replace(/\D/g, '')), 'CPF ou CNPJ inválido'),
-  phone: z.string().optional()
+  phone: z.string().min(10, 'Telefone é obrigatório').refine(v => v.replace(/\D/g, '').length >= 10, 'Informe um telefone válido com DDD')
 })
 
 const cardSchema = z.object({
@@ -124,7 +124,7 @@ export default function CheckoutPage() {
         email: data.email,
         password: data.password,
         cpfCnpj: data.cpfCnpj.replace(/\D/g, ''),
-        phone: data.phone?.replace(/\D/g, '') || undefined
+        phone: data.phone.replace(/\D/g, '')
       })
       const userData = res.user
       useAuthStore.setState({
@@ -261,7 +261,7 @@ export default function CheckoutPage() {
               {mode === 'login' ? (
                 <form onSubmit={loginForm.handleSubmit(onLogin)} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Email *</label>
                     <input
                       {...loginForm.register('email')}
                       type="email"
@@ -273,7 +273,7 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Senha</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Senha *</label>
                     <input
                       {...loginForm.register('password')}
                       type="password"
@@ -294,7 +294,7 @@ export default function CheckoutPage() {
               ) : (
                 <form onSubmit={registerForm.handleSubmit(onRegister)} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Nome</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Nome *</label>
                     <input
                       {...registerForm.register('name')}
                       className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-white/20"
@@ -305,11 +305,12 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Email *</label>
                     <input
                       {...registerForm.register('email')}
                       type="email"
                       className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-white/20"
+                      placeholder="seu@email.com"
                     />
                     {registerForm.formState.errors.email && (
                       <p className="mt-1 text-xs text-red-400">{registerForm.formState.errors.email.message}</p>
@@ -327,15 +328,18 @@ export default function CheckoutPage() {
                     )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Telefone (opcional)</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Telefone *</label>
                     <input
                       {...registerForm.register('phone')}
                       className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white placeholder-white/40 focus:ring-2 focus:ring-white/20"
                       placeholder="(11) 99999-9999"
                     />
+                    {registerForm.formState.errors.phone && (
+                      <p className="mt-1 text-xs text-red-400">{registerForm.formState.errors.phone.message}</p>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-white/70 mb-1">Senha</label>
+                    <label className="block text-sm font-medium text-white/70 mb-1">Senha *</label>
                     <input
                       {...registerForm.register('password')}
                       type="password"
@@ -377,23 +381,28 @@ export default function CheckoutPage() {
                   Trocar conta
                 </button>
               </div>
-              {!user?.cpf_cnpj && !extraCpf && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-sm text-white/80">Informe seu CPF para continuar o pagamento</p>
-                  <input
-                    value={extraCpf}
-                    onChange={e => setExtraCpf(e.target.value.replace(/\D/g, '').slice(0, 14))}
-                    placeholder="000.000.000-00"
-                    className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
-                  />
-                  <input
-                    value={extraPhone}
-                    onChange={e => setExtraPhone(e.target.value)}
-                    placeholder="Telefone (opcional)"
-                    className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
-                  />
-                </div>
-              )}
+              {(() => {
+                const cpf = (user?.cpf_cnpj || extraCpf)?.replace(/\D/g, '') || ''
+                const phone = (user?.phone || extraPhone)?.replace(/\D/g, '') || ''
+                const needsData = cpf.length < 11 || phone.length < 10
+                return needsData ? (
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
+                    <p className="text-sm text-white/80">CPF e telefone são obrigatórios para cobrança</p>
+                    <input
+                      value={extraCpf}
+                      onChange={e => setExtraCpf(e.target.value.replace(/\D/g, '').slice(0, 14))}
+                      placeholder="CPF * (000.000.000-00)"
+                      className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
+                    />
+                    <input
+                      value={extraPhone}
+                      onChange={e => setExtraPhone(e.target.value)}
+                      placeholder="Telefone * (11) 99999-9999"
+                      className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
+                    />
+                  </div>
+                ) : null
+              })()}
 
               {error && (
                 <div className="flex items-center gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
@@ -402,11 +411,16 @@ export default function CheckoutPage() {
                 </div>
               )}
 
+              {(() => {
+                const cpfOk = ((user?.cpf_cnpj || extraCpf)?.replace(/\D/g, '') || '').length >= 11
+                const phoneOk = ((user?.phone || extraPhone)?.replace(/\D/g, '') || '').length >= 10
+                const canPay = cpfOk && phoneOk
+                return (
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => { setError(null); onSubmitPayment('PIX') }}
-                  disabled={loading || !(user?.cpf_cnpj || extraCpf)}
+                  disabled={loading || !canPay}
                   className="flex-1 rounded-xl border-2 border-cyan-500/30 bg-cyan-500/10 py-4 flex flex-col items-center gap-2 transition-all hover:border-cyan-400/50 hover:bg-cyan-500/20 disabled:opacity-50"
                 >
                   <QrCode className="h-8 w-8 text-cyan-400" />
@@ -416,7 +430,7 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setStep('card')}
-                  disabled={loading || !(user?.cpf_cnpj || extraCpf)}
+                  disabled={loading || !canPay}
                   className="flex-1 rounded-xl border-2 border-white/20 bg-white/5 py-4 flex flex-col items-center gap-2 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/10 disabled:opacity-50"
                 >
                   <CreditCard className="h-8 w-8 text-white/80" />
@@ -424,6 +438,8 @@ export default function CheckoutPage() {
                   <span className="text-xs text-white/50">Parcela ou à vista</span>
                 </button>
               </div>
+                )
+              })()}
             </motion.div>
           )}
 
