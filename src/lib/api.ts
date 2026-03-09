@@ -353,6 +353,9 @@ export const usersApi = {
   
   forceLogoutAll: () =>
     apiClient.post<any>('/users/force-logout-all', {}),
+
+  cleanupInactive: () =>
+    apiClient.delete<any>('/users/cleanup-inactive'),
 }
 
 // Calendário compartilhado (vendedor/atendente)

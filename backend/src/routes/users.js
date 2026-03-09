@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
-import { query } from '../config/database.js';
+import { query, getClient } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -804,6 +804,68 @@ router.get('/expiring', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Excluir em massa usuários inativos (apenas admin)
+// IMPORTANTE: Rota deve vir antes de /:id
+router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    const inactive = await query(
+      'SELECT id, email FROM users WHERE is_active = false AND id != $1',
+      [adminId]
+    );
+
+    if (inactive.rows.length === 0) {
+      return res.json({ message: 'Nenhum usuário inativo para excluir', deleted: 0, emails: [] });
+    }
+
+    const deleted = [];
+    for (const u of inactive.rows) {
+      const client = await getClient();
+      try {
+        await client.query('BEGIN');
+        const q = (text, params) => client.query(text, params);
+
+        await q('DELETE FROM user_permissions WHERE user_id = $1', [u.id]);
+        await q('DELETE FROM subscriptions WHERE user_id = $1', [u.id]);
+        await q('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [u.id]);
+        await q('DELETE FROM calendar_events WHERE user_id = $1', [u.id]);
+        await q('DELETE FROM goals WHERE user_id = $1', [u.id]);
+        await q('DELETE FROM notes WHERE user_id = $1', [u.id]);
+        await q('DELETE FROM support_tickets WHERE user_id = $1', [u.id]);
+        await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [u.id, u.id]);
+        await q('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [u.id, u.id]).catch(() => {});
+        await q('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [u.id]);
+        await q('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [u.id]).catch(() => {});
+        await q('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [u.id]).catch(() => {});
+        await q('DELETE FROM users WHERE id = $1', [u.id]);
+
+        await client.query('COMMIT');
+        deleted.push(u.email);
+      } catch (txError) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error(`Erro ao excluir usuário ${u.email}:`, txError);
+      } finally {
+        client.release();
+      }
+    }
+
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [adminId, 'users_inactive_cleanup', JSON.stringify({ deleted_count: deleted.length, emails: deleted }), req.ip, req.get('User-Agent')]);
+
+    res.json({
+      message: `${deleted.length} usuário(s) inativo(s) excluído(s) com sucesso`,
+      deleted: deleted.length,
+      emails: deleted
+    });
+  } catch (error) {
+    console.error('Erro ao excluir usuários inativos:', error);
+    res.status(500).json({ message: 'Erro ao excluir usuários inativos' });
+  }
+});
+
 // Buscar usuário por ID
 router.get('/:id', requireRole('admin'), async (req, res) => {
   try {
@@ -1156,7 +1218,7 @@ router.put('/:id', requireRole('admin'), [
   }
 });
 
-// Deletar usuário
+// Deletar usuário (exclusão permanente - libera o email para novo cadastro)
 router.delete('/:id', requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
@@ -1172,8 +1234,35 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
       return res.status(400).json({ message: 'Não é possível deletar seu próprio usuário' });
     }
 
-    // Deletar usuário (cascade vai deletar permissões e assinaturas)
-    await query('DELETE FROM users WHERE id = $1', [id]);
+    const client = await getClient();
+    try {
+      await client.query('BEGIN');
+      const q = (text, params) => client.query(text, params);
+
+      // Excluir registros relacionados (ordem importa por FKs)
+      await q('DELETE FROM user_permissions WHERE user_id = $1', [id]);
+      await q('DELETE FROM subscriptions WHERE user_id = $1', [id]);
+      await q('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
+      await q('DELETE FROM calendar_events WHERE user_id = $1', [id]);
+      await q('DELETE FROM goals WHERE user_id = $1', [id]);
+      await q('DELETE FROM notes WHERE user_id = $1', [id]);
+      await q('DELETE FROM support_tickets WHERE user_id = $1', [id]);
+      await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
+      await q('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]).catch(() => {});
+      await q('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
+      await q('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]).catch(() => {});
+      await q('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]).catch(() => {});
+
+      // Deletar usuário (remove da base - email fica livre para novo cadastro)
+      await q('DELETE FROM users WHERE id = $1', [id]);
+
+      await client.query('COMMIT');
+    } catch (txError) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw txError;
+    } finally {
+      client.release();
+    }
 
     // Log da ação
     await query(`

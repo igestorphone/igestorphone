@@ -81,6 +81,7 @@ export default function ManageUsersPage() {
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(5);
   const [linkExpiresIn, setLinkExpiresIn] = useState(7);
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
 
   // Verificar se é admin
   if (user?.tipo !== 'admin') {
@@ -179,6 +180,29 @@ export default function ManageUsersPage() {
       setUserToDelete(null);
     } catch (error) {
       console.error('Erro ao deletar usuário:', error);
+    }
+  };
+
+  const handleCleanupInactive = async () => {
+    const count = users.filter(u => !u.is_active).length;
+    if (count === 0) {
+      toast.success('Nenhum usuário inativo para excluir');
+      return;
+    }
+    if (!confirm(`Excluir permanentemente ${count} usuário(s) inativo(s)? Os e-mails ficarão livres para novo cadastro.`)) {
+      return;
+    }
+
+    try {
+      setCleanupLoading(true);
+      const data = await usersApi.cleanupInactive();
+      const deleted = data?.deleted ?? 0;
+      toast.success(data?.message || `${deleted} usuário(s) excluído(s)`);
+      await fetchUsers();
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Erro ao excluir usuários inativos');
+    } finally {
+      setCleanupLoading(false);
     }
   };
 
@@ -423,6 +447,19 @@ export default function ManageUsersPage() {
         <div className="flex items-center space-x-3">
           {activeTab === 'users' && (
             <div className="flex items-center space-x-3">
+              <button
+                onClick={handleCleanupInactive}
+                disabled={cleanupLoading || users.filter(u => !u.is_active).length === 0}
+                className="btn-secondary flex items-center space-x-2 bg-amber-500/20 hover:bg-amber-500/30 border-amber-500/30 text-amber-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Excluir permanentemente usuários inativos (e-mails ficam livres)"
+              >
+                {cleanupLoading ? (
+                  <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                <span>Excluir Inativos</span>
+              </button>
               <button
                 onClick={handleForceLogoutAll}
                 className="btn-secondary flex items-center space-x-2 bg-red-500/20 hover:bg-red-500/30 border-red-500/30 text-red-400"
