@@ -227,6 +227,14 @@ const migrations = [
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS city VARCHAR(120)`,
 
+  // Tabela de permissões por usuário
+  `CREATE TABLE IF NOT EXISTS user_permissions (
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    permission_name VARCHAR(100) NOT NULL,
+    granted BOOLEAN DEFAULT true,
+    PRIMARY KEY (user_id, permission_name)
+  )`,
+
   // Tabela de logs de sistema
   `CREATE TABLE IF NOT EXISTS system_logs (
     id SERIAL PRIMARY KEY,

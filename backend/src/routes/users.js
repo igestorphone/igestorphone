@@ -820,13 +820,18 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
     }
 
     const deleted = [];
+    const runOptional = async (client, text, params) => {
+      try {
+        return await client.query(text, params);
+      } catch (_) {}
+    };
     for (const u of inactive.rows) {
       const client = await getClient();
       try {
         await client.query('BEGIN');
         const q = (text, params) => client.query(text, params);
 
-        await q('DELETE FROM user_permissions WHERE user_id = $1', [u.id]);
+        await runOptional(client, 'DELETE FROM user_permissions WHERE user_id = $1', [u.id]);
         await q('DELETE FROM subscriptions WHERE user_id = $1', [u.id]);
         await q('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [u.id]);
         await q('DELETE FROM calendar_events WHERE user_id = $1', [u.id]);
@@ -834,10 +839,10 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
         await q('DELETE FROM notes WHERE user_id = $1', [u.id]);
         await q('DELETE FROM support_tickets WHERE user_id = $1', [u.id]);
         await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [u.id, u.id]);
-        await q('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [u.id, u.id]).catch(() => {});
+        await runOptional(client, 'UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [u.id, u.id]);
         await q('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [u.id]);
-        await q('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [u.id]).catch(() => {});
-        await q('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [u.id]).catch(() => {});
+        await runOptional(client, 'UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [u.id]);
+        await runOptional(client, 'UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [u.id]);
         await q('DELETE FROM users WHERE id = $1', [u.id]);
 
         await client.query('COMMIT');
@@ -1235,30 +1240,46 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
     }
 
     const client = await getClient();
+    const run = async (text, params) => {
+      try {
+        return await client.query(text, params);
+      } catch (err) {
+        console.warn('[delete user] Query falhou (tabela pode não existir):', text.substring(0, 60), err.message);
+        throw err;
+      }
+    };
+    const runOptional = async (text, params) => {
+      try {
+        return await client.query(text, params);
+      } catch (err) {
+        console.warn('[delete user] Tabela opcional ignorada:', err.message);
+      }
+    };
+
     try {
       await client.query('BEGIN');
-      const q = (text, params) => client.query(text, params);
 
       // Excluir registros relacionados (ordem importa por FKs)
-      await q('DELETE FROM user_permissions WHERE user_id = $1', [id]);
-      await q('DELETE FROM subscriptions WHERE user_id = $1', [id]);
-      await q('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
-      await q('DELETE FROM calendar_events WHERE user_id = $1', [id]);
-      await q('DELETE FROM goals WHERE user_id = $1', [id]);
-      await q('DELETE FROM notes WHERE user_id = $1', [id]);
-      await q('DELETE FROM support_tickets WHERE user_id = $1', [id]);
-      await q('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
-      await q('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]).catch(() => {});
-      await q('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
-      await q('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]).catch(() => {});
-      await q('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]).catch(() => {});
+      await runOptional('DELETE FROM user_permissions WHERE user_id = $1', [id]);
+      await run('DELETE FROM subscriptions WHERE user_id = $1', [id]);
+      await run('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
+      await run('DELETE FROM calendar_events WHERE user_id = $1', [id]);
+      await run('DELETE FROM goals WHERE user_id = $1', [id]);
+      await run('DELETE FROM notes WHERE user_id = $1', [id]);
+      await run('DELETE FROM support_tickets WHERE user_id = $1', [id]);
+      await run('UPDATE bug_reports SET user_id = NULL, resolved_by = NULL WHERE user_id = $1 OR resolved_by = $1', [id, id]);
+      await runOptional('UPDATE supplier_suggestions SET user_id = NULL, reviewed_by = NULL WHERE user_id = $1 OR reviewed_by = $1', [id, id]);
+      await run('UPDATE users SET parent_id = NULL WHERE parent_id = $1', [id]);
+      await runOptional('UPDATE registration_tokens SET used_by = NULL WHERE used_by = $1', [id]);
+      await runOptional('UPDATE registration_tokens SET created_by = NULL WHERE created_by = $1', [id]);
 
       // Deletar usuário (remove da base - email fica livre para novo cadastro)
-      await q('DELETE FROM users WHERE id = $1', [id]);
+      await run('DELETE FROM users WHERE id = $1', [id]);
 
       await client.query('COMMIT');
     } catch (txError) {
       await client.query('ROLLBACK').catch(() => {});
+      console.error('[delete user] Erro na transação:', txError.message);
       throw txError;
     } finally {
       client.release();
@@ -1280,7 +1301,8 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao deletar usuário:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    const msg = process.env.NODE_ENV === 'development' ? error.message : 'Erro interno do servidor';
+    res.status(500).json({ message: msg });
   }
 });
 
