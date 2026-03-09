@@ -1297,7 +1297,7 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
 
   } catch (error) {
     console.error('Erro ao deletar usuário:', error);
-    const msg = process.env.NODE_ENV === 'development' ? error.message : 'Erro interno do servidor';
+    const msg = error.message || 'Erro interno do servidor';
     res.status(500).json({ message: msg });
   }
 });
