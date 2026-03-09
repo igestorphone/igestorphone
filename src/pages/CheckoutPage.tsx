@@ -19,15 +19,17 @@ import {
   Lock
 } from 'lucide-react'
 
-type PlanKey = 'mensal' | 'trimestral' | 'anual'
+type PlanKey = 'teste' | 'mensal' | 'trimestral' | 'anual'
 
 const PLAN_LABELS: Record<PlanKey, string> = {
+  teste: 'Teste (R$ 1)',
   mensal: 'Mensal',
   trimestral: 'Trimestral',
   anual: 'Anual'
 }
 
 const PLAN_VALUES: Record<PlanKey, number> = {
+  teste: 1,
   mensal: 150,
   trimestral: 390,
   anual: 1200
@@ -64,7 +66,7 @@ type CardForm = z.infer<typeof cardSchema>
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const planParam = (searchParams.get('plan') || 'mensal') as PlanKey
-  const [plan, setPlan] = useState<PlanKey>(['mensal', 'trimestral', 'anual'].includes(planParam) ? planParam : 'mensal')
+  const [plan, setPlan] = useState<PlanKey>(['teste', 'mensal', 'trimestral', 'anual'].includes(planParam) ? planParam : 'mensal')
   const [step, setStep] = useState<'auth' | 'payment' | 'card' | 'pix' | 'success'>('auth')
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [extraCpf, setExtraCpf] = useState('')

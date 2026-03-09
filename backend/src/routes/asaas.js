@@ -21,7 +21,7 @@ router.get('/plans', (req, res) => {
 
 // Criar assinatura (requer autenticação + cpf/phone no user ou no body)
 const createSubscriptionValidation = [
-  body('planKey').isIn(['mensal', 'trimestral', 'anual']),
+  body('planKey').isIn(['teste', 'mensal', 'trimestral', 'anual']),
   body('billingType').isIn(['PIX', 'CREDIT_CARD']),
   body('cpfCnpj').optional().isString().trim(),
   body('phone').optional().isString().trim(),

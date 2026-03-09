@@ -140,7 +140,7 @@ export const asaasApi = {
   },
 
   createSubscription: (data: {
-    planKey: 'mensal' | 'trimestral' | 'anual'
+    planKey: 'teste' | 'mensal' | 'trimestral' | 'anual'
     billingType: 'PIX' | 'CREDIT_CARD'
     cpfCnpj?: string
     phone?: string
