@@ -217,12 +217,72 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
   }
 });
 
+// Verificar pagamento PIX (fallback quando webhook não chega - ex: localhost)
+// Usuário com pending_payment pode chamar para sincronizar status
+router.get('/verify-payment', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const userResult = await query(
+      `SELECT id, subscription_status FROM users WHERE id = $1`,
+      [userId]
+    );
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ paid: false, message: 'Usuário não encontrado' });
+    }
+    const user = userResult.rows[0];
+
+    if (user.subscription_status !== 'pending_payment') {
+      return res.json({ paid: true, status: user.subscription_status });
+    }
+
+    const subResult = await query(
+      `SELECT id, user_id, asaas_subscription_id, duration_months FROM subscriptions
+       WHERE user_id = $1 AND asaas_subscription_id IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    );
+    if (subResult.rows.length === 0) {
+      return res.json({ paid: false, message: 'Nenhuma assinatura pendente' });
+    }
+
+    const sub = subResult.rows[0];
+    const payments = await asaasService.getSubscriptionPayments(sub.asaas_subscription_id);
+    const paid = payments.find(
+      (p) => (p.status || '').toUpperCase() === 'RECEIVED' || (p.status || '').toUpperCase() === 'CONFIRMED'
+    );
+
+    if (!paid) {
+      return res.json({ paid: false });
+    }
+
+    const endDate = new Date(paid.paymentDate || paid.dueDate || Date.now());
+    endDate.setMonth(endDate.getMonth() + (sub.duration_months || 1));
+
+    await query(
+      `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
+      [new Date(paid.paymentDate || Date.now()), endDate, sub.asaas_subscription_id]
+    );
+    await query(
+      `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
+      [endDate, userId]
+    );
+
+    console.log(`Verify-payment: usuário ${userId} ativado (PIX confirmado via API)`);
+    res.json({ paid: true, message: 'Pagamento confirmado! Acesso liberado.' });
+  } catch (error) {
+    console.error('Erro ao verificar pagamento:', error);
+    res.status(500).json({ paid: false, message: 'Erro ao verificar pagamento' });
+  }
+});
+
 // Webhook Asaas (PÚBLICO - sem authenticateToken)
 // Configurar URL em: https://www.asaas.com/config/integrations → Webhook
 // Ex: https://seudominio.com/api/asaas/webhook
 router.post('/webhook', async (req, res) => {
   try {
     const { event, payment } = req.body;
+    console.log(`[Asaas Webhook] event=${event} paymentId=${payment?.id} subscription=${payment?.subscription}`);
     if (!event || !payment) {
       return res.status(400).send('Payload inválido');
     }

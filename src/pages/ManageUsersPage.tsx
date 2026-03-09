@@ -71,6 +71,7 @@ export default function ManageUsersPage() {
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [registrationLinks, setRegistrationLinks] = useState<RegistrationLink[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
   const [linksLoading, setLinksLoading] = useState(false);
@@ -173,13 +174,18 @@ export default function ManageUsersPage() {
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
 
+    setDeleteLoading(true);
     try {
-      await usersApi.delete(userToDelete.id);
+      await usersApi.delete(String(userToDelete.id));
       setUsers(users.filter(u => u.id !== userToDelete.id));
       setShowDeleteModal(false);
       setUserToDelete(null);
-    } catch (error) {
+      toast.success('Usuário excluído com sucesso');
+    } catch (error: any) {
       console.error('Erro ao deletar usuário:', error);
+      toast.error(error?.message || error?.response?.data?.message || 'Erro ao excluir usuário');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -646,11 +652,14 @@ export default function ManageUsersPage() {
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => {
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setUserToDelete(user);
                     setShowDeleteModal(true);
                   }}
                   className="p-2 text-gray-500 dark:text-white/50 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                  title="Excluir usuário"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -972,16 +981,27 @@ export default function ManageUsersPage() {
             </p>
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setShowDeleteModal(false)}
+                type="button"
+                onClick={() => { setShowDeleteModal(false); setUserToDelete(null); }}
+                disabled={deleteLoading}
                 className="btn-secondary"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleDeleteUser}
-                className="btn-danger"
+                disabled={deleteLoading}
+                className="btn-danger flex items-center gap-2 disabled:opacity-50"
               >
-                Excluir
+                {deleteLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
               </button>
             </div>
           </motion.div>

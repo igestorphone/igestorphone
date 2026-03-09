@@ -172,6 +172,24 @@ export async function getSubscriptionFirstPayment(subscriptionId) {
 }
 
 /**
+ * Lista pagamentos de uma assinatura
+ * @param {string} subscriptionId - ID da assinatura no Asaas (ex: sub_xxx)
+ * @returns {Promise<Array>} Lista de pagamentos
+ */
+export async function getSubscriptionPayments(subscriptionId) {
+  const res = await fetch(
+    `${ASAAS_BASE_URL}/subscriptions/${subscriptionId}/payments`,
+    { headers: getHeaders() }
+  );
+  const data = await res.json();
+  if (!res.ok) {
+    const errMsg = data?.errors?.[0]?.description || data?.errors || JSON.stringify(data);
+    throw new Error(`Asaas: ${errMsg}`);
+  }
+  return data.data || [];
+}
+
+/**
  * Obtém QR Code PIX de uma cobrança
  */
 export async function getPixQrCode(paymentId) {

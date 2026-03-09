@@ -155,6 +155,9 @@ export const asaasApi = {
       pix?: { encodedImage: string; payload: string; expirationDate: string }
       message?: string
     }>('/asaas/create-subscription', data),
+
+  verifyPayment: () =>
+    apiClient.get<{ paid: boolean; message?: string; status?: string }>('/asaas/verify-payment'),
 }
 
 export const fornecedoresApi = {

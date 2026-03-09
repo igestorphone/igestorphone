@@ -75,6 +75,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null)
   const [pixData, setPixData] = useState<{ encodedImage?: string; payload?: string } | null>(null)
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success'>('idle')
+  const [verifying, setVerifying] = useState(false)
   const { isAuthenticated, user, login, logout, refreshUser } = useAuthStore()
   const navigate = useNavigate()
 
@@ -83,6 +84,39 @@ export default function CheckoutPage() {
       setStep('payment')
     }
   }, [isAuthenticated, user, step])
+
+  // Ao carregar checkout com pending_payment, verificar se já pagou (ex: fechou a aba e voltou)
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.subscription_status !== 'pending_payment') return
+    asaasApi.verifyPayment().then(async (res) => {
+      if (res?.paid) {
+        await refreshUser()
+        toast.success('Pagamento confirmado!')
+        navigate('/search-cheapest-iphone', { replace: true })
+      }
+    }).catch(() => {})
+  }, [isAuthenticated, user?.id, user?.subscription_status, refreshUser, navigate])
+
+  // Polling: verificar pagamento PIX a cada 5s (fallback quando webhook não chega)
+  useEffect(() => {
+    if (step !== 'pix' || !user?.id) return
+    const check = async () => {
+      try {
+        const res = await asaasApi.verifyPayment()
+        if (res?.paid) {
+          await refreshUser()
+          setPaymentStatus('success')
+          setStep('success')
+          toast.success('Pagamento confirmado!')
+        }
+      } catch (_) {
+        // silenciar erros de rede durante polling
+      }
+    }
+    const interval = setInterval(check, 5000)
+    check() // verificar imediatamente também
+    return () => clearInterval(interval)
+  }, [step, user?.id, refreshUser])
 
   const handleVoltarParaAuth = () => {
     logout()
@@ -594,15 +628,41 @@ export default function CheckoutPage() {
                   </div>
                 )}
                 <p className="mt-6 text-xs text-white/40">
-                  Após o pagamento, seu acesso será liberado automaticamente em segundos.
+                  Após o pagamento, seu acesso será liberado automaticamente (verificação a cada 5 segundos).
                 </p>
               </div>
-              <Link
-                to="/login"
-                className="block text-center text-sm text-white/60 hover:text-white"
+              <button
+                type="button"
+                onClick={async () => {
+                  setVerifying(true)
+                  try {
+                    const res = await asaasApi.verifyPayment()
+                    if (res?.paid) {
+                      await refreshUser()
+                      setPaymentStatus('success')
+                      setStep('success')
+                      toast.success('Pagamento confirmado!')
+                    } else {
+                      toast('Aguardando confirmação do PIX. Tente em alguns segundos.')
+                    }
+                  } catch {
+                    toast.error('Erro ao verificar. Tente novamente.')
+                  } finally {
+                    setVerifying(false)
+                  }
+                }}
+                disabled={verifying}
+                className="block w-full py-2.5 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 transition-colors disabled:opacity-50 text-sm font-medium"
               >
-                Já paguei, ir para o sistema
-              </Link>
+                {verifying ? (
+                  <>
+                    <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
+                    Verificando...
+                  </>
+                ) : (
+                  'Já paguei, verificar agora'
+                )}
+              </button>
             </motion.div>
           )}
 
