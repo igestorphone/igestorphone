@@ -83,7 +83,8 @@ export default function PriceAveragesPage() {
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages'],
     queryFn: () => produtosApi.getPriceAverages(),
-    staleTime: 60000,
+    staleTime: 15000,
+    refetchOnWindowFocus: true,
   })
 
   const averages = useMemo(() => {
@@ -176,7 +177,7 @@ export default function PriceAveragesPage() {
                 Média de Preço
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas hoje)
+                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas hoje). Atualiza ao voltar para esta aba.
               </p>
             </div>
           </div>
