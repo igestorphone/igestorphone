@@ -381,7 +381,7 @@ router.get('/price-averages', async (req, res) => {
   const values = []
   let paramCount = 1
 
-  // HOJE ou ontem no timezone de Brasília
+  // Apenas listas processadas HOJE (timezone Brasília)
   const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
   const conditions = [
       'p.is_active = true',
@@ -394,8 +394,8 @@ router.get('/price-averages', async (req, res) => {
       )`,
       "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
       `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') >= ${todayBrazil} - 1
+        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
+        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
       )`
     ]
 

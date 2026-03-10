@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, Crown } from 'lucide-react';
+import { User, Shield, Eye, EyeOff, Save, ArrowLeft, Trash2, Calendar, Clock, Crown, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { usersApi } from '@/lib/api';
 
@@ -39,6 +39,9 @@ const EditUserPage: React.FC = () => {
     autoRenew: false,
     status: 'active'
   });
+  const [calendarUsers, setCalendarUsers] = useState<{ id: number; name: string; email: string; created_at: string; is_active: boolean }[]>([]);
+  const [loadedUserIsMaster, setLoadedUserIsMaster] = useState(false);
+  const [loadedUserParent, setLoadedUserParent] = useState<{ id: number; name: string; email: string } | null>(null);
 
   const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12 };
 
@@ -90,6 +93,10 @@ const EditUserPage: React.FC = () => {
       if (!user) {
         throw new Error('Usuário não encontrado');
       }
+
+      setLoadedUserIsMaster(!user.parent_id);
+      setCalendarUsers(user.calendar_users || []);
+      setLoadedUserParent(user.parent || null);
       
       setFormData({
         nome: user.name || '',
@@ -323,6 +330,15 @@ const EditUserPage: React.FC = () => {
           >
             Atualize as informações do usuário
           </motion.p>
+          {loadedUserParent && (
+            <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2 flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Usuário do calendário vinculado a
+              <Link to={`/admin/users/edit/${loadedUserParent.id}`} className="font-medium hover:underline">
+                {loadedUserParent.name}
+              </Link>
+            </p>
+          )}
         </div>
       </motion.div>
 
@@ -422,6 +438,60 @@ const EditUserPage: React.FC = () => {
               </motion.div>
             </div>
           </motion.div>
+
+          {/* Usuários do calendário vinculados (só para usuário master, sem parent_id) */}
+          {loadedUserIsMaster && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="border border-gray-200 dark:border-white/20 rounded-xl p-6 bg-gray-50/50 dark:bg-white/5"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 flex items-center">
+                <Calendar className="w-5 h-5 mr-2 text-indigo-600 dark:text-indigo-400" />
+                Usuários do calendário vinculados
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-white/60 mb-4">
+                Usuários criados por este assinante (acesso apenas ao calendário). Clique em Editar para gerenciar.
+              </p>
+              {calendarUsers.length === 0 ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+                  <p className="text-gray-500 dark:text-white/50 text-sm">Nenhum usuário do calendário vinculado.</p>
+                  <Link
+                    to="/funcionarios-calendario"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Criar na página Usuário do calendário
+                  </Link>
+                </div>
+              ) : (
+                <ul className="space-y-2">
+                  {calendarUsers.map((cu) => (
+                    <li
+                      key={cu.id}
+                      className="flex flex-wrap items-center justify-between gap-2 py-3 px-4 rounded-lg bg-white dark:bg-white/10 border border-gray-100 dark:border-white/10"
+                    >
+                      <div>
+                        <span className="font-medium text-gray-900 dark:text-white">{cu.name}</span>
+                        <span className="text-gray-500 dark:text-white/50 text-sm ml-2">({cu.email})</span>
+                        {!cu.is_active && (
+                          <span className="ml-2 text-xs px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400">Inativo</span>
+                        )}
+                      </div>
+                      <Link
+                        to={`/admin/users/edit/${cu.id}`}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        <User className="w-4 h-4" />
+                        Editar
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          )}
 
           {/* Senha */}
           <motion.div

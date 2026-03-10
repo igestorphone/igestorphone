@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Eye, EyeOff, Search, Filter, MoreVertical, Calendar, CreditCard, Mail, Phone, Link as LinkIcon, Copy, Check, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -72,16 +72,13 @@ export default function ManageUsersPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [registrationLinks, setRegistrationLinks] = useState<RegistrationLink[]>([]);
   const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([]);
-  const [linksLoading, setLinksLoading] = useState(false);
   const [pendingLoading, setPendingLoading] = useState(false);
   const [showGenerateLinkModal, setShowGenerateLinkModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [userToApprove, setUserToApprove] = useState<PendingUser | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(5);
   const [linkExpiresIn, setLinkExpiresIn] = useState(7);
-  const [copiedLink, setCopiedLink] = useState<string | null>(null);
   const [cleanupLoading, setCleanupLoading] = useState(false);
 
   // Verificar se é admin
@@ -201,7 +198,8 @@ export default function ManageUsersPage() {
 
     try {
       setCleanupLoading(true);
-      const data = await usersApi.cleanupInactive();
+      const res = await usersApi.cleanupInactive();
+      const data = (res as any)?.data ?? res;
       const deleted = data?.deleted ?? 0;
       toast.success(data?.message || `${deleted} usuário(s) excluído(s)`);
       await fetchUsers();
@@ -219,7 +217,8 @@ export default function ManageUsersPage() {
 
     try {
       const response = await usersApi.forceLogoutAll();
-      toast.success(`✅ Todos os usuários foram desconectados! (${response.affected_users || 0} usuários afetados)`);
+      const data = (response as any)?.data ?? response;
+      toast.success(`✅ Todos os usuários foram desconectados! (${data?.affected_users ?? 0} usuários afetados)`);
       
       // Desconectar você também após 2 segundos
       setTimeout(() => {
@@ -238,19 +237,6 @@ export default function ManageUsersPage() {
 
   const handleCreateUser = () => {
     navigate('/admin/users/create');
-  };
-
-  const fetchRegistrationLinks = async () => {
-    try {
-      setLinksLoading(true);
-      const response = await registrationApi.getAllLinks();
-      setRegistrationLinks(response.data?.links || []);
-    } catch (error) {
-      console.error('Erro ao buscar links:', error);
-      toast.error('Erro ao carregar links de cadastro');
-    } finally {
-      setLinksLoading(false);
-    }
   };
 
   const fetchPendingUsers = async () => {
@@ -331,13 +317,6 @@ export default function ManageUsersPage() {
     } else {
       setShowGenerateLinkModal(true);
     }
-  };
-
-  const handleCopyLink = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedLink(url);
-    toast.success('Link copiado!');
-    setTimeout(() => setCopiedLink(null), 2000);
   };
 
   const handleApproveUser = async () => {
@@ -529,8 +508,8 @@ export default function ManageUsersPage() {
           }`}
         >
           Renovações
-          {(expiringUsers.expired.length > 0 || 
-            expiringUsers.expiring_3_days.length > 0 || 
+          {(expiringUsers.expired.length > 0 ||
+            expiringUsers.expiring_3_days.length > 0 ||
             expiringUsers.expiring_7_days.length > 0) && (
             <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
               {expiringUsers.expired.length + expiringUsers.expiring_3_days.length + expiringUsers.expiring_7_days.length}

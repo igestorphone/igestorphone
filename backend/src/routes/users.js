@@ -883,7 +883,7 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
 
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id
       FROM users WHERE id = $1
     `, [id]);
 
@@ -909,6 +909,23 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
     `, [id]);
     
     user.subscription = subscriptionResult.rows[0] || null;
+
+    // Usuários do calendário vinculados (criados por este usuário master)
+    const childrenResult = await query(`
+      SELECT id, name, email, created_at, is_active
+      FROM users
+      WHERE parent_id = $1
+      ORDER BY name
+    `, [id]);
+    user.calendar_users = childrenResult.rows;
+
+    // Se este usuário é vinculado a um master (usuário do calendário), trazer dados do parent
+    if (user.parent_id) {
+      const parentResult = await query(`
+        SELECT id, name, email FROM users WHERE id = $1
+      `, [user.parent_id]);
+      user.parent = parentResult.rows[0] || null;
+    }
 
     res.json({ user });
   } catch (error) {

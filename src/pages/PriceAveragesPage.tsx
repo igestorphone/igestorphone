@@ -86,7 +86,11 @@ export default function PriceAveragesPage() {
     staleTime: 60000,
   })
 
-  const lookup = useMemo(() => buildLookup(data?.averages || []), [data?.averages])
+  const averages = useMemo(() => {
+    const raw = (data as any)?.data ?? data
+    return raw?.averages ?? []
+  }, [data])
+  const lookup = useMemo(() => buildLookup(averages), [averages])
 
   const applyMargin = (price: number) => {
     if (marginReais <= 0) return price
@@ -94,7 +98,6 @@ export default function PriceAveragesPage() {
   }
 
   const buildRows = () => {
-    const averages = data?.averages || []
     const rows: { model: string; storage: string; cells: (AvgRow | null)[]; mediaGeral: number | null; is17Pro: boolean }[] = []
     for (const model of CANONICAL_MODELS) {
       const is17Pro = model === 'iPhone 17 Pro' || model === 'iPhone 17 Pro Max'
@@ -112,7 +115,7 @@ export default function PriceAveragesPage() {
     return rows
   }
 
-  const displayRows = useMemo(() => buildRows(), [lookup, data?.averages])
+  const displayRows = useMemo(() => buildRows(), [lookup, averages])
   const has17ProData = useMemo(() => displayRows.some((r) => r.is17Pro), [displayRows])
 
   const exportCsv = () => {
@@ -173,7 +176,7 @@ export default function PriceAveragesPage() {
                 Média de Preço
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                iPhone 11 a 17 Pro Max — Novos/Lacrados (últimos 2 dias)
+                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas hoje)
               </p>
             </div>
           </div>

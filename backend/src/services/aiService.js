@@ -293,7 +293,7 @@ class AIService {
       if (listType === 'seminovo' || listType === 'android') {
         const isSeminovo = listType === 'seminovo';
         const systemPrompt = isSeminovo
-          ? 'Você extrai produtos Apple SEMINOVOS de uma lista. O usuário colou APENAS seminovos. Retorne JSON com array validated_products. Cada item: name, model, color, storage, price (número), condition (sempre "Seminovo"), condition_detail ("SEMINOVO" ou vazio). Normalize preços (R$ 1.500 = 1500). Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Seminovo" } ] }.'
+          ? 'Você extrai produtos Apple SEMINOVOS de uma lista. SWAP, VITRINE e SEMINOVO são a MESMA COISA (todos são seminovos). O usuário pode ter colado lista com qualquer um desses termos — extraia todos. Cada item: name, model, color, storage, price (número), condition (sempre "Seminovo"), condition_detail ("SEMINOVO"). CPO não é seminovo (CPO é novo); se aparecer CPO na lista, não inclua. Normalize preços (R$ 1.500 = 1500). Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Seminovo", "condition_detail": "SEMINOVO" } ] }.'
           : 'Você extrai produtos ANDROID (Samsung, Xiaomi, Motorola, etc.) de uma lista. O usuário colou APENAS Android. Retorne JSON com array validated_products. Cada item: name, model, color, storage, price (número), condition ("Novo" ou "Seminovo" conforme a lista). Normalize preços. Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Novo" ou "Seminovo" } ] }.';
         const userPrompt = `Extraia todos os produtos desta lista (${isSeminovo ? 'Apple seminovos' : 'Android'}).\n\n${cleanedList}`;
         const { outputText } = await this.createAIResponse({
@@ -303,10 +303,17 @@ class AIService {
           maxOutputTokens: 4000
         });
         const parsed = this.parseAIResponse(outputText);
-        if (parsed.validated_products && parsed.validated_products.length > 0) {
+        if (parsed.validated_products && parsed.validated_products.length > 0 && isSeminovo) {
           parsed.validated_products.forEach(p => {
-            if (!p.condition) p.condition = isSeminovo ? 'Seminovo' : 'Novo';
-            if (isSeminovo && !p.condition_detail) p.condition_detail = 'SEMINOVO';
+            p.condition = 'Seminovo';
+            const detail = (p.condition_detail || '').toUpperCase().trim();
+            if (detail === 'SWAP' || detail === 'VITRINE' || detail === 'SEMINOVO' || !detail) {
+              p.condition_detail = 'SEMINOVO';
+            }
+          });
+        } else if (parsed.validated_products && parsed.validated_products.length > 0) {
+          parsed.validated_products.forEach(p => {
+            if (!p.condition) p.condition = 'Novo';
           });
         }
         return parsed;
@@ -570,10 +577,11 @@ REGRAS CRÍTICAS:
    - CRÍTICO: Processe TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, todas variações de tamanho: 11", 12.9", etc.)
    - CRÍTICO: Processe TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3, etc.)
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
+   - CPO (Certified Pre-Owned Apple) = NOVO — sempre processar como condition: "Novo", condition_detail: "CPO"
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo" e condition_detail: "LACRADO"
    - REGRA CRÍTICA: Se encontrar "Apple Watch", "MacBook", "iPad", "AirPods" na lista SEM qualificação de "usado" ou "seminovo", ASSUMA que é NOVO/LACRADO e PROCESSAR
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
-4. TERMOS PARA SEMINOVOS (IGNORAR COMPLETAMENTE): "swap", "vitrine", "seminovo", "seminovos", "seminovo americano", "americano" (quando usado com swap/vitrine/seminovo), "usado", "recondicionado", "non active", bateria (80%, 85%, 90%)
+4. TERMOS PARA SEMINOVOS (IGNORAR em lista lacrada): "swap", "vitrine", "seminovo", "seminovos" — SWAP/VITRINE/SEMINOVO são a mesma coisa (seminovos); em lista de NOVOS não extrair esses produtos
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
    - IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
@@ -585,7 +593,7 @@ REGRAS CRÍTICAS:
    - iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS → condition: "Novo", condition_detail: "LACRADO" ou "NOVO"
    - LACRADO, LACRADOS, "IPHONE LACRADO", "1 ANO DE GARANTIA APPLE" → condition: "Novo", condition_detail: "LACRADO"
    - NOVO → condition: "Novo", condition_detail: "NOVO"
-   - CPO → condition: "Novo", condition_detail: "CPO"
+   - CPO (Certified Pre-Owned Apple) = NOVO → condition: "Novo", condition_detail: "CPO"
    - Se não encontrar condição clara, mas está em seção de LACRADOS/NOVOS, assuma condition_detail: "LACRADO"
 12. VARIANTE (CRÍTICO):
    - ANATEL, 🇧🇷 → variant: "ANATEL"
@@ -660,7 +668,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const { outputText, tokensUsed } = await this.createAIResponse({
         systemPrompt:
-          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple") - IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, produtos com bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "1 ano de garantia apple", "cpo" → PROCESSAR. 3) TERMOS SEMINOVOS: "swap", "vitrine", "seminovo", "seminovos", "seminovo americano" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações Pro, Max, Air, Plus) se forem LACRADOS/NOVOS. NÃO IGNORE modelos mais antigos. 7) EXTRAIA TODOS os Apple Watch encontrados (Ultra, Series, SE e todas variações de tamanho: 40mm, 42mm, 44mm, 45mm, 46mm, 49mm) - são SEMPRE NOVOS/LACRADOS. 8) EXTRAIA TODOS os MacBook encontrados (M1, M2, M3, M4, Air, Pro, 13", 14", 16", todas configurações) - são SEMPRE NOVOS/LACRADOS. 9) EXTRAIA TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, 11", 12.9") - são SEMPRE NOVOS/LACRADOS. 10) EXTRAIA TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3) - são SEMPRE NOVOS/LACRADOS. 11) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 12) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 13) CPO → condition_detail: "CPO" E variant: "CPO". 14) ANATEL/🇧🇷 → variant: "ANATEL". 15) eSIM/CHIP VIRTUAL → variant: "E-SIM". 16) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 17) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 18) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 19) Armazenamento: normalize (256=256GB, 1T=1TB). 20) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 21) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
+          'Você é um assistente especializado em produtos Apple NOVOS. Retorne APENAS JSON válido. REGRAS CRÍTICAS: 1) EXTRAIA APENAS produtos NOVOS (NOVO, LACRADO, CPO, "1 ano de garantia apple"). CPO = NOVO (Certified Pre-Owned). IGNORE completamente SWAP, VITRINE, SEMINOVO, SEMINOVOS (são a mesma coisa = seminovos), USADO, REcondicionado, NON ACTIVE, bateria (80%, 85%, 90%). 2) TERMOS NOVOS: "lacrado", "novo", "cpo", "1 ano de garantia apple" → PROCESSAR. 3) TERMOS SEMINOVOS (não extrair): "swap", "vitrine", "seminovo" → IGNORAR. 4) IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista, não significa que não é novo. 5) LACRADO = NOVO sempre. 6) Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações Pro, Max, Air, Plus) se forem LACRADOS/NOVOS. NÃO IGNORE modelos mais antigos. 7) EXTRAIA TODOS os Apple Watch encontrados (Ultra, Series, SE e todas variações de tamanho: 40mm, 42mm, 44mm, 45mm, 46mm, 49mm) - são SEMPRE NOVOS/LACRADOS. 8) EXTRAIA TODOS os MacBook encontrados (M1, M2, M3, M4, Air, Pro, 13", 14", 16", todas configurações) - são SEMPRE NOVOS/LACRADOS. 9) EXTRAIA TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, 11", 12.9") - são SEMPRE NOVOS/LACRADOS. 10) EXTRAIA TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3) - são SEMPRE NOVOS/LACRADOS. 11) Extraia modelos EXATAMENTE como aparecem - NUNCA adicione Pro/Max/Plus se não estiver explícito. 12) Se preço está ANTES das cores (🚦, 📲, 📍, ✅) ou cor vem DEPOIS com hífen longo (—), cada cor = produto separado com mesmo preço. 13) CPO → condition_detail: "CPO" E variant: "CPO". 14) ANATEL/🇧🇷 → variant: "ANATEL". 15) eSIM/CHIP VIRTUAL → variant: "E-SIM". 16) CHIP FÍSICO/LL/LL/A → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS). 17) "americano" como variante de produto NOVO → OK. "seminovo americano" ou em contexto SWAP/VITRINE → IGNORAR. 18) Cores: aceite português/inglês (space black, jet black, midnight, starlight, desert, natural, prata, laranja). 19) Armazenamento: normalize (256=256GB, 1T=1TB). 20) Preços: remova pontos, vírgulas, espaços - normalize para número puro (ex: "R$ 10.850,00" → 10850). 21) Ignore produtos não-Apple e produtos usados/seminovos, mas PROCESSAR produtos LACRADOS mesmo com notas adicionais.',
         userPrompt: prompt,
         temperature: 0.2, // Reduzido para ser mais determinístico
         maxOutputTokens: 4000 // Limite de tokens de saída

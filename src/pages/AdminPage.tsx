@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  Users, 
-  UserPlus, 
-  Database, 
-  Settings, 
+import {
+  Users,
+  UserPlus,
+  Database,
+  Settings,
   BarChart3,
   Shield,
   Activity,
-  Clock
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { usersApi, statisticsApi } from '@/lib/api'
@@ -47,14 +46,14 @@ export default function AdminPage() {
     },
     {
       title: 'Usuários Ativos',
-      value: users?.filter(u => u.isAtivo).length || 0,
+      value: users?.filter((u: any) => u.isAtivo).length || 0,
       icon: Activity,
       color: 'text-green-400',
       bgColor: 'bg-green-500/20'
     },
     {
       title: 'Administradores',
-      value: users?.filter(u => u.tipo === 'admin').length || 0,
+      value: users?.filter((u: any) => u.tipo === 'admin').length || 0,
       icon: Shield,
       color: 'text-purple-400',
       bgColor: 'bg-purple-500/20'
@@ -214,7 +213,7 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {users?.map((user, index) => (
+                      {users?.map((user: any) => (
                         <tr key={user.id} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-3">
