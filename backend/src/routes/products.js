@@ -381,23 +381,23 @@ router.get('/price-averages', async (req, res) => {
   const values = []
   let paramCount = 1
 
-  // Apenas listas processadas HOJE (timezone Brasília)
+  // Hoje em Brasília: só produtos já processados hoje (created_at ou updated_at = hoje)
   const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
   const conditions = [
-      'p.is_active = true',
-      's.is_active = true',
-      'p.price > 0',
-      'p.price IS NOT NULL',
-      `(
-        p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-        OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
-      )`,
-      "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
-      `(
-        DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = ${todayBrazil}
-      )`
-    ]
+    'p.is_active = true',
+    's.is_active = true',
+    'p.price > 0',
+    'p.price IS NOT NULL',
+    `(
+      p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
+      OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
+    )`,
+    "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
+    `(
+      (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayBrazil}
+      OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayBrazil}
+    )`,
+  ]
 
   if (search) {
     const term = `%${search.toLowerCase()}%`
