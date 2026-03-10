@@ -42,6 +42,8 @@ const EditUserPage: React.FC = () => {
   const [calendarUsers, setCalendarUsers] = useState<{ id: number; name: string; email: string; created_at: string; is_active: boolean }[]>([]);
   const [loadedUserIsMaster, setLoadedUserIsMaster] = useState(false);
   const [loadedUserParent, setLoadedUserParent] = useState<{ id: number; name: string; email: string } | null>(null);
+  const [loadedSubscriptionStatus, setLoadedSubscriptionStatus] = useState<string | null>(null);
+  const [regularizingPayment, setRegularizingPayment] = useState(false);
 
   const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12 };
 
@@ -97,7 +99,8 @@ const EditUserPage: React.FC = () => {
       setLoadedUserIsMaster(!user.parent_id);
       setCalendarUsers(user.calendar_users || []);
       setLoadedUserParent(user.parent || null);
-      
+      setLoadedSubscriptionStatus(user.subscription_status || null);
+
       setFormData({
         nome: user.name || '',
         email: user.email || '',
@@ -181,6 +184,29 @@ const EditUserPage: React.FC = () => {
     }
   };
 
+
+  const handleRegularizePayment = async () => {
+    if (!id) return;
+    setRegularizingPayment(true);
+    try {
+      await usersApi.updateSubscription(id, {
+        status: 'active',
+        durationMonths: 1,
+        planType: subscriptionData.planType || 'mensal',
+        planName: subscriptionData.planName || 'Plano',
+        price: subscriptionData.price,
+        paymentMethod: subscriptionData.paymentMethod,
+      });
+      toast.success('Pagamento regularizado. O usuário já pode acessar.');
+      setSubscriptionData(prev => ({ ...prev, status: 'active' }));
+      setLoadedSubscriptionStatus('active');
+      await loadUser();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Não foi possível regularizar.');
+    } finally {
+      setRegularizingPayment(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -563,9 +589,24 @@ const EditUserPage: React.FC = () => {
               <Crown className="w-5 h-5 mr-2 text-amber-500 dark:text-amber-400" />
               Assinatura
             </h3>
-            <p className="text-sm text-gray-500 dark:text-white/60 mb-6">
+            <p className="text-sm text-gray-500 dark:text-white/60 mb-4">
               Defina o plano, valor pago, datas de entrada e último pagamento. Use a data de término para inativar ou renovar o acesso.
             </p>
+            {(loadedSubscriptionStatus === 'overdue' || loadedSubscriptionStatus === 'past_due') && (
+              <div className="mb-6 p-4 rounded-xl border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                  Este usuário está com <strong>pagamento atrasado</strong>. Se ele já pagou (PIX/link), clique abaixo para regularizar e liberar o acesso.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRegularizePayment}
+                  disabled={regularizingPayment}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium disabled:opacity-60"
+                >
+                  {regularizingPayment ? 'Regularizando…' : 'Regularizar pagamento (marcar como pago)'}
+                </button>
+              </div>
+            )}
             <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-6 border border-gray-200 dark:border-white/10 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 {/* Nome do Plano */}
