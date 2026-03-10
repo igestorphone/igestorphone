@@ -388,10 +388,7 @@ router.get('/price-averages', async (req, res) => {
     's.is_active = true',
     'p.price > 0',
     'p.price IS NOT NULL',
-    `(
-      p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-      OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
-    )`,
+    "p.condition = 'Novo'",
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
     `(
       (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayBrazil}
@@ -555,6 +552,41 @@ router.get('/price-averages', async (req, res) => {
         detail: error?.detail
       })
     });
+  }
+});
+
+// Debug: contagens para entender por que a média pode estar vazia (só em desenvolvimento ou admin)
+router.get('/price-averages-debug', async (req, res) => {
+  try {
+    const todayExpr = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`;
+    const dateCond = `((p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayExpr} OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayExpr})`;
+    const r1 = await query(`
+      SELECT
+        ${todayExpr}::text as today_brasil,
+        (SELECT COUNT(*) FROM products p WHERE ${dateCond.replace(/p\./g, 'p.')}) as com_data_hoje
+    `);
+    const r2 = await query(`
+      SELECT COUNT(*) as n FROM products p
+      JOIN suppliers s ON p.supplier_id = s.id
+      WHERE p.is_active = true AND s.is_active = true AND ${dateCond}
+    `);
+    const r3 = await query(`
+      SELECT COUNT(*) as n FROM products p
+      JOIN suppliers s ON p.supplier_id = s.id
+      WHERE p.is_active = true AND s.is_active = true AND p.condition = 'Novo'
+        AND (LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')
+        AND ${dateCond}
+    `);
+    const row1 = r1.rows[0];
+    res.json({
+      today_brasil: row1?.today_brasil,
+      produtos_com_data_hoje: parseInt(row1?.com_data_hoje || 0, 10),
+      produtos_ativos_hoje: parseInt(r2.rows[0]?.n || 0, 10),
+      iphone_novo_hoje: parseInt(r3.rows[0]?.n || 0, 10),
+    });
+  } catch (e) {
+    console.error('price-averages-debug:', e);
+    res.status(500).json({ error: e.message });
   }
 });
 
