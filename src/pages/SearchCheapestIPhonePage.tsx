@@ -94,6 +94,19 @@ const formatTime = (date: Date) =>
     timeZone: 'America/Sao_Paulo'
   })
 
+// Origem do seminovo (qualidade): bandeira + label para exibir na busca
+const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
+  AMERICANO: { flag: '🇺🇸', label: 'Americano' },
+  CHINÊS: { flag: '🇨🇳', label: 'Chinês' },
+  CHINES: { flag: '🇨🇳', label: 'Chinês' },
+  DUBAI: { flag: '🇦🇪', label: 'Dubai' }
+}
+function getSeminovoOriginBadge(variant: string | null | undefined) {
+  if (!variant || typeof variant !== 'string') return null
+  const key = variant.toUpperCase().trim()
+  return SEMINOVO_ORIGIN[key] ?? null
+}
+
 // Sugestões para efeito de digitação por modo
 const TYPING_SUGGESTIONS: Record<string, string[]> = {
   novo: ['iPhone 17 Pro Max', 'iPhone 16 Pro', 'MacBook Air', 'AirPods Pro'],
@@ -1012,7 +1025,11 @@ Ainda tem disponível?`
                             <td className="px-2 py-3 whitespace-normal text-xs text-gray-900 dark:text-white">
                               <div className="flex flex-col space-y-1">
                                 <span className="truncate">{product.supplier_name || 'N/A'}</span>
-                                {product.variant && (
+                                {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
+                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
+                                    {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
+                                  </span>
+                                ) : product.variant ? (
                                   <span
                                     className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
                                       product.variant.toUpperCase() === 'ANATEL'
@@ -1022,7 +1039,7 @@ Ainda tem disponível?`
                                   >
                                     {product.variant}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
@@ -1184,7 +1201,11 @@ Ainda tem disponível?`
                             <Palette className="w-3 h-3 mr-1" />
                             {normalizeColor(product.color, product.model || product.name)}
                           </span>
-                          {product.variant && (
+                          {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
+                              {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
+                            </span>
+                          ) : product.variant ? (
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
                                 product.variant.toUpperCase() === 'ANATEL'
@@ -1194,7 +1215,7 @@ Ainda tem disponível?`
                             >
                               {product.variant}
                             </span>
-                          )}
+                          ) : null}
                         </div>
 
                         {/* Supplier info */}

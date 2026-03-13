@@ -293,7 +293,13 @@ class AIService {
       if (listType === 'seminovo' || listType === 'android') {
         const isSeminovo = listType === 'seminovo';
         const systemPrompt = isSeminovo
-          ? 'Você extrai produtos Apple SEMINOVOS de uma lista. SWAP, VITRINE e SEMINOVO são a MESMA COISA (todos são seminovos). O usuário pode ter colado lista com qualquer um desses termos — extraia todos. Cada item: name, model, color, storage, price (número), condition (sempre "Seminovo"), condition_detail ("SEMINOVO"). CPO não é seminovo (CPO é novo); se aparecer CPO na lista, não inclua. Normalize preços (R$ 1.500 = 1500). Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Seminovo", "condition_detail": "SEMINOVO" } ] }.'
+          ? `Você extrai produtos Apple SEMINOVOS de uma lista. SWAP, VITRINE e SEMINOVO são a MESMA COISA (todos são seminovos). Extraia todos.
+
+VARIANTE/ORIGEM (identificar na lista, não pedir): A lista pode trazer indicação de origem como variante do modelo — por exemplo título "iPhone seminovo AMERICANO" ou "AMERICANO" e em baixo os aparelhos; ou bandeira/emoji (🇺🇸 🇨🇳 🇦🇪); ou as palavras americano, chinês/chines, dubai no título da seção ou no texto. VOCÊ DEVE IDENTIFICAR ISSO NA PRÓPRIA LISTA e, quando achar, preencher o campo "variant" de cada produto daquela seção com exatamente: AMERICANO, CHINÊS ou DUBAI. Se na lista não tiver nenhuma dessas indicações, deixe variant vazio (não envie o campo ou ""). Não invente e não peça nada ao usuário — só use o que já está na lista.
+
+Cada item: name, model, color, storage, price (número), condition ("Seminovo"), condition_detail ("SEMINOVO"), variant (só se identificou na lista: "AMERICANO" | "CHINÊS" | "DUBAI"; senão omita ou "").
+CPO não é seminovo; se aparecer CPO na lista, não inclua. Normalize preços (R$ 1.500 = 1500).
+Retorne APENAS JSON válido: { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Seminovo", "condition_detail": "SEMINOVO", "variant": "AMERICANO"|"CHINÊS"|"DUBAI" ou omitir } ] }`
           : 'Você extrai produtos ANDROID (Samsung, Xiaomi, Motorola, etc.) de uma lista. O usuário colou APENAS Android. Retorne JSON com array validated_products. Cada item: name, model, color, storage, price (número), condition ("Novo" ou "Seminovo" conforme a lista). Normalize preços. Retorne APENAS JSON válido no formato { "validated_products": [ { "name": "...", "model": "...", "color": "...", "storage": "...", "price": número, "condition": "Novo" ou "Seminovo" } ] }.';
         const userPrompt = `Extraia todos os produtos desta lista (${isSeminovo ? 'Apple seminovos' : 'Android'}).\n\n${cleanedList}`;
         const { outputText } = await this.createAIResponse({
@@ -310,6 +316,10 @@ class AIService {
             if (detail === 'SWAP' || detail === 'VITRINE' || detail === 'SEMINOVO' || !detail) {
               p.condition_detail = 'SEMINOVO';
             }
+            const v = (p.variant || '').toString().toUpperCase().trim();
+            if (v === 'CHINES') p.variant = 'CHINÊS';
+            else if (v === 'AMERICANO' || v === 'CHINÊS' || v === 'DUBAI') p.variant = v;
+            else if (!v || v === '') p.variant = null;
           });
         } else if (parsed.validated_products && parsed.validated_products.length > 0) {
           parsed.validated_products.forEach(p => {

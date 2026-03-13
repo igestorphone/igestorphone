@@ -381,7 +381,7 @@ router.get('/price-averages', async (req, res) => {
   const values = []
   let paramCount = 1
 
-  // Hoje em Brasília: só produtos já processados hoje (created_at ou updated_at = hoje)
+  // Últimos 3 dias em Brasília (evita problema de timezone; se ainda 0, fallback sem data)
   const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
   const conditions = [
     'p.is_active = true',
@@ -391,24 +391,35 @@ router.get('/price-averages', async (req, res) => {
     "p.condition = 'Novo'",
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
     `(
-      (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayBrazil}
-      OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todayBrazil}
+      (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ${todayBrazil} - 3
+      OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ${todayBrazil} - 3
     )`,
+  ]
+  const conditionsNoDate = [
+    'p.is_active = true',
+    's.is_active = true',
+    'p.price > 0',
+    'p.price IS NOT NULL',
+    "p.condition = 'Novo'",
+    "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
   ]
 
   if (search) {
     const term = `%${search.toLowerCase()}%`
     conditions.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
+    conditionsNoDate.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
     values.push(term)
     paramCount++
   }
   if (color) {
     conditions.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
+    conditionsNoDate.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
     values.push(color)
     paramCount++
   }
   if (storage) {
     conditions.push(`p.storage = $${paramCount}`)
+    conditionsNoDate.push(`p.storage = $${paramCount}`)
     values.push(storage)
     paramCount++
   }
@@ -417,8 +428,9 @@ router.get('/price-averages', async (req, res) => {
   const normalizedModelExpr = `LOWER(TRIM(COALESCE(p.model, p.name)))`
 
   const whereClause = conditions.join(' AND ');
+  const whereClauseNoDate = conditionsNoDate.join(' AND ');
   try {
-    const result = await query(`
+    let result = await query(`
       WITH base AS (
         SELECT
           p.price,
@@ -442,6 +454,35 @@ router.get('/price-averages', async (req, res) => {
       HAVING COUNT(*) >= 1
       ORDER BY model_key, color, storage
     `, values);
+
+    let noDateFilter = false;
+    if (result.rows.length === 0 && whereClauseNoDate !== whereClause) {
+      result = await query(`
+        WITH base AS (
+          SELECT
+            p.price,
+            ${normalizedModelExpr} AS model_canonical,
+            TRIM(COALESCE(p.color, '')) AS color,
+            TRIM(COALESCE(p.storage, '')) AS storage
+          FROM products p
+          JOIN suppliers s ON p.supplier_id = s.id
+          WHERE ${whereClauseNoDate}
+        )
+        SELECT
+          model_canonical AS model_key,
+          color,
+          storage,
+          AVG(price)::numeric AS avg_price,
+          COUNT(*)::int AS count,
+          MIN(price)::numeric AS min_price,
+          MAX(price)::numeric AS max_price
+        FROM base
+        GROUP BY model_canonical, color, storage
+        HAVING COUNT(*) >= 1
+        ORDER BY model_key, color, storage
+      `, values);
+      noDateFilter = result.rows.length > 0;
+    }
 
   const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
   const toDisplayModel = (key) => {
@@ -499,7 +540,7 @@ router.get('/price-averages', async (req, res) => {
     max_price: r.max_price != null ? roundTo50(r.max_price) : null,
   }));
 
-  res.json({ averages: rows });
+  res.json({ averages: rows, noDateFilter: noDateFilter || undefined });
   } catch (error) {
     console.error('Erro ao buscar médias de preço:', error);
     // Fallback: se condition_detail não existir, tentar com condition = 'Novo' apenas

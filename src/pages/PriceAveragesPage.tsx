@@ -87,10 +87,9 @@ export default function PriceAveragesPage() {
     refetchOnWindowFocus: true,
   })
 
-  const averages = useMemo(() => {
-    const raw = (data as any)?.data ?? data
-    return raw?.averages ?? []
-  }, [data])
+  const rawResponse = useMemo(() => (data as any)?.data ?? data, [data])
+  const averages = useMemo(() => rawResponse?.averages ?? [], [rawResponse])
+  const noDateFilter = Boolean(rawResponse?.noDateFilter)
   const lookup = useMemo(() => buildLookup(averages), [averages])
 
   const applyMargin = (price: number) => {
@@ -177,8 +176,13 @@ export default function PriceAveragesPage() {
                 Média de Preço
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas hoje). Atualiza ao voltar para esta aba.
+                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas nos últimos 3 dias). Atualiza ao voltar para esta aba.
               </p>
+              {noDateFilter && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  Mostrando todos os ativos (sem filtro de data).
+                </p>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">

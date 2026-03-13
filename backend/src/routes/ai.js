@@ -41,6 +41,7 @@ const detectVariant = (product) => {
   if (combined.includes('jap')) return 'JAPONÊS';
   if (combined.includes('indi')) return 'INDIANO';
   if (combined.includes('usa') || combined.includes('americano')) return 'AMERICANO';
+  if (combined.includes('dubai')) return 'DUBAI';
   if (combined.includes('cpo')) return 'CPO';
 
   return product?.variant ? product.variant.toString().toUpperCase() : null;
