@@ -44,7 +44,9 @@ router.post(
     body('title').trim().isLength({ min: 1, max: 255 }).withMessage('Título é obrigatório (máx. 255)'),
     body('description').optional().trim(),
     body('status').optional().isIn(['pending', 'in_progress', 'abandoned', 'completed']),
-    body('priority').optional().isIn(['low', 'medium', 'high'])
+    body('priority').optional().isIn(['low', 'medium', 'high']),
+    body('assignees').optional().isArray(),
+    body('assignees.*').optional().isIn(['luiz', 'david', 'victor', 'todos'])
   ],
   async (req, res) => {
     try {
@@ -53,12 +55,13 @@ router.post(
         return res.status(400).json({ errors: errors.array() })
       }
 
-      const { title, description, status = 'pending', priority = 'medium' } = req.body
+      const { title, description, status = 'pending', priority = 'medium', assignees } = req.body
+      const assigneesArr = Array.isArray(assignees) ? assignees.filter((a) => ['luiz', 'david', 'victor', 'todos'].includes(a)) : []
       const result = await query(
-        `INSERT INTO goals (user_id, title, description, status, priority)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO goals (user_id, title, description, status, priority, assignees)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)
          RETURNING *`,
-        [req.user.id, title, description || null, status, priority]
+        [req.user.id, title, description || null, status, priority, JSON.stringify(assigneesArr)]
       )
 
       res.status(201).json({ goal: result.rows[0] })
@@ -78,7 +81,9 @@ router.put(
     body('title').optional().trim().isLength({ min: 1, max: 255 }),
     body('description').optional().trim(),
     body('status').optional().isIn(['pending', 'in_progress', 'abandoned', 'completed']),
-    body('priority').optional().isIn(['low', 'medium', 'high'])
+    body('priority').optional().isIn(['low', 'medium', 'high']),
+    body('assignees').optional().isArray(),
+    body('assignees.*').optional().isIn(['luiz', 'david', 'victor', 'todos'])
   ],
   async (req, res) => {
     try {
@@ -88,7 +93,7 @@ router.put(
       }
 
       const { id } = req.params
-      const { title, description, status, priority } = req.body
+      const { title, description, status, priority, assignees } = req.body
 
       const fields = []
       const values = []
@@ -114,6 +119,11 @@ router.put(
       if (priority !== undefined) {
         fields.push(`priority = $${paramIndex++}`)
         values.push(priority)
+      }
+      if (assignees !== undefined) {
+        const assigneesArr = Array.isArray(assignees) ? assignees.filter((a) => ['luiz', 'david', 'victor', 'todos'].includes(a)) : []
+        fields.push(`assignees = $${paramIndex++}::jsonb`)
+        values.push(JSON.stringify(assigneesArr))
       }
 
       if (fields.length === 0) {

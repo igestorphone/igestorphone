@@ -17,12 +17,20 @@ import { goalsApi, notesApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
 
+const ASSIGNEE_OPTIONS = [
+  { id: 'luiz', label: 'Luiz' },
+  { id: 'david', label: 'David' },
+  { id: 'victor', label: 'Victor' },
+  { id: 'todos', label: 'Todes' }
+] as const
+
 interface GoalFormState {
   id?: number
   title: string
   description: string
   status: 'pending' | 'in_progress' | 'abandoned' | 'completed'
   priority: 'low' | 'medium' | 'high'
+  assignees: string[]
 }
 
 interface NoteFormState {
@@ -35,7 +43,8 @@ const initialGoalForm: GoalFormState = {
   title: '',
   description: '',
   status: 'pending',
-  priority: 'medium'
+  priority: 'medium',
+  assignees: []
 }
 
 const initialNoteForm: NoteFormState = {
@@ -157,12 +166,15 @@ export default function GoalsPage() {
   }
 
   const openEditGoalModal = (goal: any) => {
+    const raw = goal.assignees
+    const assignees = Array.isArray(raw) ? raw : (typeof raw === 'string' ? (raw ? JSON.parse(raw) : []) : [])
     setGoalForm({
       id: goal.id,
       title: goal.title || '',
       description: goal.description || '',
       status: goal.status || 'pending',
-      priority: goal.priority || 'medium'
+      priority: goal.priority || 'medium',
+      assignees: assignees.filter((a: string) => ['luiz', 'david', 'victor', 'todos'].includes(a))
     })
     setIsEditingGoal(true)
     setIsGoalModalOpen(true)
@@ -242,7 +254,7 @@ export default function GoalsPage() {
 
   const statusLabels: Record<string, { label: string; color: string; icon: JSX.Element }> = {
     pending: { label: 'Metas', color: 'border-blue-400/60', icon: <Clock className="w-5 h-5 text-blue-300" /> },
-    in_progress: { label: 'Em Processo', color: 'border-purple-400/60', icon: <Rocket className="w-5 h-5 text-purple-300" /> },
+    in_progress: { label: 'Em Processo', color: 'border-indigo-400/60', icon: <Rocket className="w-5 h-5 text-indigo-300" /> },
     abandoned: { label: 'Desistido', color: 'border-yellow-400/60', icon: <PauseCircle className="w-5 h-5 text-yellow-300" /> },
     completed: { label: 'Finalizados', color: 'border-green-400/60', icon: <CheckCircle className="w-5 h-5 text-green-300" /> }
   }
@@ -254,12 +266,12 @@ export default function GoalsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gradient-to-br dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 p-4 md:p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-600 dark:via-purple-600 dark:to-pink-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
+          className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 dark:from-indigo-600 dark:via-indigo-500 dark:to-indigo-600 rounded-2xl shadow-2xl p-6 md:p-8 text-white relative overflow-hidden border border-white/20"
         >
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32" />
           <div className="relative z-10">
@@ -276,7 +288,7 @@ export default function GoalsPage() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={openCreateGoalModal}
-            className="inline-flex items-center gap-2 bg-purple-600 dark:bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg"
+            className="inline-flex items-center gap-2 bg-indigo-600 dark:bg-indigo-600 hover:bg-indigo-700 dark:hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg"
           >
             <Plus className="w-5 h-5" />
             Nova Meta
@@ -338,12 +350,27 @@ export default function GoalsPage() {
                           animate={{ opacity: 1, y: 0 }}
                           onClick={() => toggleGoalExpand(goal.id)}
                           className={`bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-gray-300 dark:hover:border-white/20 ${
-                            isExpanded ? 'bg-white dark:bg-white/10 border-purple-400/40 dark:border-purple-400/40 shadow-lg dark:shadow-purple-900/20' : ''
+                            isExpanded ? 'bg-white dark:bg-white/10 border-indigo-400/40 dark:border-indigo-400/40 shadow-lg dark:shadow-indigo-900/20' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div>
+                            <div className="min-w-0 flex-1">
                               <h3 className="text-gray-900 dark:text-white font-semibold text-base">{goal.title}</h3>
+                              {(goal.assignees && (Array.isArray(goal.assignees) ? goal.assignees : []).length > 0) && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                  {(Array.isArray(goal.assignees) ? goal.assignees : []).slice(0, 3).map((key: string) => {
+                                    const opt = ASSIGNEE_OPTIONS.find((o) => o.id === key)
+                                    return opt ? (
+                                      <span key={key} className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-200">
+                                        {opt.label}
+                                      </span>
+                                    ) : null
+                                  })}
+                                  {(Array.isArray(goal.assignees) ? goal.assignees : []).length > 3 && (
+                                    <span className="text-[10px] text-gray-500 dark:text-white/50">+{(Array.isArray(goal.assignees) ? goal.assignees : []).length - 3}</span>
+                                  )}
+                                </div>
+                              )}
                               {hasDescription && (
                                 <p className="text-gray-600 dark:text-white/60 text-sm mt-2 leading-relaxed">
                                   {description}
@@ -365,6 +392,18 @@ export default function GoalsPage() {
 
                           {isExpanded && (
                             <>
+                              {(goal.assignees && (Array.isArray(goal.assignees) ? goal.assignees : []).length > 0) && (
+                              <div className="flex flex-wrap gap-1.5 mt-3">
+                                {(Array.isArray(goal.assignees) ? goal.assignees : []).map((key: string) => {
+                                  const opt = ASSIGNEE_OPTIONS.find((o) => o.id === key)
+                                  return opt ? (
+                                    <span key={key} className="text-xs px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-200 border border-indigo-200 dark:border-indigo-400/30">
+                                      {opt.label}
+                                    </span>
+                                  ) : null
+                                })}
+                              </div>
+                            )}
                               <div className="flex flex-wrap items-center justify-between text-xs text-gray-500 dark:text-white/50 mt-4 gap-2">
                                 <span>Criado em {new Date(goal.created_at).toLocaleDateString('pt-BR')}</span>
                                 {goal.completed_at && <span>Finalizado em {new Date(goal.completed_at).toLocaleDateString('pt-BR')}</span>}
@@ -417,7 +456,7 @@ export default function GoalsPage() {
                                 e.stopPropagation()
                                 toggleGoalExpand(goal.id)
                               }}
-                              className="text-xs text-purple-700 dark:text-purple-200 hover:text-purple-900 dark:hover:text-white bg-purple-100 dark:bg-purple-500/20 hover:bg-purple-200 dark:hover:bg-purple-500/30 px-3 py-1 rounded-full transition-colors"
+                              className="text-xs text-indigo-700 dark:text-indigo-200 hover:text-indigo-900 dark:hover:text-white bg-indigo-100 dark:bg-indigo-500/20 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 px-3 py-1 rounded-full transition-colors"
                             >
                               {isExpanded ? 'Ver menos' : 'Ver mais'}
                             </button>
@@ -528,7 +567,7 @@ export default function GoalsPage() {
                     type="text"
                     value={goalForm.title}
                     onChange={(e) => setGoalForm((prev) => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-purple-400"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-indigo-400"
                     placeholder="Ex: Automatizar listas via WhatsApp"
                   />
                 </div>
@@ -538,9 +577,35 @@ export default function GoalsPage() {
                   <textarea
                     value={goalForm.description}
                     onChange={(e) => setGoalForm((prev) => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-purple-400 min-h-[120px]"
+                    className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-indigo-400 min-h-[120px]"
                     placeholder="Detalhe o objetivo, próximos passos, responsáveis..."
                   />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-600 dark:text-white/70 block mb-2">Quem vai fazer</label>
+                  <div className="flex flex-wrap gap-3">
+                    {ASSIGNEE_OPTIONS.map((opt) => {
+                      const isChecked = goalForm.assignees.includes(opt.id)
+                      return (
+                        <label key={opt.id} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              setGoalForm((prev) => ({
+                                ...prev,
+                                assignees: isChecked ? prev.assignees.filter((a) => a !== opt.id) : [...prev.assignees, opt.id]
+                              }))
+                            }}
+                            className="w-4 h-4 rounded border-gray-300 dark:border-white/30 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm text-gray-900 dark:text-white">{opt.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-white/50 mt-1">Pode escolher mais de um.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -549,7 +614,7 @@ export default function GoalsPage() {
                     <select
                       value={goalForm.status}
                       onChange={(e) => setGoalForm((prev) => ({ ...prev, status: e.target.value as GoalFormState['status'] }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400"
                     >
                       <option value="pending">Meta</option>
                       <option value="in_progress">Em Processo</option>
@@ -563,7 +628,7 @@ export default function GoalsPage() {
                     <select
                       value={goalForm.priority}
                       onChange={(e) => setGoalForm((prev) => ({ ...prev, priority: e.target.value as GoalFormState['priority'] }))}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 text-gray-900 dark:text-white focus:outline-none focus:border-indigo-400"
                     >
                       <option value="low">Baixa</option>
                       <option value="medium">Média</option>
@@ -584,7 +649,7 @@ export default function GoalsPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmitGoal}
-                  className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold shadow-lg"
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg"
                   disabled={createGoalMutation.isLoading || updateGoalMutation.isLoading}
                 >
                   {createGoalMutation.isLoading || updateGoalMutation.isLoading ? 'Salvando...' : 'Salvar Meta'}

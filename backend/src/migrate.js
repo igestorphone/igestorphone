@@ -247,6 +247,9 @@ const migrations = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completion_version INTEGER DEFAULT 0`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMP`,
 
+  // Metas: quem vai fazer (Luiz, David, Victor, Todes)
+  `ALTER TABLE goals ADD COLUMN IF NOT EXISTS assignees JSONB NOT NULL DEFAULT '[]'::jsonb`,
+
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,
