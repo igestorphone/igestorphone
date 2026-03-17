@@ -703,9 +703,9 @@ export default function GoalsPage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmitGoal}
                   className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-lg"
-                  disabled={createGoalMutation.isLoading || updateGoalMutation.isLoading}
+                  disabled={createGoalMutation.isPending || updateGoalMutation.isPending}
                 >
-                  {createGoalMutation.isLoading || updateGoalMutation.isLoading ? 'Salvando...' : 'Salvar Meta'}
+                  {createGoalMutation.isPending || updateGoalMutation.isPending ? 'Salvando...' : 'Salvar Meta'}
                 </motion.button>
               </div>
             </motion.div>
@@ -772,9 +772,9 @@ export default function GoalsPage() {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleSubmitNote}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-lg"
-                  disabled={createNoteMutation.isLoading || updateNoteMutation.isLoading}
+                  disabled={createNoteMutation.isPending || updateNoteMutation.isPending}
                 >
-                  {createNoteMutation.isLoading || updateNoteMutation.isLoading ? 'Salvando...' : 'Salvar Anotação'}
+                  {createNoteMutation.isPending || updateNoteMutation.isPending ? 'Salvando...' : 'Salvar Anotação'}
                 </motion.button>
               </div>
             </motion.div>
