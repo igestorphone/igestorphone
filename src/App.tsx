@@ -33,6 +33,7 @@ import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 import PostLoginLoadingPage from '@/pages/PostLoginLoadingPage'
 import CheckoutPage from '@/pages/CheckoutPage'
+import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -166,6 +167,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<ManageSuppliersPage />} />
+        </Route>
+        <Route path="/admin/notifications" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<NotificationsAdminPage />} />
         </Route>
         <Route path="/supplier-suggestions" element={
           <ProtectedRoute>

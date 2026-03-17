@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun } from 'lucide-react'
+import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
 import SuggestSupplierModal from '@/components/forms/SuggestSupplierModal'
 import ReportBugModal from '@/components/forms/ReportBugModal'
+import { notificationsApi } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 
 export default function Header() {
   const { user, logout } = useAuthStore()
@@ -18,6 +21,9 @@ export default function Header() {
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userButtonRef = useRef<HTMLButtonElement>(null)
+  const notifRef = useRef<HTMLDivElement>(null)
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [notifPos, setNotifPos] = useState({ top: 0, right: 0 })
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -34,22 +40,62 @@ export default function Header() {
     }
   }, [showUserMenu])
 
+  useEffect(() => {
+    if (showNotifs && notifRef.current) {
+      const rect = notifRef.current.getBoundingClientRect()
+      setNotifPos({
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right + window.scrollX
+      })
+    }
+  }, [showNotifs])
+
   // Fechar menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifs(false)
+      }
     }
 
     if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+    if (showNotifs) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showUserMenu])
+  }, [showUserMenu, showNotifs])
+
+  const isAdmin = (user?.tipo || user?.role || '').toString().toLowerCase() === 'admin'
+  const myNotifsQuery = useQuery({
+    queryKey: ['my-notifications'],
+    queryFn: () => notificationsApi.my(),
+    enabled: Boolean(user) && !isAdmin,
+    staleTime: 10000,
+    refetchOnWindowFocus: true,
+  })
+  const notifsRaw = (myNotifsQuery.data as any)?.data ?? myNotifsQuery.data
+  const myNotifs = notifsRaw?.notifications ?? []
+  const unreadCount = Number(notifsRaw?.unreadCount ?? 0)
+
+  const markReadAndOpen = async (n: any) => {
+    try {
+      await notificationsApi.markRead(Number(n.id))
+      myNotifsQuery.refetch()
+    } catch (_) {}
+    if (n.link_url) {
+      window.open(n.link_url, '_blank')
+    } else {
+      toast.success('Notificação marcada como lida.')
+    }
+  }
 
   const handleLogout = () => {
     logout()
@@ -93,6 +139,85 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-3 shrink-0">
+            {/* Notificações (somente usuários não-admin) */}
+            {!isAdmin && (
+              <div className="relative z-[9998]" ref={notifRef}>
+                <button
+                  onClick={() => setShowNotifs((v) => !v)}
+                  className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
+                  title="Notificações"
+                >
+                  <Bell className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'} w-5 h-5 group-hover:scale-110 transition-transform`} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+                <AnimatePresence>
+                  {showNotifs && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                      transition={{ duration: 0.18 }}
+                      className="fixed w-[360px] max-w-[92vw] bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999]"
+                      style={{
+                        top: `${notifPos.top}px`,
+                        right: `${notifPos.right}px`,
+                        maxHeight: 'calc(100vh - 20px)',
+                        overflowY: 'auto'
+                      }}
+                    >
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">Notificações</div>
+                        <div className="text-xs text-gray-500 dark:text-white/60">
+                          {unreadCount} não lida(s)
+                        </div>
+                      </div>
+                      <div className="py-2">
+                        {myNotifsQuery.isFetching && myNotifs.length === 0 ? (
+                          <div className="px-4 py-6 text-sm text-gray-500 dark:text-white/60">Carregando…</div>
+                        ) : myNotifs.length === 0 ? (
+                          <div className="px-4 py-6 text-sm text-gray-500 dark:text-white/60">Nenhuma notificação.</div>
+                        ) : (
+                          myNotifs.slice(0, 8).map((n: any) => {
+                            const isUnread = !n.read_at
+                            return (
+                              <button
+                                key={n.id}
+                                onClick={() => markReadAndOpen(n)}
+                                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${
+                                  isUnread ? 'bg-indigo-50/60 dark:bg-indigo-500/10' : ''
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                      {n.title}
+                                    </div>
+                                    <div className="text-xs text-gray-600 dark:text-white/70 line-clamp-2 mt-0.5">
+                                      {n.message}
+                                    </div>
+                                    <div className="text-[10px] text-gray-500 dark:text-white/50 mt-1">
+                                      {new Date(n.created_at).toLocaleString('pt-BR')}
+                                    </div>
+                                  </div>
+                                  {n.link_url && (
+                                    <ExternalLink className="w-4 h-4 text-gray-400 dark:text-white/60 shrink-0 mt-0.5" />
+                                  )}
+                                </div>
+                              </button>
+                            )
+                          })
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
             {/* Toggle Theme Button */}
             <button
               onClick={toggleTheme}

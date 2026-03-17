@@ -317,6 +317,17 @@ export const notesApi = {
   }
 }
 
+export const notificationsApi = {
+  // Admin
+  list: () => apiClient.get<any>('/notifications'),
+  create: (data: { title: string; message: string; link_url?: string; target?: any }) =>
+    apiClient.post<any>('/notifications', data),
+
+  // User
+  my: () => apiClient.get<any>('/notifications/my'),
+  markRead: (id: number) => apiClient.post<any>(`/notifications/my/${id}/read`, {}),
+}
+
 export const usersApi = {
   getAll: () =>
     apiClient.get<any>('/users'),

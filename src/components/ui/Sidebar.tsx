@@ -21,7 +21,8 @@ import {
   MessageCircle,
   Calendar,
   BarChart3,
-  Crown
+  Crown,
+  Bell
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -96,6 +97,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       name: 'Indicações de Fornecedores',
       href: '/supplier-suggestions',
       icon: UserPlus,
+      category: 'admin'
+    },
+    {
+      name: 'Notificações',
+      href: '/admin/notifications',
+      icon: Bell,
       category: 'admin'
     },
     {
