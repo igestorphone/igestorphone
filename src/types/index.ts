@@ -50,6 +50,14 @@ export interface Usuario {
   name?: string;
   email: string;
   telefone?: string;
+  endereco?: string;
+  cpf?: string;
+  last_payment_amount?: number;
+  last_payment_date?: string;
+  plan_label?: string;
+  closed_with?: string;
+  profile_completion_version?: number;
+  profile_completed_at?: string;
   avatar?: string;
   dataCriacao: Date;
   ultimoLogin: Date;

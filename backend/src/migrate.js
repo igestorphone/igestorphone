@@ -219,6 +219,14 @@ const migrations = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30)`,
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS asaas_subscription_id VARCHAR(255)`,
 
+  // Recadastramento obrigatório (v1)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_amount DECIMAL(12,2)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_date DATE`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_label VARCHAR(120)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS closed_with VARCHAR(120)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completion_version INTEGER DEFAULT 0`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_completed_at TIMESTAMP`,
+
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,

@@ -383,6 +383,24 @@ export default function ManageUsersPage() {
     );
   };
 
+  const getProfileBadge = (user: any) => {
+    // Recadastramento obrigatório (v1): admin não precisa
+    if ((user.tipo || '').toString().toLowerCase() === 'admin') return null
+    const v = Number(user.profile_completion_version || 0)
+    if (v >= 1) {
+      return (
+        <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          Cadastro ok
+        </span>
+      )
+    }
+    return (
+      <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+        Cadastro pendente
+      </span>
+    )
+  }
+
   const getTypeBadge = (tipo: string) => {
     const colors = {
       admin: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
@@ -613,6 +631,7 @@ export default function ManageUsersPage() {
                   <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
                     {getStatusBadge(user)}
+                    {getProfileBadge(user)}
                     {(() => {
                       const p = (user.plan_name || user.subscription?.plan_name) || '';
                       const isTeste = /teste|R\$\s*5/i.test(p) || user.plan_type === 'teste';

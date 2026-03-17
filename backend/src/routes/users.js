@@ -167,7 +167,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
+             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at
       FROM users WHERE id = $1
     `, [req.user.id]);
 
@@ -197,6 +198,81 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.json({ user });
   } catch (error) {
     console.error('Erro ao buscar perfil:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Recadastramento obrigatório (v1) - bloqueia uso do sistema até preencher (exceto admin)
+router.put('/profile/recadastro', authenticateToken, [
+  body('name').trim().isLength({ min: 3 }).withMessage('Nome completo é obrigatório'),
+  body('telefone').trim().isLength({ min: 8 }).withMessage('Telefone é obrigatório'),
+  body('endereco').trim().isLength({ min: 5 }).withMessage('Endereço é obrigatório'),
+  body('cpf').trim().isLength({ min: 11 }).withMessage('CPF é obrigatório'),
+  body('last_payment_amount').isFloat({ min: 0 }).withMessage('Último valor pago é obrigatório'),
+  body('last_payment_date').isISO8601().withMessage('Data do último pagamento é obrigatória'),
+  body('plan_label').trim().isLength({ min: 2 }).withMessage('Plano é obrigatório'),
+  body('closed_with').trim().isLength({ min: 1 }).withMessage('Com quem fechou é obrigatório'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Admin não precisa recadastrar
+    const tipoResult = await query(`SELECT tipo FROM users WHERE id = $1`, [req.user.id]);
+    const tipo = (tipoResult.rows[0]?.tipo || '').toString().toLowerCase();
+    if (tipo === 'admin') {
+      return res.json({ message: 'Admin não precisa recadastrar.' });
+    }
+
+    const cpfDigits = (req.body.cpf || '').toString().replace(/\D/g, '');
+    if (cpfDigits.length !== 11) {
+      return res.status(400).json({ message: 'CPF inválido. Informe 11 dígitos.' });
+    }
+
+    const completionVersion = 1;
+    await query(`
+      UPDATE users
+      SET name = $1,
+          telefone = $2,
+          endereco = $3,
+          cpf = $4,
+          last_payment_amount = $5,
+          last_payment_date = $6::date,
+          plan_label = $7,
+          closed_with = $8,
+          profile_completion_version = $9,
+          profile_completed_at = NOW(),
+          updated_at = NOW()
+      WHERE id = $10
+    `, [
+      req.body.name,
+      req.body.telefone,
+      req.body.endereco,
+      cpfDigits,
+      req.body.last_payment_amount,
+      req.body.last_payment_date,
+      req.body.plan_label,
+      req.body.closed_with,
+      completionVersion,
+      req.user.id,
+    ]);
+
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      req.user.id,
+      'profile_recadastro_completed',
+      JSON.stringify({ version: completionVersion }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+
+    res.json({ message: 'Dados atualizados com sucesso', version: completionVersion });
+  } catch (error) {
+    console.error('Erro ao recadastrar perfil:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });
@@ -620,6 +696,7 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
     const usersResult = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
              created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
+             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at,
              (SELECT plan_name FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_name,
              (SELECT plan_type FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_type
       FROM users 
