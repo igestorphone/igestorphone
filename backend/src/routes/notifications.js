@@ -55,13 +55,12 @@ router.post(
       );
       const notification = created.rows[0];
 
-      // Deliver to matching users (non-admin only)
+      // Deliver to matching users (including admins)
       const { where, values } = buildTargetWhere(target);
       const usersResult = await query(
         `SELECT u.id
          FROM users u
          WHERE u.is_active = true
-           AND LOWER(COALESCE(u.tipo,'user')) <> 'admin'
            AND (${where})`,
         values
       );
