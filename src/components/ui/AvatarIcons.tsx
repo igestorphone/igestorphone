@@ -16,28 +16,42 @@ const BASE = 'w-full h-full'
 function RobotSvg({ className = BASE }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-      {/* Corpo / camiseta branca */}
-      <path d="M18 38h28v14H18z" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
-      <path d="M20 38V32a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v6" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
-      {/* Texto iGestor na camiseta */}
-      <text x="32" y="48" textAnchor="middle" fill="#1e3a5f" fontSize="8" fontFamily="system-ui, sans-serif" fontWeight="600">iGestor</text>
+      <defs>
+        <linearGradient id="shirtGlow" x1="18" y1="38" x2="46" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#EDE9FE" />
+        </linearGradient>
+      </defs>
       {/* Cabeça branca */}
-      <circle cx="32" cy="22" r="14" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
+      <circle cx="32" cy="22" r="14" fill="#fff" stroke="#D9E0F0" strokeWidth="1.2" />
       {/* Orelhas / protuberâncias azul claro */}
-      <circle cx="16" cy="22" r="6" fill="#93c5fd" />
-      <circle cx="48" cy="22" r="6" fill="#93c5fd" />
+      <circle cx="16" cy="22" r="6.3" fill="#8cc7ff" />
+      <circle cx="48" cy="22" r="6.3" fill="#8cc7ff" />
+      <circle cx="16" cy="22" r="3.2" fill="#cfe9ff" opacity=".75" />
+      <circle cx="48" cy="22" r="3.2" fill="#cfe9ff" opacity=".75" />
       {/* Antena */}
-      <path d="M32 8v6" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="32" cy="6" r="3" fill="#93c5fd" />
-      {/* Tela do rosto (azul escuro) */}
-      <rect x="24" y="16" width="16" height="12" rx="3" fill="#1e3a5f" />
+      <path d="M32 8v6" stroke="#8cc7ff" strokeWidth="2.2" strokeLinecap="round" />
+      <circle cx="32" cy="6" r="3" fill="#8cc7ff" />
+      {/* Tela do rosto */}
+      <rect x="22.5" y="15.2" width="19" height="14.5" rx="6" fill="#1f2b6b" stroke="#32408f" strokeWidth="1" />
+      <rect x="24.5" y="17.5" width="15" height="10" rx="5" fill="#172355" opacity=".8" />
       {/* Olhos ciano com brilho */}
-      <circle cx="28" cy="21" r="2.5" fill="#22d3ee" />
-      <circle cx="36" cy="21" r="2.5" fill="#22d3ee" />
-      <circle cx="28.5" cy="20" r="0.6" fill="#fff" />
-      <circle cx="36.5" cy="20" r="0.6" fill="#fff" />
+      <circle cx="27.8" cy="21.2" r="2.7" fill="#3dd8ff" />
+      <circle cx="36.2" cy="21.2" r="2.7" fill="#3dd8ff" />
+      <circle cx="28.6" cy="20.4" r="0.7" fill="#fff" />
+      <circle cx="37" cy="20.4" r="0.7" fill="#fff" />
       {/* Sorriso */}
-      <path d="M28 25c0 0 2 2 4 2s4-2 4-2" stroke="#22d3ee" strokeWidth="1.2" strokeLinecap="round" fill="none" />
+      <path d="M28.2 25.4c0 0 1.6 1.8 3.8 1.8s3.8-1.8 3.8-1.8" stroke="#3dd8ff" strokeWidth="1.4" strokeLinecap="round" fill="none" />
+      {/* Corpo / camiseta */}
+      <path d="M18 38c2.6-3.8 6.7-6 14-6s11.4 2.2 14 6v14H18V38z" fill="url(#shirtGlow)" stroke="#D9E0F0" strokeWidth="1.2" />
+      <path d="M22 38c1.4-2.6 4.6-4.2 10-4.2S40.6 35.4 42 38" stroke="#D9E0F0" strokeWidth="1.2" />
+      {/* Ombros / braços */}
+      <path d="M18 43c0-2.2 1-4.3 2.8-5.8" stroke="#cfd8e8" strokeWidth="1.1" />
+      <path d="M46 43c0-2.2-1-4.3-2.8-5.8" stroke="#cfd8e8" strokeWidth="1.1" />
+      <path d="M16.5 41.5c-1.2 1.6-1.8 4-1.8 6.5V56" stroke="#b9c6db" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M47.5 41.5c1.2 1.6 1.8 4 1.8 6.5V56" stroke="#b9c6db" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Texto iGestor */}
+      <text x="32" y="48.8" textAnchor="middle" fill="#18315d" fontSize="7.4" fontFamily="system-ui, sans-serif" fontWeight="700">iGestor</text>
     </svg>
   )
 }
@@ -80,13 +94,13 @@ export function IgestorAvatarCircle({
     variant === 'azul' ? BG_AZUL : BG_ROSA
 
   const sizeMap = { sm: 'w-9 h-9', md: 'w-10 h-10', lg: 'w-16 h-16' }
-  const innerSize = { sm: 'w-6 h-6', md: 'w-7 h-7', lg: 'w-11 h-11' }
+  const innerSize = { sm: 'w-7 h-7', md: 'w-8 h-8', lg: 'w-14 h-14' }
 
   return (
     <div
       className={`rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br ${bg} ${sizeMap[size]} ${className}`}
     >
-      <Sparkles />
+      <Sparkles className="opacity-80" />
       <span className={`relative z-10 ${innerSize[size]}`}>
         <RobotSvg className="w-full h-full" />
       </span>
