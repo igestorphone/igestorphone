@@ -67,6 +67,7 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [planFilter, setPlanFilter] = useState<'all' | 'mensal' | 'trimestral' | 'anual' | 'embaixador'>('all');
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'expiring'>('users');
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -335,7 +336,8 @@ export default function ManageUsersPage() {
     }
   };
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users
+  .filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === '' || 
@@ -353,7 +355,34 @@ export default function ManageUsersPage() {
       finalMatch: matchesSearch && matchesStatus
     });
     
-    return matchesSearch && matchesStatus;
+    const matchesPlan = (() => {
+      if (planFilter === 'all') return true
+      const planType = (user.plan_type || (user as any).subscription?.plan_type || '').toString().toLowerCase()
+      const planName = (user.plan_name || (user as any).subscription?.plan_name || '').toString().toLowerCase()
+      if (planFilter === 'embaixador') {
+        return planType === 'embaixador' || planName.includes('embaixador')
+      }
+      if (planFilter === 'mensal') return planType === 'mensal' || /mensal/.test(planName)
+      if (planFilter === 'trimestral') return planType === 'trimestral' || /trimestral/.test(planName)
+      if (planFilter === 'anual') return planType === 'anual' || /anual/.test(planName)
+      return true
+    })()
+    
+    return matchesSearch && matchesStatus && matchesPlan;
+  })
+  .sort((a, b) => {
+    // Admins e Embaixadores vão para o final da lista
+    const isAdminA = (a.tipo || '').toString().toLowerCase() === 'admin'
+    const isAdminB = (b.tipo || '').toString().toLowerCase() === 'admin'
+    const planTypeA = (a.plan_type || (a as any).subscription?.plan_type || '').toString().toLowerCase()
+    const planTypeB = (b.plan_type || (b as any).subscription?.plan_type || '').toString().toLowerCase()
+    const isEmbA = planTypeA === 'embaixador'
+    const isEmbB = planTypeB === 'embaixador'
+
+    const weightA = (isAdminA || isEmbA) ? 1 : 0
+    const weightB = (isAdminB || isEmbB) ? 1 : 0
+    if (weightA !== weightB) return weightA - weightB // 0 primeiro, 1 depois
+    return 0
   });
 
   const getStatusBadge = (user: User) => {
@@ -560,6 +589,18 @@ export default function ManageUsersPage() {
             <option value="">Todos os status</option>
             <option value="active">Ativos</option>
             <option value="inactive">Inativos</option>
+          </select>
+
+          <select
+            value={planFilter}
+            onChange={(e) => setPlanFilter(e.target.value as any)}
+            className="bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
+          >
+            <option value="all">Todos os planos</option>
+            <option value="mensal">Mensal</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="anual">Anual</option>
+            <option value="embaixador">Embaixador</option>
           </select>
 
           <div className="text-gray-600 dark:text-white/70 text-sm">
