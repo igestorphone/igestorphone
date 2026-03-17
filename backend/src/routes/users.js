@@ -960,7 +960,8 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
 
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
+             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at
       FROM users WHERE id = $1
     `, [id]);
 
