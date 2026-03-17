@@ -30,7 +30,7 @@ const EditUserPage: React.FC = () => {
   const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(30);
   const [subscriptionData, setSubscriptionData] = useState({
     planName: '',
-    planType: 'mensal' as 'mensal' | 'trimestral' | 'anual',
+    planType: 'mensal' as 'mensal' | 'trimestral' | 'anual' | 'embaixador',
     durationMonths: 1,
     price: 0,
     paymentMethod: 'pix',
@@ -45,7 +45,7 @@ const EditUserPage: React.FC = () => {
   const [loadedSubscriptionStatus, setLoadedSubscriptionStatus] = useState<string | null>(null);
   const [regularizingPayment, setRegularizingPayment] = useState(false);
 
-  const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12 };
+  const planTypeToMonths: Record<string, number> = { mensal: 1, trimestral: 3, anual: 12, embaixador: 12 };
 
   const addMonthsToDate = (dateStr: string, months: number): string => {
     if (!dateStr) return '';
@@ -58,9 +58,10 @@ const EditUserPage: React.FC = () => {
     const months = planTypeToMonths[value] ?? subscriptionData.durationMonths;
     setSubscriptionData(prev => ({
       ...prev,
-      planType: value as 'mensal' | 'trimestral' | 'anual',
+      planType: value as 'mensal' | 'trimestral' | 'anual' | 'embaixador',
       durationMonths: months,
-      endDate: prev.startDate ? addMonthsToDate(prev.startDate, months) : prev.endDate
+      endDate: prev.startDate ? addMonthsToDate(prev.startDate, months) : prev.endDate,
+      price: value === 'embaixador' ? 0 : prev.price
     }));
   };
   
@@ -116,7 +117,7 @@ const EditUserPage: React.FC = () => {
       setAccessExpiresAt(user.access_expires_at || null);
 
       const normPlanType = (t: string, months?: number) => {
-        if (t === 'mensal' || t === 'trimestral' || t === 'anual') return t;
+        if (t === 'mensal' || t === 'trimestral' || t === 'anual' || t === 'embaixador') return t;
         if (months === 12) return 'anual';
         if (months === 3) return 'trimestral';
         return 'mensal';
@@ -636,6 +637,7 @@ const EditUserPage: React.FC = () => {
                     <option value="mensal">Mensal (1 mês)</option>
                     <option value="trimestral">Trimestral (3 meses)</option>
                     <option value="anual">Anual (12 meses)</option>
+                    <option value="embaixador">Embaixador (parceria, não paga)</option>
                   </select>
                 </div>
 

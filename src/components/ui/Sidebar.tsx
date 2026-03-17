@@ -20,7 +20,8 @@ import {
   Sun,
   MessageCircle,
   Calendar,
-  BarChart3
+  BarChart3,
+  Crown
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -41,6 +42,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
   } = usePermissions()
 
   const isAdmin = user?.tipo === 'admin'
+  const isEmbaixador = (() => {
+    if (!user) return false
+    const planType = ((user as any).subscription?.plan_type || (user as any).plan_label || '').toString()
+    return /embaixador/i.test(planType)
+  })()
   const [isAdminOpen, setIsAdminOpen] = useState(true)
   const [isConfigOpen, setIsConfigOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(true)
@@ -173,33 +179,43 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Header */}
       <div className={`${sidebarCollapsed ? 'p-4' : 'p-6'} border-b border-gray-200 dark:border-white/10`}>
         <div className="flex items-center justify-between">
-          <button
-            onClick={handleLogoClick}
-            className={`flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer group ${sidebarCollapsed ? 'w-full' : 'w-full'}`}
-          >
-            <div className="relative flex-shrink-0">
-              {/* Logo - Tema Claro (visível quando theme === 'light') */}
-              {theme === 'light' ? (
-                <img
-                  src="/assets/images/logo-light.png"
-                  alt="iGestorPhone Logo"
-                  className="h-12 w-auto object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
-              ) : (
-                <img
-                  src="/assets/images/logo-dark.png"
-                  alt="iGestorPhone Logo"
-                  className="h-12 w-auto object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none'
-                  }}
-                />
-              )}
-            </div>
-          </button>
+          <div className="flex flex-col flex-1">
+            <button
+              onClick={handleLogoClick}
+              className={`flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer group ${sidebarCollapsed ? 'w-full' : 'w-full'}`}
+            >
+              <div className="relative flex-shrink-0">
+                {/* Logo - Tema Claro (visível quando theme === 'light') */}
+                {theme === 'light' ? (
+                  <img
+                    src="/assets/images/logo-light.png"
+                    alt="iGestorPhone Logo"
+                    className="h-12 w-auto object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                ) : (
+                  <img
+                    src="/assets/images/logo-dark.png"
+                    alt="iGestorPhone Logo"
+                    className="h-12 w-auto object-contain"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                )}
+              </div>
+            </button>
+            {!sidebarCollapsed && isEmbaixador && (
+              <div className="mt-3">
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-600/15 dark:bg-purple-500/20 text-purple-700 dark:text-purple-200 border border-purple-500/40 shadow-sm">
+                  <Crown className="w-3.5 h-3.5" />
+                  Embaixador iGestorPhone
+                </span>
+              </div>
+            )}
+          </div>
           <button
             onClick={onClose}
             className="min-w-[44px] min-h-[44px] p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors lg:hidden flex items-center justify-center"

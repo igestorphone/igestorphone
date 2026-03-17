@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut, Crown } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -634,7 +634,16 @@ export default function ManageUsersPage() {
                     {getProfileBadge(user)}
                     {(() => {
                       const p = (user.plan_name || user.subscription?.plan_name) || '';
-                      const isTeste = /teste|R\$\s*5/i.test(p) || user.plan_type === 'teste';
+                      const planType = (user.plan_type || user.subscription?.plan_type || '').toString().toLowerCase();
+                      const isTeste = /teste|R\$\s*5/i.test(p) || planType === 'teste';
+                      if (planType === 'embaixador' || /embaixador/i.test(p)) {
+                        return (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
+                            <Crown className="w-3 h-3" />
+                            Embaixador
+                          </span>
+                        );
+                      }
                       if (!p || isTeste) return null;
                       return (
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
