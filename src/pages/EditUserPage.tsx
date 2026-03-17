@@ -130,11 +130,13 @@ const EditUserPage: React.FC = () => {
         const sub = user.subscription;
         const dur = sub.duration_months ?? 1;
         const start = startStr(sub.start_date);
+        const lastPayment = (user as any).last_payment_amount
+        const basePrice = lastPayment != null ? Number(lastPayment) : (sub.price != null ? parseFloat(sub.price) : 0)
         setSubscriptionData({
           planName: sub.plan_name || '',
           planType: normPlanType(sub.plan_type || '', dur),
           durationMonths: dur,
-          price: parseFloat(sub.price) || 0,
+          price: basePrice || 0,
           paymentMethod: sub.payment_method || 'pix',
           startDate: start,
           endDate: computedEnd(start, dur) || startStr(sub.end_date),
