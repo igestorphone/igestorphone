@@ -249,7 +249,27 @@ export default function GoalsPage() {
     const status = destination.droppableId as GoalStatus
     const goalId = Number(result.draggableId)
     if (!goalId || !['pending', 'in_progress', 'abandoned', 'completed'].includes(status)) return
-    updateGoalMutation.mutate({ id: goalId, data: { status } })
+
+    // Atualização otimista: move a meta na hora no cache para não “voltar pra trás” ao soltar
+    const prev = queryClient.getQueryData<{ goals: any[] }>(['goals'])
+    if (prev?.goals) {
+      const newGoals = prev.goals.map((g) =>
+        g.id === goalId
+          ? { ...g, status, completed_at: status === 'completed' ? new Date().toISOString() : null }
+          : g
+      )
+      queryClient.setQueryData(['goals'], { ...prev, goals: newGoals })
+    }
+
+    updateGoalMutation.mutate(
+      { id: goalId, data: { status } },
+      {
+        onError: () => {
+          if (prev) queryClient.setQueryData(['goals'], prev)
+          toast.error('Não foi possível mover a meta.')
+        }
+      }
+    )
   }
 
   const groupedGoals = useMemo(() => {
@@ -364,12 +384,12 @@ export default function GoalsPage() {
 
                             return (
                               <Draggable key={goal.id} draggableId={String(goal.id)} index={index}>
-                                {(draggableProvided) => (
+                                {(draggableProvided, snapshot) => (
                                   <div
                                     ref={draggableProvided.innerRef}
                                     {...draggableProvided.draggableProps}
                                     {...draggableProvided.dragHandleProps}
-                                    className="mb-3 last:mb-0"
+                                    className={`mb-3 last:mb-0 ${snapshot.isDragging ? 'relative z-[9999]' : ''}`}
                                   >
                                     <motion.div
                                       initial={{ opacity: 0, y: 10 }}
@@ -377,7 +397,7 @@ export default function GoalsPage() {
                                       onClick={() => toggleGoalExpand(goal.id)}
                                       className={`bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all duration-300 cursor-grab active:cursor-grabbing hover:border-gray-300 dark:hover:border-white/20 ${
                                         isExpanded ? 'bg-white dark:bg-white/10 border-indigo-400/40 dark:border-indigo-400/40 shadow-lg dark:shadow-indigo-900/20' : ''
-                                      }`}
+                                      } ${snapshot.isDragging ? 'shadow-2xl ring-2 ring-indigo-400/50' : ''}`}
                                     >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
