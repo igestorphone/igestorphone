@@ -24,6 +24,8 @@ export default function Header() {
   const notifRef = useRef<HTMLDivElement>(null)
   const [showNotifs, setShowNotifs] = useState(false)
   const [notifPos, setNotifPos] = useState({ top: 0, right: 0 })
+  const prevUnreadRef = useRef<number | null>(null)
+  const didInitUnreadRef = useRef(false)
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -79,10 +81,56 @@ export default function Header() {
     enabled: Boolean(user),
     staleTime: 10000,
     refetchOnWindowFocus: true,
+    refetchInterval: user ? 60000 : false,
   })
   const notifsRaw = (myNotifsQuery.data as any)?.data ?? myNotifsQuery.data
   const myNotifs = notifsRaw?.notifications ?? []
   const unreadCount = Number(notifsRaw?.unreadCount ?? 0)
+
+  useEffect(() => {
+    if (!user) return
+
+    if (!didInitUnreadRef.current) {
+      didInitUnreadRef.current = true
+      prevUnreadRef.current = unreadCount
+      return
+    }
+
+    const prev = prevUnreadRef.current ?? 0
+    prevUnreadRef.current = unreadCount
+
+    const delta = unreadCount - prev
+    if (delta <= 0) return
+
+    toast.custom(
+      (t) => (
+        <button
+          onClick={() => {
+            toast.dismiss(t.id)
+            setShowNotifs(true)
+          }}
+          className={`${
+            t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+          } transition-all duration-200 w-[360px] max-w-[92vw] text-left px-4 py-3 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-black`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-gray-900 dark:text-white">
+                🔔 Você recebeu {delta} notificaç{delta === 1 ? 'ão' : 'ões'} nova{delta === 1 ? '' : 's'}!
+              </div>
+              <div className="text-xs text-gray-600 dark:text-white/70 mt-0.5">
+                Toque aqui para abrir.
+              </div>
+            </div>
+            <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5">
+              Ver
+            </div>
+          </div>
+        </button>
+      ),
+      { duration: 4500 }
+    )
+  }, [unreadCount, user])
 
   const markReadAndOpen = async (n: any) => {
     try {
