@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut, Crown } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -676,7 +677,6 @@ export default function ManageUsersPage() {
                     {(() => {
                       const p = (user.plan_name || user.subscription?.plan_name) || '';
                       const planType = (user.plan_type || user.subscription?.plan_type || '').toString().toLowerCase();
-                      const isTeste = /teste|R\$\s*5/i.test(p) || planType === 'teste';
                       if (planType === 'embaixador' || /embaixador/i.test(p)) {
                         return (
                           <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
@@ -685,11 +685,14 @@ export default function ManageUsersPage() {
                           </span>
                         );
                       }
-                      if (!p || isTeste) return null;
+                      const lastPayment = (user as any).last_payment_amount;
+                      if (!p && !lastPayment) return null;
+                      const priceLabel = lastPayment != null ? formatPrice(Number(lastPayment)) : '';
                       return (
-                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                          <CreditCard className="w-3 h-3 inline mr-0.5 -mt-0.5" />
-                          {p.replace(/iGestorPhone\s*/i, '')}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                          <CreditCard className="w-3 h-3" />
+                          {p ? p.replace(/iGestorPhone\s*/i, '') : 'Plano'}
+                          {priceLabel && <span className="opacity-90">· {priceLabel}</span>}
                         </span>
                       );
                     })()}
