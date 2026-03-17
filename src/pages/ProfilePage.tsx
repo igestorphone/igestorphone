@@ -1,18 +1,17 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { User, Save, Edit, X, Mail, Phone, Shield, Calendar, Upload } from 'lucide-react'
+import { User, Save, Edit, X, Mail, Phone, Shield, Calendar } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatDateTime } from '@/lib/utils'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
-import { AVATAR_OPTIONS, AvatarIcon } from '@/components/ui/AvatarIcons'
+import { AVATAR_OPTIONS, AvatarIcon, AVATAR_LEGACY_MAP } from '@/components/ui/AvatarIcons'
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -29,7 +28,8 @@ export default function ProfilePage() {
         email: user.email || '',
         telefone: user.telefone || ''
       })
-      setAvatarType(user.avatar_type ?? null)
+      const at = user.avatar_type ?? null
+      setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : null)
       setAvatarUrl(user.avatar_url ?? null)
     }
   }, [user])
@@ -58,32 +58,14 @@ export default function ProfilePage() {
     }
   }
 
-  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !file.type.startsWith('image/')) {
-      toast.error('Escolha uma imagem (JPG, PNG ou GIF).')
-      return
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Imagem deve ter no máximo 2 MB.')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setAvatarUrl(reader.result as string)
-      setAvatarType(null)
-    }
-    reader.readAsDataURL(file)
-    e.target.value = ''
-  }
-
   const handleCancel = () => {
     setFormData({
       nome: user?.nome || user?.name || '',
       email: user?.email || '',
       telefone: user?.telefone || ''
     })
-    setAvatarType(user?.avatar_type ?? null)
+    const at = user?.avatar_type ?? null
+    setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : null)
     setAvatarUrl(user?.avatar_url ?? null)
     setIsEditing(false)
   }
@@ -120,17 +102,18 @@ export default function ProfilePage() {
           transition={{ delay: 0.2 }}
           className="lg:col-span-1 space-y-6"
         >
-          {/* Profile Card */}
+          {/* Profile Card - estilo exemplo: preview grande + grid de 5 ícones */}
           <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-8 text-center">
-            <motion.div whileHover={{ scale: 1.05 }} className="mx-auto mb-6">
-              <AvatarDisplay user={user} avatarType={avatarType} avatarUrl={avatarUrl} size="lg" className="w-32 h-32 shadow-2xl" />
-            </motion.div>
-
-            {/* Escolher avatar ou foto */}
-            <div className="mb-6">
-              <p className="text-sm font-medium text-gray-700 dark:text-white/90 mb-2">Avatar</p>
-              <div className="flex flex-wrap justify-center gap-2 mb-3">
-                {AVATAR_OPTIONS.map((opt) => (
+            <div className="mb-4">
+              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                <AvatarDisplay user={user} avatarType={avatarType} avatarUrl={avatarUrl} size="lg" className="w-14 h-14" gradient={false} />
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-700 dark:text-white/90 mb-3">Avatar</p>
+            <div className="flex flex-wrap justify-center gap-3 mb-6">
+              {AVATAR_OPTIONS.map((opt) => {
+                const isSelected = (avatarType === opt.id || (user?.avatar_type && AVATAR_LEGACY_MAP[user.avatar_type] === opt.id)) && !avatarUrl
+                return (
                   <button
                     key={opt.id}
                     type="button"
@@ -138,32 +121,17 @@ export default function ProfilePage() {
                       setAvatarType(opt.id)
                       setAvatarUrl(null)
                     }}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
-                      avatarType === opt.id && !avatarUrl
-                        ? 'border-indigo-500 bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
-                        : 'border-gray-200 dark:border-white/20 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/70 hover:border-gray-300 dark:hover:border-white/30'
+                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-white/10 bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
+                        : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
                     }`}
                     title={opt.label}
                   >
                     <span className="w-6 h-6"><AvatarIcon type={opt.id} /></span>
                   </button>
-                ))}
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/gif,image/webp"
-                className="hidden"
-                onChange={handleAvatarFile}
-              />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white border border-gray-200 dark:border-white/20"
-              >
-                <Upload className="w-4 h-4" />
-                Carregar minha foto
-              </button>
+                )
+              })}
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">

@@ -1,158 +1,95 @@
-/** Ícones de avatar para escolha no perfil: 5 masculinos + 5 femininos (robozinhos/ícones bonitinhos) */
+/** 5 ícones de avatar (estilo limpo, misto) para escolha no perfil */
 
 import type { ReactNode } from 'react'
 
-const baseClass = 'w-full h-full'
+const base = 'w-full h-full'
 
 export const AVATAR_OPTIONS = [
-  { id: 'male1', label: 'Ícone 1', gender: 'male' as const },
-  { id: 'male2', label: 'Ícone 2', gender: 'male' as const },
-  { id: 'male3', label: 'Ícone 3', gender: 'male' as const },
-  { id: 'male4', label: 'Ícone 4', gender: 'male' as const },
-  { id: 'male5', label: 'Ícone 5', gender: 'male' as const },
-  { id: 'female1', label: 'Ícone 6', gender: 'female' as const },
-  { id: 'female2', label: 'Ícone 7', gender: 'female' as const },
-  { id: 'female3', label: 'Ícone 8', gender: 'female' as const },
-  { id: 'female4', label: 'Ícone 9', gender: 'female' as const },
-  { id: 'female5', label: 'Ícone 10', gender: 'female' as const }
+  { id: 'icon1', label: 'Ícone 1' },
+  { id: 'icon2', label: 'Ícone 2' },
+  { id: 'icon3', label: 'Ícone 3' },
+  { id: 'icon4', label: 'Ícone 4' },
+  { id: 'icon5', label: 'Ícone 5' }
 ] as const
 
 export type AvatarType = typeof AVATAR_OPTIONS[number]['id']
 
-function IconMale1() {
+// 1 – Pessoa (contorno clássico)
+function Icon1() {
   return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="32" cy="20" r="10" />
-      <path d="M20 58V42c0-6.6 5.4-12 12-12h0c6.6 0 12 5.4 12 12v16" />
-      <circle cx="26" cy="26" r="2" fill="currentColor" />
-      <circle cx="38" cy="26" r="2" fill="currentColor" />
-      <path d="M28 34h8" />
+    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="32" cy="22" r="10" />
+      <path d="M18 56v-14a8 8 0 0 1 16 0v14" />
     </svg>
   )
 }
 
-function IconMale2() {
+// 2 – Robozinho (cabeça, antena, olhos e sorriso)
+function Icon2() {
   return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="16" y="12" width="32" height="36" rx="4" />
-      <circle cx="32" cy="24" r="6" />
-      <path d="M24 44h16" />
-      <circle cx="24" cy="32" r="2" fill="currentColor" />
-      <circle cx="40" cy="32" r="2" fill="currentColor" />
+    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M32 10v-3" />
+      <circle cx="32" cy="28" r="14" />
+      <circle cx="26" cy="26" r="2.5" fill="currentColor" />
+      <circle cx="38" cy="26" r="2.5" fill="currentColor" />
+      <path d="M26 36h12" />
+      <path d="M22 48h20M26 54h12" />
     </svg>
   )
 }
 
-function IconMale3() {
+// 3 – Pessoa alternativa (ombros mais marcados)
+function Icon3() {
   return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M32 8c-8 0-14 6-14 14v6c0 8 6 14 14 14s14-6 14-14v-6c0-8-6-14-14-14z" />
-      <path d="M20 52h24v6H20z" />
-      <circle cx="28" cy="26" r="2.5" fill="currentColor" />
-      <circle cx="36" cy="26" r="2.5" fill="currentColor" />
-      <path d="M30 34h4" />
+    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="32" cy="20" r="9" />
+      <path d="M16 56c0-9 7-16 16-16s16 7 16 16" />
     </svg>
   )
 }
 
-function IconMale4() {
+// 4 – Carinha redonda (olhos + sorriso)
+function Icon4() {
   return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <ellipse cx="32" cy="22" rx="12" ry="14" />
-      <path d="M18 54c0-8 6-14 14-14s14 6 14 14" />
-      <circle cx="26" cy="22" r="2" fill="currentColor" />
-      <circle cx="38" cy="22" r="2" fill="currentColor" />
-      <path d="M28 30h8" />
+    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="32" cy="32" r="14" />
+      <circle cx="26" cy="28" r="2" fill="currentColor" />
+      <circle cx="38" cy="28" r="2" fill="currentColor" />
+      <path d="M26 38c0 0 3 4 6 4s6-4 6-4" />
     </svg>
   )
 }
 
-function IconMale5() {
+// 5 – Silhueta minimalista
+function Icon5() {
   return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="32" cy="20" r="11" />
-      <path d="M18 58V40c0-7.7 6.3-14 14-14h0c7.7 0 14 6.3 14 14v18" />
-      <circle cx="32" cy="32" r="3" fill="currentColor" />
-      <path d="M24 38l8-4 8 4" />
-    </svg>
-  )
-}
-
-function IconFemale1() {
-  return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="32" cy="18" r="10" />
-      <path d="M20 56V40c0-6.6 5.4-12 12-12h0c6.6 0 12 5.4 12 12v16" />
-      <path d="M28 22c2 0 4-1 4-3s-2-3-4-3-4 1-4 3 2 3 4 3z" />
-      <path d="M36 22c2 0 4-1 4-3s-2-3-4-3-4 1-4 3 2 3 4 3z" />
-      <path d="M28 32h8" />
-    </svg>
-  )
-}
-
-function IconFemale2() {
-  return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <ellipse cx="32" cy="20" rx="11" ry="12" />
-      <path d="M20 56V38c0-6.6 5.4-12 12-12s12 5.4 12 12v18" />
-      <circle cx="26" cy="20" r="2" fill="currentColor" />
-      <circle cx="38" cy="20" r="2" fill="currentColor" />
-      <path d="M28 28h8" />
-    </svg>
-  )
-}
-
-function IconFemale3() {
-  return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="32" cy="22" r="11" />
-      <path d="M18 58V40c0-7.7 6.3-14 14-14h0c7.7 0 14 6.3 14 14v18" />
-      <circle cx="26" cy="22" r="2.5" fill="currentColor" />
-      <circle cx="38" cy="22" r="2.5" fill="currentColor" />
-      <path d="M30 30c0 1 .5 2 2 2s2-1 2-2" />
-    </svg>
-  )
-}
-
-function IconFemale4() {
-  return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M32 10c-9 0-16 7-16 16v4c0 9 7 16 16 16s16-7 16-16v-4c0-9-7-16-16-16z" />
-      <path d="M22 52h20v6H22z" />
-      <circle cx="28" cy="28" r="2" fill="currentColor" />
-      <circle cx="36" cy="28" r="2" fill="currentColor" />
-      <path d="M30 36h4" />
-    </svg>
-  )
-}
-
-function IconFemale5() {
-  return (
-    <svg viewBox="0 0 64 64" className={baseClass} fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="32" cy="20" r="10" />
-      <path d="M20 56V42c0-6.6 5.4-12 12-12h0c6.6 0 12 5.4 12 12v14" />
-      <circle cx="32" cy="32" r="3" fill="currentColor" />
-      <path d="M26 26h12M26 38h12" />
+    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="32" cy="24" rx="10" ry="12" />
+      <path d="M20 56v-12a6 6 0 0 1 12 0v12M32 44a6 6 0 0 1 12 0v12" />
     </svg>
   )
 }
 
 const AVATAR_ICONS: Record<AvatarType, () => ReactNode> = {
-  male1: IconMale1,
-  male2: IconMale2,
-  male3: IconMale3,
-  male4: IconMale4,
-  male5: IconMale5,
-  female1: IconFemale1,
-  female2: IconFemale2,
-  female3: IconFemale3,
-  female4: IconFemale4,
-  female5: IconFemale5
+  icon1: Icon1,
+  icon2: Icon2,
+  icon3: Icon3,
+  icon4: Icon4,
+  icon5: Icon5
 }
 
-export function getAvatarIcon(type: AvatarType | string | null | undefined): (() => ReactNode) | null {
-  if (!type || !AVATAR_ICONS[type as AvatarType]) return null
-  return AVATAR_ICONS[type as AvatarType]
+// Compatibilidade: ícones antigos (male1, female1, etc.) mapeiam para os 5 atuais
+export const AVATAR_LEGACY_MAP: Record<string, AvatarType> = {
+  male1: 'icon1', male2: 'icon2', male3: 'icon3', male4: 'icon4', male5: 'icon5',
+  female1: 'icon1', female2: 'icon2', female3: 'icon3', female4: 'icon4', female5: 'icon5'
+}
+const LEGACY_MAP = AVATAR_LEGACY_MAP
+
+export function getAvatarIcon(type: string | null | undefined): (() => ReactNode) | null {
+  if (!type) return null
+  const key = (LEGACY_MAP[type] || type) as AvatarType
+  if (!AVATAR_ICONS[key]) return null
+  return AVATAR_ICONS[key]
 }
 
 export function AvatarIcon({ type, className = '' }: { type: AvatarType | string; className?: string }) {
