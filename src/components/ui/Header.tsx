@@ -73,11 +73,10 @@ export default function Header() {
     }
   }, [showUserMenu, showNotifs])
 
-  const isAdmin = (user?.tipo || user?.role || '').toString().toLowerCase() === 'admin'
   const myNotifsQuery = useQuery({
     queryKey: ['my-notifications'],
     queryFn: () => notificationsApi.my(),
-    enabled: Boolean(user) && !isAdmin,
+    enabled: Boolean(user),
     staleTime: 10000,
     refetchOnWindowFocus: true,
   })
@@ -139,9 +138,8 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-3 shrink-0">
-            {/* Notificações (somente usuários não-admin) */}
-            {!isAdmin && (
-              <div className="relative z-[9998]" ref={notifRef}>
+            {/* Notificações (todos os usuários) */}
+            <div className="relative z-[9998]" ref={notifRef}>
                 <button
                   onClick={() => setShowNotifs((v) => !v)}
                   className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
@@ -216,7 +214,6 @@ export default function Header() {
                   )}
                 </AnimatePresence>
               </div>
-            )}
 
             {/* Toggle Theme Button */}
             <button
