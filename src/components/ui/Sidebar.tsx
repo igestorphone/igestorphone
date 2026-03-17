@@ -15,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
-  Trophy,
   Moon,
   Sun,
   MessageCircle,
@@ -25,6 +24,7 @@ import {
   Bell
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAppStore } from '@/stores/appStore'
 
@@ -409,9 +409,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         {!sidebarCollapsed ? (
           <>
             <div className="flex items-center space-x-3 mb-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                <Users className="w-5 h-5 text-white" />
-              </div>
+              <AvatarDisplay user={user} size="md" className="flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                   {user?.nome || user?.name || 'Usuário'}
@@ -435,9 +433,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </>
         ) : (
           <div className="flex justify-center">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <Users className="w-5 h-5 text-white" />
-            </div>
+            <AvatarDisplay user={user} size="md" />
           </div>
         )}
       </div>

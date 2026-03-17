@@ -168,7 +168,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
              created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
-             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at
+             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at,
+             avatar_type, avatar_url
       FROM users WHERE id = $1
     `, [req.user.id]);
 
@@ -413,7 +414,7 @@ router.put('/profile', authenticateToken, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento } = req.body;
+    const { name, email, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, avatar_type, avatar_url } = req.body;
     const updates = [];
     const values = [];
     let paramCount = 1;
@@ -472,6 +473,15 @@ router.put('/profile', authenticateToken, [
     if (data_nascimento !== undefined) {
       updates.push(`data_nascimento = $${paramCount++}`);
       values.push(data_nascimento);
+    }
+
+    if (avatar_type !== undefined) {
+      updates.push(`avatar_type = $${paramCount++}`);
+      values.push(avatar_type || null);
+    }
+    if (avatar_url !== undefined) {
+      updates.push(`avatar_url = $${paramCount++}`);
+      values.push(avatar_url || null);
     }
 
     if (updates.length === 0) {

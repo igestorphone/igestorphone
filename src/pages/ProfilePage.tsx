@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { User, Save, Edit, X, Mail, Phone, Shield, Calendar, Clock } from 'lucide-react'
+import { User, Save, Edit, X, Mail, Phone, Shield, Calendar, Upload } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatDateTime } from '@/lib/utils'
+import AvatarDisplay from '@/components/ui/AvatarDisplay'
+import { AVATAR_OPTIONS, AvatarIcon } from '@/components/ui/AvatarIcons'
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuthStore()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
     telefone: ''
   })
+  const [avatarType, setAvatarType] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   // Carregar dados do usuário
   useEffect(() => {
@@ -24,21 +29,25 @@ export default function ProfilePage() {
         email: user.email || '',
         telefone: user.telefone || ''
       })
+      setAvatarType(user.avatar_type ?? null)
+      setAvatarUrl(user.avatar_url ?? null)
     }
   }, [user])
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      await api.put('/users/profile', {
+      const payload: any = {
         name: formData.nome,
         email: formData.email,
         telefone: formData.telefone
-      })
+      }
+      if (avatarType !== undefined) payload.avatar_type = avatarType || null
+      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl || null
 
-      // Atualizar dados do usuário
+      await api.put('/users/profile', payload)
+
       await refreshUser()
-      
       toast.success('Perfil atualizado com sucesso!')
       setIsEditing(false)
     } catch (error: any) {
@@ -49,12 +58,33 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !file.type.startsWith('image/')) {
+      toast.error('Escolha uma imagem (JPG, PNG ou GIF).')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Imagem deve ter no máximo 2 MB.')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      setAvatarUrl(reader.result as string)
+      setAvatarType(null)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
+
   const handleCancel = () => {
     setFormData({
       nome: user?.nome || user?.name || '',
       email: user?.email || '',
       telefone: user?.telefone || ''
     })
+    setAvatarType(user?.avatar_type ?? null)
+    setAvatarUrl(user?.avatar_url ?? null)
     setIsEditing(false)
   }
 
@@ -70,9 +100,9 @@ export default function ProfilePage() {
           initial={{ scale: 0.8 }}
           animate={{ scale: 1 }}
           transition={{ delay: 0.2, type: "spring", stiffness: 100 }}
-          className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4"
+          className="mx-auto mb-4"
         >
-          <User className="w-10 h-10 text-white" />
+          <AvatarDisplay user={user} avatarType={avatarType} avatarUrl={avatarUrl} size="lg" className="w-20 h-20" />
         </motion.div>
         <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
           Meu Perfil
@@ -92,12 +122,50 @@ export default function ProfilePage() {
         >
           {/* Profile Card */}
           <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-8 text-center">
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
-            >
-              <User className="w-16 h-16 text-white" />
+            <motion.div whileHover={{ scale: 1.05 }} className="mx-auto mb-6">
+              <AvatarDisplay user={user} avatarType={avatarType} avatarUrl={avatarUrl} size="lg" className="w-32 h-32 shadow-2xl" />
             </motion.div>
+
+            {/* Escolher avatar ou foto */}
+            <div className="mb-6">
+              <p className="text-sm font-medium text-gray-700 dark:text-white/90 mb-2">Avatar</p>
+              <div className="flex flex-wrap justify-center gap-2 mb-3">
+                {AVATAR_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setAvatarType(opt.id)
+                      setAvatarUrl(null)
+                    }}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${
+                      avatarType === opt.id && !avatarUrl
+                        ? 'border-indigo-500 bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+                        : 'border-gray-200 dark:border-white/20 bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/70 hover:border-gray-300 dark:hover:border-white/30'
+                    }`}
+                    title={opt.label}
+                  >
+                    <span className="w-6 h-6"><AvatarIcon type={opt.id} /></span>
+                  </button>
+                ))}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleAvatarFile}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-white border border-gray-200 dark:border-white/20"
+              >
+                <Upload className="w-4 h-4" />
+                Carregar minha foto
+              </button>
+            </div>
+
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
               {user?.nome || user?.name || 'Usuário'}
             </h2>

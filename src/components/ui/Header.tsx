@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink } from 'lucide-react'
+import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
@@ -301,9 +302,7 @@ export default function Header() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-3 p-2 rounded-xl border border-transparent dark:border-white/10 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 transition-all duration-200 group"
               >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-gray-400/25 dark:bg-white/20 group-hover:bg-gray-400/35 dark:group-hover:bg-white/25 transition-colors">
-                  <User className="w-5 h-5 text-gray-600 dark:text-white/90" />
-                </div>
+                <AvatarDisplay user={user} size="sm" className="w-9 h-9 rounded-xl bg-gray-400/25 dark:bg-white/20 group-hover:bg-gray-400/35 dark:group-hover:bg-white/25 transition-colors" gradient={false} />
                 <div className="hidden sm:block text-left">
                   <p className="text-sm font-semibold text-gray-800 dark:text-white">
                     {(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}

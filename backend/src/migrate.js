@@ -250,6 +250,10 @@ const migrations = [
   // Metas: quem vai fazer (Luiz, David, Victor, Todes)
   `ALTER TABLE goals ADD COLUMN IF NOT EXISTS assignees JSONB NOT NULL DEFAULT '[]'::jsonb`,
 
+  // Avatar do perfil: ícone escolhido ou foto (base64)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_type VARCHAR(20)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`,
+
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS tipo VARCHAR(50)`,

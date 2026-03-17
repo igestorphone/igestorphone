@@ -59,6 +59,8 @@ export interface Usuario {
   profile_completion_version?: number;
   profile_completed_at?: string;
   avatar?: string;
+  avatar_type?: string | null;
+  avatar_url?: string | null;
   dataCriacao: Date;
   ultimoLogin: Date;
   tipo: TipoUsuario;
