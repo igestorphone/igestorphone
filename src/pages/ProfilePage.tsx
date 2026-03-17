@@ -6,10 +6,11 @@ import { api } from '@/lib/api'
 import { toast } from 'react-hot-toast'
 import { formatDateTime } from '@/lib/utils'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
-import { AVATAR_OPTIONS, AvatarIcon, AVATAR_LEGACY_MAP } from '@/components/ui/AvatarIcons'
+import { AVATAR_OPTIONS, IgestorAvatarCircle, AVATAR_LEGACY_MAP } from '@/components/ui/AvatarIcons'
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuthStore()
+  const profileUser = user as any
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -17,22 +18,22 @@ export default function ProfilePage() {
     email: '',
     telefone: ''
   })
-  const [avatarType, setAvatarType] = useState<string | null>(null)
+  const [avatarType, setAvatarType] = useState<string | null>('neutral')
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   // Carregar dados do usuário
   useEffect(() => {
-    if (user) {
+    if (profileUser) {
       setFormData({
-        nome: user.nome || user.name || '',
-        email: user.email || '',
-        telefone: user.telefone || ''
+        nome: profileUser.nome || profileUser.name || '',
+        email: profileUser.email || '',
+        telefone: profileUser.telefone || ''
       })
-      const at = user.avatar_type ?? null
-      setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : null)
-      setAvatarUrl(user.avatar_url ?? null)
+      const at = profileUser.avatar_type ?? null
+      setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : 'neutral')
+      setAvatarUrl(profileUser.avatar_url ?? null)
     }
-  }, [user])
+  }, [profileUser])
 
   const handleSave = async () => {
     setLoading(true)
@@ -64,9 +65,9 @@ export default function ProfilePage() {
       email: user?.email || '',
       telefone: user?.telefone || ''
     })
-    const at = user?.avatar_type ?? null
-    setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : null)
-    setAvatarUrl(user?.avatar_url ?? null)
+    const at = profileUser?.avatar_type ?? null
+    setAvatarType(at ? (AVATAR_LEGACY_MAP[at] || at) : 'neutral')
+    setAvatarUrl(profileUser?.avatar_url ?? null)
     setIsEditing(false)
   }
 
@@ -105,14 +106,14 @@ export default function ProfilePage() {
           {/* Profile Card - estilo exemplo: preview grande + grid de 5 ícones */}
           <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-2xl p-8 text-center">
             <div className="mb-4">
-              <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                <AvatarDisplay user={user} avatarType={avatarType} avatarUrl={avatarUrl} size="lg" className="w-14 h-14" gradient={false} />
+              <div className="w-24 h-24 mx-auto shadow-lg rounded-full overflow-hidden">
+                <AvatarDisplay user={user} avatarType={avatarType ?? 'neutral'} avatarUrl={avatarUrl} size="lg" className="w-full h-full" />
               </div>
             </div>
             <p className="text-sm font-medium text-gray-700 dark:text-white/90 mb-3">Avatar</p>
-            <div className="flex flex-wrap justify-center gap-3 mb-6">
+            <div className="flex flex-wrap justify-center gap-4 mb-6">
               {AVATAR_OPTIONS.map((opt) => {
-                const isSelected = (avatarType === opt.id || (user?.avatar_type && AVATAR_LEGACY_MAP[user.avatar_type] === opt.id)) && !avatarUrl
+                const isSelected = (avatarType === opt.id || (profileUser?.avatar_type && AVATAR_LEGACY_MAP[profileUser.avatar_type] === opt.id)) && !avatarUrl
                 return (
                   <button
                     key={opt.id}
@@ -121,30 +122,30 @@ export default function ProfilePage() {
                       setAvatarType(opt.id)
                       setAvatarUrl(null)
                     }}
-                    className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${
+                    className={`rounded-full transition-all flex items-center justify-center ${
                       isSelected
-                        ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-white/10 bg-indigo-500/15 text-indigo-600 dark:text-indigo-400'
-                        : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
+                        ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white dark:ring-offset-white/10'
+                        : 'opacity-90 hover:opacity-100'
                     }`}
                     title={opt.label}
                   >
-                    <span className="w-6 h-6"><AvatarIcon type={opt.id} /></span>
+                    <IgestorAvatarCircle variant={opt.id} size="lg" className="w-14 h-14" />
                   </button>
                 )
               })}
             </div>
 
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {user?.nome || user?.name || 'Usuário'}
+              {profileUser?.nome || profileUser?.name || 'Usuário'}
             </h2>
-            <p className="text-gray-600 dark:text-white/70 mb-6">{user?.email}</p>
+            <p className="text-gray-600 dark:text-white/70 mb-6">{profileUser?.email}</p>
             <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${
               user?.tipo === 'admin' 
                 ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
                 : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
             }`}>
               <Shield className="w-4 h-4 mr-2" />
-              {user?.tipo === 'admin' ? 'Administrador' : 'Usuário'}
+              {profileUser?.tipo === 'admin' ? 'Administrador' : 'Usuário'}
             </div>
           </div>
 
@@ -155,38 +156,38 @@ export default function ProfilePage() {
               Informações da Conta
             </h3>
             <div className="space-y-3">
-              {user?.subscription?.plan_name && (
+              {profileUser?.subscription?.plan_name && (
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-white/70 text-sm">Plano</span>
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                    {user.subscription.plan_name}
+                    {profileUser.subscription.plan_name}
                   </span>
                 </div>
               )}
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-white/70 text-sm">Status</span>
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  user?.subscription_status === 'active' ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
-                  user?.subscription_status === 'overdue' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
-                  user?.subscription_status === 'pending_payment' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
+                  profileUser?.subscription_status === 'active' ? 'bg-green-500/20 text-green-600 dark:text-green-400' :
+                  profileUser?.subscription_status === 'overdue' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' :
+                  profileUser?.subscription_status === 'pending_payment' ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400' :
                   'bg-gray-500/20 text-gray-600 dark:text-gray-400'
                 }`}>
-                  {user?.subscription_status === 'active' ? 'Ativa' :
-                   user?.subscription_status === 'overdue' ? 'Pagamento atrasado' :
-                   user?.subscription_status === 'pending_payment' ? 'Aguardando pagamento' :
-                   user?.subscription_status || 'N/A'}
+                  {profileUser?.subscription_status === 'active' ? 'Ativa' :
+                   profileUser?.subscription_status === 'overdue' ? 'Pagamento atrasado' :
+                   profileUser?.subscription_status === 'pending_payment' ? 'Aguardando pagamento' :
+                   profileUser?.subscription_status || 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-white/70 text-sm">Último Login</span>
                 <span className="text-gray-900 dark:text-white text-sm">
-                  {user?.last_login ? formatDateTime(user.last_login) : 'N/A'}
+                  {profileUser?.last_login ? formatDateTime(profileUser.last_login) : 'N/A'}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 dark:text-white/70 text-sm">Membro desde</span>
                 <span className="text-gray-900 dark:text-white text-sm">
-                  {user?.created_at ? formatDateTime(user.created_at) : 'N/A'}
+                  {profileUser?.created_at ? formatDateTime(profileUser.created_at) : 'N/A'}
                 </span>
               </div>
             </div>

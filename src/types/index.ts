@@ -52,6 +52,10 @@ export interface Usuario {
   telefone?: string;
   endereco?: string;
   cpf?: string;
+  subscription_status?: string;
+  subscription_expires_at?: string;
+  last_login?: string;
+  created_at?: string;
   last_payment_amount?: number;
   last_payment_date?: string;
   plan_label?: string;
@@ -65,6 +69,7 @@ export interface Usuario {
   ultimoLogin: Date;
   tipo: TipoUsuario;
   assinatura?: Assinatura;
+  subscription?: Assinatura | null;
   isAtivo: boolean;
   token?: string;
   permissoes: UserPermissions;

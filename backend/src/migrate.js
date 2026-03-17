@@ -253,6 +253,7 @@ const migrations = [
   // Avatar do perfil: ícone escolhido ou foto (base64)
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_type VARCHAR(20)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`,
+  `UPDATE users SET avatar_type = 'neutral' WHERE avatar_type IS NULL`,
 
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,

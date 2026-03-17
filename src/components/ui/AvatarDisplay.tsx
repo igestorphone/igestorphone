@@ -1,5 +1,5 @@
 import { User } from 'lucide-react'
-import { getAvatarIcon } from './AvatarIcons'
+import { getAvatarIcon, IgestorAvatarCircle } from './AvatarIcons'
 
 interface AvatarDisplayProps {
   /** Usuário com avatar_type e/ou avatar_url */
@@ -48,6 +48,15 @@ export default function AvatarDisplay({
         alt="Avatar"
         className={`${baseClass} object-cover`}
       />
+    )
+  }
+
+  const variant = avatarType as string
+  if (variant === 'neutral' || variant === 'azul' || variant === 'rosa') {
+    return (
+      <div className={`${baseClass} flex-shrink-0`}>
+        <IgestorAvatarCircle variant={variant} size={size} className="w-full h-full" />
+      </div>
     )
   }
 

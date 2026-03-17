@@ -1,103 +1,119 @@
-/** 5 ícones de avatar (estilo limpo, misto) para escolha no perfil */
+/** 3 opções de avatar: robozinho iGestor com fundo Neutro (cinza), Azul ou Rosa */
 
 import type { ReactNode } from 'react'
 
-const base = 'w-full h-full'
-
 export const AVATAR_OPTIONS = [
-  { id: 'icon1', label: 'Ícone 1' },
-  { id: 'icon2', label: 'Ícone 2' },
-  { id: 'icon3', label: 'Ícone 3' },
-  { id: 'icon4', label: 'Ícone 4' },
-  { id: 'icon5', label: 'Ícone 5' }
+  { id: 'neutral', label: 'Neutro' },
+  { id: 'azul', label: 'Azul' },
+  { id: 'rosa', label: 'Rosa' }
 ] as const
 
 export type AvatarType = typeof AVATAR_OPTIONS[number]['id']
 
-// 1 – Pessoa (contorno clássico)
-function Icon1() {
+const BASE = 'w-full h-full'
+
+// Robozinho: corpo branco, orelhas/antena azul claro, tela rosto azul escuro, olhos ciano, camiseta "iGestor"
+function RobotSvg({ className = BASE }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="32" cy="22" r="10" />
-      <path d="M18 56v-14a8 8 0 0 1 16 0v14" />
+    <svg viewBox="0 0 64 64" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Corpo / camiseta branca */}
+      <path d="M18 38h28v14H18z" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
+      <path d="M20 38V32a4 4 0 0 1 4-4h16a4 4 0 0 1 4 4v6" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
+      {/* Texto iGestor na camiseta */}
+      <text x="32" y="48" textAnchor="middle" fill="#1e3a5f" fontSize="8" fontFamily="system-ui, sans-serif" fontWeight="600">iGestor</text>
+      {/* Cabeça branca */}
+      <circle cx="32" cy="22" r="14" fill="#fff" stroke="#e2e8f0" strokeWidth="1" />
+      {/* Orelhas / protuberâncias azul claro */}
+      <circle cx="16" cy="22" r="6" fill="#93c5fd" />
+      <circle cx="48" cy="22" r="6" fill="#93c5fd" />
+      {/* Antena */}
+      <path d="M32 8v6" stroke="#93c5fd" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="32" cy="6" r="3" fill="#93c5fd" />
+      {/* Tela do rosto (azul escuro) */}
+      <rect x="24" y="16" width="16" height="12" rx="3" fill="#1e3a5f" />
+      {/* Olhos ciano com brilho */}
+      <circle cx="28" cy="21" r="2.5" fill="#22d3ee" />
+      <circle cx="36" cy="21" r="2.5" fill="#22d3ee" />
+      <circle cx="28.5" cy="20" r="0.6" fill="#fff" />
+      <circle cx="36.5" cy="20" r="0.6" fill="#fff" />
+      {/* Sorriso */}
+      <path d="M28 25c0 0 2 2 4 2s4-2 4-2" stroke="#22d3ee" strokeWidth="1.2" strokeLinecap="round" fill="none" />
     </svg>
   )
 }
 
-// 2 – Robozinho (cabeça, antena, olhos e sorriso)
-function Icon2() {
+// Partículas de brilho
+function Sparkles({ className = '' }: { className?: string }) {
   return (
-    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M32 10v-3" />
-      <circle cx="32" cy="28" r="14" />
-      <circle cx="26" cy="26" r="2.5" fill="currentColor" />
-      <circle cx="38" cy="26" r="2.5" fill="currentColor" />
-      <path d="M26 36h12" />
-      <path d="M22 48h20M26 54h12" />
-    </svg>
+    <div className={`absolute inset-0 pointer-events-none ${className}`} aria-hidden>
+      {[...Array(12)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-1 h-1 rounded-full bg-white/60"
+          style={{
+            left: `${15 + (i * 7) % 70}%`,
+            top: `${10 + (i * 11) % 80}%`,
+            width: 2,
+            height: 2
+          }}
+        />
+      ))}
+    </div>
   )
 }
 
-// 3 – Pessoa alternativa (ombros mais marcados)
-function Icon3() {
+const BG_NEUTRAL = 'from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-600'
+const BG_AZUL = 'from-blue-400 to-blue-500 dark:from-blue-500 dark:to-blue-600'
+const BG_ROSA = 'from-pink-300 to-pink-400 dark:from-pink-400 dark:to-pink-500'
+
+export function IgestorAvatarCircle({
+  variant,
+  className = '',
+  size = 'md'
+}: {
+  variant: 'neutral' | 'azul' | 'rosa'
+  className?: string
+  size?: 'sm' | 'md' | 'lg'
+}) {
+  const bg =
+    variant === 'neutral' ? BG_NEUTRAL :
+    variant === 'azul' ? BG_AZUL : BG_ROSA
+
+  const sizeMap = { sm: 'w-9 h-9', md: 'w-10 h-10', lg: 'w-16 h-16' }
+  const innerSize = { sm: 'w-6 h-6', md: 'w-7 h-7', lg: 'w-11 h-11' }
+
   return (
-    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="32" cy="20" r="9" />
-      <path d="M16 56c0-9 7-16 16-16s16 7 16 16" />
-    </svg>
+    <div
+      className={`rounded-full flex items-center justify-center overflow-hidden bg-gradient-to-br ${bg} ${sizeMap[size]} ${className}`}
+    >
+      <Sparkles />
+      <span className={`relative z-10 ${innerSize[size]}`}>
+        <RobotSvg className="w-full h-full" />
+      </span>
+    </div>
   )
 }
 
-// 4 – Carinha redonda (olhos + sorriso)
-function Icon4() {
-  return (
-    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="32" cy="32" r="14" />
-      <circle cx="26" cy="28" r="2" fill="currentColor" />
-      <circle cx="38" cy="28" r="2" fill="currentColor" />
-      <path d="M26 38c0 0 3 4 6 4s6-4 6-4" />
-    </svg>
-  )
-}
-
-// 5 – Silhueta minimalista
-function Icon5() {
-  return (
-    <svg viewBox="0 0 64 64" className={base} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <ellipse cx="32" cy="24" rx="10" ry="12" />
-      <path d="M20 56v-12a6 6 0 0 1 12 0v12M32 44a6 6 0 0 1 12 0v12" />
-    </svg>
-  )
-}
-
-const AVATAR_ICONS: Record<AvatarType, () => ReactNode> = {
-  icon1: Icon1,
-  icon2: Icon2,
-  icon3: Icon3,
-  icon4: Icon4,
-  icon5: Icon5
-}
-
-// Compatibilidade: ícones antigos (male1, female1, etc.) mapeiam para os 5 atuais
+// Compatibilidade: ícones antigos mapeiam para neutro
 export const AVATAR_LEGACY_MAP: Record<string, AvatarType> = {
-  male1: 'icon1', male2: 'icon2', male3: 'icon3', male4: 'icon4', male5: 'icon5',
-  female1: 'icon1', female2: 'icon2', female3: 'icon3', female4: 'icon4', female5: 'icon5'
+  male1: 'neutral', male2: 'neutral', male3: 'neutral', male4: 'neutral', male5: 'neutral',
+  female1: 'neutral', female2: 'neutral', female3: 'neutral', female4: 'neutral', female5: 'neutral',
+  icon1: 'neutral', icon2: 'neutral', icon3: 'neutral', icon4: 'neutral', icon5: 'neutral'
 }
-const LEGACY_MAP = AVATAR_LEGACY_MAP
 
 export function getAvatarIcon(type: string | null | undefined): (() => ReactNode) | null {
   if (!type) return null
-  const key = (LEGACY_MAP[type] || type) as AvatarType
-  if (!AVATAR_ICONS[key]) return null
-  return AVATAR_ICONS[key]
+  const v = (AVATAR_LEGACY_MAP[type] || type) as AvatarType
+  if (v !== 'neutral' && v !== 'azul' && v !== 'rosa') return null
+  return () => <IgestorAvatarCircle variant={v} className="w-full h-full" size="lg" />
 }
 
 export function AvatarIcon({ type, className = '' }: { type: AvatarType | string; className?: string }) {
-  const Icon = getAvatarIcon(type)
-  if (!Icon) return null
+  const v = (AVATAR_LEGACY_MAP[type] || type) as AvatarType
+  if (v !== 'neutral' && v !== 'azul' && v !== 'rosa') return null
   return (
     <span className={`inline-block flex items-center justify-center ${className}`}>
-      <Icon />
+      <IgestorAvatarCircle variant={v} size="md" />
     </span>
   )
 }
