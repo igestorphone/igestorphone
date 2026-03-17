@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd'
 import {
   Target,
   Plus,
@@ -16,6 +17,8 @@ import {
 import { goalsApi, notesApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
+
+type GoalStatus = 'pending' | 'in_progress' | 'abandoned' | 'completed'
 
 const ASSIGNEE_OPTIONS = [
   { id: 'luiz', label: 'Luiz' },
@@ -240,6 +243,15 @@ export default function GoalsPage() {
     }
   }
 
+  const handleGoalDragEnd = (result: DropResult) => {
+    const { source, destination } = result
+    if (!destination || source.droppableId === destination.droppableId) return
+    const status = destination.droppableId as GoalStatus
+    const goalId = Number(result.draggableId)
+    if (!goalId || !['pending', 'in_progress', 'abandoned', 'completed'].includes(status)) return
+    updateGoalMutation.mutate({ id: goalId, data: { status } })
+  }
+
   const groupedGoals = useMemo(() => {
     const goals = Array.isArray(goalsQuery.data) ? goalsQuery.data : []
     return {
@@ -305,54 +317,68 @@ export default function GoalsPage() {
           </motion.button>
         </div>
 
-        {/* Goals Columns */}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {(Object.keys(groupedGoals) as Array<keyof typeof groupedGoals>).map((statusKey) => {
-            const goals = groupedGoals[statusKey]
-            const meta = statusLabels[statusKey]
+        {/* Goals Columns - arrastar entre colunas para mudar status */}
+        <DragDropContext onDragEnd={handleGoalDragEnd}>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {(Object.keys(groupedGoals) as GoalStatus[]).map((statusKey) => {
+              const goals = groupedGoals[statusKey]
+              const meta = statusLabels[statusKey]
 
-            return (
-              <motion.div
-                key={statusKey}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg border border-gray-200 dark:border-white/20 ${meta.color} p-4 flex flex-col min-h-[360px]`}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-gray-900 dark:text-white">
-                    {meta.icon}
-                    <h2 className="text-lg font-semibold">{meta.label}</h2>
+              return (
+                <motion.div
+                  key={statusKey}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl shadow-lg border border-gray-200 dark:border-white/20 ${meta.color} p-4 flex flex-col min-h-[360px]`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2 text-gray-900 dark:text-white">
+                      {meta.icon}
+                      <h2 className="text-lg font-semibold">{meta.label}</h2>
+                    </div>
+                    <span className="text-sm text-gray-600 dark:text-white/70 bg-gray-100 dark:bg-white/10 rounded-full px-3 py-1">{goals.length}</span>
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-white/70 bg-gray-100 dark:bg-white/10 rounded-full px-3 py-1">{goals.length}</span>
-                </div>
 
-                <div className="space-y-3 flex-1 overflow-auto pr-1">
-                  {goalsQuery.isError ? (
-                    <p className="text-red-300 text-sm">Erro ao carregar metas.</p>
-                  ) : goalsQuery.isLoading ? (
-                    <p className="text-gray-500 dark:text-white/50 text-sm">Carregando...</p>
-                  ) : goals.length === 0 ? (
-                    <p className="text-gray-500 dark:text-white/40 text-sm">Nenhuma meta nesta coluna.</p>
-                  ) : (
-                    goals.map((goal: any) => {
-                      const isExpanded = expandedGoalId === goal.id
-                      const hasDescription = Boolean(goal.description)
-                      const description = !goal.description
-                        ? null
-                        : isExpanded || goal.description.length <= 160
-                        ? goal.description
-                        : `${goal.description.slice(0, 160)}...`
+                  <Droppable droppableId={statusKey}>
+                    {(droppableProvided) => (
+                      <div
+                        ref={droppableProvided.innerRef}
+                        {...droppableProvided.droppableProps}
+                        className="space-y-3 flex-1 overflow-auto pr-1 min-h-[200px]"
+                      >
+                        {goalsQuery.isError ? (
+                          <p className="text-red-300 text-sm">Erro ao carregar metas.</p>
+                        ) : goalsQuery.isLoading ? (
+                          <p className="text-gray-500 dark:text-white/50 text-sm">Carregando...</p>
+                        ) : goals.length === 0 ? (
+                          <p className="text-gray-500 dark:text-white/40 text-sm">Arraste metas para cá.</p>
+                        ) : (
+                          goals.map((goal: any, index: number) => {
+                            const isExpanded = expandedGoalId === goal.id
+                            const hasDescription = Boolean(goal.description)
+                            const description = !goal.description
+                              ? null
+                              : isExpanded || goal.description.length <= 160
+                              ? goal.description
+                              : `${goal.description.slice(0, 160)}...`
 
-                      return (
-                        <motion.div
-                          key={goal.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          onClick={() => toggleGoalExpand(goal.id)}
-                          className={`bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all duration-300 cursor-pointer hover:border-gray-300 dark:hover:border-white/20 ${
-                            isExpanded ? 'bg-white dark:bg-white/10 border-indigo-400/40 dark:border-indigo-400/40 shadow-lg dark:shadow-indigo-900/20' : ''
-                          }`}
-                        >
+                            return (
+                              <Draggable key={goal.id} draggableId={String(goal.id)} index={index}>
+                                {(draggableProvided) => (
+                                  <div
+                                    ref={draggableProvided.innerRef}
+                                    {...draggableProvided.draggableProps}
+                                    {...draggableProvided.dragHandleProps}
+                                    className="mb-3 last:mb-0"
+                                  >
+                                    <motion.div
+                                      initial={{ opacity: 0, y: 10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      onClick={() => toggleGoalExpand(goal.id)}
+                                      className={`bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl p-4 transition-all duration-300 cursor-grab active:cursor-grabbing hover:border-gray-300 dark:hover:border-white/20 ${
+                                        isExpanded ? 'bg-white dark:bg-white/10 border-indigo-400/40 dark:border-indigo-400/40 shadow-lg dark:shadow-indigo-900/20' : ''
+                                      }`}
+                                    >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <h3 className="text-gray-900 dark:text-white font-semibold text-base">{goal.title}</h3>
@@ -461,15 +487,22 @@ export default function GoalsPage() {
                               {isExpanded ? 'Ver menos' : 'Ver mais'}
                             </button>
                           </div>
-                        </motion.div>
-                      )
-                    })
-                  )}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+                                    </motion.div>
+                                  </div>
+                                )}
+                              </Draggable>
+                            )
+                          })
+                        )}
+                        {droppableProvided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </motion.div>
+              )
+            })}
+          </div>
+        </DragDropContext>
 
         {/* Notes Section */}
         <motion.div
