@@ -42,6 +42,7 @@ router.get('/', [
   queryValidator('color').optional().trim(),
   queryValidator('storage').optional().trim(), // Adicionar validação para storage
   queryValidator('date').optional().trim(), // Adicionar validação para date (YYYY-MM-DD)
+  queryValidator('date_offset').optional().isInt({ min: -2, max: 0 }), // 0=today, -1=yesterday, -2=anteontem (SP)
   queryValidator('sort_by').optional().isIn(['name', 'price', 'created_at']),
   queryValidator('sort_order').optional().isIn(['asc', 'desc'])
 ], async (req, res) => {
@@ -65,6 +66,7 @@ router.get('/', [
       condition_type,
       product_type,
       date,
+      date_offset,
       sort_by = 'created_at',
       sort_order = 'desc'
     } = req.query;
@@ -74,6 +76,7 @@ router.get('/', [
     const cleanConditionType = condition_type === '' || condition_type === undefined || condition_type === null ? null : condition_type;
     const cleanProductType = product_type === '' || product_type === undefined || product_type === null ? null : product_type;
     const cleanDate = date === '' || date === undefined || date === null ? null : date;
+    const cleanDateOffset = date_offset === '' || date_offset === undefined || date_offset === null ? null : Number(date_offset);
 
     const offset = (page - 1) * limit;
 
@@ -307,69 +310,45 @@ router.get('/', [
       paramCount++;
     }
 
-    // Filtro de data: se especificado, mostrar produtos daquela data específica.
-    // Se não especificado, usar fallback automático:
-    // - tenta HOJE (SP); se não houver, mostra ONTEM; se ainda não houver, ANTEONTEM.
+    // Filtro de data:
+    // - Se vier `date_offset`, filtra exatamente (SP): today/ontem/anteontem.
+    // - Se vier `date` (YYYY-MM-DD), filtra exatamente por aquela data.
+    // - Se nada vier, filtra apenas HOJE (SP).
     let usedDate = null;
     let usedDateLabel = null;
-    if (cleanDate) {
+
+    const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
+
+    if (cleanDateOffset !== null && Number.isFinite(cleanDateOffset)) {
+      const offsetInt = Math.trunc(cleanDateOffset);
+      const targetExpr = `(${todaySP} + ${offsetInt})`;
+
+      whereClause += ` AND (
+        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetExpr}
+        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetExpr}
+      )`;
+
+      usedDate = offsetInt;
+      usedDateLabel = offsetInt === 0 ? 'today' : offsetInt === -1 ? 'yesterday' : 'day_before';
+    } else if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
-      // Considerar tanto updated_at quanto created_at
-      // Converter para timezone do Brasil ao comparar
       whereClause += ` AND (
         DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
         OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
       )`;
       values.push(cleanDate);
       paramCount++;
+
       usedDate = cleanDate;
       usedDateLabel = 'custom';
     } else {
-      // Não usar CURRENT_DATE puro (depende do timezone do DB/servidor)
-      const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
-      // Começa tentando HOJE
-      const dateClause = (dateExpr) => ` AND (
-        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${dateExpr}
-        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${dateExpr}
+      // Por padrão: apenas HOJE (SP)
+      whereClause += ` AND (
+        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
+        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
       )`;
-      whereClause += dateClause(todaySP);
       usedDate = 'today';
-      usedDateLabel = 'hoje';
-
-      // Se não houver produtos de HOJE, cair para ONTEM/ANTEONTEM
-      const countTry = await query(
-        `SELECT COUNT(*)::int as total
-         FROM products p
-         JOIN suppliers s ON p.supplier_id = s.id
-         ${whereClause}`,
-        values
-      );
-      const totalTry = countTry.rows?.[0]?.total ?? 0;
-      if (totalTry === 0) {
-        // remover última cláusula de data e aplicar ONTEM
-        whereClause = whereClause.replace(dateClause(todaySP), '');
-        const yesterdaySP = `${todaySP} - 1`;
-        whereClause += dateClause(yesterdaySP);
-        usedDate = 'yesterday';
-        usedDateLabel = 'ontem';
-
-        const countTry2 = await query(
-          `SELECT COUNT(*)::int as total
-           FROM products p
-           JOIN suppliers s ON p.supplier_id = s.id
-           ${whereClause}`,
-          values
-        );
-        const totalTry2 = countTry2.rows?.[0]?.total ?? 0;
-        if (totalTry2 === 0) {
-          // ANTEONTEM
-          whereClause = whereClause.replace(dateClause(yesterdaySP), '');
-          const dayBeforeSP = `${todaySP} - 2`;
-          whereClause += dateClause(dayBeforeSP);
-          usedDate = 'day_before';
-          usedDateLabel = 'anteontem';
-        }
-      }
+      usedDateLabel = 'today';
     }
 
     // Buscar produtos

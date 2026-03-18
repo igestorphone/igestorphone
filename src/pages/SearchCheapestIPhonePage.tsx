@@ -234,30 +234,6 @@ function LiveClock() {
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
-function isoDateInSaoPaulo(offsetDays: number = 0) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date())
-
-  const y = Number(parts.find((p) => p.type === 'year')?.value || '1970')
-  const m = Number(parts.find((p) => p.type === 'month')?.value || '01')
-  const d = Number(parts.find((p) => p.type === 'day')?.value || '01')
-
-  // Meio-dia UTC para evitar o "virar do dia" ao somar/subtrair dias
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() + offsetDays)
-
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(base)
-}
-
 type SearchMode = 'novo' | 'seminovo' | 'android'
 
 function getDefaultSearchForMode(mode: SearchMode): string {
@@ -309,12 +285,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     setCurrentPage(1)
   }, [debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor])
 
-  const dateKeyToIso = (key: DateKey) => {
-    if (key === 'today') return isoDateInSaoPaulo(0)
-    if (key === 'yesterday') return isoDateInSaoPaulo(-1)
-    return isoDateInSaoPaulo(-2)
-  }
-
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
     window.addEventListener('focus', handleFocus)
@@ -346,13 +316,13 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       selectedColor
     ],
     queryFn: () => {
-      const selectedDate = selectedDateKey ? dateKeyToIso(selectedDateKey) : undefined
+      const dateOffset = selectedDateKey === 'today' ? 0 : selectedDateKey === 'yesterday' ? -1 : -2
       const params: any = {
         search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
         condition: selectedCategory,
         storage: selectedStorage,
         color: filterColorClientSide ? undefined : selectedColor || undefined,
-        date: selectedDate || undefined,
+        date_offset: dateOffset,
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
