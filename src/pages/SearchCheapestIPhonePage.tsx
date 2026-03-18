@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -20,7 +20,8 @@ import {
   Wifi,
   Clock,
   AlertTriangle,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Check
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -94,6 +95,57 @@ const formatTime = (date: Date) =>
     second: '2-digit',
     timeZone: 'America/Sao_Paulo'
   })
+
+function getSaoPauloDateParts(offsetDays: number) {
+  const baseParts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(new Date())
+
+  const y = Number(baseParts.find((p) => p.type === 'year')?.value || '1970')
+  const m = Number(baseParts.find((p) => p.type === 'month')?.value || '01')
+  const d = Number(baseParts.find((p) => p.type === 'day')?.value || '01')
+
+  // Meio-dia UTC para evitar virar o dia ao somar/subtrair
+  const baseUtc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
+  baseUtc.setUTCDate(baseUtc.getUTCDate() + offsetDays)
+
+  const weekdayLong = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'long',
+  }).format(baseUtc)
+
+  // "quarta-feira" -> "Quarta-Feira"
+  const weekday = weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1).replace(/-feira/i, '-Feira')
+
+  let monthShort = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    month: 'short',
+  }).format(baseUtc)
+  monthShort = monthShort.replace('.', '')
+
+  const dayNumber = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+  }).format(baseUtc)
+
+  const year = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+  }).format(baseUtc)
+
+  const dayNumberPlain = String(Number(dayNumber))
+
+  return {
+    weekday,
+    dayNumber: dayNumberPlain,
+    monthShort,
+    year,
+    subtitle: `${dayNumberPlain} de ${monthShort} • ${year}`,
+  }
+}
 
 // Origem do seminovo (qualidade): bandeira + label para exibir na busca
 const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
@@ -264,6 +316,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   // Guarda só a "categoria" do dia (hoje/ontem/anteontem) e converte pra data real SP na hora de buscar.
   // Isso evita ficar "travado" se a página ficar aberta e passar a meia-noite.
   const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
+  const [showDatePicker, setShowDatePicker] = useState(false)
+  const datePickerRef = useRef<HTMLDivElement | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
@@ -280,6 +334,20 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     const t = setTimeout(() => setQueryReady(true), 200)
     return () => clearTimeout(t)
   }, [queryReady])
+
+  // Fechar picker ao clicar fora
+  useEffect(() => {
+    if (!showDatePicker) return
+
+    const onMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node
+      if (!datePickerRef.current) return
+      if (!datePickerRef.current.contains(target)) setShowDatePicker(false)
+    }
+
+    window.addEventListener('mousedown', onMouseDown)
+    return () => window.removeEventListener('mousedown', onMouseDown)
+  }, [showDatePicker])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -368,6 +436,20 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         })
     }
   })
+
+  const dateOptions: Array<{ key: DateKey; offset: number; label: string }> = useMemo(
+    () => [
+      { key: 'today', offset: 0, label: 'Hoje' },
+      { key: 'yesterday', offset: -1, label: 'Ontem' },
+      { key: 'day_before', offset: -2, label: 'Anteontem' },
+    ],
+    []
+  )
+
+  const selectedDateParts = useMemo(() => {
+    const opt = dateOptions.find((d) => d.key === selectedDateKey) || dateOptions[0]
+    return getSaoPauloDateParts(opt.offset)
+  }, [dateOptions, selectedDateKey])
 
   const dynamicFilters = useMemo(() => {
     const products = productsQuery.data || []
@@ -728,21 +810,100 @@ Ainda tem disponível?`
           {/* Filters row - no mobile só quando expandido */}
           <div className={`overflow-x-auto -mx-4 px-4 ${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
-            <div className="relative">
+            <div className="relative" ref={datePickerRef}>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <CalendarDays className="w-4 h-4 mr-1.5" />
                 Data
               </label>
-              <select
-                value={selectedDateKey}
-                onChange={(e) => setSelectedDateKey(e.target.value as DateKey)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
+
+              <button
+                type="button"
+                onClick={() => setShowDatePicker((s) => !s)}
+                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors"
               >
-                <option value="today">Hoje</option>
-                <option value="yesterday">Ontem</option>
-                <option value="day_before">Anteontem</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center font-bold shrink-0">
+                      {selectedDateParts.dayNumber}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold truncate">{selectedDateParts.weekday}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{selectedDateParts.subtitle}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(() => {
+                      const opt = dateOptions.find((d) => d.key === selectedDateKey)
+                      return (
+                        <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold">
+                          {opt?.label ?? 'Hoje'}
+                        </span>
+                      )
+                    })()}
+                    {showDatePicker ? (
+                      <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                    )}
+                  </div>
+                </div>
+              </button>
+
+              {showDatePicker && (
+                <div className="absolute left-0 right-0 mt-2 z-[60] bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                  <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
+                    3 dias disponíveis
+                  </div>
+                  <div className="p-2 space-y-2">
+                    {dateOptions.map((opt) => {
+                      const parts = getSaoPauloDateParts(opt.offset)
+                      const isSelected = opt.key === selectedDateKey
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          onClick={() => {
+                            setSelectedDateKey(opt.key)
+                            setShowDatePicker(false)
+                          }}
+                          className={`w-full flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-colors ${
+                            isSelected
+                              ? 'bg-gray-900 dark:bg-white border-gray-900 dark:border-white'
+                              : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 hover:bg-gray-100 dark:hover:bg-white/10'
+                          }`}
+                        >
+                          <span
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                              isSelected ? 'bg-white/10 text-white dark:bg-gray-900 dark:text-white' : 'bg-gray-900/5 text-gray-900 dark:text-white/90'
+                            }`}
+                          >
+                            {parts.dayNumber}
+                          </span>
+                          <div className="min-w-0 flex-1 text-left">
+                            <div className={`text-sm font-semibold truncate ${isSelected ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
+                              {parts.weekday}
+                            </div>
+                            <div className={`text-xs truncate ${isSelected ? 'text-white/70 dark:text-gray-900/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                              {parts.subtitle}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {isSelected && (
+                              <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold hidden sm:inline-flex">
+                                {opt.label}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <Check className="w-5 h-5 text-white" />
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="relative">
