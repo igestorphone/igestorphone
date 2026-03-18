@@ -283,10 +283,11 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }
 
   const [debouncedSearch, setDebouncedSearch] = useState(() => getDefaultSearchForMode(searchMode))
-  // Padrão: mostrar "Hoje"
-  // Assim, enquanto você processa as listas de hoje, elas aparecem em "Hoje".
-  // Quando o dia mudar, "Ontem" automaticamente passa a apontar para o dia anterior.
-  const [selectedDate, setSelectedDate] = useState(() => isoDateInSaoPaulo(0))
+  type DateKey = 'today' | 'yesterday' | 'day_before'
+
+  // Guarda só a "categoria" do dia (hoje/ontem/anteontem) e converte pra data real SP na hora de buscar.
+  // Isso evita ficar "travado" se a página ficar aberta e passar a meia-noite.
+  const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
@@ -306,18 +307,13 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearch, selectedDate, selectedCategory, selectedStorage, selectedRam, selectedColor])
+  }, [debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor])
 
-  const dateOptions = useMemo(() => {
-    const today = isoDateInSaoPaulo(0)
-    const yesterday = isoDateInSaoPaulo(-1)
-    const dayBefore = isoDateInSaoPaulo(-2)
-    return [
-      { value: today, label: 'Hoje' },
-      { value: yesterday, label: 'Ontem' },
-      { value: dayBefore, label: 'Anteontem' },
-    ]
-  }, [])
+  const dateKeyToIso = (key: DateKey) => {
+    if (key === 'today') return isoDateInSaoPaulo(0)
+    if (key === 'yesterday') return isoDateInSaoPaulo(-1)
+    return isoDateInSaoPaulo(-2)
+  }
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -343,13 +339,14 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       'produtos',
       searchMode,
       debouncedSearch,
-      selectedDate,
+      selectedDateKey,
       selectedCategory,
       selectedStorage,
       selectedRam,
       selectedColor
     ],
     queryFn: () => {
+      const selectedDate = selectedDateKey ? dateKeyToIso(selectedDateKey) : undefined
       const params: any = {
         search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
         condition: selectedCategory,
@@ -767,15 +764,13 @@ Ainda tem disponível?`
                 Data
               </label>
               <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                value={selectedDateKey}
+                onChange={(e) => setSelectedDateKey(e.target.value as DateKey)}
                 className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
               >
-                {dateOptions.map((opt) => (
-                  <option key={opt.label} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                <option value="today">Hoje</option>
+                <option value="yesterday">Ontem</option>
+                <option value="day_before">Anteontem</option>
               </select>
               <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
             </div>
