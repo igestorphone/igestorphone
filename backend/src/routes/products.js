@@ -307,8 +307,11 @@ router.get('/', [
       paramCount++;
     }
 
-    // Filtro de data: se especificado, mostrar produtos daquela data específica
-    // Se não especificado, mostrar produtos de HOJE no fuso de São Paulo (America/Sao_Paulo)
+    // Filtro de data: se especificado, mostrar produtos daquela data específica.
+    // Se não especificado, usar fallback automático:
+    // - tenta HOJE (SP); se não houver, mostra ONTEM; se ainda não houver, ANTEONTEM.
+    let usedDate = null;
+    let usedDateLabel = null;
     if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
       // Considerar tanto updated_at quanto created_at
@@ -319,15 +322,54 @@ router.get('/', [
       )`;
       values.push(cleanDate);
       paramCount++;
+      usedDate = cleanDate;
+      usedDateLabel = 'custom';
     } else {
-      // Por padrão, mostrar APENAS produtos de HOJE (São Paulo)
-      // Não usar CURRENT_DATE puro (depende do timezone do DB/servidor e dá "zerada" em horários errados)
-      const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`
-      whereClause += ` AND (
-        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
-        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
+      // Não usar CURRENT_DATE puro (depende do timezone do DB/servidor)
+      const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
+      // Começa tentando HOJE
+      const dateClause = (dateExpr) => ` AND (
+        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${dateExpr}
+        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${dateExpr}
       )`;
-      console.log('📊 Filtro aplicado: produtos APENAS de HOJE');
+      whereClause += dateClause(todaySP);
+      usedDate = 'today';
+      usedDateLabel = 'hoje';
+
+      // Se não houver produtos de HOJE, cair para ONTEM/ANTEONTEM
+      const countTry = await query(
+        `SELECT COUNT(*)::int as total
+         FROM products p
+         JOIN suppliers s ON p.supplier_id = s.id
+         ${whereClause}`,
+        values
+      );
+      const totalTry = countTry.rows?.[0]?.total ?? 0;
+      if (totalTry === 0) {
+        // remover última cláusula de data e aplicar ONTEM
+        whereClause = whereClause.replace(dateClause(todaySP), '');
+        const yesterdaySP = `${todaySP} - 1`;
+        whereClause += dateClause(yesterdaySP);
+        usedDate = 'yesterday';
+        usedDateLabel = 'ontem';
+
+        const countTry2 = await query(
+          `SELECT COUNT(*)::int as total
+           FROM products p
+           JOIN suppliers s ON p.supplier_id = s.id
+           ${whereClause}`,
+          values
+        );
+        const totalTry2 = countTry2.rows?.[0]?.total ?? 0;
+        if (totalTry2 === 0) {
+          // ANTEONTEM
+          whereClause = whereClause.replace(dateClause(yesterdaySP), '');
+          const dayBeforeSP = `${todaySP} - 2`;
+          whereClause += dateClause(dayBeforeSP);
+          usedDate = 'day_before';
+          usedDateLabel = 'anteontem';
+        }
+      }
     }
 
     // Buscar produtos
@@ -359,6 +401,8 @@ router.get('/', [
 
     res.json({
       products: productsResult.rows,
+      usedDate,
+      usedDateLabel,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),

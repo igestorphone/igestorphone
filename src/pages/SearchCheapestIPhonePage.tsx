@@ -11,7 +11,6 @@ import {
   ChevronUp,
   ChevronLeft,
   ChevronRight,
-  CalendarDays,
   ArrowUpDown,
   Loader2,
   MessageCircle,
@@ -234,27 +233,6 @@ function LiveClock() {
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
-function isoDateInSaoPaulo(offsetDays: number = 0) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(new Date())
-  const y = Number(parts.find((p) => p.type === 'year')?.value || '1970')
-  const m = Number(parts.find((p) => p.type === 'month')?.value || '01')
-  const d = Number(parts.find((p) => p.type === 'day')?.value || '01')
-  // Meio-dia UTC para evitar virar a data ao subtrair dias
-  const base = new Date(Date.UTC(y, m - 1, d, 12, 0, 0))
-  base.setUTCDate(base.getUTCDate() + offsetDays)
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Sao_Paulo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(base)
-}
-
 type SearchMode = 'novo' | 'seminovo' | 'android'
 
 function getDefaultSearchForMode(mode: SearchMode): string {
@@ -280,7 +258,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }
 
   const [debouncedSearch, setDebouncedSearch] = useState(() => getDefaultSearchForMode(searchMode))
-  const [selectedDate, setSelectedDate] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
@@ -292,16 +269,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
   const [queryReady, setQueryReady] = useState(() => !isMobile())
 
-  const dateOptions = useMemo(() => {
-    const yesterday = isoDateInSaoPaulo(-1)
-    const dayBefore = isoDateInSaoPaulo(-2)
-    return [
-      { value: '', label: 'Hoje' },
-      { value: yesterday, label: 'Ontem' },
-      { value: dayBefore, label: 'Anteontem' },
-    ]
-  }, [])
-
   useEffect(() => {
     if (queryReady) return
     const t = setTimeout(() => setQueryReady(true), 200)
@@ -310,7 +277,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearch, selectedDate, selectedCategory, selectedStorage, selectedRam, selectedColor])
+  }, [debouncedSearch, selectedCategory, selectedStorage, selectedRam, selectedColor])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -336,7 +303,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       'produtos',
       searchMode,
       debouncedSearch,
-      selectedDate,
       selectedCategory,
       selectedStorage,
       selectedRam,
@@ -348,7 +314,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         condition: selectedCategory,
         storage: selectedStorage,
         color: filterColorClientSide ? undefined : selectedColor || undefined,
-        date: selectedDate || undefined,
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
@@ -754,25 +719,6 @@ Ainda tem disponível?`
           {/* Filters row - no mobile só quando expandido */}
           <div className={`overflow-x-auto -mx-4 px-4 ${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <CalendarDays className="w-4 h-4 mr-1.5" />
-                Data (SP)
-              </label>
-              <select
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                {dateOptions.map((opt) => (
-                  <option key={opt.label} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
-            </div>
-
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <Building2 className="w-4 h-4 mr-1.5" />
