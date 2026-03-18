@@ -325,7 +325,6 @@ router.get('/', [
 
       whereClause += ` AND (
         (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetExpr}
-        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetExpr}
       )`;
 
       usedDate = offsetInt;
@@ -334,7 +333,6 @@ router.get('/', [
       // Filtrar por data específica (formato YYYY-MM-DD)
       whereClause += ` AND (
         DATE(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
-        OR DATE(p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = $${paramCount}::date
       )`;
       values.push(cleanDate);
       paramCount++;
@@ -345,7 +343,6 @@ router.get('/', [
       // Por padrão: apenas HOJE (SP)
       whereClause += ` AND (
         (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
-        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
       )`;
       usedDate = 'today';
       usedDateLabel = 'today';
