@@ -283,8 +283,10 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }
 
   const [debouncedSearch, setDebouncedSearch] = useState(() => getDefaultSearchForMode(searchMode))
-  // Padrão: mostrar "Ontem" (antes de você processar a lista de hoje)
-  const [selectedDate, setSelectedDate] = useState(() => isoDateInSaoPaulo(-1))
+  // Padrão: mostrar "Hoje"
+  // Assim, enquanto você processa as listas de hoje, elas aparecem em "Hoje".
+  // Quando o dia mudar, "Ontem" automaticamente passa a apontar para o dia anterior.
+  const [selectedDate, setSelectedDate] = useState(() => isoDateInSaoPaulo(0))
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
