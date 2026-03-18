@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -317,7 +317,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   // Isso evita ficar "travado" se a página ficar aberta e passar a meia-noite.
   const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
   const [showDatePicker, setShowDatePicker] = useState(false)
-  const datePickerRef = useRef<HTMLDivElement | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
@@ -335,19 +334,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     return () => clearTimeout(t)
   }, [queryReady])
 
-  // Fechar picker ao clicar fora
-  useEffect(() => {
-    if (!showDatePicker) return
-
-    const onMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (!datePickerRef.current) return
-      if (!datePickerRef.current.contains(target)) setShowDatePicker(false)
-    }
-
-    window.addEventListener('mousedown', onMouseDown)
-    return () => window.removeEventListener('mousedown', onMouseDown)
-  }, [showDatePicker])
+  // Observação: propositalmente não fechamos ao clicar fora para não interferir
+  // com o clique no próprio botão (problema de layout em alguns browsers).
 
   useEffect(() => {
     setCurrentPage(1)
@@ -810,7 +798,7 @@ Ainda tem disponível?`
           {/* Filters row - no mobile só quando expandido */}
           <div className={`overflow-x-auto -mx-4 px-4 ${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
-            <div className="relative" ref={datePickerRef}>
+            <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <CalendarDays className="w-4 h-4 mr-1.5" />
                 Data
@@ -819,16 +807,15 @@ Ainda tem disponível?`
               <button
                 type="button"
                 onClick={() => setShowDatePicker((s) => !s)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors"
+                className="w-full h-11 px-3 py-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors flex items-center"
               >
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 w-full">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center font-bold shrink-0">
                       {selectedDateParts.dayNumber}
                     </span>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate">{selectedDateParts.weekday}</div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{selectedDateParts.subtitle}</div>
+                      <div className="text-sm font-semibold truncate leading-tight">{selectedDateParts.weekday}</div>
                     </div>
                   </div>
 
