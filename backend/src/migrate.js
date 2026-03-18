@@ -254,6 +254,7 @@ const migrations = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_type VARCHAR(20)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT`,
   `UPDATE users SET avatar_type = 'neutral' WHERE avatar_type IS NULL`,
+  `ALTER TABLE users ALTER COLUMN avatar_type SET DEFAULT 'neutral'`,
 
   // Atualizações de colunas existentes
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_activity_at TIMESTAMP`,
