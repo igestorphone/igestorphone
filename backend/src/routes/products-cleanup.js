@@ -4,11 +4,11 @@ import { authenticateToken, requireRole } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Rota para desativar produtos antigos apenas à meia-noite (00h) horário de Brasília
-// Deve ser chamada por um cron job ou agendamento
+// Rota para LIMPAR (deletar definitivamente) produtos/listas antigos
+// Regra: manter apenas 3 dias (hoje/ontem/anteontem) com base no horário de São Paulo
 router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    // OBTER HORÁRIO DE BRASÍLIA (America/Sao_Paulo) - CRÍTICO
+    // OBTER HORÁRIO DE SÃO PAULO (America/Sao_Paulo) - CRÍTICO
     const nowBrasil = await query(`
       SELECT 
         NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo' as agora_brasil,
@@ -22,48 +22,58 @@ router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), as
     
     console.log(`🕐 Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}`);
     
-    // Verificar se é meia-noite (00h) em Brasília - com tolerância de 5 minutos
+    // Verificar se é meia-noite (00h) em SP - com tolerância de 5 minutos
     // OU se for solicitado via query param ?force=true (apenas para emergências)
     const force = req.query.force === 'true';
     
     if (!force && (horaBrasil !== 0 || minutoBrasil > 5)) {
       return res.status(400).json({ 
-        message: `Esta operação só pode ser executada à meia-noite (00h) horário de Brasília. Horário atual em Brasília: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}. Use ?force=true para forçar (apenas em emergências).` 
+        message: `Esta operação só pode ser executada à meia-noite (00h) horário de São Paulo. Horário atual em SP: ${horaBrasil.toString().padStart(2, '0')}:${minutoBrasil.toString().padStart(2, '0')}. Use ?force=true para forçar (apenas em emergências).` 
       });
     }
     
-    console.log('🕛 Iniciando limpeza de produtos à meia-noite (horário de Brasília)...');
-    console.log(`   Data/hora em Brasília: ${agoraBrasil}`);
+    console.log('🕛 Iniciando limpeza de produtos/listas (retenção 3 dias)...');
+    console.log(`   Data/hora em SP: ${agoraBrasil}`);
     
-    // Desativar produtos que não foram atualizados HOJE (no horário de Brasília)
-    // Produtos atualizados ANTES de hoje à meia-noite em Brasília serão desativados
-    const result = await query(`
-      UPDATE products 
-      SET is_active = false,
-          updated_at = NOW()
-      WHERE is_active = true
-        AND DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') < 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
+    const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
+    const cutoffExpr = `${todaySP} - 2`;
+
+    const deletedProducts = await query(`
+      DELETE FROM products p
+      WHERE GREATEST(
+        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date,
+        (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+      ) < ${cutoffExpr}
+    `);
+
+    const deletedRawLists = await query(`
+      DELETE FROM supplier_raw_lists r
+      WHERE (r.processed_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date < ${cutoffExpr}
     `);
     
-    const deactivatedCount = result.rowCount || 0;
+    const deletedCount = deletedProducts.rowCount || 0;
+    const deletedListsCount = deletedRawLists.rowCount || 0;
     
-    console.log(`✅ ${deactivatedCount} produtos desativados (não atualizados desde ontem)`);
+    console.log(`✅ ${deletedCount} produtos removidos definitivamente`);
+    console.log(`✅ ${deletedListsCount} listas brutas removidas definitivamente`);
     
     // Estatísticas
     const stats = await query(`
       SELECT 
         COUNT(*) FILTER (WHERE is_active = true) as produtos_ativos,
-        COUNT(*) FILTER (WHERE is_active = false) as produtos_inativos
+        COUNT(*) FILTER (WHERE is_active = false) as produtos_inativos,
+        COUNT(*) as total
       FROM products
     `);
     
     res.json({
       message: 'Limpeza de produtos concluída',
-      deactivated: deactivatedCount,
+      deleted_products: deletedCount,
+      deleted_raw_lists: deletedListsCount,
       statistics: {
         active: parseInt(stats.rows[0].produtos_ativos),
-        inactive: parseInt(stats.rows[0].produtos_inativos)
+        inactive: parseInt(stats.rows[0].produtos_inativos),
+        total: parseInt(stats.rows[0].total)
       }
     });
     

@@ -208,7 +208,7 @@ if (process.env.NODE_ENV === 'production') {
 // Middleware de tratamento de erros
 app.use(errorHandler);
 
-// Scheduler automático para limpeza de produtos à meia-noite de Brasília
+// Scheduler automático para limpeza de produtos (reter 3 dias) no horário de São Paulo
 let cleanupInterval = null;
 let subscriptionOverdueInterval = null;
 
@@ -231,12 +231,11 @@ async function checkSubscriptionOverdue() {
   }
 }
 
-async function checkAndCleanupProducts() {
+async function pruneOldProductsAndLists() {
   try {
     const { query } = await import('./config/database.js');
     
-    // Horário em Brasília: UMA conversão só (timestamptz AT TIME ZONE 'America/Sao_Paulo' = hora local SP)
-    // O uso de dois AT TIME ZONE invertia e dava 00h quando em SP eram 18h (bug)
+    // Horário em São Paulo: UMA conversão só (timestamptz AT TIME ZONE 'America/Sao_Paulo' = hora local SP)
     const timeCheck = await query(`
       SELECT 
         (NOW() AT TIME ZONE 'America/Sao_Paulo') as agora_brasil,
@@ -248,26 +247,33 @@ async function checkAndCleanupProducts() {
     const minutoBrasil = timeCheck.rows[0].minuto_brasil;
     const agoraBrasil = timeCheck.rows[0].agora_brasil;
     
-    // Verificar se é meia-noite (00h) em Brasília (com tolerância até 00:10)
+    // Verificar se é meia-noite (00h) em SP (com tolerância até 00:10)
     const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
     
     if (isMidnightWindow) {
-      // Zerar todos os produtos à 00h Brasília (is_active = false)
-      const countQuery = await query(`
-        SELECT COUNT(*) as total FROM products WHERE is_active = true
-      `);
-      const totalAtivos = parseInt(countQuery.rows[0].total);
+      // Regra nova: reter apenas 3 dias (hoje/ontem/anteontem) em São Paulo e apagar o resto DEFINITIVAMENTE
+      const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
+      const cutoffExpr = `${todaySP} - 2`; // mantém >= hoje-2
+      logger.info(`🧹 00h SP: removendo produtos/listas com data < ${todaySP} - 2 (${agoraBrasil})`);
 
-      if (totalAtivos > 0) {
-        logger.info(`🕛 00h Brasília: zerando todos os produtos (${agoraBrasil})`);
-        const result = await query(`
-          UPDATE products SET is_active = false, updated_at = NOW() WHERE is_active = true
-        `);
-        const deactivatedCount = result.rowCount || 0;
-        logger.info(`✅ ${deactivatedCount} produtos desativados à meia-noite (Brasília)`);
-      } else {
-        logger.debug(`⏰ 00h Brasília: nenhum produto ativo para zerar`);
-      }
+      // Produtos: considerar "dia" pela data local SP do updated_at (se existir) ou created_at
+      // Usamos GREATEST para pegar o dia "mais recente" entre created/updated.
+      const deletedProducts = await query(`
+        DELETE FROM products p
+        WHERE GREATEST(
+          (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date,
+          (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+        ) < ${cutoffExpr}
+      `);
+
+      const deletedRawLists = await query(`
+        DELETE FROM supplier_raw_lists r
+        WHERE (r.processed_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date < ${cutoffExpr}
+      `);
+
+      const dp = deletedProducts.rowCount || 0;
+      const dl = deletedRawLists.rowCount || 0;
+      logger.info(`✅ Limpeza concluída: ${dp} produtos removidos, ${dl} listas brutas removidas (retendo 3 dias)`);
     }
   } catch (error) {
     logger.error('❌ Erro no scheduler de limpeza automática:', error);
@@ -283,17 +289,17 @@ runMigrations()
       logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 
-      // Scheduler: zerar produtos à 00h Brasília — em produção LIGADO por padrão; em dev desligado (testes)
-      const explicitOff = process.env.ENABLE_MIDNIGHT_CLEANUP === 'false' || process.env.ENABLE_MIDNIGHT_CLEANUP === '0';
-      const explicitOn = process.env.ENABLE_MIDNIGHT_CLEANUP === 'true' || process.env.ENABLE_MIDNIGHT_CLEANUP === '1';
+      // Scheduler: reter 3 dias e apagar o resto à 00h SP — em produção LIGADO por padrão; em dev desligado (testes)
+      const explicitOff = process.env.ENABLE_PRODUCTS_PRUNE === 'false' || process.env.ENABLE_PRODUCTS_PRUNE === '0';
+      const explicitOn = process.env.ENABLE_PRODUCTS_PRUNE === 'true' || process.env.ENABLE_PRODUCTS_PRUNE === '1';
       const isProduction = process.env.NODE_ENV === 'production';
-      const enableMidnightCleanup = explicitOn || (isProduction && !explicitOff);
-      if (enableMidnightCleanup) {
-        logger.info('⏰ Iniciando scheduler: zerar produtos à 00h Brasília');
-        cleanupInterval = setInterval(checkAndCleanupProducts, 60000);
+      const enableProductsPrune = explicitOn || (isProduction && !explicitOff);
+      if (enableProductsPrune) {
+        logger.info('⏰ Iniciando scheduler: reter 3 dias (hoje/ontem/anteontem) e limpar à 00h SP');
+        cleanupInterval = setInterval(pruneOldProductsAndLists, 60000);
         logger.info('✅ Scheduler ativo');
       } else {
-        logger.info('⏸️ Scheduler de zerar produtos à 00h DESATIVADO (em dev: normal; em prod use ENABLE_MIDNIGHT_CLEANUP=true para forçar)');
+        logger.info('⏸️ Scheduler de limpeza de produtos DESATIVADO (em dev: normal; em prod use ENABLE_PRODUCTS_PRUNE=true para forçar)');
       }
 
       // Scheduler: assinaturas vencidas há 1+ dia → overdue (pagamento atrasado)

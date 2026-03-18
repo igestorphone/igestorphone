@@ -308,7 +308,7 @@ router.get('/', [
     }
 
     // Filtro de data: se especificado, mostrar produtos daquela data específica
-    // Se não especificado, mostrar produtos de HOJE (corrigido para não zerar às 20h)
+    // Se não especificado, mostrar produtos de HOJE no fuso de São Paulo (America/Sao_Paulo)
     if (cleanDate) {
       // Filtrar por data específica (formato YYYY-MM-DD)
       // Considerar tanto updated_at quanto created_at
@@ -320,11 +320,12 @@ router.get('/', [
       values.push(cleanDate);
       paramCount++;
     } else {
-      // Por padrão, mostrar APENAS produtos de HOJE
-      // Usar CURRENT_DATE que funciona corretamente
+      // Por padrão, mostrar APENAS produtos de HOJE (São Paulo)
+      // Não usar CURRENT_DATE puro (depende do timezone do DB/servidor e dá "zerada" em horários errados)
+      const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`
       whereClause += ` AND (
-        DATE(p.updated_at) = CURRENT_DATE
-        OR DATE(p.created_at) = CURRENT_DATE
+        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
+        OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
       )`;
       console.log('📊 Filtro aplicado: produtos APENAS de HOJE');
     }
