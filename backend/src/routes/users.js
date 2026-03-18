@@ -271,7 +271,17 @@ router.put('/profile/recadastro', authenticateToken, [
       req.get('User-Agent')
     ]);
 
-    res.json({ message: 'Dados atualizados com sucesso', version: completionVersion });
+    // Devolver usuário atualizado para o front fechar o modal na hora
+    const userResult = await query(`
+      SELECT id, email, name, tipo, subscription_status, subscription_expires_at,
+             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
+             last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at,
+             avatar_type, avatar_url
+      FROM users WHERE id = $1
+    `, [req.user.id]);
+    const updatedUser = userResult.rows[0] || null;
+
+    res.json({ message: 'Dados atualizados com sucesso', version: completionVersion, user: updatedUser });
   } catch (error) {
     console.error('Erro ao recadastrar perfil:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });

@@ -17,6 +17,8 @@ interface AuthActions {
   login: (credentials: LoginRequest) => Promise<boolean>
   logout: () => void
   refreshUser: () => Promise<void>
+  /** Atualiza campos do usuário no store (ex.: após recadastro para fechar o modal na hora) */
+  updateUser: (patch: Partial<Usuario>) => void
   clearError: () => void
   setLoading: (loading: boolean) => void
   testLoadPermissions: () => Promise<void>
@@ -99,6 +101,18 @@ export const useAuthStore = create<AuthStore>()(
         } catch (_) {
           get().logout()
         }
+      },
+
+      updateUser: (patch) => {
+        const { user } = get()
+        if (!user) return
+        set({
+          user: {
+            ...user,
+            ...patch,
+            tipo: (patch.tipo ?? user.tipo) as any
+          }
+        })
       },
 
       clearError: () => {

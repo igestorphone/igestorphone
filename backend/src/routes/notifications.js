@@ -7,9 +7,15 @@ const router = express.Router();
 
 // Helper: decide if a user matches target filter
 function buildTargetWhere(target) {
-  // target example: { scope: 'all' } or { scope: 'plan', plan_type: 'mensal' } or { scope: 'embaixador' }
+  // target example: { scope: 'all' } or { scope: 'plan', plan_type: 'mensal' } or { scope: 'embaixador' } or { scope: 'recadastro_pendente' }
   const scope = (target?.scope || 'all').toString();
   if (scope === 'all') return { where: '1=1', values: [] };
+  if (scope === 'recadastro_pendente') {
+    return {
+      where: `(u.profile_completion_version IS NULL OR u.profile_completion_version < 1) AND LOWER(COALESCE(u.tipo,'user')) <> 'admin'`,
+      values: [],
+    };
+  }
   if (scope === 'embaixador') {
     // Embaixador identificado pelo plan_label OU por subscription plan_type
     return {

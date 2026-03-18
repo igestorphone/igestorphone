@@ -10,7 +10,7 @@ function onlyDigits(v: string) {
 }
 
 export default function RequiredProfileModal() {
-  const { user, refreshUser } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const [isSaving, setIsSaving] = useState(false)
 
   const isAdmin = (user?.tipo || '').toString().toLowerCase() === 'admin'
@@ -62,7 +62,7 @@ export default function RequiredProfileModal() {
 
     setIsSaving(true)
     try {
-      await api.put('/users/profile/recadastro', {
+      const res = await api.put('/users/profile/recadastro', {
         name: form.name.trim(),
         telefone: form.telefone.trim(),
         endereco: form.endereco.trim(),
@@ -72,13 +72,25 @@ export default function RequiredProfileModal() {
         plan_label: form.plan_label.trim(),
         closed_with: form.closed_with.trim(),
       })
-      await refreshUser()
+      // Atualizar o usuário no store na hora para o modal sumir (não depender de refreshUser)
+      const updated = res?.data?.user
+      if (updated) {
+        updateUser({
+          ...updated,
+          tipo: (updated.tipo || (updated as any).role || 'user') as any,
+        })
+      } else {
+        updateUser({ profile_completion_version: REQUIRED_PROFILE_VERSION })
+      }
       toast.success('Dados atualizados com sucesso!')
     } catch (e: any) {
+      const data = e?.response?.data
       const msg =
-        e?.response?.data?.message ||
-        e?.response?.data?.errors?.[0]?.msg ||
-        'Não foi possível salvar. Tente novamente.'
+        data?.message ||
+        (Array.isArray(data?.errors) && data.errors.length > 0
+          ? data.errors.map((x: { msg?: string }) => x.msg).filter(Boolean).join('. ')
+          : null) ||
+        'Não foi possível salvar. Verifique os campos e tente novamente.'
       toast.error(msg)
     } finally {
       setIsSaving(false)
