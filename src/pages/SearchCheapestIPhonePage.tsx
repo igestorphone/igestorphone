@@ -285,6 +285,39 @@ function LiveClock() {
   )
 }
 
+function AnimatedNumber({ value, durationMs = 700 }: { value: number; durationMs?: number }) {
+  const [displayValue, setDisplayValue] = useState(value)
+  const displayRef = useRef(value)
+
+  useEffect(() => {
+    const from = displayRef.current
+    const to = value
+    if (from === to) {
+      setDisplayValue(to)
+      return
+    }
+
+    const start = performance.now()
+    let rafId: number | null = null
+
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / durationMs)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const next = Math.round(from + (to - from) * eased)
+      displayRef.current = next
+      setDisplayValue(next)
+      if (progress < 1) rafId = window.requestAnimationFrame(step)
+    }
+
+    rafId = window.requestAnimationFrame(step)
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+    }
+  }, [value, durationMs])
+
+  return <>{displayValue.toLocaleString('pt-BR')}</>
+}
+
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
 type SearchMode = 'novo' | 'seminovo' | 'android'
@@ -317,6 +350,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   // Guarda só a "categoria" do dia (hoje/ontem/anteontem) e converte pra data real SP na hora de buscar.
   // Isso evita ficar "travado" se a página ficar aberta e passar a meia-noite.
   const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
+  const selectedDateOffset: 0 | -1 | -2 =
+    selectedDateKey === 'today' ? 0 : selectedDateKey === 'yesterday' ? -1 : -2
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [datePickerRect, setDatePickerRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const datePickerButtonRef = useRef<HTMLButtonElement>(null)
@@ -395,13 +430,12 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       selectedColor
     ],
     queryFn: () => {
-      const dateOffset = selectedDateKey === 'today' ? 0 : selectedDateKey === 'yesterday' ? -1 : -2
       const params: any = {
         search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
         condition: selectedCategory,
         storage: selectedStorage,
         color: filterColorClientSide ? undefined : selectedColor || undefined,
-        date_offset: dateOffset,
+        date_offset: selectedDateOffset,
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
@@ -456,6 +490,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     ],
     []
   )
+
+  const selectedDateLabel = dateOptions.find((d) => d.key === selectedDateKey)?.label ?? 'Hoje'
 
   const selectedDateParts = useMemo(() => {
     const opt = dateOptions.find((d) => d.key === selectedDateKey) || dateOptions[0]
@@ -691,8 +727,8 @@ Ainda tem disponível?`
   })
 
   const todayStatsQuery = useQuery({
-    queryKey: ['stats-hoje'],
-    queryFn: () => utilsApi.getGlobalStats(),
+    queryKey: ['stats-dia', selectedDateOffset],
+    queryFn: () => utilsApi.getGlobalStats(selectedDateOffset),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true
   })
@@ -703,7 +739,7 @@ Ainda tem disponível?`
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div className="space-y-4 p-4 md:p-6 max-w-full">
-        {/* Status bar - Totais do DIA (produtos e fornecedores processados hoje — novo + seminovo + android) */}
+        {/* Status bar - Totais do dia selecionado (novo + seminovo + android) */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -713,14 +749,16 @@ Ainda tem disponível?`
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {totalProductsToday.toLocaleString('pt-BR')} produtos <span className="text-gray-500 dark:text-gray-400 font-normal">(hoje)</span>
+                <AnimatedNumber value={totalProductsToday} /> produtos{' '}
+                <span className="text-gray-500 dark:text-gray-400 font-normal">({selectedDateLabel.toLowerCase()})</span>
               </span>
             </div>
             <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
             <div className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                {totalSuppliersToday.toLocaleString('pt-BR')} fornecedores processados <span className="text-gray-500 dark:text-gray-400 font-normal">(hoje)</span>
+                <AnimatedNumber value={totalSuppliersToday} /> fornecedores processados{' '}
+                <span className="text-gray-500 dark:text-gray-400 font-normal">({selectedDateLabel.toLowerCase()})</span>
               </span>
             </div>
           </div>
@@ -1475,7 +1513,7 @@ Ainda tem disponível?`
                 <div className="p-4 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap items-center gap-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {pagination.total} {pagination.total === 1 ? 'produto' : 'produtos'}
+                      <AnimatedNumber value={pagination.total} /> {pagination.total === 1 ? 'produto' : 'produtos'}
                     </h3>
                     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
                       <span>Por página:</span>

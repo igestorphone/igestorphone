@@ -5,27 +5,27 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Totais do DIA (produtos e fornecedores processados hoje — dos 3 tipos: novo, seminovo, android)
+// Totais por dia (hoje/ontem/anteontem) em timezone America/Sao_Paulo
 router.get('/stats', authenticateToken, async (req, res) => {
   try {
+    const rawOffset = Number(req.query?.date_offset ?? 0);
+    const dateOffset = Number.isInteger(rawOffset) && rawOffset <= 0 && rawOffset >= -2 ? rawOffset : 0;
+
     const result = await query(`
-      WITH hoje_br AS (
-        SELECT (NOW() AT TIME ZONE 'America/Sao_Paulo')::date AS dia
+      WITH dia_ref AS (
+        SELECT ((NOW() AT TIME ZONE 'America/Sao_Paulo')::date + $1::int) AS dia
       ),
-      produtos_hoje AS (
+      produtos_dia AS (
         SELECT p.id, p.supplier_id
         FROM products p
-        CROSS JOIN hoje_br h
+        CROSS JOIN dia_ref d
         WHERE p.is_active = true AND p.price > 0 AND p.price IS NOT NULL
-          AND (
-            (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = h.dia
-            OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = h.dia
-          )
+          AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = d.dia
       )
       SELECT
-        (SELECT COUNT(*)::int FROM produtos_hoje) AS total_products,
-        (SELECT COUNT(DISTINCT supplier_id)::int FROM produtos_hoje) AS total_suppliers
-    `);
+        (SELECT COUNT(*)::int FROM produtos_dia) AS total_products,
+        (SELECT COUNT(DISTINCT supplier_id)::int FROM produtos_dia) AS total_suppliers
+    `, [dateOffset]);
     const row = result.rows[0];
     res.json({
       total_products: row?.total_products ?? 0,
