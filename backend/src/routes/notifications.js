@@ -11,10 +11,9 @@ function buildTargetWhere(target) {
   const scope = (target?.scope || 'all').toString();
   if (scope === 'all') return { where: '1=1', values: [] };
   if (scope === 'recadastro_pendente') {
-    return {
-      where: `(u.profile_completion_version IS NULL OR u.profile_completion_version < 1) AND LOWER(COALESCE(u.tipo,'user')) <> 'admin'`,
-      values: [],
-    };
+    // Notificações de recadastro foram desativadas temporariamente.
+    // Retornamos alvo vazio para impedir entregas acidentais.
+    return { where: '1=0', values: [] };
   }
   if (scope === 'embaixador') {
     // Embaixador identificado pelo plan_label OU por subscription plan_type
@@ -52,6 +51,13 @@ router.post(
 
       const { title, message, link_url } = req.body;
       const target = req.body.target || { scope: 'all' };
+      const scope = (target?.scope || 'all').toString();
+
+      if (scope === 'recadastro_pendente') {
+        return res.status(400).json({
+          message: 'Envio para recadastro pendente está temporariamente desativado.',
+        });
+      }
 
       const created = await query(
         `INSERT INTO notifications (title, message, link_url, target, created_by)
@@ -118,6 +124,7 @@ router.get('/my', authenticateToken, async (req, res) => {
        FROM user_notifications un
        JOIN notifications n ON n.id = un.notification_id
        WHERE un.user_id = $1
+         AND COALESCE(n.target->>'scope', 'all') <> 'recadastro_pendente'
        ORDER BY n.created_at DESC
        LIMIT 50`,
       [req.user.id]

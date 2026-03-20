@@ -1,23 +1,17 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Bell, Link as LinkIcon, Send, Users, RefreshCw } from 'lucide-react'
+import { Bell, Link as LinkIcon, Send, Users } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useQuery } from '@tanstack/react-query'
 import { notificationsApi } from '@/lib/api'
 
 const TARGET_OPTIONS = [
   { id: 'all', label: 'Todos' },
-  { id: 'recadastro_pendente', label: 'Recadastro pendente' },
   { id: 'mensal', label: 'Mensal' },
   { id: 'trimestral', label: 'Trimestral' },
   { id: 'anual', label: 'Anual' },
   { id: 'embaixador', label: 'Embaixador' },
 ]
-
-const RECADASTRO_PUSH = {
-  title: 'Atualize seus dados',
-  message: 'Precisamos que você atualize seu cadastro para continuar usando o sistema. Abra o app e preencha a tela de atualização obrigatória. Quem já atualizou não recebe este aviso.',
-}
 
 export default function NotificationsAdminPage() {
   const [title, setTitle] = useState('')
@@ -25,7 +19,6 @@ export default function NotificationsAdminPage() {
   const [linkUrl, setLinkUrl] = useState('')
   const [target, setTarget] = useState('all')
   const [sending, setSending] = useState(false)
-  const [sendingRecadastro, setSendingRecadastro] = useState(false)
 
   const listQuery = useQuery({
     queryKey: ['notifications-admin'],
@@ -47,7 +40,6 @@ export default function NotificationsAdminPage() {
       const payload: any = { title: title.trim(), message: message.trim() }
       if (linkUrl.trim()) payload.link_url = linkUrl.trim()
       if (target === 'all') payload.target = { scope: 'all' }
-      else if (target === 'recadastro_pendente') payload.target = { scope: 'recadastro_pendente' }
       else if (target === 'embaixador') payload.target = { scope: 'embaixador' }
       else payload.target = { scope: 'plan', plan_type: target }
 
@@ -63,26 +55,6 @@ export default function NotificationsAdminPage() {
       toast.error(e?.response?.data?.message || 'Erro ao enviar notificação.')
     } finally {
       setSending(false)
-    }
-  }
-
-  const sendRecadastroPush = async () => {
-    setSendingRecadastro(true)
-    try {
-      const payload = {
-        title: RECADASTRO_PUSH.title,
-        message: RECADASTRO_PUSH.message,
-        target: { scope: 'recadastro_pendente' },
-      }
-      const resp = await notificationsApi.create(payload)
-      const raw = (resp as any)?.data ?? resp
-      const count = raw?.delivered_to ?? 0
-      toast.success(count > 0 ? `Lembrete enviado para ${count} usuário(s) que ainda não atualizaram o cadastro.` : 'Nenhum usuário pendente no momento.')
-      await listQuery.refetch()
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || 'Erro ao enviar lembrete.')
-    } finally {
-      setSendingRecadastro(false)
     }
   }
 
@@ -158,31 +130,6 @@ export default function NotificationsAdminPage() {
           >
             <Send className="w-4 h-4" />
             {sending ? 'Enviando…' : 'Enviar notificação'}
-          </button>
-        </div>
-      </motion.div>
-
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800/50 p-6 shadow-sm"
-      >
-        <div className="flex items-center gap-3 mb-2">
-          <RefreshCw className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Push: Recadastro pendente</h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Envia um lembrete só para quem ainda não atualizou o cadastro. Quem já fez é ignorado.</p>
-          </div>
-        </div>
-        <div className="mt-4">
-          <button
-            type="button"
-            onClick={sendRecadastroPush}
-            disabled={sendingRecadastro}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold disabled:opacity-60"
-          >
-            <Send className="w-4 h-4" />
-            {sendingRecadastro ? 'Enviando…' : 'Enviar lembrete de recadastro'}
           </button>
         </div>
       </motion.div>
