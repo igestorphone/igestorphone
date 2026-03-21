@@ -352,6 +352,10 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
   const selectedDateOffset: 0 | -1 | -2 =
     selectedDateKey === 'today' ? 0 : selectedDateKey === 'yesterday' ? -1 : -2
+  const isYesterdayForcedEmpty = selectedDateKey === 'yesterday'
+  // Ajuste temporário operacional: enquanto não processa hoje, "Hoje" exibe dados de ontem.
+  const effectiveDateOffset: 0 | -1 | -2 =
+    selectedDateKey === 'today' ? -1 : selectedDateOffset
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [datePickerRect, setDatePickerRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const datePickerButtonRef = useRef<HTMLButtonElement>(null)
@@ -435,7 +439,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         condition: selectedCategory,
         storage: selectedStorage,
         color: filterColorClientSide ? undefined : selectedColor || undefined,
-        date_offset: selectedDateOffset,
+        date_offset: effectiveDateOffset,
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
@@ -468,7 +472,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       const getVariantPriority = (variant?: string | null) =>
         variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
 
-      return products
+      const normalized = products
         .map((product: any) => ({
           ...product,
           price: parseFloat(product.price) || 0,
@@ -479,6 +483,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
           if (priorityDiff !== 0) return priorityDiff
           return a.price - b.price
         })
+      return isYesterdayForcedEmpty ? [] : normalized
     }
   })
 
@@ -727,16 +732,18 @@ Ainda tem disponível?`
   })
 
   const todayStatsQuery = useQuery({
-    queryKey: ['stats-dia', selectedDateOffset],
-    queryFn: () => utilsApi.getGlobalStats(selectedDateOffset),
+    queryKey: ['stats-dia', effectiveDateOffset],
+    queryFn: () => utilsApi.getGlobalStats(effectiveDateOffset),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true
   })
 
   const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
   const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
-  const displayTopProducts = selectedDateKey === 'today' ? 5634 : totalProductsToday
-  const displayTopSuppliers = selectedDateKey === 'today' ? 113 : totalSuppliersToday
+  const displayTopProducts =
+    selectedDateKey === 'today' ? 4587 : isYesterdayForcedEmpty ? 0 : totalProductsToday
+  const displayTopSuppliers =
+    selectedDateKey === 'today' ? 108 : isYesterdayForcedEmpty ? 0 : totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
