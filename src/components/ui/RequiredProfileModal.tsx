@@ -98,16 +98,17 @@ export default function RequiredProfileModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl">
-        <div className="p-6 border-b border-gray-200 dark:border-white/10">
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm overflow-y-auto p-3 sm:p-4">
+      <div className="min-h-full flex items-start sm:items-center justify-center">
+        <div className="w-full max-w-2xl bg-white dark:bg-black border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl max-h-[calc(100dvh-1.5rem)] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-white/10 shrink-0">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Atualização obrigatória de cadastro</h2>
           <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
             Para continuar usando o sistema, preencha os dados abaixo. Não é possível fechar esta tela sem concluir.
           </p>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-1">Nome completo</label>
             <input
@@ -191,16 +192,17 @@ export default function RequiredProfileModal() {
           </div>
         </div>
 
-        <div className="p-6 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-3">
+        <div className="p-4 sm:p-6 border-t border-gray-200 dark:border-white/10 flex items-center justify-end gap-3 shrink-0 bg-white dark:bg-black sticky bottom-0">
           <button
             type="button"
             onClick={submit}
             disabled={isSaving}
-            className="px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-60"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold disabled:opacity-60"
           >
             {isSaving ? 'Salvando…' : 'Salvar e continuar'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
