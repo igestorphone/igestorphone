@@ -69,13 +69,18 @@ export function formatTime(date: Date | string | null | undefined): string {
   }
 }
 
-// Códigos de país da região (não adicionar 55 quando já tiver um destes)
-const OTHER_COUNTRY_CODES = ['595', '54', '598', '57', '51', '593', '591', '58', '56', '52', '593']
+// Códigos de país comuns (não adicionar 55 quando já tiver código internacional explícito)
+const OTHER_COUNTRY_CODES = ['1', '595', '961', '54', '598', '57', '51', '593', '591', '58', '56', '52']
 
 // Formatação de WhatsApp (Brasil +55, Paraguai +595, etc. — não forçar Brasil em número internacional)
 export function formatWhatsApp(whatsapp: string): string {
-  const numbers = whatsapp.replace(/\D/g, '')
+  const raw = (whatsapp || '').trim()
+  const numbers = raw.replace(/\D/g, '')
   if (!numbers.length) return ''
+
+  // Número informado explicitamente como internacional (+ ou 00): preservar código do país.
+  if (raw.startsWith('+')) return `+${numbers}`
+  if (raw.startsWith('00')) return `+${numbers.substring(2)}`
 
   // Já tem código de país: manter como está (Brasil 55 ou outro)
   if (numbers.startsWith('55') && numbers.length >= 12) return `+${numbers}`
@@ -88,6 +93,9 @@ export function formatWhatsApp(whatsapp: string): string {
 
   // 9 dígitos começando com 9: provável Paraguai (595 9XX XXX XXX)
   if (semZero.length === 9 && semZero.startsWith('9')) return `+595${semZero}`
+
+  // 11 dígitos iniciando com 1: padrão comum EUA/Canadá (+1)
+  if (semZero.length === 11 && semZero.startsWith('1')) return `+${semZero}`
 
   // 10 ou 11 dígitos: provável Brasil (DDD + 9 + número)
   if (semZero.length >= 10 && semZero.length <= 11) return `+55${semZero}`

@@ -148,6 +148,38 @@ function getSaoPauloDateParts(offsetDays: number) {
   }
 }
 
+function normalizeStorage(value: unknown): string {
+  const raw = String(value ?? '').trim().toUpperCase()
+  if (!raw || raw === 'N/A' || raw === '-') return ''
+
+  const digitsOnly = raw.replace(/\D/g, '')
+  if (!digitsOnly) return ''
+
+  const gbCandidates = new Set([16, 32, 64, 128, 256, 512, 1024, 2048])
+  const letters = raw.replace(/[^A-Z]/g, '')
+  const hasTB = letters.includes('TB') || letters.endsWith('T')
+  const hasGB = letters.includes('GB') || letters.endsWith('G')
+
+  // Casos comuns de erro de OCR/digitação: "1288GB" -> 128GB
+  const parsed = Number.parseInt(digitsOnly, 10)
+  if (Number.isFinite(parsed) && parsed > 0) {
+    if (!hasTB && parsed >= 1000 && digitsOnly.endsWith('8')) {
+      const withoutLastDigit = Number.parseInt(digitsOnly.slice(0, -1), 10)
+      if (gbCandidates.has(withoutLastDigit)) {
+        return withoutLastDigit === 1024 ? '1TB' : withoutLastDigit === 2048 ? '2TB' : `${withoutLastDigit}GB`
+      }
+    }
+    if (hasTB) return `${parsed}TB`
+    if (gbCandidates.has(parsed)) {
+      return parsed === 1024 ? '1TB' : parsed === 2048 ? '2TB' : `${parsed}GB`
+    }
+    if (!hasGB && parsed <= 2) return `${parsed}TB`
+    return `${parsed}GB`
+  }
+
+  return ''
+}
+
 // Origem do seminovo (qualidade): bandeira + label para exibir na busca
 const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
   AMERICANO: { flag: '🇺🇸', label: 'Americano' },
@@ -433,7 +465,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       const params: any = {
         search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
         condition: selectedCategory,
-        storage: selectedStorage,
+        storage: undefined, // filtro por storage é normalizado no front
         color: filterColorClientSide ? undefined : selectedColor || undefined,
         date_offset: selectedDateOffset,
         sort_by: 'price',
@@ -541,7 +573,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
           }
         }
       }
-      if (product.storage) storages.add(product.storage)
+      const normalizedStorage = normalizeStorage(product.storage)
+      if (normalizedStorage) storages.add(normalizedStorage)
       // RAM: region (8GB, 16GB), specifications.ram ou parse do model para MacBook
       const ramVal = product.specifications?.ram || product.region
       if (ramVal && typeof ramVal === 'string') {
@@ -628,6 +661,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       all = all.filter(
         (p: any) => colorNorm(p.color || '', p.model || p.name) === selectedNorm
       )
+    }
+    if (selectedStorage) {
+      all = all.filter((p: any) => normalizeStorage(p.storage) === selectedStorage)
     }
     if (!selectedRam) return all
     return all.filter((p: any) => {
