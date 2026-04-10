@@ -34,6 +34,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 
 // Configurar dotenv
 dotenv.config();
+// deploy-smoke: confirma deploy Render (comentário apenas)
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

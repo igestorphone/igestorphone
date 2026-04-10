@@ -7,6 +7,7 @@ import App from './App.tsx'
 import ErrorBoundary from './components/ui/ErrorBoundary'
 import './index.css'
 
+// deploy-smoke: confirma deploy Vercel (sem impacto em runtime)
 import { useAppStore } from './stores/appStore'
 
 // Tema inicial (try-catch para modo anônimo/privado onde localStorage pode falhar)
