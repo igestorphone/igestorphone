@@ -204,6 +204,19 @@ router.get('/', [
           whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%16e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%16e%'`;
           whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%16 e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%16 e%'`;
         }
+
+        // iPhone 17 vs 17E: "iPhone 17" → só 17; "iPhone 17e" / "17 e" → só 17E
+        const has17E = searchLower.includes('17e') || searchLower.includes('17 e');
+        const has17 = searchLower.includes('17');
+        if (has17E) {
+          whereClause += ` AND (
+            LOWER(p.name) LIKE '%17e%' OR LOWER(p.model) LIKE '%17e%'
+            OR LOWER(p.name) LIKE '%17 e%' OR LOWER(p.model) LIKE '%17 e%'
+          )`;
+        } else if (has17) {
+          whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%17e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%17e%'`;
+          whereClause += ` AND LOWER(COALESCE(p.model, '')) NOT LIKE '%17 e%' AND LOWER(COALESCE(p.name, '')) NOT LIKE '%17 e%'`;
+        }
       } else {
         // Busca genérica de uma palavra: identificar tipo de produto
         let searchPattern = '';

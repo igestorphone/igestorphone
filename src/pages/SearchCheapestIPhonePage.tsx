@@ -180,6 +180,19 @@ function normalizeStorage(value: unknown): string {
   return ''
 }
 
+/** Busca "iPhone 17" (só o modelo base): sem Pro/Max/Plus/Air e sem pedir 17E. */
+function isPlainIPhone17Search(query: string): boolean {
+  const searchLower = query.toLowerCase().trim()
+  const searchWords = searchLower.split(/\s+/).filter((w) => w.length > 0)
+  if (!searchLower.includes('iphone')) return false
+  if (!searchWords.includes('17')) return false
+  if (searchLower.includes('17e') || searchLower.includes('17 e')) return false
+  if (searchWords.includes('pro') || searchWords.includes('max') || searchWords.includes('plus') || searchWords.includes('air')) {
+    return false
+  }
+  return true
+}
+
 // Origem do seminovo (qualidade): bandeira + label para exibir na busca
 const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
   AMERICANO: { flag: '🇺🇸', label: 'Americano' },
@@ -654,6 +667,14 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const filteredProducts = useMemo(() => {
     let all = productsQuery.data || []
     const searchLower = debouncedSearch.toLowerCase().trim()
+    if (isPlainIPhone17Search(debouncedSearch)) {
+      all = all.filter((p: any) => {
+        const blob = `${p.name || ''} ${p.model || ''}`.toLowerCase()
+        if (blob.includes('17e')) return false
+        if (blob.includes('17 e')) return false
+        return true
+      })
+    }
     const is17Or16Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('16 pro'))
     if (is17Or16Pro && selectedColor) {
       const colorNorm = (c: string, m: string) => (normalizeColor(c, m) || '').trim().replace(/\s+/g, ' ')
