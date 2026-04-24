@@ -166,14 +166,14 @@ function normalizeStorage(value: unknown): string {
     if (!hasTB && parsed >= 1000 && digitsOnly.endsWith('8')) {
       const withoutLastDigit = Number.parseInt(digitsOnly.slice(0, -1), 10)
       if (gbCandidates.has(withoutLastDigit)) {
-        return withoutLastDigit === 1024 ? '1TB' : withoutLastDigit === 2048 ? '2TB' : `${withoutLastDigit}GB`
+        return withoutLastDigit === 1024 ? '1T' : withoutLastDigit === 2048 ? '2T' : `${withoutLastDigit}GB`
       }
     }
-    if (hasTB) return `${parsed}TB`
+    if (hasTB) return `${parsed}T`
     if (gbCandidates.has(parsed)) {
-      return parsed === 1024 ? '1TB' : parsed === 2048 ? '2TB' : `${parsed}GB`
+      return parsed === 1024 ? '1T' : parsed === 2048 ? '2T' : `${parsed}GB`
     }
-    if (!hasGB && parsed <= 2) return `${parsed}TB`
+    if (!hasGB && parsed <= 2) return `${parsed}T`
     return `${parsed}GB`
   }
 
@@ -738,7 +738,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     if (product) {
       const modelStr = (product.model || product.name || 'Produto').replace(/^iPhone\s*/i, '').trim()
       const parts = [modelStr]
-      if (product.storage) parts.push(product.storage)
+      const normalizedStorage = normalizeStorage(product.storage)
+      if (normalizedStorage) parts.push(normalizedStorage)
       if (product.color) parts.push(normalizeColor(product.color, product.model || product.name).toUpperCase())
       if (product.condition_detail) parts.push(product.condition_detail)
       else if (product.condition) parts.push(product.condition.toUpperCase())
@@ -1354,7 +1355,7 @@ Ainda tem disponível?`
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
-                                {product.storage || 'N/A'}
+                                {normalizeStorage(product.storage) || 'N/A'}
                               </span>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-gray-300">
@@ -1430,7 +1431,7 @@ Ainda tem disponível?`
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
-                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
                                     }`
                                     navigator.clipboard.writeText(text)
@@ -1505,7 +1506,7 @@ Ainda tem disponível?`
                         <div className="flex flex-wrap gap-2 mb-3">
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
                             <BarChart3 className="w-3 h-3 mr-1" />
-                            {product.storage || 'N/A'}
+                            {normalizeStorage(product.storage) || 'N/A'}
                           </span>
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                             <Palette className="w-3 h-3 mr-1" />
@@ -1551,7 +1552,7 @@ Ainda tem disponível?`
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${product.storage || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
                               }`
                               navigator.clipboard.writeText(text)
