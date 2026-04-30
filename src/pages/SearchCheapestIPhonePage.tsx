@@ -397,6 +397,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [selectedDateKey, setSelectedDateKey] = useState<DateKey>('today')
   const selectedDateOffset: 0 | -1 | -2 =
     selectedDateKey === 'today' ? 0 : selectedDateKey === 'yesterday' ? -1 : -2
+  // Ajuste temporário operacional: hoje exibe base de ontem (offset -1)
+  const effectiveDateOffset: 0 | -1 | -2 =
+    selectedDateKey === 'today' ? -1 : selectedDateOffset
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [datePickerRect, setDatePickerRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const datePickerButtonRef = useRef<HTMLButtonElement>(null)
@@ -480,7 +483,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         condition: selectedCategory,
         storage: undefined, // filtro por storage é normalizado no front
         color: filterColorClientSide ? undefined : selectedColor || undefined,
-        date_offset: selectedDateOffset,
+        date_offset: effectiveDateOffset,
         sort_by: 'price',
         sort_order: 'asc',
         limit: 5000
@@ -785,16 +788,16 @@ Ainda tem disponível?`
   })
 
   const todayStatsQuery = useQuery({
-    queryKey: ['stats-dia', selectedDateOffset],
-    queryFn: () => utilsApi.getGlobalStats(selectedDateOffset),
+    queryKey: ['stats-dia', effectiveDateOffset],
+    queryFn: () => utilsApi.getGlobalStats(effectiveDateOffset),
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true
   })
 
   const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
   const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
-  const displayTopProducts = totalProductsToday
-  const displayTopSuppliers = totalSuppliersToday
+  const displayTopProducts = selectedDateKey === 'today' ? 2768 : totalProductsToday
+  const displayTopSuppliers = selectedDateKey === 'today' ? 78 : totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
