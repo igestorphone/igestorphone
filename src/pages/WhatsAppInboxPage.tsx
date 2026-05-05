@@ -70,11 +70,20 @@ export default function WhatsAppInboxPage() {
   })
 
   const processMutation = useMutation({
-    mutationFn: (id: number) => whatsappApi.processInboxItem(id),
-    onSuccess: () => {
-      toast.success('Item marcado como processado')
+    mutationFn: ({ id, listType }: { id: number; listType?: 'lacrada' | 'seminovo' | 'android' | 'auto' }) =>
+      whatsappApi.processInboxItem(id, listType),
+    onSuccess: (resp: any) => {
+      const raw = resp?.data ?? resp
+      const totalSaved = raw?.summary?.total_saved
+      toast.success(
+        typeof totalSaved === 'number'
+          ? `Processado com sucesso (${totalSaved} produtos salvos)`
+          : 'Item marcado como processado'
+      )
       inboxQuery.refetch()
       statusQuery.refetch()
+      conversationsQuery.refetch()
+      messagesQuery.refetch()
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao processar item'),
   })
@@ -304,12 +313,28 @@ export default function WhatsAppInboxPage() {
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
-                      onClick={() => processMutation.mutate(item.id)}
+                      onClick={() => processMutation.mutate({ id: item.id, listType: 'auto' })}
                       disabled={processMutation.isPending}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Processar
+                      Processar (Auto)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => processMutation.mutate({ id: item.id, listType: 'lacrada' })}
+                      disabled={processMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      Lacrado
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => processMutation.mutate({ id: item.id, listType: 'seminovo' })}
+                      disabled={processMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      Seminovo
                     </button>
                     <button
                       type="button"

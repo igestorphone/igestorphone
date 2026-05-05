@@ -338,7 +338,8 @@ export const whatsappApi = {
     apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }),
   updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
-  processInboxItem: (id: number) => apiClient.post<any>(`/whatsapp/inbox/${id}/process`, {}),
+  processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
+    apiClient.post<any>(`/whatsapp/inbox/${id}/process`, listType && listType !== 'auto' ? { list_type: listType } : {}),
 }
 
 export const usersApi = {

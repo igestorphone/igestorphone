@@ -1,11 +1,33 @@
 import express from 'express';
 import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import aiService from '../services/aiService.js';
 
 const router = express.Router();
 
 function normalizePhone(phone) {
   return (phone || '').toString().replace(/\D/g, '');
+}
+
+function detectListKinds(text) {
+  const t = (text || '').toLowerCase();
+  const seminovoHints = ['seminovo', 'semi-novo', 'vitrine', 'usado', 'swap'];
+  const lacradoHints = ['lacrado', 'novo', 'cpo', 'seal', 'selado'];
+  const hasSeminovo = seminovoHints.some((k) => t.includes(k));
+  const hasLacrado = lacradoHints.some((k) => t.includes(k));
+  if (hasSeminovo && hasLacrado) return ['lacrada', 'seminovo'];
+  if (hasSeminovo) return ['seminovo'];
+  return ['lacrada'];
+}
+
+function extractValidatedProducts(validationResult) {
+  return (
+    validationResult?.validatedProducts ||
+    validationResult?.validated_products ||
+    validationResult?.products ||
+    validationResult?.parsedProducts ||
+    []
+  );
 }
 
 /**
@@ -58,17 +80,20 @@ router.post('/webhook', async (req, res) => {
         if (messageType === 'text') messageText = msg?.text?.body || '';
         if (messageType === 'button') messageText = msg?.button?.text || '';
         if (messageType === 'interactive') messageText = msg?.interactive?.button_reply?.title || msg?.interactive?.list_reply?.title || '';
-        if (!messageText) messageText = JSON.stringify(msg).slice(0, 2000);
+        if (!messageText) {
+          messageText = `[MÍDIA:${messageType}]`;
+        }
+        const status = messageType === 'text' ? 'new' : 'ignored';
 
         await query(
           `INSERT INTO whatsapp_inbox (
             wa_message_id, from_phone, profile_name, message_type, message_text, raw_payload, status, direction, received_at
-          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, 'new', 'inbound', CURRENT_TIMESTAMP)
+          ) VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, 'inbound', CURRENT_TIMESTAMP)
           ON CONFLICT (wa_message_id) DO UPDATE
           SET raw_payload = EXCLUDED.raw_payload,
               message_text = EXCLUDED.message_text,
               updated_at = CURRENT_TIMESTAMP`,
-          [waMessageId, normalizePhone(fromPhone), profileName, messageType, messageText, JSON.stringify(msg)]
+          [waMessageId, normalizePhone(fromPhone), profileName, messageType, messageText, JSON.stringify(msg), status]
         );
       }
       console.log('📩 WhatsApp webhook: mensagens recebidas', {
@@ -238,9 +263,110 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
       return res.status(400).json({ message: 'ID inválido' });
     }
 
-    // MVP: marca como processado.
-    // Próximo passo: plugar chamada real do pipeline de processamento de lista.
-    const result = await query(
+    const inboxResult = await query(
+      `SELECT id, from_phone, message_type, message_text, status
+       FROM whatsapp_inbox
+       WHERE id = $1
+       LIMIT 1`,
+      [id]
+    );
+
+    if (inboxResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Item não encontrado' });
+    }
+
+    const inboxItem = inboxResult.rows[0];
+    if (inboxItem.message_type !== 'text') {
+      await query(
+        `UPDATE whatsapp_inbox SET status = 'ignored', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [id]
+      );
+      return res.status(400).json({ message: 'Mensagens de mídia são ignoradas no processamento automático.' });
+    }
+
+    const rawText = (inboxItem.message_text || '').toString().trim();
+    if (rawText.length < 10) {
+      await query(
+        `UPDATE whatsapp_inbox SET status = 'ignored', updated_at = CURRENT_TIMESTAMP WHERE id = $1`,
+        [id]
+      );
+      return res.status(400).json({ message: 'Mensagem curta/sem lista suficiente para processar.' });
+    }
+
+    const forcedType = (req.body?.list_type || '').toString().trim();
+    const listKinds =
+      forcedType === 'lacrada' || forcedType === 'seminovo' || forcedType === 'android'
+        ? [forcedType]
+        : detectListKinds(rawText);
+
+    // match fornecedor por whatsapp/contact_phone
+    const normalizedPhone = normalizePhone(inboxItem.from_phone);
+    const supplierResult = await query(
+      `SELECT id, name, whatsapp, contact_phone
+       FROM suppliers
+       WHERE is_active = true
+         AND (
+           regexp_replace(COALESCE(whatsapp, ''), '\D', '', 'g') = $1
+           OR regexp_replace(COALESCE(contact_phone, ''), '\D', '', 'g') = $1
+         )
+       ORDER BY id ASC
+       LIMIT 1`,
+      [normalizedPhone]
+    );
+
+    if (supplierResult.rows.length === 0) {
+      await query(
+        `UPDATE whatsapp_inbox
+         SET status = 'pending_supplier', updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [id]
+      );
+      return res.status(400).json({ message: 'Fornecedor não identificado pelo número. Item marcado como pendente fornecedor.' });
+    }
+
+    const supplier = supplierResult.rows[0];
+    const processingSummary = [];
+    let totalSaved = 0;
+
+    for (const listType of listKinds) {
+      const validation = await aiService.validateProductListFromText(rawText, { listType });
+      const validatedProducts = extractValidatedProducts(validation);
+
+      if (!Array.isArray(validatedProducts) || validatedProducts.length === 0) {
+        processingSummary.push({ list_type: listType, saved_products: 0, skipped: true });
+        continue;
+      }
+
+      const processResp = await fetch(`http://127.0.0.1:${process.env.PORT || 3001}/api/ai/process-list`, {
+        method: 'POST',
+        headers: {
+          Authorization: req.headers.authorization || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          supplier_id: supplier.id,
+          supplier_name: supplier.name,
+          supplier_whatsapp: supplier.whatsapp || supplier.contact_phone || null,
+          validated_products: validatedProducts,
+          raw_list_text: rawText,
+          list_type: listType,
+        }),
+      });
+
+      const processData = await processResp.json();
+      if (!processResp.ok) {
+        throw new Error(processData?.message || `Falha ao processar lista ${listType}`);
+      }
+      const saved = Number(processData?.summary?.saved_products || 0);
+      totalSaved += saved;
+      processingSummary.push({
+        list_type: listType,
+        saved_products: saved,
+        total_products: Number(processData?.summary?.total_products || validatedProducts.length),
+      });
+    }
+
+    const updated = await query(
       `UPDATE whatsapp_inbox
        SET status = 'processed', updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
@@ -248,11 +374,11 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
       [id]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'Item não encontrado' });
-    }
-
-    return res.json({ item: result.rows[0] });
+    return res.json({
+      item: updated.rows[0],
+      supplier: { id: supplier.id, name: supplier.name },
+      summary: { total_saved: totalSaved, by_type: processingSummary },
+    });
   } catch (error) {
     console.error('❌ Erro ao processar item do inbox WhatsApp:', error);
     return res.status(500).json({ message: 'Erro interno do servidor' });
