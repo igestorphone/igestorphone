@@ -32,6 +32,7 @@ export default function WhatsAppInboxPage() {
     const t = (text || '').toLowerCase()
     const hasSeminovo = ['seminovo', 'semi-novo', 'usado', 'swap', 'vitrine'].some((k) => t.includes(k))
     const hasLacrado = ['lacrado', 'novo', 'selado', 'seal', 'cpo'].some((k) => t.includes(k))
+    if (hasSeminovo && hasLacrado) return 'auto'
     if (hasSeminovo && !hasLacrado) return 'seminovo'
     if (hasLacrado) return 'lacrada'
     return 'auto'
