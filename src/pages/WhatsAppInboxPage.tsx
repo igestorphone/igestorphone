@@ -579,8 +579,12 @@ export default function WhatsAppInboxPage() {
                           (() => {
                             const text = (item.message_text || '(sem texto)').toString()
                             const isExpanded = !!expandedMessageIds[item.id]
-                            const needsToggle = text.length > 280
-                            const visible = isExpanded || !needsToggle ? text : `${text.slice(0, 280)}...`
+                            const lines = text.split(/\r?\n/)
+                            const maxLinesPreview = 8
+                            const needsToggle = text.length > 280 || lines.length > maxLinesPreview
+                            const visible = isExpanded || !needsToggle
+                              ? text
+                              : `${lines.slice(0, maxLinesPreview).join('\n')}...`
                             return (
                               <>
                                 <div>{visible}</div>
