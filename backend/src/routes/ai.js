@@ -47,6 +47,42 @@ const detectVariant = (product) => {
   return product?.variant ? product.variant.toString().toUpperCase() : null;
 };
 
+const normalizeAndroidText = (value) => {
+  if (!value) return '';
+  return value
+    .toString()
+    .replace(/\s+/g, ' ')
+    .replace(/\bxiao\s*mi\b/gi, 'Xiaomi')
+    .replace(/\bred\s*mi\b/gi, 'Redmi')
+    .replace(/\bmoto\s*rola\b/gi, 'Motorola')
+    .replace(/\bsam\s*sung\b/gi, 'Samsung')
+    .trim();
+};
+
+const sanitizeAndroidProduct = (product) => {
+  const rawName = normalizeAndroidText(product?.name || '');
+  const rawModel = normalizeAndroidText(product?.model || '');
+
+  const cleanedName = rawName
+    .replace(/^(aparelhos?|celulares?|smartphones?)\s+(global\s+)?/i, '')
+    .trim();
+  const cleanedModel = rawModel
+    .replace(/^(aparelhos?|celulares?|smartphones?)\s+(global\s+)?/i, '')
+    .trim();
+
+  const fallbackBase = cleanedModel || cleanedName || rawModel || rawName;
+  const finalName = cleanedName || fallbackBase;
+  const finalModel = cleanedModel || fallbackBase;
+
+  return {
+    ...product,
+    name: finalName || product?.name,
+    model: finalModel || product?.model,
+    color: normalizeAndroidText(product?.color || ''),
+    storage: normalizeAndroidText(product?.storage || ''),
+  };
+};
+
 // Validação de lista de produtos com IA
 router.post('/validate-list', authenticateToken, requireSubscription('active'), async (req, res) => {
   try {
@@ -544,9 +580,10 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
 
     for (const product of validated_products_filtered) {
       try {
-        console.log(`  🔍 Processando produto: ${product.name} (${product.model || 'sem modelo'}) - R$ ${product.price}`);
+        const currentProduct = listKind === 'android' ? sanitizeAndroidProduct(product) : product;
+        console.log(`  🔍 Processando produto: ${currentProduct.name} (${currentProduct.model || 'sem modelo'}) - R$ ${currentProduct.price}`);
         // Padronizar condição
-        let condition = product.condition || 'Novo';
+        let condition = currentProduct.condition || 'Novo';
         if (typeof condition === 'string') {
           condition = condition.charAt(0).toUpperCase() + condition.slice(1).toLowerCase();
           if (!['Novo', 'Seminovo', 'Usado', 'Recondicionado'].includes(condition)) {
@@ -555,7 +592,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         }
 
         // Extrair condition_detail (condição original)
-        let conditionDetail = product.condition_detail || '';
+        let conditionDetail = currentProduct.condition_detail || '';
         if (typeof conditionDetail === 'string') {
           conditionDetail = conditionDetail.trim().toUpperCase();
           // Se não foi fornecido, tentar inferir da condição padronizada
@@ -571,13 +608,13 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         let existingProduct;
         
         // Normalizar valores para comparação
-        const normalizedModel = product.model ? product.model.trim() : null;
+        const normalizedModel = currentProduct.model ? currentProduct.model.trim() : null;
         // Normalizar cor usando a função de normalização
-        const normalizedColorRaw = product.color ? product.color.trim() : null;
+        const normalizedColorRaw = currentProduct.color ? currentProduct.color.trim() : null;
         const normalizedColor = normalizedColorRaw ? normalizeColor(normalizedColorRaw, normalizedModel) : null;
-        const normalizedStorage = product.storage ? product.storage.trim().toLowerCase() : null;
-        const normalizedName = product.name ? product.name.trim().toLowerCase() : null;
-        const normalizedVariant = detectVariant(product);
+        const normalizedStorage = currentProduct.storage ? currentProduct.storage.trim().toLowerCase() : null;
+        const normalizedName = currentProduct.name ? currentProduct.name.trim().toLowerCase() : null;
+        const normalizedVariant = detectVariant(currentProduct);
 
         const listKey = `${(normalizedModel || '').toLowerCase().trim()}|${(normalizedColor || '').toLowerCase().trim()}|${(normalizedStorage || '').trim()}|${condition}`;
         keysInList.add(listKey);
@@ -661,11 +698,11 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
                 updated_at = NOW()
             WHERE id = $10
           `, [
-            product.price,
-            product.name,
-            product.model || null,
-            normalizedColor || product.color || null,
-            product.storage || null,
+            currentProduct.price,
+            currentProduct.name,
+            currentProduct.model || null,
+            normalizedColor || currentProduct.color || null,
+            currentProduct.storage || null,
             normalizedVariant,
             conditionDetail || null,
             true,
@@ -682,17 +719,17 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           `, [productId]);
           
           const lastPrice = priceHistoryCheck.rows.length > 0 ? parseFloat(priceHistoryCheck.rows[0].price) : null;
-          const currentPrice = parseFloat(product.price);
+          const currentPrice = parseFloat(currentProduct.price);
           
           // Só adiciona ao histórico se o preço mudou
           if (lastPrice === null || lastPrice !== currentPrice) {
             await query(`
               INSERT INTO price_history (product_id, supplier_id, price)
               VALUES ($1, $2, $3)
-            `, [productId, finalSupplierId, product.price]);
+            `, [productId, finalSupplierId, currentProduct.price]);
           }
 
-          savedProducts.push({ ...product, id: productId, updated: true, variant: normalizedVariant, condition_detail: conditionDetail });
+          savedProducts.push({ ...currentProduct, id: productId, updated: true, variant: normalizedVariant, condition_detail: conditionDetail });
           console.log(`    ✅ Produto atualizado com sucesso (ID: ${productId})`);
         } else {
           // Criar novo produto
@@ -706,14 +743,14 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
             RETURNING id
           `, [
             finalSupplierId,
-            product.name,
-            product.model || null,
-            normalizedColor || product.color || null,
-            product.storage || null,
+            currentProduct.name,
+            currentProduct.model || null,
+            normalizedColor || currentProduct.color || null,
+            currentProduct.storage || null,
             condition,
             conditionDetail || null,
             normalizedVariant,
-            product.price,
+            currentProduct.price,
             1,
             true,
             productType
@@ -725,9 +762,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           await query(`
             INSERT INTO price_history (product_id, supplier_id, price)
             VALUES ($1, $2, $3)
-          `, [productId, finalSupplierId, product.price]);
+          `, [productId, finalSupplierId, currentProduct.price]);
 
-          savedProducts.push({ ...product, id: productId, created: true, variant: normalizedVariant });
+          savedProducts.push({ ...currentProduct, id: productId, created: true, variant: normalizedVariant });
           console.log(`    ✅ Produto criado com sucesso (ID: ${productId})`);
         }
       } catch (error) {
