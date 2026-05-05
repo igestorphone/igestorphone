@@ -172,6 +172,62 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Excluir (desativar) produtos de um fornecedor sem excluir o fornecedor
+router.delete('/:id/products', requireSubscription('active'), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Verificar se fornecedor existe e está ativo
+    const supplierResult = await query('SELECT id, name, is_active FROM suppliers WHERE id = $1', [id]);
+    if (supplierResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Fornecedor não encontrado' });
+    }
+
+    const supplier = supplierResult.rows[0];
+    if (!supplier.is_active) {
+      return res.status(400).json({ message: 'Fornecedor inativo. Reative para gerenciar produtos.' });
+    }
+
+    // Contar produtos ativos atuais
+    const productsCountResult = await query(
+      'SELECT COUNT(*)::int AS count FROM products WHERE supplier_id = $1 AND is_active = true',
+      [id]
+    );
+    const productCount = Number(productsCountResult.rows[0]?.count || 0);
+
+    if (productCount > 0) {
+      await query(
+        'UPDATE products SET is_active = false WHERE supplier_id = $1 AND is_active = true',
+        [id]
+      );
+    }
+
+    // Log da ação
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      req.user.id,
+      'supplier_products_deleted',
+      JSON.stringify({
+        supplier_id: Number(id),
+        supplier_name: supplier.name,
+        products_deactivated: productCount
+      }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+
+    return res.json({
+      message: 'Produtos do fornecedor excluídos com sucesso',
+      products_deactivated: productCount
+    });
+  } catch (error) {
+    console.error('Erro ao excluir produtos do fornecedor:', error);
+    return res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 // Criar fornecedor (apenas usuários com assinatura ativa)
 router.post('/', requireSubscription('active'), [
   body('name').trim().isLength({ min: 1 }),

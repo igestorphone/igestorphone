@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Edit, Trash2, Users, Phone, Mail, Search, CheckCircle, AlertCircle, X, MapPin } from 'lucide-react';
+import { Edit, Trash2, Users, Phone, Mail, Search, CheckCircle, AlertCircle, X, MapPin, Eraser } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { fornecedoresApi } from '@/lib/api';
 
@@ -27,8 +27,10 @@ export default function ManageSuppliersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteProductsModal, setShowDeleteProductsModal] = useState(false);
   const [supplierToEdit, setSupplierToEdit] = useState<Supplier | null>(null);
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(null);
+  const [supplierToDeleteProducts, setSupplierToDeleteProducts] = useState<Supplier | null>(null);
   const [editForm, setEditForm] = useState({
     name: '',
     whatsapp: '',
@@ -111,6 +113,11 @@ export default function ManageSuppliersPage() {
     setShowDeleteModal(true);
   };
 
+  const handleDeleteProducts = (supplier: Supplier) => {
+    setSupplierToDeleteProducts(supplier);
+    setShowDeleteProductsModal(true);
+  };
+
   const handleConfirmDelete = async () => {
     if (!supplierToDelete) return;
 
@@ -130,6 +137,33 @@ export default function ManageSuppliersPage() {
     } catch (error: any) {
       console.error('Erro ao deletar fornecedor:', error);
       const errorMessage = error.response?.data?.message || 'Erro ao deletar fornecedor';
+      alert(errorMessage);
+    }
+  };
+
+  const handleConfirmDeleteProducts = async () => {
+    if (!supplierToDeleteProducts) return;
+
+    try {
+      const response = await fornecedoresApi.deleteProducts(supplierToDeleteProducts.id.toString());
+      const productsDeactivated =
+        response.data?.products_deactivated ??
+        response.products_deactivated ??
+        supplierToDeleteProducts.product_count ??
+        0;
+
+      await fetchSuppliers();
+      setShowDeleteProductsModal(false);
+      setSupplierToDeleteProducts(null);
+
+      if (productsDeactivated > 0) {
+        alert(`✅ ${productsDeactivated} produto(s) do fornecedor "${supplierToDeleteProducts.name}" foram excluídos/desativados.`);
+      } else {
+        alert(`ℹ️ O fornecedor "${supplierToDeleteProducts.name}" não possui produtos ativos para excluir.`);
+      }
+    } catch (error: any) {
+      console.error('Erro ao excluir produtos do fornecedor:', error);
+      const errorMessage = error.response?.data?.message || 'Erro ao excluir produtos do fornecedor';
       alert(errorMessage);
     }
   };
@@ -245,6 +279,13 @@ export default function ManageSuppliersPage() {
               </div>
               
               <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleDeleteProducts(supplier)}
+                  className="p-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 rounded-lg transition-colors"
+                  title="Excluir produtos do fornecedor"
+                >
+                  <Eraser className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleEdit(supplier)}
                   className="p-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg transition-colors"
@@ -432,6 +473,58 @@ export default function ManageSuppliersPage() {
                 className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors"
               >
                 Excluir
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Products Modal */}
+      {showDeleteProductsModal && supplierToDeleteProducts && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Excluir Produtos Processados</h3>
+              <button
+                onClick={() => {
+                  setShowDeleteProductsModal(false);
+                  setSupplierToDeleteProducts(null);
+                }}
+                className="text-gray-500 dark:text-white/70 hover:text-gray-700 dark:hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-gray-600 dark:text-white/70 mb-4">
+              Deseja excluir/desativar os produtos do fornecedor <strong className="text-gray-900 dark:text-white">{supplierToDeleteProducts.name}</strong>?
+            </p>
+
+            <div className="bg-amber-50 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30 rounded-lg p-4 mb-4">
+              <p className="text-amber-700 dark:text-amber-300 text-sm">
+                Essa ação remove os produtos da busca "Buscar mais barato", mas mantém o fornecedor cadastrado.
+              </p>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteProductsModal(false);
+                  setSupplierToDeleteProducts(null);
+                }}
+                className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmDeleteProducts}
+                className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2 px-4 rounded-lg transition-colors"
+              >
+                Excluir produtos
               </button>
             </div>
           </motion.div>

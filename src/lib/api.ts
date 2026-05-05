@@ -182,6 +182,9 @@ export const fornecedoresApi = {
   delete: (id: string) =>
     apiClient.delete(`/suppliers/${id}`),
 
+  deleteProducts: (id: string) =>
+    apiClient.delete<{ message: string; products_deactivated: number }>(`/suppliers/${id}/products`),
+
   getRawList: (id: number) =>
     apiClient.get<any>(`/suppliers/${id}/raw-list`)
 }
