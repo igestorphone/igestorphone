@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { whatsappApi } from '@/lib/api'
+import { fornecedoresApi, whatsappApi } from '@/lib/api'
 
 type InboxStatus = 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored'
 type ListType = 'lacrada' | 'seminovo' | 'android' | 'auto'
@@ -27,6 +27,7 @@ export default function WhatsAppInboxPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [editingMessageText, setEditingMessageText] = useState('')
+  const [supplierByItemId, setSupplierByItemId] = useState<Record<number, number>>({})
 
   const PAGE_SIZE = 10
 
@@ -56,6 +57,12 @@ export default function WhatsAppInboxPage() {
     queryKey: ['whatsapp-conversations'],
     queryFn: () => whatsappApi.conversations({ limit: 200 }),
     refetchInterval: 10000,
+  })
+
+  const suppliersQuery = useQuery({
+    queryKey: ['suppliers-for-whatsapp-link'],
+    queryFn: () => fornecedoresApi.getAll({ limit: 500 }),
+    staleTime: 30000,
   })
 
   const conversations = useMemo(() => {
@@ -88,6 +95,11 @@ export default function WhatsAppInboxPage() {
     const raw = (inboxQuery.data as any)?.data ?? inboxQuery.data
     return raw?.items ?? []
   }, [inboxQuery.data])
+
+  const supplierOptions = useMemo(() => {
+    const raw = (suppliersQuery.data as any)?.data ?? suppliersQuery.data
+    return raw?.suppliers ?? raw ?? []
+  }, [suppliersQuery.data])
 
   const pagedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE
@@ -224,6 +236,17 @@ export default function WhatsAppInboxPage() {
       messagesQuery.refetch()
     },
     onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao atualizar mensagem'),
+  })
+
+  const linkSupplierMutation = useMutation({
+    mutationFn: ({ id, supplierId }: { id: number; supplierId: number }) =>
+      whatsappApi.linkInboxSupplier(id, supplierId),
+    onSuccess: () => {
+      toast.success('Fornecedor vinculado com sucesso')
+      inboxQuery.refetch()
+      statusQuery.refetch()
+    },
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao vincular fornecedor'),
   })
 
   const processBatchMutation = useMutation({
@@ -589,6 +612,40 @@ export default function WhatsAppInboxPage() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
+                    {status === 'pending_supplier' && (
+                      <>
+                        <select
+                          value={supplierByItemId[item.id] || ''}
+                          onChange={(e) =>
+                            setSupplierByItemId((prev) => ({
+                              ...prev,
+                              [item.id]: Number(e.target.value),
+                            }))
+                          }
+                          className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-1.5 text-xs text-gray-900 dark:text-white"
+                        >
+                          <option value="">Vincular fornecedor...</option>
+                          {supplierOptions.map((s: any) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            linkSupplierMutation.mutate({
+                              id: item.id,
+                              supplierId: supplierByItemId[item.id],
+                            })
+                          }
+                          disabled={linkSupplierMutation.isPending || !supplierByItemId[item.id]}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold disabled:opacity-60"
+                        >
+                          Vincular
+                        </button>
+                      </>
+                    )}
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'auto' })}

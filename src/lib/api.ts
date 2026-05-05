@@ -349,6 +349,8 @@ export const whatsappApi = {
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   updateInboxMessageText: (id: number, messageText: string) =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/message-text`, { message_text: messageText }),
+  linkInboxSupplier: (id: number, supplierId: number) =>
+    apiClient.post<any>(`/whatsapp/inbox/${id}/link-supplier`, { supplier_id: supplierId }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
     apiClient.post<any>(
       `/whatsapp/inbox/${id}/process`,
