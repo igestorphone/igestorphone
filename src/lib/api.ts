@@ -341,11 +341,15 @@ export const whatsappApi = {
   conversationMessages: (phone: string, params?: { limit?: number }) =>
     apiClient.get<any>(`/whatsapp/conversations/${phone}/messages`, { params }),
   sendMessage: (phone: string, message: string) =>
-    apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }),
+    apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }, { timeout: 120000 }),
   updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
-    apiClient.post<any>(`/whatsapp/inbox/${id}/process`, listType && listType !== 'auto' ? { list_type: listType } : {}),
+    apiClient.post<any>(
+      `/whatsapp/inbox/${id}/process`,
+      listType && listType !== 'auto' ? { list_type: listType } : {},
+      { timeout: 120000 }
+    ),
   deleteInboxItem: (id: number) => apiClient.delete<any>(`/whatsapp/inbox/${id}`),
 }
 
