@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2 } from 'lucide-react'
+import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { whatsappApi } from '@/lib/api'
@@ -25,6 +25,8 @@ export default function WhatsAppInboxPage() {
   const [selectedBatchIds, setSelectedBatchIds] = useState<Record<number, boolean>>({})
   const [listTypeByItemId, setListTypeByItemId] = useState<Record<number, ListType>>({})
   const [currentPage, setCurrentPage] = useState(1)
+  const [editingItemId, setEditingItemId] = useState<number | null>(null)
+  const [editingMessageText, setEditingMessageText] = useState('')
 
   const PAGE_SIZE = 10
 
@@ -192,6 +194,36 @@ export default function WhatsAppInboxPage() {
       messagesQuery.refetch()
     },
     onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao excluir mensagem'),
+  })
+
+  const splitItemMutation = useMutation({
+    mutationFn: (id: number) => whatsappApi.splitInboxItem(id),
+    onSuccess: (resp: any) => {
+      const raw = resp?.data ?? resp
+      const count = Number(raw?.created_count || 0)
+      toast.success(
+        count > 0 ? `Mensagem separada em ${count} bloco(s)` : 'Mensagem separada'
+      )
+      inboxQuery.refetch()
+      statusQuery.refetch()
+      conversationsQuery.refetch()
+      messagesQuery.refetch()
+    },
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao separar mensagem'),
+  })
+
+  const updateMessageTextMutation = useMutation({
+    mutationFn: ({ id, messageText }: { id: number; messageText: string }) =>
+      whatsappApi.updateInboxMessageText(id, messageText),
+    onSuccess: () => {
+      toast.success('Mensagem atualizada')
+      setEditingItemId(null)
+      setEditingMessageText('')
+      inboxQuery.refetch()
+      conversationsQuery.refetch()
+      messagesQuery.refetch()
+    },
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao atualizar mensagem'),
   })
 
   const processBatchMutation = useMutation({
@@ -487,31 +519,66 @@ export default function WhatsAppInboxPage() {
                         {new Date(item.received_at || item.created_at).toLocaleString('pt-BR')} • tipo: {item.message_type || 'text'}
                       </div>
                       <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap break-words">
-                        {(() => {
-                          const text = (item.message_text || '(sem texto)').toString()
-                          const isExpanded = !!expandedMessageIds[item.id]
-                          const needsToggle = text.length > 280
-                          const visible = isExpanded || !needsToggle ? text : `${text.slice(0, 280)}...`
-                          return (
-                            <>
-                              <div>{visible}</div>
-                              {needsToggle && (
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setExpandedMessageIds((prev) => ({
-                                      ...prev,
-                                      [item.id]: !isExpanded,
-                                    }))
-                                  }
-                                  className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-                                >
-                                  {isExpanded ? 'Ver menos' : 'Ver mais'}
-                                </button>
-                              )}
-                            </>
-                          )
-                        })()}
+                        {editingItemId === item.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editingMessageText}
+                              onChange={(e) => setEditingMessageText(e.target.value)}
+                              className="w-full min-h-[160px] rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-gray-900 dark:text-white"
+                            />
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateMessageTextMutation.mutate({
+                                    id: item.id,
+                                    messageText: editingMessageText,
+                                  })
+                                }
+                                disabled={updateMessageTextMutation.isPending || !editingMessageText.trim()}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
+                              >
+                                Salvar texto
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingItemId(null)
+                                  setEditingMessageText('')
+                                }}
+                                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/20 text-xs font-semibold"
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          (() => {
+                            const text = (item.message_text || '(sem texto)').toString()
+                            const isExpanded = !!expandedMessageIds[item.id]
+                            const needsToggle = text.length > 280
+                            const visible = isExpanded || !needsToggle ? text : `${text.slice(0, 280)}...`
+                            return (
+                              <>
+                                <div>{visible}</div>
+                                {needsToggle && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      setExpandedMessageIds((prev) => ({
+                                        ...prev,
+                                        [item.id]: !isExpanded,
+                                      }))
+                                    }
+                                    className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    {isExpanded ? 'Ver menos' : 'Ver mais'}
+                                  </button>
+                                )}
+                              </>
+                            )
+                          })()
+                        )}
                       </div>
                     </div>
                     <div className="shrink-0">
@@ -580,6 +647,26 @@ export default function WhatsAppInboxPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/20 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-60"
                     >
                       Ignorar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingItemId(item.id)
+                        setEditingMessageText((item.message_text || '').toString())
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-600 hover:bg-slate-700 text-white text-xs font-semibold"
+                    >
+                      <Pencil className="w-4 h-4" />
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => splitItemMutation.mutate(item.id)}
+                      disabled={splitItemMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      <Split className="w-4 h-4" />
+                      Separar
                     </button>
                     <button
                       type="button"

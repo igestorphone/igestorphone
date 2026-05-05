@@ -324,6 +324,37 @@ router.patch('/inbox/:id/status', authenticateToken, requireRole('admin'), async
   }
 });
 
+router.patch('/inbox/:id/message-text', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const messageText = (req.body?.message_text || '').toString().trim();
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+    if (!messageText) {
+      return res.status(400).json({ message: 'Texto da mensagem é obrigatório' });
+    }
+
+    const result = await query(
+      `UPDATE whatsapp_inbox
+       SET message_text = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2
+       RETURNING id, message_text, status, updated_at`,
+      [messageText, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Item não encontrado' });
+    }
+
+    return res.json({ item: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar texto do inbox WhatsApp:', error);
+    return res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -455,6 +486,89 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
   } catch (error) {
     console.error('❌ Erro ao processar item do inbox WhatsApp:', error);
     return res.status(500).json({ message: error?.message || 'Erro interno do servidor' });
+  }
+});
+
+router.post('/inbox/:id/split', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    const inboxResult = await query(
+      `SELECT id, from_phone, profile_name, message_type, message_text, status, direction, raw_payload
+       FROM whatsapp_inbox
+       WHERE id = $1
+       LIMIT 1`,
+      [id]
+    );
+
+    if (inboxResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Item não encontrado' });
+    }
+
+    const inboxItem = inboxResult.rows[0];
+    if (inboxItem.message_type !== 'text') {
+      return res.status(400).json({ message: 'Só é possível separar mensagens de texto.' });
+    }
+
+    const rawText = (inboxItem.message_text || '').toString().trim();
+    if (rawText.length < 10) {
+      return res.status(400).json({ message: 'Mensagem muito curta para separação.' });
+    }
+
+    const parts = splitMessageByType(rawText);
+    const separableParts = [
+      { type: 'lacrada', text: (parts.lacrada || '').trim() },
+      { type: 'seminovo', text: (parts.seminovo || '').trim() },
+      { type: 'android', text: (parts.android || '').trim() },
+    ].filter((p) => p.text.length >= 20);
+
+    if (separableParts.length === 0) {
+      return res.status(400).json({ message: 'Não foi possível identificar blocos para separar.' });
+    }
+
+    const createdItems = [];
+    for (const part of separableParts) {
+      const insert = await query(
+        `INSERT INTO whatsapp_inbox (
+          wa_message_id, from_phone, profile_name, message_type, message_text, raw_payload, status, direction, received_at
+        ) VALUES ($1, $2, $3, 'text', $4, $5::jsonb, 'new', 'inbound', CURRENT_TIMESTAMP)
+        RETURNING id, from_phone, profile_name, message_type, message_text, status, direction, received_at`,
+        [
+          null,
+          inboxItem.from_phone,
+          inboxItem.profile_name,
+          `[SEPARADO:${part.type.toUpperCase()}]\n${part.text}`,
+          JSON.stringify({
+            source_inbox_id: id,
+            split_type: part.type,
+            original_status: inboxItem.status,
+            original_direction: inboxItem.direction,
+          }),
+        ]
+      );
+      createdItems.push({ ...insert.rows[0], split_type: part.type });
+    }
+
+    await query(
+      `UPDATE whatsapp_inbox
+       SET status = 'ignored',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [id]
+    );
+
+    return res.json({
+      message: 'Mensagem separada com sucesso',
+      original_id: id,
+      created_count: createdItems.length,
+      items: createdItems,
+    });
+  } catch (error) {
+    console.error('❌ Erro ao separar item do inbox WhatsApp:', error);
+    return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });
 

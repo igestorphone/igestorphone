@@ -347,12 +347,15 @@ export const whatsappApi = {
     apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }, { timeout: 300000 }),
   updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
+  updateInboxMessageText: (id: number, messageText: string) =>
+    apiClient.patch<any>(`/whatsapp/inbox/${id}/message-text`, { message_text: messageText }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
     apiClient.post<any>(
       `/whatsapp/inbox/${id}/process`,
       listType && listType !== 'auto' ? { list_type: listType } : {},
       { timeout: 300000 }
     ),
+  splitInboxItem: (id: number) => apiClient.post<any>(`/whatsapp/inbox/${id}/split`, {}),
   deleteInboxItem: (id: number) => apiClient.delete<any>(`/whatsapp/inbox/${id}`),
 }
 
