@@ -77,6 +77,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   const adminNavigation = [
     {
+      name: 'WhatsApp Inbox',
+      href: '/admin/whatsapp-inbox',
+      icon: Smartphone,
+      category: 'admin'
+    },
+    {
       name: 'Processar lista',
       href: '/process-list',
       icon: FileText,
@@ -104,12 +110,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
       name: 'Notificações',
       href: '/admin/notifications',
       icon: Bell,
-      category: 'admin'
-    },
-    {
-      name: 'WhatsApp Inbox',
-      href: '/admin/whatsapp-inbox',
-      icon: Smartphone,
       category: 'admin'
     },
     {

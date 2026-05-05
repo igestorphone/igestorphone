@@ -28,6 +28,7 @@ export default function WhatsAppInboxPage() {
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [editingMessageText, setEditingMessageText] = useState('')
   const [supplierByItemId, setSupplierByItemId] = useState<Record<number, number>>({})
+  const [activeProcess, setActiveProcess] = useState<{ id: number; listType: ListType } | null>(null)
 
   const PAGE_SIZE = 10
 
@@ -146,6 +147,12 @@ export default function WhatsAppInboxPage() {
   const processMutation = useMutation({
     mutationFn: ({ id, listType }: { id: number; listType?: 'lacrada' | 'seminovo' | 'android' | 'auto' }) =>
       whatsappApi.processInboxItem(id, listType),
+    onMutate: (variables) => {
+      setActiveProcess({
+        id: variables.id,
+        listType: (variables.listType || 'auto') as ListType,
+      })
+    },
     onSuccess: (resp: any) => {
       const raw = resp?.data ?? resp
       const totalSaved = raw?.summary?.total_saved
@@ -158,6 +165,7 @@ export default function WhatsAppInboxPage() {
       statusQuery.refetch()
       conversationsQuery.refetch()
       messagesQuery.refetch()
+      setActiveProcess(null)
     },
     onError: async (e: any, variables) => {
       const message = e?.message || e?.response?.data?.message || 'Erro ao processar item'
@@ -173,14 +181,17 @@ export default function WhatsAppInboxPage() {
           statusQuery.refetch()
           conversationsQuery.refetch()
           messagesQuery.refetch()
+          setActiveProcess(null)
           return
         }
 
         toast('Processamento em andamento. Aguarde e clique em Atualizar.', { icon: '⏳' })
+        setActiveProcess(null)
         return
       }
 
       toast.error(message)
+      setActiveProcess(null)
     },
   })
 
@@ -475,8 +486,17 @@ export default function WhatsAppInboxPage() {
               disabled={processBatchMutation.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              Processar selecionadas
+              {processBatchMutation.isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  Processando selecionadas...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  Processar selecionadas
+                </>
+              )}
             </button>
             <select
               value={statusFilter}
@@ -654,34 +674,80 @@ export default function WhatsAppInboxPage() {
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'auto' })}
                       disabled={processMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
+                        activeProcess?.id === item.id && activeProcess?.listType === 'auto'
+                          ? 'bg-emerald-700 animate-pulse'
+                          : 'bg-emerald-600 hover:bg-emerald-700'
+                      }`}
                     >
-                      <CheckCircle2 className="w-4 h-4" />
-                      Processar auto
+                      {activeProcess?.id === item.id && activeProcess?.listType === 'auto' ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4" />
+                          Processar auto
+                        </>
+                      )}
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'lacrada' })}
                       disabled={processMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-60"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
+                        activeProcess?.id === item.id && activeProcess?.listType === 'lacrada'
+                          ? 'bg-blue-700 animate-pulse'
+                          : 'bg-blue-600 hover:bg-blue-700'
+                      }`}
                     >
-                      Lacrado
+                      {activeProcess?.id === item.id && activeProcess?.listType === 'lacrada' ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        'Lacrado'
+                      )}
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'seminovo' })}
                       disabled={processMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-60"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
+                        activeProcess?.id === item.id && activeProcess?.listType === 'seminovo'
+                          ? 'bg-indigo-700 animate-pulse'
+                          : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
                     >
-                      Seminovo
+                      {activeProcess?.id === item.id && activeProcess?.listType === 'seminovo' ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        'Seminovo'
+                      )}
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'android' })}
                       disabled={processMutation.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold disabled:opacity-60"
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
+                        activeProcess?.id === item.id && activeProcess?.listType === 'android'
+                          ? 'bg-cyan-700 animate-pulse'
+                          : 'bg-cyan-600 hover:bg-cyan-700'
+                      }`}
                     >
-                      Android
+                      {activeProcess?.id === item.id && activeProcess?.listType === 'android' ? (
+                        <>
+                          <RefreshCw className="w-4 h-4 animate-spin" />
+                          Processando...
+                        </>
+                      ) : (
+                        'Android'
+                      )}
                     </button>
                     <button
                       type="button"

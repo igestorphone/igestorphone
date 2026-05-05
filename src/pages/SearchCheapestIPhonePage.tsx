@@ -220,12 +220,31 @@ function buildAndroidDisplayName(product: any) {
   return `${name} ${model}`.replace(/\s+/g, ' ').trim()
 }
 
+function inferVariantFromModelCode(product: any): string | null {
+  const modelBlob = `${product?.model || ''} ${product?.name || ''}`.toUpperCase()
+  if (/\bJ\/A\b/.test(modelBlob)) return 'JAPONÊS'
+  if (/\bLL\/A\b/.test(modelBlob) || /\bUS\/A\b/.test(modelBlob)) return 'AMERICANO'
+  if (/\bCH\/A\b/.test(modelBlob) || /\bZA\/A\b/.test(modelBlob) || /\bZP\/A\b/.test(modelBlob)) return 'CHINÊS'
+  if (/\bHN\/A\b/.test(modelBlob)) return 'INDIANO'
+  return null
+}
+
+function getDisplayVariant(product: any): string {
+  const variant = (product?.variant || '').toString().trim().toUpperCase()
+  if (!variant) return ''
+  if (variant === 'ANATEL') {
+    const byCode = inferVariantFromModelCode(product)
+    if (byCode) return byCode
+  }
+  return variant
+}
+
 function shouldShowVariantBadge(product: any, mode: SearchMode) {
-  const variant = (product?.variant || '').toString().trim()
+  const variant = getDisplayVariant(product)
   if (!variant) return false
   if (mode === 'android') return false
 
-  const variantUpper = variant.toUpperCase()
+  const variantUpper = variant
   if (variantUpper === 'ANATEL') {
     const modelOrName = `${product?.model || ''} ${product?.name || ''}`.toLowerCase()
     // Evita ANATEL "global" aparecendo em iPad/MacBook por dado sujo.
@@ -1371,15 +1390,20 @@ Ainda tem disponível?`
                                     {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                                   </span>
                                 ) : shouldShowVariantBadge(product, searchMode) ? (
+                                  (() => {
+                                    const displayVariant = getDisplayVariant(product)
+                                    return (
                                   <span
                                     className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
-                                      product.variant.toUpperCase() === 'ANATEL'
+                                      displayVariant === 'ANATEL'
                                         ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
                                         : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                                     }`}
                                   >
-                                    {product.variant}
+                                    {displayVariant}
                                   </span>
+                                    )
+                                  })()
                                 ) : null}
                               </div>
                             </td>
@@ -1549,15 +1573,20 @@ Ainda tem disponível?`
                               {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                             </span>
                           ) : shouldShowVariantBadge(product, searchMode) ? (
+                            (() => {
+                              const displayVariant = getDisplayVariant(product)
+                              return (
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
-                                product.variant.toUpperCase() === 'ANATEL'
+                                displayVariant === 'ANATEL'
                                   ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
                                   : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                               }`}
                             >
-                              {product.variant}
+                              {displayVariant}
                             </span>
+                              )
+                            })()
                           ) : null}
                         </div>
 
