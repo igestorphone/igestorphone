@@ -140,17 +140,30 @@ router.post('/webhook', async (req, res) => {
 
 router.get('/status', authenticateToken, requireRole('admin'), async (_req, res) => {
   try {
-    const result = await query(
-      `SELECT id, from_phone, message_type, message_text, status, received_at
-       FROM whatsapp_inbox
-       ORDER BY received_at DESC
-       LIMIT 1`
-    );
-    const lastEvent = result.rows[0] || null;
+    const [lastResult, statsResult] = await Promise.all([
+      query(
+        `SELECT id, from_phone, message_type, message_text, status, received_at
+         FROM whatsapp_inbox
+         ORDER BY received_at DESC
+         LIMIT 1`
+      ),
+      query(
+        `SELECT
+           COUNT(DISTINCT from_phone) FILTER (WHERE status = 'processed')::int AS suppliers_processed,
+           COUNT(DISTINCT from_phone) FILTER (WHERE status = 'pending_supplier')::int AS suppliers_pending
+         FROM whatsapp_inbox`
+      ),
+    ]);
+    const lastEvent = lastResult.rows[0] || null;
+    const statsRow = statsResult.rows[0] || {};
     res.json({
       ok: true,
       webhook_configured: Boolean(process.env.WHATSAPP_VERIFY_TOKEN),
       last_event: lastEvent,
+      inbox_suppliers: {
+        processed: Number(statsRow.suppliers_processed) || 0,
+        pending: Number(statsRow.suppliers_pending) || 0,
+      },
     });
   } catch (error) {
     console.error('❌ Erro ao consultar status do WhatsApp:', error);

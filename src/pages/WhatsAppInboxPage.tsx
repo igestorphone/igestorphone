@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil } from 'lucide-react'
+import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil, Building2 } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { fornecedoresApi, whatsappApi } from '@/lib/api'
@@ -29,8 +29,17 @@ export default function WhatsAppInboxPage() {
   const [editingMessageText, setEditingMessageText] = useState('')
   const [supplierByItemId, setSupplierByItemId] = useState<Record<number, number>>({})
   const [activeProcess, setActiveProcess] = useState<{ id: number; listType: ListType } | null>(null)
+  const messagesBlockRef = useRef<HTMLDivElement>(null)
 
   const PAGE_SIZE = 10
+
+  function applyInboxFilter(next: string) {
+    setStatusFilter(next)
+    setCurrentPage(1)
+    window.setTimeout(() => {
+      messagesBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
 
   function inferListType(text: string): ListType {
     const t = (text || '').toLowerCase()
@@ -297,6 +306,7 @@ export default function WhatsAppInboxPage() {
   const statusRaw = (statusQuery.data as any)?.data ?? statusQuery.data
   const webhookOk = !!statusRaw?.webhook_configured
   const lastEvent = statusRaw?.last_event
+  const inboxSupplierStats = statusRaw?.inbox_suppliers ?? { processed: 0, pending: 0 }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -347,6 +357,57 @@ export default function WhatsAppInboxPage() {
               {lastEvent?.received_at ? new Date(lastEvent.received_at).toLocaleString('pt-BR') : '—'}
             </div>
           </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <button
+            type="button"
+            title="Filtrar mensagens processadas (por telefone com lista já processada)"
+            aria-pressed={statusFilter === 'processed'}
+            onClick={() => applyInboxFilter('processed')}
+            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+              statusFilter === 'processed'
+                ? 'border-emerald-500/50 bg-emerald-50/80 dark:bg-emerald-500/10 dark:border-emerald-400/40'
+                : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5'
+            }`}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+              <CheckCircle2 className="w-4 h-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Fornecedores processados
+              </span>
+              <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
+                {inboxSupplierStats.processed}
+              </span>
+              <span className="block text-[10px] text-gray-400 dark:text-gray-500">Telefones distintos · clique para filtrar</span>
+            </span>
+          </button>
+          <button
+            type="button"
+            title="Filtrar pendentes de vincular fornecedor"
+            aria-pressed={statusFilter === 'pending_supplier'}
+            onClick={() => applyInboxFilter('pending_supplier')}
+            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+              statusFilter === 'pending_supplier'
+                ? 'border-amber-500/50 bg-amber-50/80 dark:bg-amber-500/10 dark:border-amber-400/40'
+                : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5'
+            }`}
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
+              <Building2 className="w-4 h-4" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Fornecedores pendentes
+              </span>
+              <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
+                {inboxSupplierStats.pending}
+              </span>
+              <span className="block text-[10px] text-gray-400 dark:text-gray-500">Aguardando vínculo · clique para filtrar</span>
+            </span>
+          </button>
         </div>
       </motion.div>
 
@@ -476,7 +537,10 @@ export default function WhatsAppInboxPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm">
+      <div
+        ref={messagesBlockRef}
+        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm scroll-mt-4"
+      >
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Mensagens recebidas</h2>
           <div className="flex items-center gap-2 flex-wrap">
