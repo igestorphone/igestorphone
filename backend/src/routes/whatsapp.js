@@ -381,6 +381,31 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
     });
   } catch (error) {
     console.error('❌ Erro ao processar item do inbox WhatsApp:', error);
+    return res.status(500).json({ message: error?.message || 'Erro interno do servidor' });
+  }
+});
+
+router.delete('/inbox/:id', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ message: 'ID inválido' });
+    }
+
+    const result = await query(
+      `DELETE FROM whatsapp_inbox
+       WHERE id = $1
+       RETURNING id`,
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Item não encontrado' });
+    }
+
+    return res.json({ ok: true, id: result.rows[0].id });
+  } catch (error) {
+    console.error('❌ Erro ao excluir item do inbox WhatsApp:', error);
     return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });

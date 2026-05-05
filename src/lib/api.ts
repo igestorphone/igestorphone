@@ -2,7 +2,13 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { ApiResponse } from '@/types'
 import { getErrorMessage } from '@/lib/utils'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+function ensureApiSuffix(url: string) {
+  const trimmed = (url || '').trim().replace(/\/+$/, '')
+  if (!trimmed) return 'http://localhost:3001/api'
+  return /\/api$/i.test(trimmed) ? trimmed : `${trimmed}/api`
+}
+
+const API_BASE_URL = ensureApiSuffix(import.meta.env.VITE_API_URL || 'http://localhost:3001/api')
 
 // Create axios instance
 export const api: AxiosInstance = axios.create({
@@ -340,6 +346,7 @@ export const whatsappApi = {
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
     apiClient.post<any>(`/whatsapp/inbox/${id}/process`, listType && listType !== 'auto' ? { list_type: listType } : {}),
+  deleteInboxItem: (id: number) => apiClient.delete<any>(`/whatsapp/inbox/${id}`),
 }
 
 export const usersApi = {

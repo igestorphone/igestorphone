@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send } from 'lucide-react'
+import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2 } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { whatsappApi } from '@/lib/api'
@@ -19,6 +19,7 @@ export default function WhatsAppInboxPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [selectedPhone, setSelectedPhone] = useState<string>('')
   const [draftMessage, setDraftMessage] = useState('')
+  const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({})
 
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],
@@ -66,7 +67,7 @@ export default function WhatsAppInboxPage() {
       inboxQuery.refetch()
       statusQuery.refetch()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao atualizar status'),
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao atualizar status'),
   })
 
   const processMutation = useMutation({
@@ -85,7 +86,7 @@ export default function WhatsAppInboxPage() {
       conversationsQuery.refetch()
       messagesQuery.refetch()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao processar item'),
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao processar item'),
   })
 
   const sendMessageMutation = useMutation({
@@ -97,7 +98,19 @@ export default function WhatsAppInboxPage() {
       conversationsQuery.refetch()
       inboxQuery.refetch()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao enviar mensagem'),
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao enviar mensagem'),
+  })
+
+  const deleteItemMutation = useMutation({
+    mutationFn: (id: number) => whatsappApi.deleteInboxItem(id),
+    onSuccess: () => {
+      toast.success('Mensagem excluída')
+      inboxQuery.refetch()
+      statusQuery.refetch()
+      conversationsQuery.refetch()
+      messagesQuery.refetch()
+    },
+    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao excluir mensagem'),
   })
 
   const statusRaw = (statusQuery.data as any)?.data ?? statusQuery.data
@@ -299,8 +312,32 @@ export default function WhatsAppInboxPage() {
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {new Date(item.received_at || item.created_at).toLocaleString('pt-BR')} • tipo: {item.message_type || 'text'}
                       </div>
-                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap">
-                        {item.message_text || '(sem texto)'}
+                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 whitespace-pre-wrap break-words">
+                        {(() => {
+                          const text = (item.message_text || '(sem texto)').toString()
+                          const isExpanded = !!expandedMessageIds[item.id]
+                          const needsToggle = text.length > 280
+                          const visible = isExpanded || !needsToggle ? text : `${text.slice(0, 280)}...`
+                          return (
+                            <>
+                              <div>{visible}</div>
+                              {needsToggle && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setExpandedMessageIds((prev) => ({
+                                      ...prev,
+                                      [item.id]: !isExpanded,
+                                    }))
+                                  }
+                                  className="mt-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                                >
+                                  {isExpanded ? 'Ver menos' : 'Ver mais'}
+                                </button>
+                              )}
+                            </>
+                          )
+                        })()}
                       </div>
                     </div>
                     <div className="shrink-0">
@@ -361,6 +398,18 @@ export default function WhatsAppInboxPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/20 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 disabled:opacity-60"
                     >
                       Ignorar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const ok = window.confirm('Excluir esta mensagem do inbox?')
+                        if (ok) deleteItemMutation.mutate(item.id)
+                      }}
+                      disabled={deleteItemMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-black text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
                     </button>
                   </div>
                 </div>
