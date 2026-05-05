@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3 } from 'lucide-react'
+import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { whatsappApi } from '@/lib/api'
@@ -17,6 +17,8 @@ const STATUS_LABEL: Record<InboxStatus, string> = {
 
 export default function WhatsAppInboxPage() {
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [selectedPhone, setSelectedPhone] = useState<string>('')
+  const [draftMessage, setDraftMessage] = useState('')
 
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],
@@ -29,6 +31,29 @@ export default function WhatsAppInboxPage() {
     queryFn: () => whatsappApi.inbox({ status: statusFilter || undefined, limit: 200 }),
     refetchInterval: 10000,
   })
+
+  const conversationsQuery = useQuery({
+    queryKey: ['whatsapp-conversations'],
+    queryFn: () => whatsappApi.conversations({ limit: 200 }),
+    refetchInterval: 10000,
+  })
+
+  const conversations = useMemo(() => {
+    const raw = (conversationsQuery.data as any)?.data ?? conversationsQuery.data
+    return raw?.items ?? []
+  }, [conversationsQuery.data])
+
+  const messagesQuery = useQuery({
+    queryKey: ['whatsapp-conversation-messages', selectedPhone],
+    queryFn: () => whatsappApi.conversationMessages(selectedPhone, { limit: 500 }),
+    enabled: !!selectedPhone,
+    refetchInterval: 5000,
+  })
+
+  const conversationMessages = useMemo(() => {
+    const raw = (messagesQuery.data as any)?.data ?? messagesQuery.data
+    return raw?.items ?? []
+  }, [messagesQuery.data])
 
   const items = useMemo(() => {
     const raw = (inboxQuery.data as any)?.data ?? inboxQuery.data
@@ -52,6 +77,18 @@ export default function WhatsAppInboxPage() {
       statusQuery.refetch()
     },
     onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao processar item'),
+  })
+
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ phone, message }: { phone: string; message: string }) => whatsappApi.sendMessage(phone, message),
+    onSuccess: () => {
+      setDraftMessage('')
+      toast.success('Mensagem enviada')
+      messagesQuery.refetch()
+      conversationsQuery.refetch()
+      inboxQuery.refetch()
+    },
+    onError: (e: any) => toast.error(e?.response?.data?.message || 'Erro ao enviar mensagem'),
   })
 
   const statusRaw = (statusQuery.data as any)?.data ?? statusQuery.data
@@ -80,6 +117,8 @@ export default function WhatsAppInboxPage() {
             onClick={() => {
               inboxQuery.refetch()
               statusQuery.refetch()
+              conversationsQuery.refetch()
+              messagesQuery.refetch()
             }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-white/20 text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10"
           >
@@ -107,6 +146,114 @@ export default function WhatsAppInboxPage() {
           </div>
         </div>
       </motion.div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm lg:col-span-1">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">Conversas</h2>
+          {conversationsQuery.isLoading ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">Carregando conversas...</div>
+          ) : conversations.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">Nenhuma conversa ainda.</div>
+          ) : (
+            <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
+              {conversations.map((c: any) => {
+                const active = selectedPhone === c.from_phone
+                return (
+                  <button
+                    key={c.from_phone}
+                    type="button"
+                    onClick={() => setSelectedPhone(c.from_phone)}
+                    className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
+                      active
+                        ? 'border-green-500/40 bg-green-50 dark:bg-green-500/10'
+                        : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                      {c.profile_name || c.from_phone}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                      {c.from_phone}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-300 truncate mt-1">
+                      {c.last_direction === 'outbound' ? 'Você: ' : ''}{c.last_message_text || '(sem texto)'}
+                    </div>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                        {c.last_received_at ? new Date(c.last_received_at).toLocaleString('pt-BR') : ''}
+                      </span>
+                      {Number(c.unread_count || 0) > 0 && (
+                        <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold">
+                          {c.unread_count}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm lg:col-span-2 flex flex-col">
+          <div className="pb-3 border-b border-gray-200 dark:border-white/10">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              {selectedPhone ? `Conversa: ${selectedPhone}` : 'Selecione uma conversa'}
+            </h2>
+          </div>
+
+          <div className="flex-1 py-3 max-h-[420px] overflow-y-auto space-y-2">
+            {!selectedPhone ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">Escolha uma conversa na coluna da esquerda.</div>
+            ) : messagesQuery.isLoading ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">Carregando mensagens...</div>
+            ) : conversationMessages.length === 0 ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">Sem mensagens nessa conversa.</div>
+            ) : (
+              conversationMessages.map((m: any) => {
+                const outbound = m.direction === 'outbound'
+                return (
+                  <div key={m.id} className={`flex ${outbound ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[80%] rounded-xl px-3 py-2 border ${
+                        outbound
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-gray-50 dark:bg-white/5 text-gray-900 dark:text-white border-gray-200 dark:border-white/10'
+                      }`}
+                    >
+                      <div className="text-sm whitespace-pre-wrap">{m.message_text || '(sem texto)'}</div>
+                      <div className={`text-[11px] mt-1 ${outbound ? 'text-emerald-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {new Date(m.received_at || m.created_at).toLocaleString('pt-BR')}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="pt-3 border-t border-gray-200 dark:border-white/10">
+            <div className="flex items-center gap-2">
+              <input
+                value={draftMessage}
+                onChange={(e) => setDraftMessage(e.target.value)}
+                placeholder={selectedPhone ? 'Digite uma resposta...' : 'Selecione uma conversa para responder'}
+                disabled={!selectedPhone}
+                className="flex-1 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-gray-900 dark:text-white disabled:opacity-60"
+              />
+              <button
+                type="button"
+                disabled={!selectedPhone || !draftMessage.trim() || sendMessageMutation.isPending}
+                onClick={() => sendMessageMutation.mutate({ phone: selectedPhone, message: draftMessage.trim() })}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-60"
+              >
+                <Send className="w-4 h-4" />
+                Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">

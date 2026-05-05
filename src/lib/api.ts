@@ -331,6 +331,11 @@ export const notificationsApi = {
 export const whatsappApi = {
   status: () => apiClient.get<any>('/whatsapp/status'),
   inbox: (params?: { status?: string; limit?: number }) => apiClient.get<any>('/whatsapp/inbox', { params }),
+  conversations: (params?: { limit?: number }) => apiClient.get<any>('/whatsapp/conversations', { params }),
+  conversationMessages: (phone: string, params?: { limit?: number }) =>
+    apiClient.get<any>(`/whatsapp/conversations/${phone}/messages`, { params }),
+  sendMessage: (phone: string, message: string) =>
+    apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }),
   updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   processInboxItem: (id: number) => apiClient.post<any>(`/whatsapp/inbox/${id}/process`, {}),

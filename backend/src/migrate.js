@@ -243,6 +243,7 @@ const migrations = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_whatsapp_inbox_status_received_at ON whatsapp_inbox(status, received_at DESC)`,
   `CREATE INDEX IF NOT EXISTS idx_whatsapp_inbox_from_phone ON whatsapp_inbox(from_phone)`,
+  `ALTER TABLE whatsapp_inbox ADD COLUMN IF NOT EXISTS direction VARCHAR(10) DEFAULT 'inbound'`,
 
   // Colunas extras em products (condition_detail, variant, is_active, product_type)
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS condition_detail VARCHAR(50)`,
