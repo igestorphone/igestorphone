@@ -206,6 +206,34 @@ function getSeminovoOriginBadge(variant: string | null | undefined) {
   return SEMINOVO_ORIGIN[key] ?? null
 }
 
+function buildAndroidDisplayName(product: any) {
+  const name = (product?.name || '').toString().trim()
+  const model = (product?.model || '').toString().trim()
+  if (!name && !model) return 'N/A'
+  if (!name) return model
+  if (!model) return name
+
+  const n = name.toLowerCase()
+  const m = model.toLowerCase()
+  if (n.includes(m)) return name
+  if (m.includes(n)) return model
+  return `${name} ${model}`.replace(/\s+/g, ' ').trim()
+}
+
+function shouldShowVariantBadge(product: any, mode: SearchMode) {
+  const variant = (product?.variant || '').toString().trim()
+  if (!variant) return false
+  if (mode === 'android') return false
+
+  const variantUpper = variant.toUpperCase()
+  if (variantUpper === 'ANATEL') {
+    const modelOrName = `${product?.model || ''} ${product?.name || ''}`.toLowerCase()
+    // Evita ANATEL "global" aparecendo em iPad/MacBook por dado sujo.
+    if (!modelOrName.includes('iphone')) return false
+  }
+  return true
+}
+
 // Sugestões para efeito de digitação por modo
 const TYPING_SUGGESTIONS: Record<string, string[]> = {
   novo: ['iPhone 17 Pro Max', 'iPhone 16 Pro', 'MacBook Air', 'AirPods Pro'],
@@ -1325,9 +1353,11 @@ Ainda tem disponível?`
                                 )}
                                 <div className="min-w-0">
                                   <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                                    {product.name || product.model || 'N/A'}
+                                    {searchMode === 'android'
+                                      ? buildAndroidDisplayName(product)
+                                      : (product.name || product.model || 'N/A')}
                                   </div>
-                                  {product.model && product.model !== product.name && (
+                                  {searchMode !== 'android' && product.model && product.model !== product.name && (
                                     <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5 truncate">{product.model}</div>
                                   )}
                                 </div>
@@ -1340,7 +1370,7 @@ Ainda tem disponível?`
                                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
                                     {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                                   </span>
-                                ) : product.variant ? (
+                                ) : shouldShowVariantBadge(product, searchMode) ? (
                                   <span
                                     className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
                                       product.variant.toUpperCase() === 'ANATEL'
@@ -1478,10 +1508,12 @@ Ainda tem disponível?`
                                 </motion.span>
                               )}
                               <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                {product.name || product.model || 'N/A'}
+                                {searchMode === 'android'
+                                  ? buildAndroidDisplayName(product)
+                                  : (product.name || product.model || 'N/A')}
                               </h3>
                             </div>
-                            {product.model && product.model !== product.name && (
+                            {searchMode !== 'android' && product.model && product.model !== product.name && (
                               <p className="text-xs text-gray-600 dark:text-gray-300">{product.model}</p>
                             )}
                           </div>
@@ -1516,7 +1548,7 @@ Ainda tem disponível?`
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
                               {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                             </span>
-                          ) : product.variant ? (
+                          ) : shouldShowVariantBadge(product, searchMode) ? (
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
                                 product.variant.toUpperCase() === 'ANATEL'
