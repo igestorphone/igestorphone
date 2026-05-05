@@ -21,7 +21,8 @@ import {
   Calendar,
   BarChart3,
   Crown,
-  Bell
+  Bell,
+  Smartphone
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
@@ -103,6 +104,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       name: 'Notificações',
       href: '/admin/notifications',
       icon: Bell,
+      category: 'admin'
+    },
+    {
+      name: 'WhatsApp Inbox',
+      href: '/admin/whatsapp-inbox',
+      icon: Smartphone,
       category: 'admin'
     },
     {

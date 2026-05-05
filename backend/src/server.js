@@ -27,6 +27,7 @@ import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
 import asaasRoutes from './routes/asaas.js';
 import notificationsRoutes from './routes/notifications.js';
+import whatsappRoutes from './routes/whatsapp.js';
 import { runMigrations } from './migrate.js';
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
@@ -157,6 +158,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', registrationRoutes); // Rotas de registro (algumas públicas, outras protegidas)
 app.use('/api/asaas', asaasRoutes);  // Planos, webhook e checkout (create-subscription exige auth)
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 // Rotas de teste (sem autenticação)
 app.use('/api/test', userRoutes);

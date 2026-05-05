@@ -227,6 +227,23 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_user_notifications_user_read ON user_notifications(user_id, read_at)`,
   `CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`,
 
+  // Inbox WhatsApp (webhook Cloud API)
+  `CREATE TABLE IF NOT EXISTS whatsapp_inbox (
+    id SERIAL PRIMARY KEY,
+    wa_message_id VARCHAR(255) UNIQUE,
+    from_phone VARCHAR(30),
+    profile_name VARCHAR(255),
+    message_type VARCHAR(50) NOT NULL DEFAULT 'text',
+    message_text TEXT,
+    raw_payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+    status VARCHAR(40) NOT NULL DEFAULT 'new',
+    received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_whatsapp_inbox_status_received_at ON whatsapp_inbox(status, received_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS idx_whatsapp_inbox_from_phone ON whatsapp_inbox(from_phone)`,
+
   // Colunas extras em products (condition_detail, variant, is_active, product_type)
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS condition_detail VARCHAR(50)`,
   `ALTER TABLE products ADD COLUMN IF NOT EXISTS variant VARCHAR(50)`,
@@ -350,7 +367,10 @@ const migrations = [
   `CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
   `DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets`,
-  `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`
+  `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  `DROP TRIGGER IF EXISTS update_whatsapp_inbox_updated_at ON whatsapp_inbox`,
+  `CREATE TRIGGER update_whatsapp_inbox_updated_at BEFORE UPDATE ON whatsapp_inbox FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`
 ];
 
 async function runMigrations() {

@@ -34,6 +34,7 @@ import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 import PostLoginLoadingPage from '@/pages/PostLoginLoadingPage'
 import CheckoutPage from '@/pages/CheckoutPage'
 import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
+import WhatsAppInboxPage from '@/pages/WhatsAppInboxPage'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -174,6 +175,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<NotificationsAdminPage />} />
+        </Route>
+        <Route path="/admin/whatsapp-inbox" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<WhatsAppInboxPage />} />
         </Route>
         <Route path="/supplier-suggestions" element={
           <ProtectedRoute>

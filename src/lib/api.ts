@@ -328,6 +328,14 @@ export const notificationsApi = {
   markRead: (id: number) => apiClient.post<any>(`/notifications/my/${id}/read`, {}),
 }
 
+export const whatsappApi = {
+  status: () => apiClient.get<any>('/whatsapp/status'),
+  inbox: (params?: { status?: string; limit?: number }) => apiClient.get<any>('/whatsapp/inbox', { params }),
+  updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
+    apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
+  processInboxItem: (id: number) => apiClient.post<any>(`/whatsapp/inbox/${id}/process`, {}),
+}
+
 export const usersApi = {
   getAll: () =>
     apiClient.get<any>('/users'),
