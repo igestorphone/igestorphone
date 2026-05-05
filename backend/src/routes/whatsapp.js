@@ -20,6 +20,34 @@ function detectListKinds(text) {
   return ['lacrada'];
 }
 
+function splitMessageByType(text) {
+  const raw = (text || '').toString();
+  const lines = raw.split(/\r?\n/);
+  const buckets = {
+    lacrada: [],
+    seminovo: [],
+    android: [],
+    geral: [],
+  };
+
+  let current = 'geral';
+  for (const line of lines) {
+    const l = line.toLowerCase();
+    if (/android|samsung|galaxy|xiaomi|redmi|poco|motorola|realme/.test(l)) current = 'android';
+    else if (/seminovo|semi-novo|usado|swap|vitrine/.test(l)) current = 'seminovo';
+    else if (/lacrado|novo|selado|seal|cpo/.test(l)) current = 'lacrada';
+    buckets[current].push(line);
+  }
+
+  const toText = (arr) => arr.join('\n').trim();
+  return {
+    lacrada: toText(buckets.lacrada),
+    seminovo: toText(buckets.seminovo),
+    android: toText(buckets.android),
+    geral: toText(buckets.geral),
+  };
+}
+
 function extractValidatedProducts(validationResult) {
   return (
     validationResult?.validatedProducts ||
@@ -165,30 +193,45 @@ router.get('/conversations', authenticateToken, requireRole('admin'), async (req
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 100;
 
     const result = await query(
-      `SELECT
-         w.from_phone,
-         COALESCE(MAX(NULLIF(w.profile_name, '')), '') AS profile_name,
-         MAX(w.received_at) AS last_received_at,
+      `WITH base AS (
+         SELECT
+           w.*,
+           CASE
+             WHEN w.direction = 'inbound' AND LOWER(COALESCE(w.message_text, '')) ~ '(android|samsung|galaxy|xiaomi|redmi|poco|motorola|realme)' THEN 'android'
+             WHEN w.direction = 'inbound' AND LOWER(COALESCE(w.message_text, '')) ~ '(seminovo|semi-novo|usado|swap|vitrine)' THEN 'seminovo'
+             WHEN w.direction = 'inbound' AND LOWER(COALESCE(w.message_text, '')) ~ '(lacrado|novo|selado|seal|cpo)' THEN 'lacrada'
+             ELSE 'geral'
+           END AS thread_type
+         FROM whatsapp_inbox w
+         WHERE w.from_phone IS NOT NULL AND w.from_phone <> ''
+       )
+       SELECT
+         b.from_phone,
+         b.thread_type,
+         CONCAT(b.from_phone, ':', b.thread_type) AS thread_key,
+         COALESCE(MAX(NULLIF(b.profile_name, '')), '') AS profile_name,
+         MAX(b.received_at) AS last_received_at,
          COUNT(*)::int AS total_messages,
-         COALESCE(SUM(CASE WHEN w.status = 'new' AND w.direction = 'inbound' THEN 1 ELSE 0 END), 0)::int AS unread_count,
+         COALESCE(SUM(CASE WHEN b.status = 'new' AND b.direction = 'inbound' THEN 1 ELSE 0 END), 0)::int AS unread_count,
          (
-           SELECT w2.message_text
-           FROM whatsapp_inbox w2
-           WHERE w2.from_phone = w.from_phone
-           ORDER BY w2.received_at DESC, w2.id DESC
+           SELECT b2.message_text
+           FROM base b2
+           WHERE b2.from_phone = b.from_phone
+             AND b2.thread_type = b.thread_type
+           ORDER BY b2.received_at DESC, b2.id DESC
            LIMIT 1
          ) AS last_message_text,
          (
-           SELECT w2.direction
-           FROM whatsapp_inbox w2
-           WHERE w2.from_phone = w.from_phone
-           ORDER BY w2.received_at DESC, w2.id DESC
+           SELECT b2.direction
+           FROM base b2
+           WHERE b2.from_phone = b.from_phone
+             AND b2.thread_type = b.thread_type
+           ORDER BY b2.received_at DESC, b2.id DESC
            LIMIT 1
          ) AS last_direction
-       FROM whatsapp_inbox w
-       WHERE w.from_phone IS NOT NULL AND w.from_phone <> ''
-       GROUP BY w.from_phone
-       ORDER BY MAX(w.received_at) DESC
+       FROM base b
+       GROUP BY b.from_phone, b.thread_type
+       ORDER BY MAX(b.received_at) DESC
        LIMIT $1`,
       [limit]
     );
@@ -203,19 +246,44 @@ router.get('/conversations', authenticateToken, requireRole('admin'), async (req
 router.get('/conversations/:phone/messages', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const phone = normalizePhone(req.params.phone);
+    const listType = (req.query.list_type || '').toString().trim();
     const limitRaw = Number(req.query.limit || 200);
     const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 500) : 200;
 
     if (!phone) return res.status(400).json({ message: 'Telefone inválido' });
 
-    const result = await query(
-      `SELECT id, wa_message_id, from_phone, profile_name, message_type, message_text, status, direction, received_at, created_at
-       FROM whatsapp_inbox
-       WHERE from_phone = $1
-       ORDER BY received_at ASC, id ASC
-       LIMIT $2`,
-      [phone, limit]
-    );
+    let result;
+    if (listType && ['lacrada', 'seminovo', 'android', 'geral'].includes(listType)) {
+      result = await query(
+        `SELECT id, wa_message_id, from_phone, profile_name, message_type, message_text, status, direction, received_at, created_at
+         FROM whatsapp_inbox
+         WHERE from_phone = $1
+           AND (
+             direction = 'outbound'
+             OR (
+               direction = 'inbound'
+               AND (
+                 ($3 = 'android' AND LOWER(COALESCE(message_text, '')) ~ '(android|samsung|galaxy|xiaomi|redmi|poco|motorola|realme)')
+                 OR ($3 = 'seminovo' AND LOWER(COALESCE(message_text, '')) ~ '(seminovo|semi-novo|usado|swap|vitrine)')
+                 OR ($3 = 'lacrada' AND LOWER(COALESCE(message_text, '')) ~ '(lacrado|novo|selado|seal|cpo)')
+                 OR ($3 = 'geral' AND LOWER(COALESCE(message_text, '')) !~ '(android|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|seminovo|semi-novo|usado|swap|vitrine|lacrado|novo|selado|seal|cpo)')
+               )
+             )
+           )
+         ORDER BY received_at ASC, id ASC
+         LIMIT $2`,
+        [phone, limit, listType]
+      );
+    } else {
+      result = await query(
+        `SELECT id, wa_message_id, from_phone, profile_name, message_type, message_text, status, direction, received_at, created_at
+         FROM whatsapp_inbox
+         WHERE from_phone = $1
+         ORDER BY received_at ASC, id ASC
+         LIMIT $2`,
+        [phone, limit]
+      );
+    }
 
     res.json({ items: result.rows });
   } catch (error) {
@@ -298,6 +366,7 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
       forcedType === 'lacrada' || forcedType === 'seminovo' || forcedType === 'android'
         ? [forcedType]
         : detectListKinds(rawText);
+    const splitParts = splitMessageByType(rawText);
 
     // match fornecedor por whatsapp/contact_phone
     const normalizedPhone = normalizePhone(inboxItem.from_phone);
@@ -329,7 +398,11 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
     let totalSaved = 0;
 
     for (const listType of listKinds) {
-      const validation = await aiService.validateProductListFromText(rawText, { listType });
+      const textForType =
+        listType === 'android'
+          ? (splitParts.android || splitParts.geral || rawText)
+          : (splitParts[listType] || splitParts.geral || rawText);
+      const validation = await aiService.validateProductListFromText(textForType, { listType });
       const validatedProducts = extractValidatedProducts(validation);
 
       if (!Array.isArray(validatedProducts) || validatedProducts.length === 0) {

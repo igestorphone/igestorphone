@@ -338,17 +338,17 @@ export const whatsappApi = {
   status: () => apiClient.get<any>('/whatsapp/status'),
   inbox: (params?: { status?: string; limit?: number }) => apiClient.get<any>('/whatsapp/inbox', { params }),
   conversations: (params?: { limit?: number }) => apiClient.get<any>('/whatsapp/conversations', { params }),
-  conversationMessages: (phone: string, params?: { limit?: number }) =>
+  conversationMessages: (phone: string, params?: { limit?: number; list_type?: 'lacrada' | 'seminovo' | 'android' | 'geral' }) =>
     apiClient.get<any>(`/whatsapp/conversations/${phone}/messages`, { params }),
   sendMessage: (phone: string, message: string) =>
-    apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }, { timeout: 120000 }),
+    apiClient.post<any>(`/whatsapp/conversations/${phone}/send`, { message }, { timeout: 300000 }),
   updateInboxStatus: (id: number, status: 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored') =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
     apiClient.post<any>(
       `/whatsapp/inbox/${id}/process`,
       listType && listType !== 'auto' ? { list_type: listType } : {},
-      { timeout: 120000 }
+      { timeout: 300000 }
     ),
   deleteInboxItem: (id: number) => apiClient.delete<any>(`/whatsapp/inbox/${id}`),
 }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2 } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -6,6 +6,8 @@ import toast from 'react-hot-toast'
 import { whatsappApi } from '@/lib/api'
 
 type InboxStatus = 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored'
+type ListType = 'lacrada' | 'seminovo' | 'android' | 'auto'
+type ConversationThreadType = 'lacrada' | 'seminovo' | 'android' | 'geral'
 
 const STATUS_LABEL: Record<InboxStatus, string> = {
   new: 'Novo',
@@ -16,10 +18,24 @@ const STATUS_LABEL: Record<InboxStatus, string> = {
 }
 
 export default function WhatsAppInboxPage() {
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [selectedPhone, setSelectedPhone] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string>('new')
+  const [selectedThreadKey, setSelectedThreadKey] = useState<string>('')
   const [draftMessage, setDraftMessage] = useState('')
   const [expandedMessageIds, setExpandedMessageIds] = useState<Record<number, boolean>>({})
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Record<number, boolean>>({})
+  const [listTypeByItemId, setListTypeByItemId] = useState<Record<number, ListType>>({})
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const PAGE_SIZE = 10
+
+  function inferListType(text: string): ListType {
+    const t = (text || '').toLowerCase()
+    const hasSeminovo = ['seminovo', 'semi-novo', 'usado', 'swap', 'vitrine'].some((k) => t.includes(k))
+    const hasLacrado = ['lacrado', 'novo', 'selado', 'seal', 'cpo'].some((k) => t.includes(k))
+    if (hasSeminovo && !hasLacrado) return 'seminovo'
+    if (hasLacrado) return 'lacrada'
+    return 'auto'
+  }
 
   const statusQuery = useQuery({
     queryKey: ['whatsapp-status'],
@@ -44,10 +60,19 @@ export default function WhatsAppInboxPage() {
     return raw?.items ?? []
   }, [conversationsQuery.data])
 
+  const selectedConversation = useMemo(
+    () => conversations.find((c: any) => c.thread_key === selectedThreadKey) || null,
+    [conversations, selectedThreadKey]
+  )
+
   const messagesQuery = useQuery({
-    queryKey: ['whatsapp-conversation-messages', selectedPhone],
-    queryFn: () => whatsappApi.conversationMessages(selectedPhone, { limit: 500 }),
-    enabled: !!selectedPhone,
+    queryKey: ['whatsapp-conversation-messages', selectedConversation?.from_phone, selectedConversation?.thread_type],
+    queryFn: () =>
+      whatsappApi.conversationMessages(selectedConversation?.from_phone, {
+        limit: 500,
+        list_type: (selectedConversation?.thread_type as ConversationThreadType) || undefined,
+      }),
+    enabled: !!selectedConversation?.from_phone,
     refetchInterval: 5000,
   })
 
@@ -60,6 +85,39 @@ export default function WhatsAppInboxPage() {
     const raw = (inboxQuery.data as any)?.data ?? inboxQuery.data
     return raw?.items ?? []
   }, [inboxQuery.data])
+
+  const pagedItems = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE
+    return items.slice(start, start + PAGE_SIZE)
+  }, [items, currentPage])
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages))
+  }, [totalPages])
+
+  useEffect(() => {
+    setSelectedBatchIds((prev) => {
+      const next = { ...prev }
+      for (const item of pagedItems) {
+        if (next[item.id] === undefined && (item.status === 'new' || item.status === 'pending_supplier')) {
+          next[item.id] = true
+        }
+      }
+      return next
+    })
+
+    setListTypeByItemId((prev) => {
+      const next = { ...prev }
+      for (const item of pagedItems) {
+        if (!next[item.id]) {
+          next[item.id] = inferListType((item.message_text || '').toString())
+        }
+      }
+      return next
+    })
+  }, [pagedItems])
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: number; status: InboxStatus }) => whatsappApi.updateInboxStatus(id, status),
@@ -86,7 +144,29 @@ export default function WhatsAppInboxPage() {
       conversationsQuery.refetch()
       messagesQuery.refetch()
     },
-    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao processar item'),
+    onError: async (e: any, variables) => {
+      const message = e?.message || e?.response?.data?.message || 'Erro ao processar item'
+      const isTimeout = /timeout|ECONNABORTED/i.test(String(message))
+
+      if (isTimeout) {
+        const refreshed = await inboxQuery.refetch()
+        const raw = (refreshed.data as any)?.data ?? refreshed.data
+        const updatedItem = raw?.items?.find((item: any) => Number(item.id) === Number(variables.id))
+
+        if (updatedItem?.status === 'processed') {
+          toast.success('Processado com sucesso (finalizou após timeout do navegador)')
+          statusQuery.refetch()
+          conversationsQuery.refetch()
+          messagesQuery.refetch()
+          return
+        }
+
+        toast('Processamento em andamento. Aguarde e clique em Atualizar.', { icon: '⏳' })
+        return
+      }
+
+      toast.error(message)
+    },
   })
 
   const sendMessageMutation = useMutation({
@@ -111,6 +191,40 @@ export default function WhatsAppInboxPage() {
       messagesQuery.refetch()
     },
     onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao excluir mensagem'),
+  })
+
+  const processBatchMutation = useMutation({
+    mutationFn: async () => {
+      const targetItems = pagedItems.filter((item: any) => !!selectedBatchIds[item.id])
+      let success = 0
+      let failed = 0
+
+      for (const item of targetItems) {
+        try {
+          await whatsappApi.processInboxItem(item.id, listTypeByItemId[item.id] || 'auto')
+          success += 1
+        } catch (_e) {
+          failed += 1
+        }
+      }
+
+      return { success, failed, total: targetItems.length }
+    },
+    onSuccess: ({ success, failed, total }) => {
+      if (total === 0) {
+        toast('Selecione ao menos 1 mensagem', { icon: 'ℹ️' })
+        return
+      }
+      if (failed === 0) {
+        toast.success(`Processamento em lote concluído (${success}/${total})`)
+      } else {
+        toast(`Lote concluído: ${success} sucesso, ${failed} falha`, { icon: '⚠️' })
+      }
+      inboxQuery.refetch()
+      statusQuery.refetch()
+      conversationsQuery.refetch()
+      messagesQuery.refetch()
+    },
   })
 
   const statusRaw = (statusQuery.data as any)?.data ?? statusQuery.data
@@ -179,12 +293,20 @@ export default function WhatsAppInboxPage() {
           ) : (
             <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
               {conversations.map((c: any) => {
-                const active = selectedPhone === c.from_phone
+                const active = selectedThreadKey === c.thread_key
+                const threadLabel =
+                  c.thread_type === 'lacrada'
+                    ? 'Lacrado'
+                    : c.thread_type === 'seminovo'
+                    ? 'Seminovo'
+                    : c.thread_type === 'android'
+                    ? 'Android'
+                    : 'Geral'
                 return (
                   <button
-                    key={c.from_phone}
+                    key={c.thread_key || `${c.from_phone}:${c.thread_type || 'geral'}`}
                     type="button"
-                    onClick={() => setSelectedPhone(c.from_phone)}
+                    onClick={() => setSelectedThreadKey(c.thread_key || `${c.from_phone}:${c.thread_type || 'geral'}`)}
                     className={`w-full text-left rounded-lg border px-3 py-2 transition-colors ${
                       active
                         ? 'border-green-500/40 bg-green-50 dark:bg-green-500/10'
@@ -196,6 +318,9 @@ export default function WhatsAppInboxPage() {
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
                       {c.from_phone}
+                    </div>
+                    <div className="text-[11px] inline-flex mt-1 px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200">
+                      {threadLabel}
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-300 truncate mt-1">
                       {c.last_direction === 'outbound' ? 'Você: ' : ''}{c.last_message_text || '(sem texto)'}
@@ -220,12 +345,14 @@ export default function WhatsAppInboxPage() {
         <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-4 shadow-sm lg:col-span-2 flex flex-col">
           <div className="pb-3 border-b border-gray-200 dark:border-white/10">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {selectedPhone ? `Conversa: ${selectedPhone}` : 'Selecione uma conversa'}
+              {selectedConversation
+                ? `Conversa: ${selectedConversation.from_phone} (${selectedConversation.thread_type || 'geral'})`
+                : 'Selecione uma conversa'}
             </h2>
           </div>
 
           <div className="flex-1 py-3 max-h-[420px] overflow-y-auto space-y-2">
-            {!selectedPhone ? (
+            {!selectedConversation?.from_phone ? (
               <div className="text-sm text-gray-500 dark:text-gray-400">Escolha uma conversa na coluna da esquerda.</div>
             ) : messagesQuery.isLoading ? (
               <div className="text-sm text-gray-500 dark:text-gray-400">Carregando mensagens...</div>
@@ -259,14 +386,19 @@ export default function WhatsAppInboxPage() {
               <input
                 value={draftMessage}
                 onChange={(e) => setDraftMessage(e.target.value)}
-                placeholder={selectedPhone ? 'Digite uma resposta...' : 'Selecione uma conversa para responder'}
-                disabled={!selectedPhone}
+                placeholder={selectedConversation?.from_phone ? 'Digite uma resposta...' : 'Selecione uma conversa para responder'}
+                disabled={!selectedConversation?.from_phone}
                 className="flex-1 rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-gray-900 dark:text-white disabled:opacity-60"
               />
               <button
                 type="button"
-                disabled={!selectedPhone || !draftMessage.trim() || sendMessageMutation.isPending}
-                onClick={() => sendMessageMutation.mutate({ phone: selectedPhone, message: draftMessage.trim() })}
+                disabled={!selectedConversation?.from_phone || !draftMessage.trim() || sendMessageMutation.isPending}
+                onClick={() =>
+                  sendMessageMutation.mutate({
+                    phone: selectedConversation.from_phone,
+                    message: draftMessage.trim(),
+                  })
+                }
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold disabled:opacity-60"
               >
                 <Send className="w-4 h-4" />
@@ -280,18 +412,32 @@ export default function WhatsAppInboxPage() {
       <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Mensagens recebidas</h2>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-gray-900 dark:text-white"
-          >
-            <option value="">Todos status</option>
-            <option value="new">Novo</option>
-            <option value="pending_supplier">Pendente fornecedor</option>
-            <option value="processed">Processado</option>
-            <option value="error">Erro</option>
-            <option value="ignored">Ignorado</option>
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => processBatchMutation.mutate()}
+              disabled={processBatchMutation.isPending}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              Processar selecionadas
+            </button>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                setStatusFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+              className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-2 text-sm text-gray-900 dark:text-white"
+            >
+              <option value="">Todos status</option>
+              <option value="new">Novo</option>
+              <option value="pending_supplier">Pendente fornecedor</option>
+              <option value="processed">Processado</option>
+              <option value="error">Erro</option>
+              <option value="ignored">Ignorado</option>
+            </select>
+          </div>
         </div>
 
         {inboxQuery.isLoading ? (
@@ -300,12 +446,39 @@ export default function WhatsAppInboxPage() {
           <div className="text-sm text-gray-500 dark:text-gray-400">Nenhuma mensagem recebida ainda.</div>
         ) : (
           <div className="space-y-3">
-            {items.map((item: any) => {
+            {pagedItems.map((item: any) => {
               const status = (item.status || 'new') as InboxStatus
               return (
                 <div key={item.id} className="rounded-lg border border-gray-200 dark:border-white/10 p-4">
                   <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div className="min-w-0">
+                      <div className="mb-2 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedBatchIds[item.id]}
+                          onChange={(e) =>
+                            setSelectedBatchIds((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.checked,
+                            }))
+                          }
+                        />
+                        <select
+                          value={listTypeByItemId[item.id] || 'auto'}
+                          onChange={(e) =>
+                            setListTypeByItemId((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value as ListType,
+                            }))
+                          }
+                          className="rounded-md border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-2 py-1 text-xs text-gray-900 dark:text-white"
+                        >
+                          <option value="auto">Auto</option>
+                          <option value="lacrada">Lacrado</option>
+                          <option value="seminovo">Seminovo</option>
+                          <option value="android">Android</option>
+                        </select>
+                      </div>
                       <div className="text-sm font-semibold text-gray-900 dark:text-white">
                         {item.profile_name || 'Sem nome'} • {item.from_phone || 'Sem telefone'}
                       </div>
@@ -355,7 +528,7 @@ export default function WhatsAppInboxPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Processar (Auto)
+                      Processar auto
                     </button>
                     <button
                       type="button"
@@ -372,6 +545,14 @@ export default function WhatsAppInboxPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
                       Seminovo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => processMutation.mutate({ id: item.id, listType: 'android' })}
+                      disabled={processMutation.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold disabled:opacity-60"
+                    >
+                      Android
                     </button>
                     <button
                       type="button"
@@ -415,6 +596,31 @@ export default function WhatsAppInboxPage() {
                 </div>
               )
             })}
+          </div>
+        )}
+        {items.length > 0 && (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Página {currentPage} de {totalPages} • mostrando {pagedItems.length} de {items.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/20 text-xs disabled:opacity-50"
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="px-3 py-1.5 rounded-lg border border-gray-300 dark:border-white/20 text-xs disabled:opacity-50"
+              >
+                Próxima
+              </button>
+            </div>
           </div>
         )}
       </div>
