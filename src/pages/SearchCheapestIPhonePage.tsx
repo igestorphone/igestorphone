@@ -815,91 +815,44 @@ Ainda tem disponível?`
   const todayStatsQuery = useQuery({
     queryKey: ['stats-dia', selectedDateOffset],
     queryFn: () => utilsApi.getGlobalStats(selectedDateOffset),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15000,
+    refetchInterval: 15000,
     refetchOnWindowFocus: true
   })
 
   const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
   const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
+  const totalWithoutListToday = (todayStatsQuery.data as any)?.total_without_list ?? 0
   const displayTopProducts = totalProductsToday
   const displayTopSuppliers = totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div className="space-y-4 p-4 md:p-6 max-w-full">
-        {/* Status bar - Totais do dia selecionado (novo + seminovo + android) */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="sticky top-0 z-10 bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 flex items-center justify-between flex-wrap gap-4"
-        >
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <Package className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                <AnimatedNumber value={displayTopProducts} /> produtos{' '}
-                <span className="text-gray-500 dark:text-gray-400 font-normal">({selectedDateLabel.toLowerCase()})</span>
-              </span>
-            </div>
-            <div className="h-6 w-px bg-gray-300 dark:bg-white/20" />
-            <div className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                <AnimatedNumber value={displayTopSuppliers} /> fornecedores processados{' '}
-                <span className="text-gray-500 dark:text-gray-400 font-normal">({selectedDateLabel.toLowerCase()})</span>
-              </span>
-            </div>
-          </div>
-
-          {/* Right side - Status and time */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-300/50 dark:border-white/15 bg-white/50 dark:bg-white/10">
-              {serverStatusQuery.data?.status === 'OK' ? (
-                <>
-                  <Wifi className="w-4 h-4 text-gray-600 dark:text-white/70" />
-                  <span className="text-sm font-medium text-gray-700 dark:text-white/80">ONLINE</span>
-                </>
-              ) : (
-                <>
-                  <Wifi className="w-4 h-4 text-red-600/80 dark:text-red-400/80" />
-                  <span className="text-sm font-medium text-red-600 dark:text-red-400/80">OFFLINE</span>
-                </>
-              )}
-            </div>
-            <LiveClock />
-          </div>
-        </motion.div>
-
         {/* Resumo + Banner comercial */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.03 }}
-          className="grid grid-cols-1 xl:grid-cols-12 gap-4"
+          className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start"
         >
-          <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-4">
+          <div className="xl:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-3 auto-rows-min">
+            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-3 min-h-[88px]">
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Produtos</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
                 <AnimatedNumber value={displayTopProducts} />
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-4">
+            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-3 min-h-[88px]">
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Fornecedores</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
+              <p className="mt-1 text-xl font-bold text-gray-900 dark:text-white">
                 <AnimatedNumber value={displayTopSuppliers} />
               </p>
             </div>
-            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Resultado da busca</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-white">
-                <AnimatedNumber value={pagination.total} />
-              </p>
-            </div>
-            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Preço médio</p>
-              <p className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {formatPrice(stats.averagePrice)}
+            <div className="rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-black p-3 min-h-[88px]">
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Sem lista</p>
+              <p className="mt-1 text-xl font-bold text-amber-600 dark:text-amber-400">
+                <AnimatedNumber value={totalWithoutListToday} />
               </p>
             </div>
           </div>
@@ -936,6 +889,27 @@ Ainda tem disponível?`
           </div>
         </motion.div>
 
+        {/* Search - input isolado para não re-renderizar a página ao digitar */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
+        >
+          <SearchInputDebounced
+            key={searchMode}
+            onDebouncedChange={setDebouncedSearch}
+            searchMode={searchMode}
+            placeholder={
+              searchMode === 'android'
+                ? 'Ex: Samsung, Xiaomi, Motorola...'
+                : searchMode === 'seminovo'
+                  ? 'Ex: iPhone 15, iPhone 14...'
+                  : 'Ex: iPhone 16, MacBook, AirPods...'
+            }
+          />
+        </motion.div>
+
         {/* Tipo de busca: Apple | Semi-novo | Android (estilo concorrente) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -964,27 +938,6 @@ Ainda tem disponível?`
               </button>
             ))}
           </div>
-        </motion.div>
-
-        {/* Search - input isolado para não re-renderizar a página ao digitar */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1 }}
-          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
-        >
-          <SearchInputDebounced
-            key={searchMode}
-            onDebouncedChange={setDebouncedSearch}
-            searchMode={searchMode}
-            placeholder={
-              searchMode === 'android'
-                ? 'Ex: Samsung, Xiaomi, Motorola...'
-                : searchMode === 'seminovo'
-                  ? 'Ex: iPhone 15, iPhone 14...'
-                  : 'Ex: iPhone 16, MacBook, AirPods...'
-            }
-          />
         </motion.div>
 
         {/* Update status and filters */}

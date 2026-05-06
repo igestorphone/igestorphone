@@ -21,19 +21,34 @@ router.get('/stats', authenticateToken, async (req, res) => {
         CROSS JOIN dia_ref d
         WHERE p.is_active = true AND p.price > 0 AND p.price IS NOT NULL
           AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = d.dia
+      ),
+      fornecedores_ativos AS (
+        SELECT s.id
+        FROM suppliers s
+        WHERE s.is_active = true
+      ),
+      fornecedores_com_lista AS (
+        SELECT DISTINCT pd.supplier_id
+        FROM produtos_dia pd
+        WHERE pd.supplier_id IS NOT NULL
       )
       SELECT
         (SELECT COUNT(*)::int FROM produtos_dia) AS total_products,
-        (SELECT COUNT(DISTINCT supplier_id)::int FROM produtos_dia) AS total_suppliers
+        (SELECT COUNT(*)::int FROM fornecedores_com_lista) AS total_suppliers,
+        GREATEST(
+          (SELECT COUNT(*)::int FROM fornecedores_ativos) - (SELECT COUNT(*)::int FROM fornecedores_com_lista),
+          0
+        ) AS total_without_list
     `, [dateOffset]);
     const row = result.rows[0];
     res.json({
       total_products: row?.total_products ?? 0,
-      total_suppliers: row?.total_suppliers ?? 0
+      total_suppliers: row?.total_suppliers ?? 0,
+      total_without_list: row?.total_without_list ?? 0
     });
   } catch (err) {
     console.error('Erro ao buscar stats:', err);
-    res.status(500).json({ total_products: 0, total_suppliers: 0 });
+    res.status(500).json({ total_products: 0, total_suppliers: 0, total_without_list: 0 });
   }
 });
 
