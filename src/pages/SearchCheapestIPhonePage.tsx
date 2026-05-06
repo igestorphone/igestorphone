@@ -206,53 +206,6 @@ function getSeminovoOriginBadge(variant: string | null | undefined) {
   return SEMINOVO_ORIGIN[key] ?? null
 }
 
-function buildAndroidDisplayName(product: any) {
-  const name = (product?.name || '').toString().trim()
-  const model = (product?.model || '').toString().trim()
-  if (!name && !model) return 'N/A'
-  if (!name) return model
-  if (!model) return name
-
-  const n = name.toLowerCase()
-  const m = model.toLowerCase()
-  if (n.includes(m)) return name
-  if (m.includes(n)) return model
-  return `${name} ${model}`.replace(/\s+/g, ' ').trim()
-}
-
-function inferVariantFromModelCode(product: any): string | null {
-  const modelBlob = `${product?.model || ''} ${product?.name || ''}`.toUpperCase()
-  if (/\bJ\/A\b/.test(modelBlob)) return 'JAPONÊS'
-  if (/\bLL\/A\b/.test(modelBlob) || /\bUS\/A\b/.test(modelBlob)) return 'AMERICANO'
-  if (/\bCH\/A\b/.test(modelBlob) || /\bZA\/A\b/.test(modelBlob) || /\bZP\/A\b/.test(modelBlob)) return 'CHINÊS'
-  if (/\bHN\/A\b/.test(modelBlob)) return 'INDIANO'
-  return null
-}
-
-function getDisplayVariant(product: any): string {
-  const variant = (product?.variant || '').toString().trim().toUpperCase()
-  if (!variant) return ''
-  if (variant === 'ANATEL') {
-    const byCode = inferVariantFromModelCode(product)
-    if (byCode) return byCode
-  }
-  return variant
-}
-
-function shouldShowVariantBadge(product: any, mode: SearchMode) {
-  const variant = getDisplayVariant(product)
-  if (!variant) return false
-  if (mode === 'android') return false
-
-  const variantUpper = variant
-  if (variantUpper === 'ANATEL') {
-    const modelOrName = `${product?.model || ''} ${product?.name || ''}`.toLowerCase()
-    // Evita ANATEL "global" aparecendo em iPad/MacBook por dado sujo.
-    if (!modelOrName.includes('iphone')) return false
-  }
-  return true
-}
-
 // Sugestões para efeito de digitação por modo
 const TYPING_SUGGESTIONS: Record<string, string[]> = {
   novo: ['iPhone 17 Pro Max', 'iPhone 16 Pro', 'MacBook Air', 'AirPods Pro'],
@@ -471,12 +424,16 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [selectedStorage, setSelectedStorage] = useState('')
   const [selectedRam, setSelectedRam] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
+  const [selectedSupplier, setSelectedSupplier] = useState('')
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
+  const [supplierSearch, setSupplierSearch] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
   const [showFiltersMobile, setShowFiltersMobile] = useState(false)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
   const [queryReady, setQueryReady] = useState(() => !isMobile())
+  const supplierDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (queryReady) return
@@ -489,7 +446,21 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor])
+  }, [debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor, selectedSupplier])
+
+  useEffect(() => {
+    if (!showSupplierDropdown) return
+
+    const handleOutside = (event: MouseEvent) => {
+      if (!supplierDropdownRef.current) return
+      if (!supplierDropdownRef.current.contains(event.target as Node)) {
+        setShowSupplierDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showSupplierDropdown])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -733,6 +704,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     if (selectedStorage) {
       all = all.filter((p: any) => normalizeStorage(p.storage) === selectedStorage)
     }
+    if (selectedSupplier) {
+      all = all.filter((p: any) => (p.supplier_name || '').toLowerCase() === selectedSupplier.toLowerCase())
+    }
     if (!selectedRam) return all
     return all.filter((p: any) => {
       const ramVal = p.specifications?.ram || p.region
@@ -746,7 +720,13 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       }
       return false
     })
-  }, [productsQuery.data, selectedRam, selectedColor, debouncedSearch])
+  }, [productsQuery.data, selectedRam, selectedColor, selectedSupplier, debouncedSearch])
+
+  const visibleSuppliers = useMemo(() => {
+    const term = supplierSearch.trim().toLowerCase()
+    if (!term) return dynamicFilters.suppliers
+    return dynamicFilters.suppliers.filter((supplier) => supplier.toLowerCase().includes(term))
+  }, [dynamicFilters.suppliers, supplierSearch])
 
   const stats = useMemo(() => {
     const products = filteredProducts
@@ -964,8 +944,8 @@ Ainda tem disponível?`
             )}
           </button>
           {/* Filters row - no mobile só quando expandido */}
-          <div className={`overflow-x-auto -mx-4 px-4 ${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 min-w-max">
+          <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
             <div className="relative">
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                 <CalendarDays className="w-4 h-4 mr-1.5" />
@@ -1199,13 +1179,94 @@ Ainda tem disponível?`
                 <ShoppingCart className="w-4 h-4 mr-1.5" />
                 Fornecedor
               </label>
-              <select
-                value=""
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                <option value="">Todos os Forneced...</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <div className="relative" ref={supplierDropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowSupplierDropdown((s) => !s)}
+                  className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-900 dark:text-white text-left flex items-center justify-between gap-2"
+                >
+                  <span className="truncate">{selectedSupplier || 'Todos os Fornecedores'}</span>
+                  <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                </button>
+
+                {showSupplierDropdown && (
+                  <div className="absolute z-30 mt-2 w-[320px] max-w-[90vw] right-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-xl overflow-hidden">
+                    <div className="p-3 border-b border-gray-100 dark:border-white/10">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={supplierSearch}
+                          onChange={(e) => setSupplierSearch(e.target.value)}
+                          placeholder="Buscar fornecedor..."
+                          className="w-full pl-9 pr-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-black text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto p-2 space-y-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedSupplier('')
+                          setShowSupplierDropdown(false)
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                          !selectedSupplier
+                            ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                            : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        Todos os Fornecedores
+                      </button>
+
+                      {visibleSuppliers.length > 0 ? (
+                        visibleSuppliers.map((supplier) => (
+                          <button
+                            key={supplier}
+                            type="button"
+                            onClick={() => {
+                              setSelectedSupplier(supplier)
+                              setShowSupplierDropdown(false)
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                              selectedSupplier === supplier
+                                ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                                : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200'
+                            }`}
+                          >
+                            {supplier}
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-3 py-3 text-sm text-gray-500 dark:text-gray-400">
+                          Nenhum fornecedor encontrado
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 p-2 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-black">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSupplierSearch('')
+                          setSelectedSupplier('')
+                        }}
+                        className="px-3 py-1.5 text-sm rounded-lg hover:bg-gray-200 dark:hover:bg-white/10 text-gray-700 dark:text-gray-200 transition-colors"
+                      >
+                        Limpar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSupplierDropdown(false)}
+                        className="px-3 py-1.5 text-sm rounded-lg bg-gray-900 text-white dark:bg-white dark:text-gray-900 transition-colors"
+                      >
+                        Fechar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             </div>
           </div>
@@ -1372,11 +1433,9 @@ Ainda tem disponível?`
                                 )}
                                 <div className="min-w-0">
                                   <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                                    {searchMode === 'android'
-                                      ? buildAndroidDisplayName(product)
-                                      : (product.name || product.model || 'N/A')}
+                                    {product.name || product.model || 'N/A'}
                                   </div>
-                                  {searchMode !== 'android' && product.model && product.model !== product.name && (
+                                  {product.model && product.model !== product.name && (
                                     <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5 truncate">{product.model}</div>
                                   )}
                                 </div>
@@ -1389,21 +1448,16 @@ Ainda tem disponível?`
                                   <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
                                     {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                                   </span>
-                                ) : shouldShowVariantBadge(product, searchMode) ? (
-                                  (() => {
-                                    const displayVariant = getDisplayVariant(product)
-                                    return (
+                                ) : product.variant ? (
                                   <span
                                     className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
-                                      displayVariant === 'ANATEL'
+                                      product.variant.toUpperCase() === 'ANATEL'
                                         ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
                                         : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                                     }`}
                                   >
-                                    {displayVariant}
+                                    {product.variant}
                                   </span>
-                                    )
-                                  })()
                                 ) : null}
                               </div>
                             </td>
@@ -1532,12 +1586,10 @@ Ainda tem disponível?`
                                 </motion.span>
                               )}
                               <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                {searchMode === 'android'
-                                  ? buildAndroidDisplayName(product)
-                                  : (product.name || product.model || 'N/A')}
+                                {product.name || product.model || 'N/A'}
                               </h3>
                             </div>
-                            {searchMode !== 'android' && product.model && product.model !== product.name && (
+                            {product.model && product.model !== product.name && (
                               <p className="text-xs text-gray-600 dark:text-gray-300">{product.model}</p>
                             )}
                           </div>
@@ -1572,21 +1624,16 @@ Ainda tem disponível?`
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
                               {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
                             </span>
-                          ) : shouldShowVariantBadge(product, searchMode) ? (
-                            (() => {
-                              const displayVariant = getDisplayVariant(product)
-                              return (
+                          ) : product.variant ? (
                             <span
                               className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
-                                displayVariant === 'ANATEL'
+                                product.variant.toUpperCase() === 'ANATEL'
                                   ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
                                   : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
                               }`}
                             >
-                              {displayVariant}
+                              {product.variant}
                             </span>
-                              )
-                            })()
                           ) : null}
                         </div>
 
