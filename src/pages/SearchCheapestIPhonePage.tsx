@@ -23,7 +23,9 @@ import {
   Clock,
   AlertTriangle,
   SlidersHorizontal,
-  Check
+  Check,
+  TrendingUp,
+  TrendingDown
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -429,7 +431,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
   const [supplierSearch, setSupplierSearch] = useState('')
   const [showSecurityAlert, setShowSecurityAlert] = useState(false)
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false)
+  const [showFiltersMobile, setShowFiltersMobile] = useState(true)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
@@ -931,16 +933,13 @@ Ainda tem disponível?`
                 <Users className="w-6 h-6" />
               </span>
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4">
               <button
                 type="button"
                 className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
               >
                 Quero indicar
               </button>
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                Banner de ADS ativo
-              </span>
             </div>
           </div>
         </motion.div>
