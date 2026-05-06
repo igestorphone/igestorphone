@@ -969,42 +969,42 @@ Ainda tem disponível?`
           </button>
           {/* Filters row - no mobile só quando expandido */}
           <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <CalendarDays className="w-4 h-4 mr-1.5" />
-                Data
+            <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 xl:gap-3">
+            <div className="relative min-w-0">
+              <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
+                <CalendarDays className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="truncate">Data</span>
               </label>
 
               <button
                 ref={datePickerButtonRef}
                 type="button"
                 onClick={() => setShowDatePicker((s) => !s)}
-                className="w-full h-11 px-3 py-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors flex items-center"
+                className="w-full h-10 xl:h-11 px-1.5 xl:px-3 py-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors flex items-center"
               >
-                <div className="flex items-center justify-between gap-3 w-full">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-10 h-10 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center font-bold shrink-0">
+                <div className="flex items-center justify-between gap-1 xl:gap-3 w-full min-w-0">
+                  <div className="flex items-center gap-1 xl:gap-3 min-w-0">
+                    <span className="w-7 h-7 xl:w-10 xl:h-10 rounded-lg xl:rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs xl:text-base font-bold shrink-0">
                       {selectedDateParts.dayNumber}
                     </span>
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold truncate leading-tight">{selectedDateParts.weekday}</div>
+                    <div className="min-w-0 hidden sm:block">
+                      <div className="text-[10px] xl:text-sm font-semibold truncate leading-tight">{selectedDateParts.weekday}</div>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-0.5 xl:gap-2 shrink-0">
                     {(() => {
                       const opt = dateOptions.find((d) => d.key === selectedDateKey)
                       return (
-                        <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold">
+                        <span className="px-1.5 py-0.5 xl:px-3 xl:py-1.5 rounded-full bg-gray-900 text-white text-[9px] xl:text-xs font-semibold">
                           {opt?.label ?? 'Hoje'}
                         </span>
                       )
                     })()}
                     {showDatePicker ? (
-                      <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <ChevronUp className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                     ) : (
-                      <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                      <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                     )}
                   </div>
                 </div>
@@ -1084,133 +1084,145 @@ Ainda tem disponível?`
                 )}
             </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Building2 className="w-4 h-4 mr-1.5" />
-                Categoria
+            <div className="relative min-w-0">
+              <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
+                <Building2 className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="truncate">Categoria</span>
               </label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                <option value="">Todas as Categorias</option>
-                {dynamicFilters.categories.length > 0 ? (
-                  dynamicFilters.categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="iPhone">iPhone</option>
-                    <option value="iPad">iPad</option>
-                    <option value="MacBook">MacBook</option>
-                    <option value="AirPods">AirPods</option>
-                    <option value="Apple Watch">Apple Watch</option>
-                  </>
-                )}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <div className="relative">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
+                >
+                  <option value="">Todas as Categorias</option>
+                  {dynamicFilters.categories.length > 0 ? (
+                    dynamicFilters.categories.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="iPhone">iPhone</option>
+                      <option value="iPad">iPad</option>
+                      <option value="MacBook">MacBook</option>
+                      <option value="AirPods">AirPods</option>
+                      <option value="Apple Watch">Apple Watch</option>
+                    </>
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Package className="w-4 h-4 mr-1.5" />
-                SSD / Armazenamento
-              </label>
-              <select
-                value={selectedStorage}
-                onChange={(e) => setSelectedStorage(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
+            <div className="relative min-w-0">
+              <label
+                className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0 leading-tight"
+                title="SSD / Armazenamento"
               >
-                <option value="">Todas</option>
-                {dynamicFilters.storages.length > 0 ? (
-                  dynamicFilters.storages.map((storage) => (
-                    <option key={storage} value={storage}>
-                      {storage}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="64GB">64GB</option>
-                    <option value="128GB">128GB</option>
-                    <option value="256GB">256GB</option>
-                    <option value="512GB">512GB</option>
-                    <option value="1TB">1TB</option>
-                  </>
-                )}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                <Package className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="xl:hidden">SSD / Armaz.</span>
+                <span className="hidden xl:inline truncate">SSD / Armazenamento</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedStorage}
+                  onChange={(e) => setSelectedStorage(e.target.value)}
+                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
+                >
+                  <option value="">Todas</option>
+                  {dynamicFilters.storages.length > 0 ? (
+                    dynamicFilters.storages.map((storage) => (
+                      <option key={storage} value={storage}>
+                        {storage}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="64GB">64GB</option>
+                      <option value="128GB">128GB</option>
+                      <option value="256GB">256GB</option>
+                      <option value="512GB">512GB</option>
+                      <option value="1TB">1TB</option>
+                    </>
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Building2 className="w-4 h-4 mr-1.5" />
-                GB de RAM
+            <div className="relative min-w-0">
+              <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
+                <Building2 className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="truncate">GB de RAM</span>
               </label>
-              <select
-                value={selectedRam}
-                onChange={(e) => setSelectedRam(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                <option value="">Todas</option>
-                {dynamicFilters.rams.length > 0 ? (
-                  dynamicFilters.rams.map((ram) => (
-                    <option key={ram} value={ram}>{ram}</option>
-                  ))
-                ) : (
-                  <>
-                    <option value="8GB">8GB</option>
-                    <option value="16GB">16GB</option>
-                    <option value="24GB">24GB</option>
-                  </>
-                )}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <div className="relative">
+                <select
+                  value={selectedRam}
+                  onChange={(e) => setSelectedRam(e.target.value)}
+                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
+                >
+                  <option value="">Todas</option>
+                  {dynamicFilters.rams.length > 0 ? (
+                    dynamicFilters.rams.map((ram) => (
+                      <option key={ram} value={ram}>{ram}</option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="8GB">8GB</option>
+                      <option value="16GB">16GB</option>
+                      <option value="24GB">24GB</option>
+                    </>
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <Palette className="w-4 h-4 mr-1.5" />
-                Cor
+            <div className="relative min-w-0">
+              <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
+                <Palette className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="truncate">Cor</span>
               </label>
-              <select
-                value={selectedColor}
-                onChange={(e) => setSelectedColor(e.target.value)}
-                className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white"
-              >
-                <option value="">Todas as Cores</option>
-                {dynamicFilters.colors.length > 0 ? (
-                  dynamicFilters.colors.map((color) => (
-                    <option key={color} value={color}>
-                      {color}
-                    </option>
-                  ))
-                ) : (
-                  OFFICIAL_COLORS.map((color) => (
-                    <option key={color} value={color}>
-                      {color}
-                    </option>
-                  ))
-                )}
-              </select>
-              <ChevronDown className="absolute right-3 top-9 w-4 h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <div className="relative">
+                <select
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
+                >
+                  <option value="">Todas as Cores</option>
+                  {dynamicFilters.colors.length > 0 ? (
+                    dynamicFilters.colors.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))
+                  ) : (
+                    OFFICIAL_COLORS.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              </div>
             </div>
 
-            <div className="relative">
-              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                <ShoppingCart className="w-4 h-4 mr-1.5" />
-                Fornecedor
+            <div className="relative min-w-0">
+              <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
+                <ShoppingCart className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
+                <span className="truncate">Fornecedor</span>
               </label>
               <div className="relative" ref={supplierDropdownRef}>
                 <button
                   type="button"
                   onClick={() => setShowSupplierDropdown((s) => !s)}
-                  className="w-full px-3 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-900 dark:text-white text-left flex items-center justify-between gap-2"
+                  className="w-full px-2 xl:px-3 py-2 xl:py-2.5 min-h-[2.5rem] xl:min-h-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-medium text-gray-900 dark:text-white text-left flex items-center justify-between gap-1 xl:gap-2"
                 >
                   <span className="truncate">{selectedSupplier || 'Todos os Fornecedores'}</span>
-                  <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                  <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 shrink-0" />
                 </button>
 
                 {showSupplierDropdown && (
