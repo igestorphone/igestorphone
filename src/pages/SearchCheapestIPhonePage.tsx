@@ -836,38 +836,38 @@ Ainda tem disponível?`
           transition={{ duration: 0.35, delay: 0.03 }}
           className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start"
         >
-          <div className="xl:col-span-7 space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 auto-rows-min">
+          <div className="order-2 xl:order-1 xl:col-span-7 space-y-3">
+            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
               <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Produtos</p>
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Produtos</p>
+                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
                     <Package className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <p className="mt-1 text-[28px] leading-none font-black text-slate-900 dark:text-white">
+                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-slate-900 dark:text-white">
                   <AnimatedNumber value={displayTopProducts} />
                 </p>
               </div>
               <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-400/20 bg-gradient-to-br from-white to-emerald-50/60 dark:from-zinc-950 dark:to-emerald-950/20 p-3 min-h-[84px] shadow-[0_1px_0_rgba(16,185,129,0.08)]">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Fornecedores</p>
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Fornec.</p>
+                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                     <ShoppingCart className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <p className="mt-1 text-[28px] leading-none font-black text-slate-900 dark:text-white">
+                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-slate-900 dark:text-white">
                   <AnimatedNumber value={displayTopSuppliers} />
                 </p>
               </div>
               <div className="rounded-xl border border-amber-200/80 dark:border-amber-400/20 bg-gradient-to-br from-white to-amber-50/60 dark:from-zinc-950 dark:to-amber-950/20 p-3 min-h-[84px] shadow-[0_1px_0_rgba(245,158,11,0.08)]">
                 <div className="flex items-center justify-between">
-                  <p className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Sem lista</p>
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Sem lista</p>
+                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
                     <AlertTriangle className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <p className="mt-1 text-[28px] leading-none font-black text-amber-700 dark:text-amber-300">
+                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-amber-700 dark:text-amber-300">
                   <AnimatedNumber value={totalWithoutListToday} />
                 </p>
               </div>
@@ -913,7 +913,7 @@ Ainda tem disponível?`
             </div>
           </div>
 
-          <div className="xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[210px]">
+          <div className="order-1 xl:order-2 xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[180px] sm:min-h-[210px]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-white/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30">
@@ -923,7 +923,7 @@ Ainda tem disponível?`
                 <h3 className="mt-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
                   Indique e ganhe R$ 50,00 de desconto na mensalidade
                 </h3>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
                   Traga um lojista para o iGestorPhone e receba desconto no proximo ciclo.
                 </p>
               </div>
