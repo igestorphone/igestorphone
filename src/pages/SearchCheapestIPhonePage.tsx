@@ -969,7 +969,7 @@ Ainda tem disponível?`
           </button>
           {/* Filters row - no mobile só quando expandido */}
           <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
-            <div className="grid grid-cols-3 xl:grid-cols-6 gap-2 xl:gap-3">
+            <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
             <div className="relative min-w-0">
               <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
                 <CalendarDays className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
@@ -987,7 +987,7 @@ Ainda tem disponível?`
                     <span className="w-7 h-7 xl:w-10 xl:h-10 rounded-lg xl:rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs xl:text-base font-bold shrink-0">
                       {selectedDateParts.dayNumber}
                     </span>
-                    <div className="min-w-0 hidden sm:block">
+                    <div className="min-w-0">
                       <div className="text-[10px] xl:text-sm font-semibold truncate leading-tight">{selectedDateParts.weekday}</div>
                     </div>
                   </div>
