@@ -9,6 +9,19 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import toast from 'react-hot-toast'
 
+function getPostLoginPath(): string {
+  const u = useAuthStore.getState().user
+  if (!u) return '/search-cheapest-iphone'
+  if (u.subscription_status === 'pending_payment' || u.subscription_status === 'overdue') {
+    return '/checkout'
+  }
+  const p = u.permissions
+  if (Array.isArray(p) && p.length === 1 && p[0] === 'calendario') {
+    return '/calendar'
+  }
+  return '/search-cheapest-iphone'
+}
+
 const loginSchema = z.object({
   email: z
     .string()
@@ -27,6 +40,7 @@ export default function LoginPage() {
   const { addNotification } = useAppStore()
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
+  const [leaving, setLeaving] = useState(false)
 
   const {
     register,
@@ -51,7 +65,11 @@ export default function LoginPage() {
           message: 'Bem-vindo de volta!',
           duration: 3000
         })
-        navigate('/entrando', { replace: true })
+        const target = getPostLoginPath()
+        setLeaving(true)
+        window.setTimeout(() => {
+          navigate(target, { replace: true })
+        }, 280)
       } else {
         toast.error('Email ou senha inválidos')
         setError('email', { message: 'Email ou senha inválidos' })
@@ -70,8 +88,8 @@ export default function LoginPage() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
+      animate={leaving ? { opacity: 0, y: -10 } : { opacity: 1, y: 0 }}
+      transition={{ duration: leaving ? 0.28 : 0.5, ease: [0.22, 1, 0.36, 1] }}
       className="w-full"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">

@@ -31,7 +31,7 @@ import RankingPage from '@/pages/RankingPage'
 import CalendarPage from '@/pages/CalendarPage'
 import PriceAveragesPage from '@/pages/PriceAveragesPage'
 import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
-import PostLoginLoadingPage from '@/pages/PostLoginLoadingPage'
+import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
 import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
 import WhatsAppInboxPage from '@/pages/WhatsAppInboxPage'
@@ -106,7 +106,7 @@ function App() {
         <Route path="/dashboard" element={<Navigate to="/search-cheapest-iphone" replace />} />
         <Route path="/entrando" element={
           <ProtectedRoute>
-            <PostLoginLoadingPage />
+            <PostLoginRedirect />
           </ProtectedRoute>
         } />
         <Route path="/search-iphone-seminovo" element={<Navigate to="/search-cheapest-iphone?mode=seminovo" replace />} />
