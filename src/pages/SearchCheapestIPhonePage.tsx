@@ -803,12 +803,7 @@ Ainda tem disponível?`
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Topo estilo concorrente: cards + busca + modos + banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, delay: 0.03 }}
-          className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start"
-        >
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
           <div className="order-2 xl:order-1 xl:col-span-7 space-y-3">
             <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
               <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
@@ -913,15 +908,10 @@ Ainda tem disponível?`
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Update status and filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10"
-        >
+        <div className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
           {/* Mobile: botão Mostrar/Ocultar filtros */}
           <button
             type="button"
@@ -1277,7 +1267,7 @@ Ainda tem disponível?`
             </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Results */}
         <motion.div
@@ -1336,10 +1326,10 @@ Ainda tem disponível?`
             ) : (
               <motion.div
                 key="results"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.3 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
               >
                 <div className="p-4 border-b border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
