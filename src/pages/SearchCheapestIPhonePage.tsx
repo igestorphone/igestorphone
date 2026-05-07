@@ -211,6 +211,7 @@ function getSeminovoOriginBadge(variant: string | null | undefined) {
 
 // Sugestões para efeito de digitação por modo
 const TYPING_SUGGESTIONS: Record<string, string[]> = {
+  all: ['iPhone 17 Pro Max', 'Samsung Galaxy S24', 'Xiaomi 14', 'MacBook Air'],
   novo: ['iPhone 17 Pro Max', 'iPhone 16 Pro', 'MacBook Air', 'AirPods Pro'],
   seminovo: ['iPhone 15 Pro', 'iPhone 14 Pro Max', 'iPhone 13'],
   android: ['Samsung Galaxy', 'Xiaomi', 'Motorola Edge']
@@ -371,7 +372,8 @@ const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
 type SearchMode = 'novo' | 'seminovo' | 'android'
 
-function getDefaultSearchForMode(mode: SearchMode): string {
+function getDefaultSearchForMode(mode: SearchMode | null): string {
+  if (!mode) return ''
   if (mode === 'seminovo') return 'iphone '
   if (mode === 'android') return ''
   return ''
@@ -383,13 +385,14 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   const modeFromUrl = searchParams.get('mode') as SearchMode | null
   const urlModeValid = modeFromUrl === 'novo' || modeFromUrl === 'seminovo' || modeFromUrl === 'android'
-  const [searchMode, setSearchModeState] = useState<SearchMode>(() =>
-    initialSearchMode ?? (urlModeValid ? modeFromUrl! : 'novo')
+  const [searchMode, setSearchModeState] = useState<SearchMode | null>(() =>
+    initialSearchMode ?? (urlModeValid ? modeFromUrl! : null)
   )
 
-  const setSearchMode = (mode: SearchMode) => {
+  const setSearchMode = (mode: SearchMode | null) => {
     setSearchModeState(mode)
-    setSearchParams({ mode }, { replace: true })
+    if (mode) setSearchParams({ mode }, { replace: true })
+    else setSearchParams({}, { replace: true })
     setDebouncedSearch(getDefaultSearchForMode(mode))
   }
 
@@ -450,7 +453,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor, selectedSupplier])
+  }, [searchMode, debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor, selectedSupplier])
 
   useEffect(() => {
     if (!showSupplierDropdown) return
@@ -514,7 +517,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       } else if (searchMode === 'seminovo') {
         params.condition_type = 'seminovos'
         params.product_type = 'apple'
-      } else {
+      } else if (searchMode === 'android') {
         params.product_type = 'android'
       }
       return produtosApi.getAll(params)
@@ -826,8 +829,8 @@ Ainda tem disponível?`
   const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
   const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
   const totalWithoutListToday = (todayStatsQuery.data as any)?.total_without_list ?? 0
-  const displayTopProducts = totalProductsToday
-  const displayTopSuppliers = totalSuppliersToday
+  const displayTopProducts = searchMode ? stats.total : totalProductsToday
+  const displayTopSuppliers = searchMode ? stats.suppliersCount : totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
@@ -873,15 +876,17 @@ Ainda tem disponível?`
 
             <div className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
               <SearchInputDebounced
-                key={searchMode}
+                key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
-                searchMode={searchMode}
+                searchMode={searchMode ?? 'all'}
                 placeholder={
                   searchMode === 'android'
                     ? 'Ex: Samsung, Xiaomi, Motorola...'
                     : searchMode === 'seminovo'
                       ? 'Ex: iPhone 15, iPhone 14...'
-                      : 'Ex: iPhone 16, MacBook, AirPods...'
+                      : searchMode === 'novo'
+                        ? 'Ex: iPhone 16, MacBook, AirPods...'
+                        : 'Ex: iPhone, Samsung, Xiaomi, MacBook...'
                 }
               />
             </div>
@@ -889,7 +894,7 @@ Ainda tem disponível?`
             <div className="bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
               <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-3">
                 {([
-                  { mode: 'novo' as const, label: 'Apple', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
+                  { mode: 'novo' as const, label: 'Lacrado', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
                   { mode: 'android' as const, label: 'Android', emoji: '🤖', activeClass: 'bg-green-600 text-white border-green-600' },
                   { mode: 'seminovo' as const, label: 'Semi-novo', emoji: '💚', activeClass: 'bg-emerald-600 text-white border-emerald-600' }
                 ]).map(({ mode, label, emoji, activeClass }) => (
