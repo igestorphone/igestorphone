@@ -441,6 +441,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   // No mobile: atrasa a query para o shell ficar interativo antes da rede
   const [queryReady, setQueryReady] = useState(() => !isMobile())
   const supplierDropdownRef = useRef<HTMLDivElement>(null)
+  const modeChipsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (queryReady) return
@@ -468,6 +469,22 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     document.addEventListener('mousedown', handleOutside)
     return () => document.removeEventListener('mousedown', handleOutside)
   }, [showSupplierDropdown])
+
+  useEffect(() => {
+    if (!searchMode) return
+
+    const handleOutsideModeChips = (event: MouseEvent) => {
+      if (!modeChipsRef.current) return
+      if (!modeChipsRef.current.contains(event.target as Node)) {
+        setSearchModeState(null)
+        setSearchParams({}, { replace: true })
+        setDebouncedSearch(getDefaultSearchForMode(null))
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideModeChips)
+    return () => document.removeEventListener('mousedown', handleOutsideModeChips)
+  }, [searchMode, setSearchParams])
 
   useEffect(() => {
     const handleFocus = () => queryClient.invalidateQueries({ queryKey: ['produtos'] })
@@ -891,7 +908,7 @@ Ainda tem disponível?`
               />
             </div>
 
-            <div className="bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
+            <div ref={modeChipsRef} className="bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
               <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-3">
                 {([
                   { mode: 'novo' as const, label: 'Lacrado', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
