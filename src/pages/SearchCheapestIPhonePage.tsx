@@ -442,6 +442,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [queryReady, setQueryReady] = useState(() => !isMobile())
   const supplierDropdownRef = useRef<HTMLDivElement>(null)
   const modeChipsRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (queryReady) return
@@ -474,8 +475,10 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     if (!searchMode) return
 
     const handleOutsideModeChips = (event: MouseEvent) => {
-      if (!modeChipsRef.current) return
-      if (!modeChipsRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      const clickedModeChips = !!modeChipsRef.current?.contains(target)
+      const clickedSearchInput = !!searchInputRef.current?.contains(target)
+      if (!clickedModeChips && !clickedSearchInput) {
         setSearchModeState(null)
         setSearchParams({}, { replace: true })
         setDebouncedSearch(getDefaultSearchForMode(null))
@@ -891,7 +894,7 @@ Ainda tem disponível?`
               </div>
             </div>
 
-            <div className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
+            <div ref={searchInputRef} className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
               <SearchInputDebounced
                 key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
