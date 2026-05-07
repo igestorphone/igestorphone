@@ -333,8 +333,38 @@ function LiveClock() {
   )
 }
 
-function AnimatedNumber({ value }: { value: number }) {
-  return <>{value.toLocaleString('pt-BR')}</>
+function AnimatedNumber({ value, durationMs = 700 }: { value: number; durationMs?: number }) {
+  const [displayValue, setDisplayValue] = useState(value)
+  const displayRef = useRef(value)
+
+  useEffect(() => {
+    const from = displayRef.current
+    const to = value
+
+    if (from === to) {
+      setDisplayValue(to)
+      return
+    }
+
+    const start = performance.now()
+    let rafId: number | null = null
+
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - start) / durationMs)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const next = Math.round(from + (to - from) * eased)
+      displayRef.current = next
+      setDisplayValue(next)
+      if (progress < 1) rafId = window.requestAnimationFrame(step)
+    }
+
+    rafId = window.requestAnimationFrame(step)
+    return () => {
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+    }
+  }, [value, durationMs])
+
+  return <>{displayValue.toLocaleString('pt-BR')}</>
 }
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
