@@ -443,6 +443,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const supplierDropdownRef = useRef<HTMLDivElement>(null)
   const modeChipsRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLDivElement>(null)
+  const filtersPanelRef = useRef<HTMLDivElement>(null)
+  const searchWorkspaceRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (queryReady) return
@@ -478,7 +480,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       const target = event.target as Node
       const clickedModeChips = !!modeChipsRef.current?.contains(target)
       const clickedSearchInput = !!searchInputRef.current?.contains(target)
-      if (!clickedModeChips && !clickedSearchInput) {
+      const clickedFiltersPanel = !!filtersPanelRef.current?.contains(target)
+      const clickedSearchWorkspace = !!searchWorkspaceRef.current?.contains(target)
+      if (!clickedModeChips && !clickedSearchInput && !clickedFiltersPanel && !clickedSearchWorkspace) {
         setSearchModeState(null)
         setSearchParams({}, { replace: true })
         setDebouncedSearch(getDefaultSearchForMode(null))
@@ -854,7 +858,7 @@ Ainda tem disponível?`
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
-      <div className="space-y-4 p-4 md:p-6 max-w-full">
+      <div ref={searchWorkspaceRef} className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Topo estilo concorrente: cards + busca + modos + banner */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
           <div className="order-2 xl:order-1 xl:col-span-7 space-y-3">
@@ -966,7 +970,7 @@ Ainda tem disponível?`
         </div>
 
         {/* Update status and filters */}
-        <div className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
+        <div ref={filtersPanelRef} className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
           {/* Mobile: botão Mostrar/Ocultar filtros */}
           <button
             type="button"
