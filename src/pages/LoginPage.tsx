@@ -33,6 +33,7 @@ type LoginForm = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const { login, isLoading } = useAuthStore()
   const { theme, addNotification } = useAppStore()
+  const isDark = theme === 'dark'
   const navigate = useNavigate()
   const [showPassword, setShowPassword] = useState(false)
   const [leaving, setLeaving] = useState(false)
