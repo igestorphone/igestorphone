@@ -312,6 +312,16 @@ const migrations = [
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
+  // Recuperação de senha (armazena hash SHA-256; o link do e-mail contém o token em claro)
+  `CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Índices para performance
   `CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`,
   `CREATE INDEX IF NOT EXISTS idx_users_subscription_status ON users(subscription_status)`,
@@ -334,6 +344,8 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at)`,
   `CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_system_logs_created_at ON system_logs(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)`,
+  `CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id)`,
 
   // Trigger para atualizar updated_at automaticamente
   `CREATE OR REPLACE FUNCTION update_updated_at_column()

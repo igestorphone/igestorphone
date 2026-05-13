@@ -57,7 +57,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = error.config?.url || ''
       // Não redirecionar se for uma rota pública de registro
-      if (!url.includes('/register/') && !url.includes('/register/public') && !url.includes('/auth/login')) {
+      if (!url.includes('/register/') && !url.includes('/register/public') && !url.includes('/auth/login') && !url.includes('/auth/forgot-password') && !url.includes('/auth/reset-password')) {
         // Unauthorized - clear auth and redirect to login
         localStorage.removeItem('auth-storage')
         // Só redirecionar se não estiver já na página de registro ou login
@@ -123,10 +123,18 @@ export const apiClient = {
 export const authApi = {
   login: (credentials: { email: string; password: string }) =>
     apiClient.post<{ usuario: any; token: string }>('/auth/login', credentials),
-  
+
+  forgotPassword: (email: string) => api.post<{ message: string }>('/auth/forgot-password', { email }),
+
+  verifyResetToken: (token: string) =>
+    api.get<{ valid?: boolean; message?: string }>(`/auth/reset-password/${encodeURIComponent(token)}`),
+
+  resetPassword: (token: string, password: string) =>
+    api.post<{ message: string }>('/auth/reset-password', { token, password }),
+
   me: () =>
     apiClient.get<any>('/auth/me'),
-  
+
   refresh: () =>
     apiClient.post<{ token: string }>('/auth/refresh'),
 }

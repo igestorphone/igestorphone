@@ -1,8 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
+import { sendPasswordResetEmail, isMailConfigured } from '../services/mail.js';
 
 const router = express.Router();
 
@@ -22,6 +24,19 @@ const loginValidation = [
   body('email').isEmail().normalizeEmail(),
   body('password').notEmpty()
 ];
+
+function hashPasswordResetToken(raw) {
+  return crypto.createHash('sha256').update(String(raw), 'utf8').digest('hex');
+}
+
+function buildPasswordResetFrontendBase() {
+  const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
+  let frontendUrl = frontendUrlRaw.split(',')[0].trim();
+  if (frontendUrl.includes('igestorphone.com.br') && !frontendUrl.includes('www.')) {
+    frontendUrl = frontendUrl.replace('igestorphone.com.br', 'www.igestorphone.com.br');
+  }
+  return frontendUrl.replace(/\/+$/, '');
+}
 
 // Registrar novo usuário
 router.post('/register', registerValidation, async (req, res) => {
@@ -213,6 +228,155 @@ router.post('/login', loginValidation, async (req, res) => {
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });
+
+const forgotPasswordMessage =
+  'Se existir uma conta com esse e-mail, enviamos um link para redefinir a senha. Verifique também a caixa de spam.';
+
+// Solicitar link de redefinição de senha (público)
+router.post('/forgot-password', [body('email').isEmail().normalizeEmail()], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ message: 'Informe um e-mail válido.' });
+    }
+
+    const email = (req.body.email || '').toString().toLowerCase().trim();
+
+    if (!isMailConfigured()) {
+      console.warn('[auth] forgot-password: SMTP não configurado');
+      return res.status(503).json({
+        message: 'Recuperação de senha indisponível no momento. Entre em contato com o suporte.',
+      });
+    }
+
+    const result = await query(
+      `SELECT id, name, email FROM users WHERE LOWER(TRIM(email)) = $1 LIMIT 1`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ message: forgotPasswordMessage });
+    }
+
+    const user = result.rows[0];
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = hashPasswordResetToken(rawToken);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await query(`DELETE FROM password_reset_tokens WHERE user_id = $1 AND used_at IS NULL`, [user.id]);
+    await query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expiresAt]
+    );
+
+    const resetUrl = `${buildPasswordResetFrontendBase()}/reset-password/${rawToken}`;
+
+    void sendPasswordResetEmail({
+      to: user.email,
+      name: user.name,
+      resetUrl,
+    }).catch((e) => console.error('[mail] password reset:', e?.message || e));
+
+    await query(
+      `INSERT INTO system_logs (user_id, action, details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)`,
+      [
+        user.id,
+        'password_reset_requested',
+        JSON.stringify({ email: user.email }),
+        req.ip,
+        req.get('User-Agent'),
+      ]
+    ).catch(() => {});
+
+    return res.json({ message: forgotPasswordMessage });
+  } catch (error) {
+    console.error('Erro em forgot-password:', error);
+    return res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Verificar se o token do link ainda é válido (público)
+router.get('/reset-password/:token', async (req, res) => {
+  try {
+    const raw = req.params.token;
+    if (!raw || String(raw).length < 32) {
+      return res.json({ valid: false, message: 'Link inválido.' });
+    }
+    const tokenHash = hashPasswordResetToken(raw);
+    const r = await query(
+      `SELECT prt.id FROM password_reset_tokens prt
+       WHERE prt.token_hash = $1 AND prt.used_at IS NULL AND prt.expires_at > NOW()`,
+      [tokenHash]
+    );
+    if (r.rows.length === 0) {
+      return res.json({ valid: false, message: 'Link inválido ou expirado. Solicite um novo.' });
+    }
+    return res.json({ valid: true });
+  } catch (error) {
+    console.error('Erro em reset-password (GET):', error);
+    return res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Definir nova senha com o token do e-mail (público)
+router.post(
+  '/reset-password',
+  [
+    body('token').isString().isLength({ min: 32 }).withMessage('Token inválido'),
+    body('password').isLength({ min: 6 }).withMessage('Senha deve ter pelo menos 6 caracteres'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ message: errors.array()[0]?.msg || 'Dados inválidos.' });
+      }
+
+      const { token, password } = req.body;
+      const tokenHash = hashPasswordResetToken(token);
+
+      const r = await query(
+        `SELECT id, user_id FROM password_reset_tokens
+         WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()`,
+        [tokenHash]
+      );
+
+      if (r.rows.length === 0) {
+        return res.status(400).json({ message: 'Link inválido ou expirado. Solicite um novo.' });
+      }
+
+      const row = r.rows[0];
+      const saltRounds = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+      const passwordHash = await bcrypt.hash(password, saltRounds);
+
+      await query(`UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2`, [
+        passwordHash,
+        row.user_id,
+      ]);
+      await query(`UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`, [row.id]);
+      await query(
+        `UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL AND id != $2`,
+        [row.user_id, row.id]
+      );
+
+      await query(
+        `INSERT INTO system_logs (user_id, action, details, ip_address, user_agent) VALUES ($1, $2, $3, $4, $5)`,
+        [
+          row.user_id,
+          'password_reset_completed',
+          JSON.stringify({}),
+          req.ip,
+          req.get('User-Agent'),
+        ]
+      ).catch(() => {});
+
+      return res.json({ message: 'Senha atualizada. Você já pode entrar com a nova senha.' });
+    } catch (error) {
+      console.error('Erro em reset-password (POST):', error);
+      return res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+  }
+);
 
 // Verificar token
 router.get('/verify', async (req, res) => {

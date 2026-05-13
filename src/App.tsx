@@ -10,6 +10,8 @@ import ProtectedRoute from '@/components/ui/ProtectedRoute'
 
 import LandingPage from '@/pages/LandingPage'
 import LoginPage from '@/pages/LoginPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
 import RegisterPage from '@/pages/RegisterPage'
 import SearchCheapestIPhonePage from '@/pages/SearchCheapestIPhonePage'
 import ConsultListsPage from '@/pages/ConsultListsPage'
@@ -63,6 +65,24 @@ function App() {
           ) : (
             <AuthLayout>
               <LoginPage />
+            </AuthLayout>
+          )
+        } />
+        <Route path="/forgot-password" element={
+          isAuthenticated && user && hasActiveSubscriptionAccess(user) ? (
+            <Navigate to={defaultAuthenticatedPath} />
+          ) : (
+            <AuthLayout>
+              <ForgotPasswordPage />
+            </AuthLayout>
+          )
+        } />
+        <Route path="/reset-password/:token" element={
+          isAuthenticated && user && hasActiveSubscriptionAccess(user) ? (
+            <Navigate to={defaultAuthenticatedPath} />
+          ) : (
+            <AuthLayout>
+              <ResetPasswordPage />
             </AuthLayout>
           )
         } />

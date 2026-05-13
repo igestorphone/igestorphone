@@ -246,3 +246,45 @@ Dúvidas? ${fromAddr}
     console.error('[mail] Falha aviso admin (criação pelo painel):', adminResult.reason?.message || adminResult.reason);
   }
 }
+
+/** Link único para redefinir senha (expira em 1h no fluxo que chama). */
+export async function sendPasswordResetEmail({ to, name, resetUrl }) {
+  const transport = getTransporter();
+  if (!transport) {
+    console.warn('[mail] SMTP não configurado; e-mail de recuperação de senha não enviado.');
+    return;
+  }
+
+  const fromAddr = (process.env.MAIL_FROM || DEFAULT_FROM).trim();
+  const fromName = (process.env.MAIL_FROM_NAME || 'iGestorPhone').trim();
+  const from = `"${fromName}" <${fromAddr}>`;
+
+  const subject = 'Redefinir sua senha — iGestorPhone';
+  const text = `Olá, ${name || 'usuário'}!
+
+Recebemos um pedido para redefinir a senha da sua conta no iGestorPhone.
+
+Abra o link abaixo (válido por tempo limitado). Se você não pediu, ignore este e-mail.
+
+${resetUrl}
+
+Dúvidas: ${fromAddr}
+
+— Equipe iGestorPhone`;
+
+  const html = `<p>Olá, <strong>${escapeHtml(name || 'usuário')}</strong>,</p>
+<p>Recebemos um pedido para <strong>redefinir a senha</strong> da sua conta no iGestorPhone.</p>
+<p><a href="${escapeHtml(resetUrl)}">Clique aqui para redefinir sua senha</a></p>
+<p style="font-size:12px;color:#666">Se o link não abrir, copie e cole no navegador:<br/>${escapeHtml(resetUrl)}</p>
+<p>Se você <strong>não</strong> pediu isso, pode ignorar este e-mail.</p>
+<p>— Equipe iGestorPhone</p>`;
+
+  await transport.sendMail({
+    from,
+    to,
+    replyTo: fromAddr,
+    subject,
+    text,
+    html,
+  });
+}
