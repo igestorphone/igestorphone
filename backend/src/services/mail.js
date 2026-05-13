@@ -1,0 +1,139 @@
+import nodemailer from 'nodemailer';
+
+const DEFAULT_FROM = 'contato@igestorphone.com.br';
+const DEFAULT_ADMIN_NOTIFY = 'igestorphone@gmail.com';
+
+let cachedTransport = null;
+
+export function isMailConfigured() {
+  return !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+function getTransporter() {
+  if (!isMailConfigured()) return null;
+  if (cachedTransport) return cachedTransport;
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const secure = process.env.SMTP_SECURE === 'true' || port === 465;
+  cachedTransport = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+  });
+  return cachedTransport;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * E-mail de boas-vindas ao usuário + aviso ao admin (todos com From principal).
+ * Não lança: erros são logados (cadastro já foi persistido).
+ */
+export async function sendRegistrationEmails(payload) {
+  const transport = getTransporter();
+  if (!transport) {
+    console.warn('[mail] SMTP não configurado (SMTP_HOST, SMTP_USER, SMTP_PASS); e-mails de cadastro ignorados.');
+    return;
+  }
+
+  const fromAddr = (process.env.MAIL_FROM || DEFAULT_FROM).trim();
+  const fromName = (process.env.MAIL_FROM_NAME || 'iGestorPhone').trim();
+  const from = `"${fromName}" <${fromAddr}>`;
+  const adminTo = (process.env.ADMIN_NOTIFY_EMAIL || DEFAULT_ADMIN_NOTIFY).trim();
+
+  const {
+    userName,
+    userEmail,
+    userId,
+    nomeLoja,
+    whatsapp,
+    endereco,
+    cnpj,
+    registrationKind,
+    ip,
+    userAgent,
+  } = payload;
+
+  const kindLabel =
+    registrationKind === 'user_registered_public'
+      ? 'Cadastro público (site)'
+      : registrationKind === 'user_registered_via_token'
+        ? 'Cadastro por link de convite'
+        : String(registrationKind || '—');
+
+  const welcomeSubject = 'Bem-vindo ao iGestorPhone — cadastro recebido';
+  const welcomeText = `Olá, ${userName}!
+
+Recebemos seu cadastro no iGestorPhone. Sua conta está aguardando aprovação de um administrador.
+
+Assim que for aprovada, você poderá acessar o sistema com o e-mail e a senha que cadastrou.
+
+Dúvidas? Fale conosco: ${fromAddr}
+
+— Equipe iGestorPhone`;
+
+  const welcomeHtml = `<p>Olá, <strong>${escapeHtml(userName)}</strong>,</p>
+<p>Recebemos seu cadastro no <strong>iGestorPhone</strong>. Sua conta está <strong>aguardando aprovação</strong> de um administrador.</p>
+<p>Assim que for aprovada, você poderá acessar com o e-mail e a senha que cadastrou.</p>
+<p>Dúvidas? <a href="mailto:${escapeHtml(fromAddr)}">${escapeHtml(fromAddr)}</a></p>
+<p>— Equipe iGestorPhone</p>`;
+
+  const detailLines = [
+    `Tipo: ${kindLabel}`,
+    userId != null ? `ID no sistema: ${userId}` : null,
+    `Nome: ${userName}`,
+    `E-mail: ${userEmail}`,
+    nomeLoja ? `Nome da loja: ${nomeLoja}` : null,
+    whatsapp ? `WhatsApp: ${whatsapp}` : null,
+    endereco ? `Endereço: ${endereco}` : null,
+    cnpj ? `CNPJ: ${cnpj}` : null,
+    ip ? `IP: ${ip}` : null,
+    userAgent ? `User-Agent: ${userAgent}` : null,
+  ].filter(Boolean);
+
+  const adminSubject = `[iGestorPhone] Novo cadastro: ${userName}`;
+  const adminText = ['Um novo usuário se cadastrou no iGestorPhone.', '', ...detailLines, '', '---', 'Mensagem automática.'].join('\n');
+  const adminHtml = `<p><strong>Novo cadastro</strong> no iGestorPhone.</p><ul>${detailLines
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join('')}</ul>`;
+
+  const welcomeMail = {
+    from,
+    to: userEmail,
+    replyTo: fromAddr,
+    subject: welcomeSubject,
+    text: welcomeText,
+    html: welcomeHtml,
+  };
+
+  const adminMail = {
+    from,
+    to: adminTo,
+    replyTo: fromAddr,
+    subject: adminSubject,
+    text: adminText,
+    html: adminHtml,
+  };
+
+  const [welcomeResult, adminResult] = await Promise.allSettled([
+    transport.sendMail(welcomeMail),
+    transport.sendMail(adminMail),
+  ]);
+
+  if (welcomeResult.status === 'rejected') {
+    console.error('[mail] Falha ao enviar boas-vindas:', welcomeResult.reason?.message || welcomeResult.reason);
+  }
+  if (adminResult.status === 'rejected') {
+    console.error('[mail] Falha ao enviar aviso ao admin:', adminResult.reason?.message || adminResult.reason);
+  }
+}

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { sendRegistrationEmails } from '../services/mail.js';
 
 const router = express.Router();
 
@@ -206,6 +207,20 @@ const insertPendingUserRecord = async (req, logAction, logDetails = {}) => {
   `,
     [user.id, logAction, JSON.stringify({ email: user.email, ...logDetails }), req.ip, req.get('User-Agent')]
   );
+
+  const nomeLojaVal = req.body.nome_loja != null && String(req.body.nome_loja).trim() ? String(req.body.nome_loja).trim() : null;
+  void sendRegistrationEmails({
+    userId: user.id,
+    userName: name,
+    userEmail: email,
+    nomeLoja: nomeLojaVal,
+    whatsapp: phone,
+    endereco: req.body.endereco != null ? String(req.body.endereco).trim() : null,
+    cnpj: req.body.cnpj != null ? String(req.body.cnpj).replace(/\D/g, '') : null,
+    registrationKind: logAction,
+    ip: req.ip,
+    userAgent: req.get('User-Agent'),
+  }).catch((err) => console.error('[mail] cadastro:', err?.message || err));
 
   return {
     success: true,
