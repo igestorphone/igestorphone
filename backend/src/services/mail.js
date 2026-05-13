@@ -137,3 +137,112 @@ Dúvidas? Fale conosco: ${fromAddr}
     console.error('[mail] Falha ao enviar aviso ao admin:', adminResult.reason?.message || adminResult.reason);
   }
 }
+
+/**
+ * Usuário criado pelo admin no painel (POST /users): boas-vindas + aviso interno (mesmo From).
+ */
+export async function sendAdminCreatedUserEmails(payload) {
+  const transport = getTransporter();
+  if (!transport) {
+    console.warn('[mail] SMTP não configurado (SMTP_HOST, SMTP_USER, SMTP_PASS); e-mails ignorados.');
+    return;
+  }
+
+  const fromAddr = (process.env.MAIL_FROM || DEFAULT_FROM).trim();
+  const fromName = (process.env.MAIL_FROM_NAME || 'iGestorPhone').trim();
+  const from = `"${fromName}" <${fromAddr}>`;
+  const adminTo = (process.env.ADMIN_NOTIFY_EMAIL || DEFAULT_ADMIN_NOTIFY).trim();
+
+  const {
+    userId,
+    userName,
+    userEmail,
+    tipo,
+    telefone,
+    endereco,
+    cidade,
+    estado,
+    cep,
+    cpf,
+    rg,
+    isActive,
+    adminId,
+    adminName,
+    adminEmail,
+    ip,
+    userAgent,
+  } = payload;
+
+  const welcomeSubject = 'Bem-vindo ao iGestorPhone — sua conta foi criada';
+  const welcomeText = `Olá, ${userName}!
+
+Sua conta no iGestorPhone foi criada pela nossa equipe (painel administrativo).
+
+Você já pode acessar o sistema com este e-mail e a senha definidos no cadastro.
+
+Dúvidas? ${fromAddr}
+
+— Equipe iGestorPhone`;
+
+  const welcomeHtml = `<p>Olá, <strong>${escapeHtml(userName)}</strong>,</p>
+<p>Sua conta no <strong>iGestorPhone</strong> foi criada pela nossa equipe (painel administrativo).</p>
+<p>Você já pode <strong>acessar o sistema</strong> com este e-mail e a senha definidos no cadastro.</p>
+<p>Dúvidas? <a href="mailto:${escapeHtml(fromAddr)}">${escapeHtml(fromAddr)}</a></p>
+<p>— Equipe iGestorPhone</p>`;
+
+  const enderecoLinha = [endereco, cidade, estado, cep].filter((x) => x != null && String(x).trim() !== '').join(' — ');
+
+  const detailLines = [
+    'Origem: conta criada pelo painel administrativo',
+    userId != null ? `ID novo usuário: ${userId}` : null,
+    `Nome: ${userName}`,
+    `E-mail: ${userEmail}`,
+    tipo ? `Perfil (tipo): ${tipo}` : null,
+    `Conta: ${isActive === false ? 'inativa' : 'ativa'}`,
+    telefone ? `Telefone: ${telefone}` : null,
+    enderecoLinha ? `Local: ${enderecoLinha}` : null,
+    cpf ? `CPF: ${cpf}` : null,
+    rg ? `RG: ${rg}` : null,
+    adminId != null
+      ? `Criado por: ${adminName || '—'} <${adminEmail || '—'}> (admin id ${adminId})`
+      : null,
+    ip ? `IP: ${ip}` : null,
+    userAgent ? `User-Agent: ${userAgent}` : null,
+  ].filter(Boolean);
+
+  const adminSubject = `[iGestorPhone] Usuário criado pelo admin: ${userName}`;
+  const adminText = ['Um administrador criou um novo usuário no iGestorPhone.', '', ...detailLines, '', '---', 'Mensagem automática.'].join('\n');
+  const adminHtml = `<p><strong>Novo usuário</strong> criado pelo painel.</p><ul>${detailLines
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join('')}</ul>`;
+
+  const welcomeMail = {
+    from,
+    to: userEmail,
+    replyTo: fromAddr,
+    subject: welcomeSubject,
+    text: welcomeText,
+    html: welcomeHtml,
+  };
+
+  const adminMail = {
+    from,
+    to: adminTo,
+    replyTo: fromAddr,
+    subject: adminSubject,
+    text: adminText,
+    html: adminHtml,
+  };
+
+  const [welcomeResult, adminResult] = await Promise.allSettled([
+    transport.sendMail(welcomeMail),
+    transport.sendMail(adminMail),
+  ]);
+
+  if (welcomeResult.status === 'rejected') {
+    console.error('[mail] Falha boas-vindas (admin criou usuário):', welcomeResult.reason?.message || welcomeResult.reason);
+  }
+  if (adminResult.status === 'rejected') {
+    console.error('[mail] Falha aviso admin (criação pelo painel):', adminResult.reason?.message || adminResult.reason);
+  }
+}

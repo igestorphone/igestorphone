@@ -4,6 +4,7 @@ import { body, validationResult } from 'express-validator';
 import { query, getClient } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { addCalendarDays, BILLING_PERIOD_DAYS } from '../utils/billingPeriod.js';
+import { sendAdminCreatedUserEmails } from '../services/mail.js';
 
 const router = express.Router();
 
@@ -702,6 +703,26 @@ router.post('/', authenticateToken, requireRole('admin'), [
       req.ip,
       req.get('User-Agent')
     ]);
+
+    void sendAdminCreatedUserEmails({
+      userId: user.id,
+      userName: nome,
+      userEmail: email,
+      tipo,
+      telefone: telefone || null,
+      endereco: endereco || null,
+      cidade: cidade || null,
+      estado: estado || null,
+      cep: cep || null,
+      cpf: cpf || null,
+      rg: rg || null,
+      isActive: !!is_active,
+      adminId: req.user.id,
+      adminName: req.user.name,
+      adminEmail: req.user.email,
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+    }).catch((err) => console.error('[mail] criação pelo admin:', err?.message || err));
 
     res.status(201).json({ 
       message: 'Usuário criado com sucesso',
