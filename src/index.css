@@ -121,6 +121,34 @@
   .auth-card-light a:not(.btn-primary) {
     @apply text-slate-700 underline-offset-2 hover:text-slate-900;
   }
+
+  /* Auth card — modo escuro (login/cadastro) */
+  .auth-card-dark {
+    @apply text-white/90;
+  }
+  .auth-card-dark .input-primary {
+    @apply bg-white/5 border-white/15 text-white placeholder-white/45 focus:border-cyan-500/50 focus:ring-cyan-500/25;
+  }
+  .auth-card-dark .input-error {
+    @apply border-red-400 focus:border-red-400 focus:ring-red-400/30;
+  }
+  .auth-card-dark .btn-primary {
+    @apply bg-white text-gray-900 hover:bg-white/90 font-semibold shadow-md hover:shadow-lg;
+  }
+  .auth-card-dark label.text-slate-700,
+  .auth-card-dark .text-slate-700 {
+    @apply text-white/90;
+  }
+  .auth-card-dark .text-slate-800 {
+    @apply text-white;
+  }
+  .auth-card-dark .text-slate-600 {
+    @apply text-white/70;
+  }
+  .auth-card-dark .text-slate-400,
+  .auth-card-dark .text-slate-500 {
+    @apply text-white/45;
+  }
   
   /* Card styles */
   .card {

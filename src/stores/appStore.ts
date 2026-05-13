@@ -97,8 +97,19 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
   setTheme: (theme: 'light' | 'dark') => {
     set({ theme })
-    // Save to localStorage
-    localStorage.setItem('theme', theme)
+    try {
+      localStorage.setItem('theme', theme)
+      const root = document.documentElement
+      if (theme === 'light') {
+        root.classList.remove('dark')
+        root.classList.add('light')
+      } else {
+        root.classList.remove('light')
+        root.classList.add('dark')
+      }
+    } catch (_) {
+      /* localStorage / DOM indisponível */
+    }
   },
 
   addNotification: (notification) => {
