@@ -68,9 +68,10 @@ export default function LoginPage() {
           navigate(target, { replace: true })
         }, 280)
       } else {
-        toast.error('Email ou senha inválidos')
-        setError('email', { message: 'Email ou senha inválidos' })
-        setError('senha', { message: 'Email ou senha inválidos' })
+        const backendMsg = useAuthStore.getState().error
+        toast.error(backendMsg || 'Email ou senha inválidos')
+        setError('email', { message: backendMsg || 'Email ou senha inválidos' })
+        setError('senha', { message: backendMsg || 'Email ou senha inválidos' })
       }
     } catch {
       toast.error('Erro ao fazer login')
@@ -96,10 +97,6 @@ export default function LoginPage() {
       <div className="text-center mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Entrar</h1>
         <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Entre com suas credenciais para acessar o sistema</p>
-        <div
-          className="mx-auto mt-4 h-0.5 w-12 rounded-full bg-gradient-to-r from-emerald-500 to-cyan-500"
-          aria-hidden
-        />
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">

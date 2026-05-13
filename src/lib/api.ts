@@ -57,11 +57,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = error.config?.url || ''
       // Não redirecionar se for uma rota pública de registro
-      if (!url.includes('/register/') && !url.includes('/auth/login')) {
+      if (!url.includes('/register/') && !url.includes('/register/public') && !url.includes('/auth/login')) {
         // Unauthorized - clear auth and redirect to login
         localStorage.removeItem('auth-storage')
         // Só redirecionar se não estiver já na página de registro ou login
-        if (!window.location.pathname.includes('/register/') && !window.location.pathname.includes('/login')) {
+        if (!window.location.pathname.includes('/register') && !window.location.pathname.includes('/login')) {
           window.location.href = '/login'
         }
       }
@@ -507,6 +507,11 @@ export const registrationApi = {
     }
   },
   
+  registerPublic: async (data: { name: string; email: string; password: string; whatsapp: string; nome_loja?: string }) => {
+    const response = await testApi.post('/register/public', data)
+    return response.data
+  },
+
   register: async (token: string, data: { name: string; email: string; password: string; endereco?: string; data_nascimento?: string; whatsapp?: string; nome_loja?: string; cnpj?: string | null }) => {
     // Tentar primeiro path parameter (formato que funciona), depois query string como fallback
     try {
