@@ -150,34 +150,74 @@ function getSaoPauloDateParts(offsetDays: number) {
   }
 }
 
+/** Capacidades de armazenamento Apple comuns (GB ou equivalente). */
+const STORAGE_GB_WHITELIST = new Set([8, 16, 32, 64, 128, 256, 512, 1024, 2048])
+/** Ordem do maior para o menor — sufixo em "sopa" de dígitos (ex.: modelo+128). */
+const STORAGE_GB_SUFFIX_ORDER = [2048, 1024, 512, 256, 128, 64, 32, 16, 8] as const
+
+function gbFromSuffixDigitSoup(digitsOnly: string): number | null {
+  if (digitsOnly.length < 4) return null
+  for (const n of STORAGE_GB_SUFFIX_ORDER) {
+    if (digitsOnly.endsWith(String(n))) return n
+  }
+  return null
+}
+
+function formatStorageFromGb(n: number): string {
+  if (n === 1024) return '1T'
+  if (n === 2048) return '2T'
+  return `${n}GB`
+}
+
 function normalizeStorage(value: unknown): string {
-  const raw = String(value ?? '').trim().toUpperCase()
+  const raw = String(value ?? '').trim()
   if (!raw || raw === 'N/A' || raw === '-') return ''
 
-  const digitsOnly = raw.replace(/\D/g, '')
+  const upper = raw.toUpperCase()
+
+  // 1) Padrões explícitos (evita juntar dígitos do modelo, ex.: IPHONE15128GB → 15128)
+  const explicitGb = upper.match(/\b(8|16|32|64|128|256|512)\s*G(?:B)?\b/)
+  if (explicitGb) return `${parseInt(explicitGb[1], 10)}GB`
+
+  const explicitTb = upper.match(/\b(1|2)\s*T(?:B)?\b/)
+  if (explicitTb) return `${explicitTb[1]}T`
+
+  const explicitLarge = upper.match(/\b(1024|2048)\s*G(?:B)?\b/)
+  if (explicitLarge) {
+    const n = parseInt(explicitLarge[1], 10)
+    return formatStorageFromGb(n)
+  }
+
+  const digitsOnly = upper.replace(/\D/g, '')
   if (!digitsOnly) return ''
 
-  const gbCandidates = new Set([16, 32, 64, 128, 256, 512, 1024, 2048])
-  const letters = raw.replace(/[^A-Z]/g, '')
+  const letters = upper.replace(/[^A-Z]/g, '')
   const hasTB = letters.includes('TB') || letters.endsWith('T')
   const hasGB = letters.includes('GB') || letters.endsWith('G')
 
-  // Casos comuns de erro de OCR/digitação: "1288GB" -> 128GB
   const parsed = Number.parseInt(digitsOnly, 10)
-  if (Number.isFinite(parsed) && parsed > 0) {
-    if (!hasTB && parsed >= 1000 && digitsOnly.endsWith('8')) {
-      const withoutLastDigit = Number.parseInt(digitsOnly.slice(0, -1), 10)
-      if (gbCandidates.has(withoutLastDigit)) {
-        return withoutLastDigit === 1024 ? '1T' : withoutLastDigit === 2048 ? '2T' : `${withoutLastDigit}GB`
-      }
+  if (!Number.isFinite(parsed) || parsed <= 0) return ''
+
+  // Casos comuns de erro de OCR/digitação: "1288GB" -> 128GB
+  if (!hasTB && parsed >= 1000 && digitsOnly.endsWith('8')) {
+    const withoutLastDigit = Number.parseInt(digitsOnly.slice(0, -1), 10)
+    if (STORAGE_GB_WHITELIST.has(withoutLastDigit)) {
+      return formatStorageFromGb(withoutLastDigit)
     }
-    if (hasTB) return `${parsed}T`
-    if (gbCandidates.has(parsed)) {
-      return parsed === 1024 ? '1T' : parsed === 2048 ? '2T' : `${parsed}GB`
-    }
-    if (!hasGB && parsed <= 2) return `${parsed}T`
-    return `${parsed}GB`
   }
+
+  if (hasTB) {
+    if (parsed === 1024 || parsed === 1) return '1T'
+    if (parsed === 2048 || parsed === 2) return '2T'
+    if (parsed >= 1 && parsed <= 2 && digitsOnly.length <= 2) return `${parsed}T`
+  }
+
+  if (STORAGE_GB_WHITELIST.has(parsed)) return formatStorageFromGb(parsed)
+
+  if (!hasGB && !hasTB && parsed <= 2 && digitsOnly.length === 1) return `${parsed}T`
+
+  const fromSuffix = gbFromSuffixDigitSoup(digitsOnly)
+  if (fromSuffix != null) return formatStorageFromGb(fromSuffix)
 
   return ''
 }
