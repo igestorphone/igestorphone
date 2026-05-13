@@ -208,7 +208,7 @@ export default function Header() {
               <Link
                 to="/subscription"
                 title="Assinatura e renovação"
-                className={`hidden sm:flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-colors ${
+                className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-colors ${
                   subscriptionUrgent
                     ? 'border-amber-300/80 bg-amber-50 hover:bg-amber-100/90 dark:border-amber-500/40 dark:bg-amber-500/10 dark:hover:bg-amber-500/15'
                     : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'

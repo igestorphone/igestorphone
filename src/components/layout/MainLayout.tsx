@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import Sidebar from '@/components/ui/Sidebar'
 import Header from '@/components/ui/Header'
 import { useAppStore } from '@/stores/appStore'
-import RequiredProfileModal from '@/components/ui/RequiredProfileModal'
 
 const DESKTOP_BREAKPOINT = 1024
 const RESIZE_DEBOUNCE_MS = 150
@@ -77,7 +76,6 @@ export default function MainLayout() {
         }}
       >
         <Header />
-        <RequiredProfileModal />
         <main className="flex-1 overflow-x-hidden w-full max-w-full">
           <Outlet />
         </main>

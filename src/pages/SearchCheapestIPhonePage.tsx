@@ -31,7 +31,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
 import toast from 'react-hot-toast'
-import SecurityAlertModal from '@/components/ui/SecurityAlertModal'
 import { normalizeColor } from './colorNormalizer'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
@@ -434,7 +433,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [selectedSupplier, setSelectedSupplier] = useState('')
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false)
   const [supplierSearch, setSupplierSearch] = useState('')
-  const [showSecurityAlert, setShowSecurityAlert] = useState(false)
   const [showFiltersMobile, setShowFiltersMobile] = useState(true)
   const [itemsPerPage, setItemsPerPage] = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
@@ -1785,29 +1783,6 @@ Ainda tem disponível?`
 
           </div>
 
-        {/* Modal de Alerta de Segurança */}
-        <SecurityAlertModal
-          isOpen={showSecurityAlert}
-          onClose={() => setShowSecurityAlert(false)}
-        />
-
-        {/* Ícone de Aviso Fixo - Permite reabrir o alerta */}
-        <motion.button
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowSecurityAlert(true)}
-          className="fixed bottom-6 right-6 z-50 bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-full shadow-2xl border-2 border-yellow-400 transition-all duration-200 flex items-center justify-center group"
-          title="Ver aviso de segurança"
-        >
-          <AlertTriangle className="w-6 h-6 group-hover:animate-pulse" />
-          <motion.div
-            className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        </motion.button>
     </div>
   )
 }

@@ -3,8 +3,13 @@ import bcrypt from 'bcryptjs';
 import { body, validationResult } from 'express-validator';
 import { query, getClient } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { addCalendarDays, BILLING_PERIOD_DAYS } from '../utils/billingPeriod.js';
 
 const router = express.Router();
+
+function defaultNewUserSubscriptionExpiry() {
+  return addCalendarDays(new Date(), BILLING_PERIOD_DAYS);
+}
 
 // Endpoint público de teste
 router.get('/test', (req, res) => {
@@ -39,12 +44,12 @@ router.post('/create', [
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(senha, saltRounds);
 
-    // Criar usuário
+    // Criar usuário (mensal: 30 dias de acesso desde a criação)
     const userResult = await query(`
-      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING id, name, email, tipo, created_at
-    `, [nome, email, passwordHash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, true]);
+      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, subscription_status, subscription_expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', $14)
+      RETURNING id, name, email, tipo, created_at, subscription_status, subscription_expires_at
+    `, [nome, email, passwordHash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, true, defaultNewUserSubscriptionExpiry()]);
 
     const user = userResult.rows[0];
 
@@ -623,18 +628,18 @@ router.post('/', authenticateToken, requireRole('admin'), [
     try {
       // Tentar criar com approval_status
       userResult = await query(`
-        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, approval_status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'approved')
-        RETURNING id, name, email, tipo, created_at, is_active
-      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, approval_status, subscription_status, subscription_expires_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'approved', 'active', $14)
+        RETURNING id, name, email, tipo, created_at, is_active, subscription_status, subscription_expires_at
+      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active, defaultNewUserSubscriptionExpiry()]);
     } catch (error) {
       // Se der erro (coluna não existe), criar sem approval_status
       console.log('⚠️ Coluna approval_status não existe, criando usuário sem ela');
       userResult = await query(`
-        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING id, name, email, tipo, created_at, is_active
-      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active]);
+        INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, subscription_status, subscription_expires_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', $14)
+        RETURNING id, name, email, tipo, created_at, is_active, subscription_status, subscription_expires_at
+      `, [nome, email, passwordHash, tipo, telefone || null, endereco || null, cidade || null, estado || null, cep || null, cpf || null, rg || null, data_nascimento || null, is_active, defaultNewUserSubscriptionExpiry()]);
     }
 
     const user = userResult.rows[0];
@@ -1064,12 +1069,12 @@ router.post('/test-create', [
     const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
     const passwordHash = await bcrypt.hash(senha, saltRounds);
 
-    // Criar usuário
+    // Criar usuário (mensal: 30 dias de acesso desde a criação)
     const userResult = await query(`
-      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-      RETURNING id, name, email, tipo, created_at
-    `, [nome, email, passwordHash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, true]);
+      INSERT INTO users (name, email, password_hash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, is_active, subscription_status, subscription_expires_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', $14)
+      RETURNING id, name, email, tipo, created_at, subscription_status, subscription_expires_at
+    `, [nome, email, passwordHash, tipo, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, true, defaultNewUserSubscriptionExpiry()]);
 
     const user = userResult.rows[0];
 
