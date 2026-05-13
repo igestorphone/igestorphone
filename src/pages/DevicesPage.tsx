@@ -31,8 +31,18 @@ export default function DevicesPage() {
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['user-sessions'],
     queryFn: async () => {
-      const res = await usersApi.getSessions()
-      return res.data
+      const body = await usersApi.getSessions()
+      // apiClient devolve o JSON bruto do axios; esta rota responde { maxConcurrent, sessions } (sem wrapper .data)
+      const raw = body as unknown as {
+        maxConcurrent?: number
+        sessions?: UserSessionRow[]
+        data?: { maxConcurrent: number; sessions: UserSessionRow[] }
+      }
+      if (raw.data && Array.isArray(raw.data.sessions)) return raw.data
+      return {
+        maxConcurrent: raw.maxConcurrent ?? 2,
+        sessions: Array.isArray(raw.sessions) ? raw.sessions : [],
+      }
     },
   })
 
