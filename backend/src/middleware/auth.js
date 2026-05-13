@@ -50,6 +50,8 @@ export const authenticateToken = async (req, res, next) => {
       return (
         p === '/api/users/profile' ||
         p.startsWith('/api/users/profile/') ||
+        p === '/api/users/sessions' ||
+        p.startsWith('/api/users/sessions/') ||
         p === '/api/asaas/create-subscription' ||
         p.startsWith('/api/asaas/create-subscription/') ||
         p === '/api/asaas/verify-payment' ||

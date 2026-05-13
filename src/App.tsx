@@ -22,6 +22,7 @@ import CreateUserPage from '@/pages/CreateUserPage'
 import EditUserPage from '@/pages/EditUserPage'
 import StatisticsPage from '@/pages/StatisticsPage'
 import ProfilePage from '@/pages/ProfilePage'
+import DevicesPage from '@/pages/DevicesPage'
 import { TermsPublicPage, PrivacyPublicPage, LgpdPublicPage } from '@/pages/PublicLegalPages'
 import SupportPage from '@/pages/SupportPage'
 import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
@@ -256,6 +257,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<ProfilePage />} />
+        </Route>
+        <Route path="/devices" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<DevicesPage />} />
         </Route>
         <Route path="/support" element={
           <ProtectedRoute>

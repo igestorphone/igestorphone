@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink, Clock } from 'lucide-react'
+import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink, Clock, Monitor } from 'lucide-react'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
@@ -386,6 +386,16 @@ export default function Header() {
                         >
                           <User className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Meu Perfil</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('/devices')
+                            setShowUserMenu(false)
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group"
+                        >
+                          <Monitor className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span>Dispositivos</span>
                         </button>
                         <button className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group">
                           <Settings className="w-4 h-4 group-hover:scale-110 transition-transform" />

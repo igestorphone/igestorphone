@@ -356,6 +356,8 @@ const migrations = [
     revoked_at TIMESTAMP
   )`,
   `CREATE INDEX IF NOT EXISTS idx_user_sessions_user_active ON user_sessions(user_id) WHERE revoked_at IS NULL`,
+  `ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS ip_address VARCHAR(64)`,
+  `ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS user_agent TEXT`,
 
   // Trigger para atualizar updated_at automaticamente
   `CREATE OR REPLACE FUNCTION update_updated_at_column()

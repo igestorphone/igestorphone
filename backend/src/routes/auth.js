@@ -74,7 +74,10 @@ router.post('/register', registerValidation, async (req, res) => {
 
     const user = result.rows[0];
 
-    const sessionId = await createSessionForUser(user.id);
+    const sessionId = await createSessionForUser(user.id, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
 
     // Gerar JWT
     const token = jwt.sign(
@@ -193,7 +196,10 @@ router.post('/login', loginValidation, async (req, res) => {
     // Atualizar último login
     await query('UPDATE users SET last_login = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
 
-    const sessionId = await createSessionForUser(user.id);
+    const sessionId = await createSessionForUser(user.id, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
 
     // Gerar JWT
     const token = jwt.sign(

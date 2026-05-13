@@ -22,6 +22,7 @@ import {
   BarChart3,
   Crown,
   Bell,
+  Monitor,
   Smartphone
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
@@ -59,6 +60,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   ]
   const onlyCalendarConfig = [
     { name: 'Meus Dados', href: '/profile', icon: Users },
+    { name: 'Dispositivos', href: '/devices', icon: Monitor },
   ]
 
   // Navegação principal (topo)
@@ -71,6 +73,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   // Configurações (seção recolhível)
   const configNavigation = [
     { name: 'Meus Dados', href: '/profile', icon: Users },
+    { name: 'Dispositivos', href: '/devices', icon: Monitor },
     { name: 'Assinatura', href: '/subscription', icon: CreditCard },
     { name: 'Usuário do calendário', href: '/funcionarios-calendario', icon: UserPlus },
   ]

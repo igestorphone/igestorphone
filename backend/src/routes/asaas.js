@@ -300,7 +300,10 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
     );
     const user = result.rows[0];
 
-    const sessionId = await createSessionForUser(user.id);
+    const sessionId = await createSessionForUser(user.id, {
+      ip: req.ip,
+      userAgent: req.get('User-Agent'),
+    });
 
     const token = jwt.sign(
       { userId: user.id, email: user.email, role: user.role, sid: sessionId },

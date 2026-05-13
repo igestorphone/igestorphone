@@ -4,7 +4,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { UserPermissions } from '@/types'
 import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 
-const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile']
+const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile', '/devices']
 
 interface ProtectedRouteProps {
   children: ReactNode

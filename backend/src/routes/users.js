@@ -5,8 +5,11 @@ import { query, getClient } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { addCalendarDays, BILLING_PERIOD_DAYS } from '../utils/billingPeriod.js';
 import { sendAdminCreatedUserEmails } from '../services/mail.js';
+import { getMaxConcurrentSessions, summarizeUserAgent } from '../services/userSessions.js';
 
 const router = express.Router();
+
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function defaultNewUserSubscriptionExpiry() {
   return addCalendarDays(new Date(), BILLING_PERIOD_DAYS);
@@ -622,6 +625,56 @@ router.put('/change-password', [
 
   } catch (error) {
     console.error('Erro ao alterar senha:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Sessões ativas (dispositivos) do próprio usuário
+router.get('/sessions', async (req, res) => {
+  try {
+    const maxConcurrent = getMaxConcurrentSessions();
+    const r = await query(
+      `SELECT id, created_at, last_activity_at, ip_address, user_agent
+       FROM user_sessions
+       WHERE user_id = $1 AND revoked_at IS NULL
+       ORDER BY last_activity_at DESC NULLS LAST, created_at DESC`,
+      [req.user.id]
+    );
+    const currentSid = req.sessionId ? String(req.sessionId) : null;
+    const sessions = r.rows.map((row) => ({
+      id: row.id,
+      deviceLabel: summarizeUserAgent(row.user_agent),
+      ip: row.ip_address || null,
+      userAgent: row.user_agent || null,
+      createdAt: row.created_at,
+      lastActivityAt: row.last_activity_at,
+      isCurrent: currentSid ? String(row.id) === currentSid : false,
+    }));
+    res.json({ maxConcurrent, sessions });
+  } catch (error) {
+    console.error('Erro ao listar sessões:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+router.delete('/sessions/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!UUID_V4_RE.test(sessionId)) {
+      return res.status(400).json({ message: 'ID de sessão inválido' });
+    }
+    const upd = await query(
+      `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP
+       WHERE id = $1::uuid AND user_id = $2 AND revoked_at IS NULL
+       RETURNING id`,
+      [sessionId, req.user.id]
+    );
+    if (upd.rows.length === 0) {
+      return res.status(404).json({ message: 'Sessão não encontrada ou já encerrada' });
+    }
+    res.json({ message: 'Sessão desconectada' });
+  } catch (error) {
+    console.error('Erro ao revogar sessão:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });

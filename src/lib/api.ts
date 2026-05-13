@@ -385,6 +385,16 @@ export const whatsappApi = {
   deleteInboxItem: (id: number) => apiClient.delete<any>(`/whatsapp/inbox/${id}`),
 }
 
+export interface UserSessionRow {
+  id: string
+  deviceLabel: string
+  ip: string | null
+  userAgent: string | null
+  createdAt: string
+  lastActivityAt: string
+  isCurrent: boolean
+}
+
 export const usersApi = {
   getAll: () =>
     apiClient.get<any>('/users'),
@@ -435,6 +445,12 @@ export const usersApi = {
   /** Admin: mesmo que acima, buscando usuário por e-mail */
   patchSubscriptionExpiryTestByEmail: (data: { email: string; daysFromNow: number; subscription_status?: string }) =>
     apiClient.patch<{ message: string; user: unknown }>(`/users/by-email/subscription-expiry-test`, data),
+
+  getSessions: () =>
+    apiClient.get<{ maxConcurrent: number; sessions: UserSessionRow[] }>('/users/sessions'),
+
+  revokeSession: (sessionId: string) =>
+    apiClient.delete<{ message: string }>(`/users/sessions/${sessionId}`),
 }
 
 // Calendário compartilhado (vendedor/atendente)
