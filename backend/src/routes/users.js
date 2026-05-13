@@ -594,6 +594,18 @@ router.put('/change-password', [
     // Atualizar senha
     await query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, req.user.id]);
 
+    if (req.sessionId) {
+      await query(
+        `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND revoked_at IS NULL AND id != $2::uuid`,
+        [req.user.id, req.sessionId]
+      ).catch(() => {});
+    } else {
+      await query(
+        `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND revoked_at IS NULL`,
+        [req.user.id]
+      ).catch(() => {});
+    }
+
     // Log da ação
     await query(`
       INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
@@ -1480,6 +1492,12 @@ router.put('/:id', requireRole('admin'), [
       values.push(id);
       const queryText = `UPDATE users SET ${updates.join(', ')} WHERE id = $${paramCount} RETURNING *`;
       await query(queryText, values);
+      if (senha) {
+        await query(
+          `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND revoked_at IS NULL`,
+          [id]
+        ).catch(() => {});
+      }
     }
 
     // Atualizar assinatura se fornecida
@@ -1964,6 +1982,7 @@ router.post('/force-logout-all', authenticateToken, requireRole('admin'), async 
   try {
     // Coloca a última atividade bem no passado para expirar imediatamente
     const result = await query(`UPDATE users SET last_activity_at = NOW() - INTERVAL '365 days'`);
+    await query(`UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE revoked_at IS NULL`).catch(() => {});
 
     // Log no system_logs
     try {

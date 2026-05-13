@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
+import { isSessionActive, touchSessionActivity } from '../services/userSessions.js';
 
 const IDLE_TIMEOUT_MINUTES = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10);
 const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
@@ -15,7 +16,22 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
+    if (!decoded.sid) {
+      return res.status(401).json({
+        message: 'Faça login novamente para continuar.',
+        code: 'SESSION_STALE',
+      });
+    }
+
+    const sessionOk = await isSessionActive(decoded.sid, decoded.userId);
+    if (!sessionOk) {
+      return res.status(401).json({
+        message: 'Limite de sessões atingido ou login em outro dispositivo. Faça login novamente.',
+        code: 'SESSION_REVOKED',
+      });
+    }
+
     // Buscar usuário no banco para verificar se ainda está ativo
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at, parent_id
@@ -127,6 +143,7 @@ export const authenticateToken = async (req, res, next) => {
       !lastActivityMs || (nowMs - lastActivityMs) > TOUCH_INTERVAL_MS;
     if (shouldTouch) {
       await query('UPDATE users SET last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
+      await touchSessionActivity(decoded.sid, decoded.userId);
     }
 
     // Adicionar dados do usuário ao request (parent_id: funcionário usa o calendário do assinante)
@@ -139,6 +156,7 @@ export const authenticateToken = async (req, res, next) => {
       subscription_expires_at: user.subscription_expires_at,
       parent_id: user.parent_id || null
     };
+    req.sessionId = decoded.sid;
 
     next();
   } catch (error) {

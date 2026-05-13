@@ -3,6 +3,7 @@ import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import * as asaasService from '../services/asaas.js';
+import { createSessionForUser } from '../services/userSessions.js';
 import { addCalendarDays, BILLING_PERIOD_DAYS, computeExpiryAfterRenewal } from '../utils/billingPeriod.js';
 
 const router = express.Router();
@@ -299,8 +300,10 @@ router.post('/register-checkout', registerCheckoutValidation, async (req, res) =
     );
     const user = result.rows[0];
 
+    const sessionId = await createSessionForUser(user.id);
+
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, sid: sessionId },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );

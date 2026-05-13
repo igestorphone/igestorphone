@@ -347,6 +347,16 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)`,
   `CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user ON password_reset_tokens(user_id)`,
 
+  // Sessões de login (limite simultâneo por usuário — claim `sid` no JWT)
+  `CREATE TABLE IF NOT EXISTS user_sessions (
+    id UUID PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_user_sessions_user_active ON user_sessions(user_id) WHERE revoked_at IS NULL`,
+
   // Trigger para atualizar updated_at automaticamente
   `CREATE OR REPLACE FUNCTION update_updated_at_column()
   RETURNS TRIGGER AS $$

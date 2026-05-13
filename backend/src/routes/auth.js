@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { sendPasswordResetEmail, isMailConfigured } from '../services/mail.js';
+import { createSessionForUser, revokeSession, isSessionActive } from '../services/userSessions.js';
 
 const router = express.Router();
 
@@ -73,9 +74,11 @@ router.post('/register', registerValidation, async (req, res) => {
 
     const user = result.rows[0];
 
+    const sessionId = await createSessionForUser(user.id);
+
     // Gerar JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, sid: sessionId },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -190,9 +193,11 @@ router.post('/login', loginValidation, async (req, res) => {
     // Atualizar último login
     await query('UPDATE users SET last_login = CURRENT_TIMESTAMP, last_activity_at = CURRENT_TIMESTAMP WHERE id = $1', [user.id]);
 
+    const sessionId = await createSessionForUser(user.id);
+
     // Gerar JWT
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role, sid: sessionId },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );
@@ -353,6 +358,10 @@ router.post(
         passwordHash,
         row.user_id,
       ]);
+      await query(
+        `UPDATE user_sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND revoked_at IS NULL`,
+        [row.user_id]
+      ).catch(() => {});
       await query(`UPDATE password_reset_tokens SET used_at = NOW() WHERE id = $1`, [row.id]);
       await query(
         `UPDATE password_reset_tokens SET used_at = NOW() WHERE user_id = $1 AND used_at IS NULL AND id != $2`,
@@ -388,7 +397,11 @@ router.get('/verify', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
+    if (!decoded.sid || !(await isSessionActive(decoded.sid, decoded.userId))) {
+      return res.status(401).json({ message: 'Sessão inválida ou encerrada.' });
+    }
+
     // Buscar dados atualizados do usuário
     const result = await query(`
       SELECT id, email, name, role, subscription_status, subscription_expires_at, 
@@ -437,21 +450,27 @@ router.get('/verify', async (req, res) => {
 router.post('/logout', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
-    
+
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      
-      // Log da ação
-      await query(`
-        INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [
-        decoded.userId,
-        'user_logout',
-        JSON.stringify({}),
-        req.ip,
-        req.get('User-Agent')
-      ]);
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded.sid) {
+          await revokeSession(decoded.sid);
+        }
+        await query(
+          `INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            decoded.userId,
+            'user_logout',
+            JSON.stringify({}),
+            req.ip,
+            req.get('User-Agent'),
+          ]
+        );
+      } catch {
+        // token inválido/expirado no logout — segue ok
+      }
     }
 
     res.json({ message: 'Logout realizado com sucesso' });
