@@ -1,8 +1,9 @@
 import express from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import * as asaasService from '../services/asaas.js';
+import { addCalendarDays, BILLING_PERIOD_DAYS, computeExpiryAfterRenewal } from '../utils/billingPeriod.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.get('/plans', (req, res) => {
 
 // Criar assinatura (requer autenticação + cpf/phone no user ou no body)
 const createSubscriptionValidation = [
-  body('planKey').isIn(['teste', 'mensal', 'trimestral', 'anual']),
+  body('planKey').isIn(['teste', 'mensal']),
   body('billingType').isIn(['PIX', 'CREDIT_CARD']),
   body('cpfCnpj').optional().isString().trim(),
   body('phone').optional().isString().trim(),
@@ -84,8 +85,7 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
     // Inserir assinatura no banco (status pendente até webhook PAYMENT_RECEIVED)
     const plan = asaasService.PLANS[planKey];
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + plan.durationMonths);
+    const endDate = addCalendarDays(startDate, BILLING_PERIOD_DAYS);
 
     await query(
       `INSERT INTO subscriptions (
@@ -226,15 +226,32 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     const userResult = await query(
-      `SELECT id, subscription_status FROM users WHERE id = $1`,
+      `SELECT id, subscription_status, subscription_expires_at FROM users WHERE id = $1`,
       [userId]
     );
     if (userResult.rows.length === 0) {
       return res.status(404).json({ paid: false, message: 'Usuário não encontrado' });
     }
     const user = userResult.rows[0];
+    const st = (user.subscription_status || '').toLowerCase();
 
-    if (user.subscription_status !== 'pending_payment') {
+    const hasValidPaidThrough =
+      user.subscription_expires_at &&
+      !Number.isNaN(new Date(user.subscription_expires_at).getTime()) &&
+      new Date(user.subscription_expires_at) > new Date();
+
+    if ((st === 'active' || st === 'trial') && hasValidPaidThrough) {
+      return res.json({ paid: true, status: user.subscription_status });
+    }
+
+    const needsAsaasCheck =
+      st === 'pending_payment' ||
+      st === 'overdue' ||
+      st === 'expired' ||
+      (st === 'active' && !hasValidPaidThrough) ||
+      (st === 'trial' && !hasValidPaidThrough);
+
+    if (!needsAsaasCheck) {
       return res.json({ paid: true, status: user.subscription_status });
     }
 
@@ -258,8 +275,16 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
       return res.json({ paid: false });
     }
 
-    const endDate = new Date(paid.paymentDate || paid.dueDate || Date.now());
-    endDate.setMonth(endDate.getMonth() + (sub.duration_months || 1));
+    const userRow = await query(
+      `SELECT subscription_expires_at FROM users WHERE id = $1`,
+      [userId]
+    );
+    const currentExpires = userRow.rows[0]?.subscription_expires_at;
+    const paymentMoment = paid.paymentDate || paid.clientPaymentDate || paid.confirmedDate || paid.dueDate;
+    const endDate = computeExpiryAfterRenewal({
+      currentExpiresAt: currentExpires,
+      paymentDate: paymentMoment,
+    });
 
     await query(
       `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
@@ -308,8 +333,17 @@ router.post('/webhook', async (req, res) => {
       }
 
       const sub = subResult.rows[0];
-      const endDate = new Date(payment.dueDate || new Date());
-      endDate.setMonth(endDate.getMonth() + (sub.duration_months || 1));
+      const userRow = await query(
+        `SELECT subscription_expires_at FROM users WHERE id = $1`,
+        [sub.user_id]
+      );
+      const currentExpires = userRow.rows[0]?.subscription_expires_at;
+      const paymentMoment =
+        payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || payment.dueDate;
+      const endDate = computeExpiryAfterRenewal({
+        currentExpiresAt: currentExpires,
+        paymentDate: paymentMoment,
+      });
 
       await query(
         `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
@@ -347,6 +381,68 @@ router.post('/webhook', async (req, res) => {
   } catch (error) {
     console.error('Erro no webhook Asaas:', error);
     res.status(500).send('Erro');
+  }
+});
+
+router.get('/my-payments', authenticateToken, async (req, res) => {
+  try {
+    const r = await query(
+      `SELECT asaas_subscription_id FROM subscriptions
+       WHERE user_id = $1 AND asaas_subscription_id IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [req.user.id]
+    );
+    if (r.rows.length === 0) {
+      return res.json({ payments: [] });
+    }
+    const payments = await asaasService.getSubscriptionPayments(r.rows[0].asaas_subscription_id);
+    const list = (payments || []).map((p) => ({
+      id: p.id,
+      status: p.status,
+      value: p.value,
+      dueDate: p.dueDate,
+      paymentDate: p.paymentDate || p.clientPaymentDate,
+      billingType: p.billingType,
+      description: p.description,
+    }));
+    res.json({ payments: list });
+  } catch (error) {
+    console.error('Erro ao listar pagamentos Asaas:', error);
+    res.status(500).json({ message: error.message || 'Erro ao listar pagamentos' });
+  }
+});
+
+const updateCardValidation = [
+  body('creditCard').isObject(),
+  body('creditCardHolderInfo').isObject(),
+];
+
+router.put('/subscription-payment-method', authenticateToken, updateCardValidation, async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { creditCard, creditCardHolderInfo } = req.body;
+    const r = await query(
+      `SELECT asaas_subscription_id FROM subscriptions
+       WHERE user_id = $1 AND asaas_subscription_id IS NOT NULL
+       ORDER BY created_at DESC LIMIT 1`,
+      [req.user.id]
+    );
+    if (r.rows.length === 0) {
+      return res.status(400).json({ message: 'Nenhuma assinatura Asaas encontrada para este usuário.' });
+    }
+    const subId = r.rows[0].asaas_subscription_id;
+    await asaasService.updateSubscriptionPaymentMethod(subId, { creditCard, creditCardHolderInfo });
+    await query(
+      `UPDATE subscriptions SET payment_method = $1 WHERE asaas_subscription_id = $2`,
+      ['credit_card', subId]
+    );
+    res.json({ success: true, message: 'Cartão cadastrado. As próximas cobranças serão no cartão.' });
+  } catch (error) {
+    console.error('Erro ao atualizar cartão Asaas:', error);
+    res.status(500).json({ message: error.message || 'Erro ao atualizar cartão' });
   }
 });
 

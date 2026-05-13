@@ -7,12 +7,13 @@ import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
+import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 import toast from 'react-hot-toast'
 
 function getPostLoginPath(): string {
   const u = useAuthStore.getState().user
   if (!u) return '/search-cheapest-iphone'
-  if (u.subscription_status === 'pending_payment' || u.subscription_status === 'overdue') {
+  if (requiresCheckoutOnly(u)) {
     return '/checkout'
   }
   const p = u.permissions

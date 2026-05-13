@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink } from 'lucide-react'
+import { Menu, X, Settings, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink, Clock } from 'lucide-react'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
@@ -11,6 +11,13 @@ import ReportBugModal from '@/components/forms/ReportBugModal'
 import { notificationsApi } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+
+function daysRemainingFromExpiry(iso: string | undefined | null): number | null {
+  if (!iso) return null
+  const end = new Date(iso).getTime()
+  if (Number.isNaN(end)) return null
+  return Math.max(0, Math.ceil((end - Date.now()) / 86400000))
+}
 
 export default function Header() {
   const { user, logout } = useAuthStore()
@@ -27,6 +34,16 @@ export default function Header() {
   const [notifPos, setNotifPos] = useState({ top: 0, right: 0 })
   const prevUnreadRef = useRef<number | null>(null)
   const didInitUnreadRef = useRef(false)
+
+  const subscriptionDaysLeft = useMemo(
+    () => daysRemainingFromExpiry(user?.subscription_expires_at),
+    [user?.subscription_expires_at]
+  )
+
+  const subscriptionUrgent =
+    user?.subscription_status === 'overdue' ||
+    user?.subscription_status === 'pending_payment' ||
+    (subscriptionDaysLeft !== null && subscriptionDaysLeft <= 7)
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
@@ -187,6 +204,28 @@ export default function Header() {
 
           {/* Right side */}
           <div className="flex items-center space-x-3 shrink-0">
+            {user && subscriptionDaysLeft !== null && (
+              <Link
+                to="/subscription"
+                title="Assinatura e renovação"
+                className={`hidden sm:flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-colors ${
+                  subscriptionUrgent
+                    ? 'border-amber-300/80 bg-amber-50 hover:bg-amber-100/90 dark:border-amber-500/40 dark:bg-amber-500/10 dark:hover:bg-amber-500/15'
+                    : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
+                }`}
+              >
+                <Clock
+                  className={`h-4 w-4 shrink-0 ${
+                    subscriptionUrgent ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                  }`}
+                />
+                <div className="min-w-0 text-left leading-tight">
+                  <div className="text-sm font-bold text-gray-900 dark:text-white">{subscriptionDaysLeft} dias</div>
+                  <div className="text-[10px] font-medium text-gray-500 dark:text-white/50">restantes</div>
+                </div>
+              </Link>
+            )}
+
             {/* Notificações (todos os usuários) */}
             <div className="relative z-[9998]" ref={notifRef}>
                 <button

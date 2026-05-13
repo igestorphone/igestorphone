@@ -35,6 +35,7 @@ import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
 import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
 import WhatsAppInboxPage from '@/pages/WhatsAppInboxPage'
+import { hasActiveSubscriptionAccess, requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
@@ -44,19 +45,20 @@ function App() {
   useIdleLogout()
 
   const defaultAuthenticatedPath = (() => {
-    if (user?.subscription_status === 'pending_payment' || user?.subscription_status === 'overdue') return '/checkout'
+    if (!user) return AUTH_REDIRECT_PATH
+    if (requiresCheckoutOnly(user)) return '/checkout'
     return canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
   })()
 
-  // "/" e "/login" permitem ver a landing/login mesmo com pending_payment (para o botão Voltar funcionar)
-  const canSeeLanding = !isAuthenticated || user?.subscription_status === 'pending_payment' || user?.subscription_status === 'overdue'
+  // "/" e "/login" permitem ver a landing/login mesmo com pagamento pendente ou assinatura vencida (ex.: botão Voltar)
+  const canSeeLanding = !isAuthenticated || (user != null && requiresCheckoutOnly(user))
 
   return (
     <div className="min-h-screen">
       <Routes>
         <Route path="/" element={canSeeLanding ? <LandingPage /> : <Navigate to={defaultAuthenticatedPath} />} />
         <Route path="/login" element={
-          isAuthenticated && !['pending_payment', 'overdue'].includes(user?.subscription_status || '') ? (
+          isAuthenticated && user && hasActiveSubscriptionAccess(user) ? (
             <Navigate to={defaultAuthenticatedPath} />
           ) : (
             <AuthLayout>

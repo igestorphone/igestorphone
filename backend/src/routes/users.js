@@ -718,7 +718,11 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
              created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento,
              last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at,
              (SELECT plan_name FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_name,
-             (SELECT plan_type FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_type
+             (SELECT plan_type FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_type,
+             (SELECT asaas_subscription_id FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as asaas_subscription_id,
+             CASE WHEN subscription_expires_at IS NULL THEN NULL
+                  ELSE GREATEST(0, CEIL(EXTRACT(EPOCH FROM (subscription_expires_at - NOW())) / 86400))::int
+             END AS subscription_days_remaining
       FROM users 
       ${whereClause}
       ORDER BY created_at DESC

@@ -9,6 +9,7 @@ const ASAAS_BASE_URL = process.env.ASAAS_ENV === 'sandbox'
 
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY;
 
+/** Apenas mensal no produto (30 dias de acesso por ciclo). `teste` só para sandbox. */
 const PLANS = {
   teste: {
     name: 'Teste',
@@ -19,24 +20,10 @@ const PLANS = {
   },
   mensal: {
     name: 'Mensal',
-    planName: 'iGestorPhone Mensal',
-    value: 150,
+    planName: 'iGestorPhone Mensal (R$ 199,99)',
+    value: 199.99,
     cycle: 'MONTHLY',
     durationMonths: 1,
-  },
-  trimestral: {
-    name: 'Trimestral',
-    planName: 'iGestorPhone Trimestral',
-    value: 390,
-    cycle: 'QUARTERLY',
-    durationMonths: 3,
-  },
-  anual: {
-    name: 'Anual',
-    planName: 'iGestorPhone Anual',
-    value: 1200,
-    cycle: 'YEARLY',
-    durationMonths: 12,
   },
 };
 
@@ -100,7 +87,7 @@ export async function getOrCreateCustomer(user, asaasCustomerId = null) {
  * Cria assinatura no Asaas (PIX ou cartão)
  * @param {Object} params
  * @param {string} params.customerId - ID do cliente no Asaas
- * @param {string} params.planKey - mensal | trimestral | anual
+ * @param {string} params.planKey - teste | mensal
  * @param {string} params.billingType - PIX | CREDIT_CARD
  * @param {Object} [params.creditCard] - Dados do cartão (obrigatório se billingType === CREDIT_CARD)
  * @param {Object} [params.creditCardHolderInfo] - Dados do titular
@@ -199,6 +186,29 @@ export async function getPixQrCode(paymentId) {
   });
   if (!res.ok) throw new Error('Falha ao obter QR Code PIX');
   return res.json();
+}
+
+/**
+ * Atualiza forma de pagamento da assinatura para cartão (débito automático no Asaas).
+ * @see https://docs.asaas.com/reference/atualizar-assinatura
+ */
+export async function updateSubscriptionPaymentMethod(subscriptionId, { creditCard, creditCardHolderInfo }) {
+  const res = await fetch(`${ASAAS_BASE_URL}/subscriptions/${subscriptionId}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      billingType: 'CREDIT_CARD',
+      creditCard,
+      creditCardHolderInfo,
+      updatePendingPayments: true,
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const errMsg = data?.errors?.[0]?.description || data?.errors || JSON.stringify(data);
+    throw new Error(`Asaas: ${errMsg}`);
+  }
+  return data;
 }
 
 export { PLANS };

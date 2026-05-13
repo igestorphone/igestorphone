@@ -140,13 +140,24 @@ export const asaasApi = {
   getPlans: () =>
     apiClient.get<{ plans: Array<{ id: string; name: string; planName: string; value: number; cycle: string; durationMonths: number }> }>('/asaas/plans'),
 
+  getMyPayments: () =>
+    apiClient.get<{ payments: Array<{ id: string; status: string; value: number; dueDate?: string; paymentDate?: string; billingType?: string; description?: string }> }>(
+      '/asaas/my-payments'
+    ),
+
+  updateSubscriptionPaymentMethod: (data: {
+    creditCard: { holderName: string; number: string; expiryMonth: string; expiryYear: string; ccv: string }
+    creditCardHolderInfo: { name: string; email: string; cpfCnpj: string; postalCode?: string; addressNumber?: string; mobilePhone?: string }
+  }) =>
+    apiClient.put<{ success: boolean; message?: string }>('/asaas/subscription-payment-method', data),
+
   registerCheckout: async (data: { name: string; email: string; password: string; cpfCnpj: string; phone: string }) => {
     const res = await testApi.post<{ message: string; user: any; token: string }>('/asaas/register-checkout', data)
     return res.data
   },
 
   createSubscription: (data: {
-    planKey: 'teste' | 'mensal' | 'trimestral' | 'anual'
+    planKey: 'teste' | 'mensal'
     billingType: 'PIX' | 'CREDIT_CARD'
     cpfCnpj?: string
     phone?: string
@@ -349,8 +360,6 @@ export const whatsappApi = {
     apiClient.patch<any>(`/whatsapp/inbox/${id}/status`, { status }),
   updateInboxMessageText: (id: number, messageText: string) =>
     apiClient.patch<any>(`/whatsapp/inbox/${id}/message-text`, { message_text: messageText }),
-  linkInboxSupplier: (id: number, supplierId: number) =>
-    apiClient.post<any>(`/whatsapp/inbox/${id}/link-supplier`, { supplier_id: supplierId }),
   processInboxItem: (id: number, listType?: 'lacrada' | 'seminovo' | 'android' | 'auto') =>
     apiClient.post<any>(
       `/whatsapp/inbox/${id}/process`,

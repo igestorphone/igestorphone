@@ -2,6 +2,7 @@ import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { UserPermissions } from '@/types'
+import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 
 const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile']
 
@@ -18,7 +19,7 @@ export default function ProtectedRoute({ children, requiredPermission }: Protect
     return <Navigate to="/login" replace />
   }
 
-  if (user.subscription_status === 'pending_payment' || user.subscription_status === 'overdue') {
+  if (requiresCheckoutOnly(user)) {
     return <Navigate to="/checkout" replace />
   }
 

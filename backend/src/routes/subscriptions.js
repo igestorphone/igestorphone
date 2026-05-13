@@ -6,6 +6,12 @@ import { requireRole } from '../middleware/auth.js';
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+function daysRemainingFromExpires(expiresAt) {
+  if (!expiresAt) return null;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / 86400000));
+}
+
 // Buscar assinatura do usuário
 router.get('/my-subscription', async (req, res) => {
   try {
@@ -33,14 +39,30 @@ router.get('/my-subscription', async (req, res) => {
         return res.status(404).json({ message: 'Usuário não encontrado' });
       }
 
-      return res.json({ 
+      const u = userResult.rows[0];
+      const dr = daysRemainingFromExpires(u.subscription_expires_at);
+      const st = (u.subscription_status || '').toLowerCase();
+      const renewRecommended = st === 'overdue' || st === 'pending_payment' || (dr !== null && dr <= 30);
+      return res.json({
         subscription: null,
-        user: userResult.rows[0]
+        user: u,
+        days_remaining: dr,
+        renew_recommended: renewRecommended,
       });
     }
 
     const subscription = subscriptionResult.rows[0];
-    res.json({ subscription });
+    const dr = daysRemainingFromExpires(subscription.subscription_expires_at);
+    const st = (subscription.subscription_status || '').toLowerCase();
+    const renewRecommended =
+      st === 'overdue' || st === 'pending_payment' || (dr !== null && dr <= 30);
+    res.json({
+      subscription: {
+        ...subscription,
+        days_remaining: dr,
+        renew_recommended: renewRecommended,
+      },
+    });
 
   } catch (error) {
     console.error('Erro ao buscar assinatura:', error);

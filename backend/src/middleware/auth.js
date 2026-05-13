@@ -28,13 +28,47 @@ export const authenticateToken = async (req, res, next) => {
 
     const user = result.rows[0];
 
-    // pending_payment: só pode acessar rotas de checkout (permitido mesmo com is_active=false para completar o pagamento)
-    if (user.subscription_status === 'pending_payment') {
-      const path = (req.originalUrl || req.path || '').split('?')[0];
-      const allowed = ['/api/users/profile', '/api/asaas/create-subscription', '/api/asaas/plans'].some(
-        (p) => path === p || path.startsWith(p + '/')
+    const pathRaw = (req.originalUrl || req.path || '').split('?')[0];
+
+    function isPaymentWallAllowedPath(p) {
+      return (
+        p === '/api/users/profile' ||
+        p.startsWith('/api/users/profile/') ||
+        p === '/api/asaas/create-subscription' ||
+        p.startsWith('/api/asaas/create-subscription/') ||
+        p === '/api/asaas/verify-payment' ||
+        p.startsWith('/api/asaas/verify-payment/')
       );
-      if (!allowed) {
+    }
+
+    function isAdminRow(u) {
+      return (u.tipo || '').toString().toLowerCase() === 'admin';
+    }
+
+    function subscriptionDatePassed(u) {
+      if (!u.subscription_expires_at) return false;
+      const t = new Date(u.subscription_expires_at).getTime();
+      if (Number.isNaN(t)) return false;
+      return t <= Date.now();
+    }
+
+    function isCanceledSubscription(u) {
+      const s = (u.subscription_status || '').toLowerCase();
+      return s === 'canceled' || s === 'cancelled';
+    }
+
+    function needsPaymentWall(u) {
+      if (isAdminRow(u)) return false;
+      const st = (u.subscription_status || '').toLowerCase();
+      if (st === 'pending_payment') return true;
+      if (st === 'overdue' || st === 'expired') return true;
+      if (isCanceledSubscription(u)) return false;
+      return subscriptionDatePassed(u);
+    }
+
+    // Cadastro via checkout: inativo até pagar — só rotas mínimas de pagamento/perfil
+    if (user.subscription_status === 'pending_payment') {
+      if (!isPaymentWallAllowedPath(pathRaw)) {
         return res.status(403).json({
           message: 'Complete o pagamento para acessar o sistema',
           subscription_status: 'pending_payment',
@@ -44,39 +78,48 @@ export const authenticateToken = async (req, res, next) => {
       return res.status(401).json({ message: 'Conta desativada' });
     }
 
-    // overdue/expired: pagamento atrasado
-    if (user.subscription_status === 'overdue' || user.subscription_status === 'expired') {
+    // Trial vencido → expired; libera apenas rotas de pagamento para regularizar
+    if (user.subscription_status === 'trial' && user.subscription_expires_at) {
+      const expiresAt = new Date(user.subscription_expires_at);
+      if (Date.now() > expiresAt.getTime()) {
+        await query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['expired', user.id]);
+        user.subscription_status = 'expired';
+        if (!isAdminRow(user) && !isPaymentWallAllowedPath(pathRaw)) {
+          return res.status(403).json({
+            message: 'Assinatura expirada',
+            subscription_status: 'expired',
+          });
+        }
+      }
+    }
+
+    // active com validade já passada: marca overdue (sem esperar job noturno)
+    if (
+      !isAdminRow(user) &&
+      user.subscription_status === 'active' &&
+      user.subscription_expires_at &&
+      subscriptionDatePassed(user)
+    ) {
+      await query(
+        `UPDATE users SET subscription_status = 'overdue' WHERE id = $1 AND subscription_status = 'active'`,
+        [user.id]
+      );
+      user.subscription_status = 'overdue';
+    }
+
+    if (needsPaymentWall(user) && !isAdminRow(user) && !isPaymentWallAllowedPath(pathRaw)) {
       return res.status(403).json({
-        message: 'Pagamento atrasado. Regularize para continuar acessando.',
+        message: 'Assinatura expirada ou pagamento pendente. Regularize para continuar.',
         subscription_status: user.subscription_status,
       });
     }
 
-    // Verificar inatividade (logout após 15 minutos sem atividade)
+    // Verificar inatividade (logout após X minutos sem atividade)
     const nowMs = Date.now();
     const lastActivityMs = user.last_activity_at ? new Date(user.last_activity_at).getTime() : null;
 
     if (lastActivityMs && nowMs - lastActivityMs > IDLE_TIMEOUT_MS) {
       return res.status(401).json({ message: 'Sessão expirada por inatividade' });
-    }
-
-    // Verificar se a assinatura não expirou
-    if (user.subscription_status === 'trial' && user.subscription_expires_at) {
-      const now = new Date();
-      const expiresAt = new Date(user.subscription_expires_at);
-      
-      if (now > expiresAt) {
-        // Atualizar status para expirado
-        await query(
-          'UPDATE users SET subscription_status = $1 WHERE id = $2',
-          ['expired', user.id]
-        );
-        
-        return res.status(403).json({ 
-          message: 'Assinatura expirada',
-          subscription_status: 'expired'
-        });
-      }
     }
 
     // Atualizar last_activity_at com throttle (evita update em todo request)

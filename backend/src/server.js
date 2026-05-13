@@ -215,16 +215,15 @@ app.use(errorHandler);
 let cleanupInterval = null;
 let subscriptionOverdueInterval = null;
 
-/** Verifica assinaturas vencidas há 1+ dia e marca como overdue (pagamento atrasado) */
+/** Verifica assinaturas com validade já passada e marca como overdue (alinhado ao bloqueio imediato no auth) */
 async function checkSubscriptionOverdue() {
   try {
     const { query } = await import('./config/database.js');
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const result = await query(
       `UPDATE users SET subscription_status = 'overdue'
-       WHERE subscription_status = 'active' AND subscription_expires_at IS NOT NULL AND subscription_expires_at < $1
+       WHERE subscription_status = 'active' AND subscription_expires_at IS NOT NULL AND subscription_expires_at < NOW()
        RETURNING id, email`,
-      [oneDayAgo]
+      []
     );
     if (result.rowCount > 0) {
       logger.info(`📋 Assinaturas vencidas: ${result.rowCount} usuário(s) marcado(s) como pagamento atrasado`);

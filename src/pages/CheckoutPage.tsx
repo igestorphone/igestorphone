@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { useAuthStore } from '@/stores/authStore'
 import { asaasApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
+import { hasActiveSubscriptionAccess } from '@/lib/subscriptionAccess'
 import toast from 'react-hot-toast'
 import {
   CreditCard,
@@ -19,20 +20,16 @@ import {
   Lock
 } from 'lucide-react'
 
-type PlanKey = 'teste' | 'mensal' | 'trimestral' | 'anual'
+type PlanKey = 'teste' | 'mensal'
 
 const PLAN_LABELS: Record<PlanKey, string> = {
   teste: 'Teste (R$ 5)',
-  mensal: 'Mensal',
-  trimestral: 'Trimestral',
-  anual: 'Anual'
+  mensal: 'Mensal (30 dias)',
 }
 
 const PLAN_VALUES: Record<PlanKey, number> = {
   teste: 5,
-  mensal: 150,
-  trimestral: 390,
-  anual: 1200
+  mensal: 199.99,
 }
 
 // Step 1: Login/Register
@@ -66,8 +63,8 @@ type CardForm = z.infer<typeof cardSchema>
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const planParam = (searchParams.get('plan') || 'mensal') as PlanKey
-  const validPlans: PlanKey[] = ['mensal', 'trimestral', 'anual']
-  const [plan, setPlan] = useState<PlanKey>(validPlans.includes(planParam) ? planParam : 'mensal')
+  const validPlans: PlanKey[] = ['mensal']
+  const [plan] = useState<PlanKey>(validPlans.includes(planParam as PlanKey) ? planParam : 'mensal')
   const [step, setStep] = useState<'auth' | 'payment' | 'card' | 'pix' | 'success'>('auth')
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [extraCpf, setExtraCpf] = useState('')
@@ -88,7 +85,7 @@ export default function CheckoutPage() {
 
   // Ao carregar checkout com pending_payment, verificar se já pagou (ex: fechou a aba e voltou)
   useEffect(() => {
-    if (!isAuthenticated || !user || user.subscription_status !== 'pending_payment') return
+    if (!isAuthenticated || !user || hasActiveSubscriptionAccess(user)) return
     asaasApi.verifyPayment().then(async (res) => {
       if (res?.paid) {
         await refreshUser()
@@ -96,7 +93,7 @@ export default function CheckoutPage() {
         navigate('/search-cheapest-iphone', { replace: true })
       }
     }).catch(() => {})
-  }, [isAuthenticated, user?.id, user?.subscription_status, refreshUser, navigate])
+  }, [isAuthenticated, user, refreshUser, navigate])
 
   // Polling: verificar pagamento PIX a cada 5s (fallback quando webhook não chega)
   useEffect(() => {

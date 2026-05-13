@@ -35,6 +35,9 @@ interface User {
   plan_name?: string;
   plan_type?: string;
   subscription_status?: string;
+  subscription_expires_at?: string;
+  subscription_days_remaining?: number | null;
+  asaas_subscription_id?: string;
   approval_status?: string;
   access_expires_at?: string;
   access_duration_days?: number;
@@ -736,6 +739,26 @@ export default function ManageUsersPage() {
                 <span className="text-gray-500 dark:text-white/50">Último login:</span>
                 <p className="text-gray-700 dark:text-white/80">
                   {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Nunca'}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-white/50">Status assinatura:</span>
+                <p className="text-gray-700 dark:text-white/80">{user.subscription_status || '—'}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-white/50">Assinatura até:</span>
+                <p className="text-gray-700 dark:text-white/80">
+                  {user.subscription_expires_at
+                    ? new Date(user.subscription_expires_at).toLocaleString('pt-BR')
+                    : '—'}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500 dark:text-white/50">Dias restantes:</span>
+                <p className="text-gray-700 dark:text-white/80">
+                  {user.subscription_expires_at == null
+                    ? '—'
+                    : `${user.subscription_days_remaining ?? Math.max(0, Math.ceil((new Date(user.subscription_expires_at).getTime() - Date.now()) / 86400000))} dias`}
                 </p>
               </div>
             </div>

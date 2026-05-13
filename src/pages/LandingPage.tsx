@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
-  Check,
   MessageCircle,
   Rocket,
   Shield,
@@ -80,8 +79,8 @@ const testimonials = [
 
 const faqs = [
   {
-    question: 'Os planos incluem todos os módulos?',
-    answer: 'Sim. Você recebe IA para listas, painel de metas, gestão de fornecedores, notas, relatórios e suporte via WhatsApp em todos os planos.'
+    question: 'A assinatura inclui todos os módulos?',
+    answer: 'Sim. Você recebe IA para listas, painel de metas, gestão de fornecedores, notas, relatórios e suporte via WhatsApp.'
   },
   {
     question: 'Consigo usar no celular?',
@@ -140,7 +139,7 @@ export default function LandingPage() {
           <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 md:flex">
             <a href="#features" className="transition-colors hover:text-cyan-400">Recursos</a>
             <a href="#steps" className="transition-colors hover:text-cyan-400">Como funciona</a>
-            <a href="#pricing" className="transition-colors hover:text-cyan-400">Preço</a>
+            <a href="#assinatura" className="transition-colors hover:text-cyan-400">Assinatura</a>
             <a href="#depoimentos" className="transition-colors hover:text-cyan-400">Depoimentos</a>
             <a href="#faq" className="transition-colors hover:text-cyan-400">FAQ</a>
           </nav>
@@ -177,9 +176,9 @@ export default function LandingPage() {
                 {...fadeUp(0.1)}
                 className="mt-8 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[3.25rem]"
               >
-                Centralize fornecedores, listas e metas a partir de{' '}
+                Centralize fornecedores, listas e metas com{' '}
                 <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  R$ 100/mês
+                  suporte direto no WhatsApp
                 </span>
               </motion.h1>
               <motion.p
@@ -279,8 +278,8 @@ export default function LandingPage() {
                           <p className="text-xs font-medium uppercase tracking-wider text-white/50">Top linha do dia</p>
                           <p className="mt-1 text-sm text-white">iPhone 16 Pro • Azul • e-SIM • 256 GB</p>
                         </div>
-                        <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-white">
-                          R$ 6.350
+                        <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-cyan-300/90">
+                          Melhor oferta
                         </span>
                       </div>
                       <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
@@ -390,141 +389,40 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="pricing" className="scroll-mt-20 border-t border-white/[0.06] py-24">
-          <div className="mx-auto max-w-5xl px-6">
+        <section id="assinatura" className="scroll-mt-20 border-t border-white/[0.06] py-24">
+          <div className="mx-auto max-w-2xl px-6">
             <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Preço</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Simples e transparente</h2>
-              <p className="mt-4 text-sm text-white/50 sm:mx-auto sm:max-w-xl">
-                Mesmos recursos em todos os planos. Quanto maior o compromisso, menor o valor mensal.
+              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Assinatura</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Fale com a gente no WhatsApp</h2>
+              <p className="mt-4 text-sm leading-relaxed text-white/50">
+                Condições, demonstração e ativação do acesso são tratadas direto com nossa equipe — sem valores exibidos aqui na página.
               </p>
             </motion.div>
 
             <motion.div
-              className="mt-14 grid gap-4 md:grid-cols-3"
-              initial="hidden"
-              whileInView="visible"
-              viewport={viewport}
-              variants={{ visible: { transition: { staggerChildren: 0.1 } }, hidden: {} }}
+              {...fadeInView(0.12)}
+              className="mt-10 flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 sm:flex-row"
             >
-              {/* Plano Mensal */}
-              <motion.div
-                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12]"
-                whileHover={{ y: -4 }}
+              <motion.a
+                href={WHATSAPP_ATENDIMENTO}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 sm:w-auto"
+                variants={buttonHover}
+                initial="rest"
+                whileHover="hover"
+                whileTap="tap"
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <span className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
-                  Mensal
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
-                <p className="mt-1 text-sm text-white/50">Ideal para começar</p>
-                <div className="mt-6">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">por mês</p>
-                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
-                    R$ <span className="text-white">150</span>
-                  </p>
-                  <p className="mt-1 text-xs text-white/45">cobrança mensal</p>
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
-                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
-                    <li key={item} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 shrink-0 text-white/50" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-8">
-                  <Link
-                    to="/checkout?plan=mensal"
-                    className="flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 py-3 text-sm font-semibold text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
-                  >
-                    Assinar
-                  </Link>
-                </div>
-              </motion.div>
-
-              {/* Plano Trimestral - Destaque */}
-              <motion.div
-                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="relative rounded-2xl border-2 border-cyan-500/40 bg-gradient-to-b from-cyan-500/10 to-transparent p-6 transition-all hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10"
-                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                <MessageCircle className="h-5 w-5" />
+                Chamar no WhatsApp
+              </motion.a>
+              <Link
+                to="/login"
+                className="inline-flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-8 py-4 text-base font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10 sm:w-auto"
               >
-                <span className="absolute right-4 top-4 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-white">
-                  Popular
-                </span>
-                <span className="inline-flex rounded-lg border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/90">
-                  Trimestral
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
-                <p className="mt-1 text-sm text-white/60">Economia de 13%</p>
-                <div className="mt-6">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">equivalente a</p>
-                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
-                    R$ <span className="text-white">130</span>
-                  </p>
-                  <p className="mt-1 text-xs text-white/45">por mês · cobrança trimestral</p>
-                  <p className="mt-1 text-xs text-white/40 line-through">R$ 150/mês</p>
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
-                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
-                    <li key={item} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 shrink-0 text-white/50" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-8">
-                  <Link
-                    to="/checkout?plan=trimestral"
-                    className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40"
-                  >
-                    Assinar
-                  </Link>
-                </div>
-              </motion.div>
-
-              {/* Plano Anual */}
-              <motion.div
-                variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
-                transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                className="relative rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.12]"
-                whileHover={{ y: -4 }}
-              >
-                <span className="absolute right-4 top-4 rounded-lg border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/70">
-                  Melhor valor
-                </span>
-                <span className="inline-flex rounded-lg border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-white/70">
-                  Anual
-                </span>
-                <h3 className="mt-4 text-lg font-semibold text-white">iGestorPhone</h3>
-                <p className="mt-1 text-sm text-white/50">Economia de 33%</p>
-                <div className="mt-6">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-white/50">equivalente a</p>
-                  <p className="mt-1 text-3xl font-bold tracking-tight text-white">
-                    R$ <span className="text-white">100</span>
-                  </p>
-                  <p className="mt-1 text-xs text-white/45">por mês · cobrança anual</p>
-                  <p className="mt-1 text-xs text-white/40 line-through">R$ 150/mês</p>
-                </div>
-                <ul className="mt-6 space-y-2.5 text-sm text-white/60">
-                  {['Processamento ilimitado com IA', 'Metas, notas e alertas', 'Gestão de fornecedores', 'Suporte via WhatsApp'].map(item => (
-                    <li key={item} className="flex items-center gap-2">
-                      <Check className="h-4 w-4 shrink-0 text-white/50" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-8">
-                  <Link
-                    to="/checkout?plan=anual"
-                    className="flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 py-3 text-sm font-semibold text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
-                  >
-                    Assinar
-                  </Link>
-                </div>
-              </motion.div>
+                Já sou cliente — entrar
+              </Link>
             </motion.div>
           </div>
         </section>
@@ -601,7 +499,7 @@ export default function LandingPage() {
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Pronto para começar?</h2>
               <p className="mt-2 max-w-md text-sm text-white/50">
-                Demonstração personalizada. Veja a IA em ação e escolha o plano ideal para sua equipe.
+                Demonstração personalizada e ativação do acesso com nossa equipe pelo WhatsApp.
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row">

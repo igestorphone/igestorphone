@@ -71,17 +71,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
   // Configurações (seção recolhível)
   const configNavigation = [
     { name: 'Meus Dados', href: '/profile', icon: Users },
-    { name: 'Plano & Assinatura', href: '/subscription', icon: CreditCard },
+    { name: 'Assinatura', href: '/subscription', icon: CreditCard },
     { name: 'Usuário do calendário', href: '/funcionarios-calendario', icon: UserPlus },
   ]
 
   const adminNavigation = [
-    {
-      name: 'WhatsApp Inbox',
-      href: '/admin/whatsapp-inbox',
-      icon: Smartphone,
-      category: 'admin'
-    },
     {
       name: 'Processar lista',
       href: '/process-list',
@@ -110,6 +104,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       name: 'Notificações',
       href: '/admin/notifications',
       icon: Bell,
+      category: 'admin'
+    },
+    {
+      name: 'WhatsApp Inbox',
+      href: '/admin/whatsapp-inbox',
+      icon: Smartphone,
       category: 'admin'
     },
     {
@@ -248,7 +248,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
           ))}
         </div>
 
-        {/* Seção Configurações: Meus dados, Plano & Assinatura (ou só Meus Dados para funcionário) */}
+        {/* Seção Configurações: Meus dados, Assinatura (ou só Meus Dados para funcionário) */}
         {!sidebarCollapsed && (
           <div className="mt-6">
             <button
