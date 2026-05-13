@@ -92,7 +92,15 @@ export async function getOrCreateCustomer(user, asaasCustomerId = null) {
  * @param {Object} [params.creditCard] - Dados do cartão (obrigatório se billingType === CREDIT_CARD)
  * @param {Object} [params.creditCardHolderInfo] - Dados do titular
  */
-export async function createSubscription({ customerId, planKey, billingType, creditCard, creditCardHolderInfo }) {
+export async function createSubscription({
+  customerId,
+  planKey,
+  billingType,
+  creditCard,
+  creditCardHolderInfo,
+  valueOverride,
+  descriptionOverride,
+}) {
   const plan = PLANS[planKey];
   if (!plan) throw new Error(`Plano inválido: ${planKey}`);
 
@@ -100,13 +108,18 @@ export async function createSubscription({ customerId, planKey, billingType, cre
   // Primeira cobrança para hoje (disponível imediatamente; PIX pode pagar na hora)
   nextDue.setHours(23, 59, 59, 999);
 
+  const value = valueOverride != null && Number.isFinite(Number(valueOverride)) ? Number(valueOverride) : plan.value;
+  const description =
+    descriptionOverride ||
+    (value !== plan.value ? `iGestorPhone Mensal (R$ ${value.toFixed(2).replace('.', ',')})` : plan.planName);
+
   const body = {
     customer: customerId,
     billingType,
     nextDueDate: nextDue.toISOString().split('T')[0],
-    value: plan.value,
+    value,
     cycle: plan.cycle,
-    description: plan.planName,
+    description,
   };
 
   if (billingType === 'CREDIT_CARD') {

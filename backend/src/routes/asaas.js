@@ -1,25 +1,87 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole } from '../middleware/auth.js';
 import * as asaasService from '../services/asaas.js';
 import { addCalendarDays, BILLING_PERIOD_DAYS, computeExpiryAfterRenewal } from '../utils/billingPeriod.js';
 
 const router = express.Router();
 
-// Planos disponíveis (público - teste oculto)
-router.get('/plans', (req, res) => {
-  const plans = Object.entries(asaasService.PLANS)
-    .filter(([key]) => key !== 'teste')
-    .map(([key, p]) => ({
-      id: key,
-      name: p.name,
-      planName: p.planName,
-      value: p.value,
-      cycle: p.cycle,
-      durationMonths: p.durationMonths,
-    }));
-  res.json({ plans });
+const MENSAL_VALUE_OVERRIDE_KEY = 'asaas_mensal_value_override';
+
+async function getMensalValueOverride() {
+  try {
+    const r = await query(`SELECT value FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
+    const raw = r.rows[0]?.value;
+    if (raw == null || raw === '') return null;
+    const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
+    if (Number.isFinite(num) && num > 0) return num;
+  } catch (_) {
+    /* settings pode não existir em ambientes muito antigos */
+  }
+  return null;
+}
+
+// Planos disponíveis (público - teste oculto). Valor mensal pode ter override admin (teste Asaas).
+router.get('/plans', async (req, res) => {
+  try {
+    const override = await getMensalValueOverride();
+    const plans = Object.entries(asaasService.PLANS)
+      .filter(([key]) => key !== 'teste')
+      .map(([key, p]) => ({
+        id: key,
+        name: p.name,
+        planName: p.planName,
+        value: key === 'mensal' && override != null ? override : p.value,
+        cycle: p.cycle,
+        durationMonths: p.durationMonths,
+      }));
+    res.json({ plans });
+  } catch (e) {
+    console.error('GET /asaas/plans:', e);
+    res.status(500).json({ message: 'Erro ao listar planos' });
+  }
+});
+
+// Admin: valor mensal no Asaas (ex.: R$ 1 para teste). null/clear remove o override.
+router.get('/admin/mensal-override', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const value = await getMensalValueOverride();
+    res.json({ value });
+  } catch (e) {
+    console.error('GET mensal-override:', e);
+    res.status(500).json({ message: 'Erro ao ler configuração' });
+  }
+});
+
+router.put('/admin/mensal-override', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const clear = req.body?.clear === true || req.body?.value === null || req.body?.value === '';
+    if (clear) {
+      await query(`DELETE FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
+      return res.json({
+        value: null,
+        message: 'Override removido. Checkout mensal volta ao valor padrão (R$ 199,99).',
+      });
+    }
+    const num = Number(req.body?.value);
+    if (!Number.isFinite(num) || num <= 0) {
+      return res.status(400).json({ message: 'Informe value numérico > 0 ou clear: true' });
+    }
+    await query(
+      `INSERT INTO settings (key, value, description)
+       VALUES ($1, $2::jsonb, $3)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP`,
+      [MENSAL_VALUE_OVERRIDE_KEY, JSON.stringify(num), 'Override valor mensal Asaas (admin / testes)']
+    );
+    res.json({
+      value: num,
+      message: `Checkout mensal usará R$ ${num.toFixed(2).replace('.', ',')} até você remover o override.`,
+    });
+  } catch (e) {
+    console.error('PUT mensal-override:', e);
+    res.status(500).json({ message: 'Erro ao salvar configuração' });
+  }
 });
 
 // Criar assinatura (requer autenticação + cpf/phone no user ou no body)
@@ -74,16 +136,28 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
       );
     }
 
+    const plan = asaasService.PLANS[planKey];
+    const valueOverride = planKey === 'mensal' ? await getMensalValueOverride() : null;
+    const chargedPrice =
+      valueOverride != null && Number.isFinite(Number(valueOverride))
+        ? Number(valueOverride)
+        : plan.value;
+    const descriptionOverride =
+      planKey === 'mensal' && valueOverride != null
+        ? `iGestorPhone Mensal (teste R$ ${chargedPrice.toFixed(2).replace('.', ',')})`
+        : undefined;
+
     const subscription = await asaasService.createSubscription({
       customerId: customer.id,
       planKey,
       billingType,
       creditCard,
       creditCardHolderInfo,
+      valueOverride: planKey === 'mensal' ? valueOverride ?? undefined : undefined,
+      descriptionOverride,
     });
 
     // Inserir assinatura no banco (status pendente até webhook PAYMENT_RECEIVED)
-    const plan = asaasService.PLANS[planKey];
     const startDate = new Date();
     const endDate = addCalendarDays(startDate, BILLING_PERIOD_DAYS);
 
@@ -95,12 +169,12 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, true)`,
       [
         user.id,
-        plan.planName,
+        descriptionOverride || plan.planName,
         billingType === 'CREDIT_CARD' ? 'active' : 'PENDING',
         subscription.id,
         planKey,
         plan.durationMonths,
-        plan.value,
+        chargedPrice,
         billingType.toLowerCase(),
         startDate,
         endDate,

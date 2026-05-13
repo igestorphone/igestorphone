@@ -76,8 +76,20 @@ export default function CheckoutPage() {
   const [verifying, setVerifying] = useState(false)
   const { isAuthenticated, user, login, logout, refreshUser } = useAuthStore()
   const navigate = useNavigate()
+  const [planPriceFromApi, setPlanPriceFromApi] = useState<number | null>(null)
 
   useEffect(() => {
+    asaasApi
+      .getPlans()
+      .then((data: unknown) => {
+        const plans = (data as { plans?: { id: string; value: number }[] })?.plans
+        const m = plans?.find((p) => p.id === 'mensal')
+        if (m != null && typeof m.value === 'number') setPlanPriceFromApi(m.value)
+      })
+      .catch(() => {})
+  }, [])
+
+  const displayPlanPrice = planPriceFromApi ?? PLAN_VALUES[plan]
     if (isAuthenticated && user && step === 'auth') {
       setStep('payment')
     }
@@ -253,7 +265,7 @@ export default function CheckoutPage() {
           <h1 className="text-2xl font-bold">Finalizar assinatura</h1>
           <p className="mt-2 flex items-center gap-2 text-cyan-400">
             <span className="rounded-lg bg-cyan-500/20 px-2 py-0.5 text-sm font-medium">{PLAN_LABELS[plan]}</span>
-            <span className="text-white/80">R$ {PLAN_VALUES[plan].toFixed(2).replace('.', ',')}</span>
+            <span className="text-white/80">R$ {displayPlanPrice.toFixed(2).replace('.', ',')}</span>
           </p>
         </div>
 

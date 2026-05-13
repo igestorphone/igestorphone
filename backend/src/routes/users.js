@@ -977,6 +977,54 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
   }
 });
 
+// Teste admin: ajustar validade da assinatura (NOW + N dias)
+router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
+  body('daysFromNow').isInt({ min: 0, max: 3650 }),
+  body('subscription_status').optional().isIn(['active', 'overdue', 'pending_payment', 'expired', 'trial']),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { id } = req.params;
+    const daysFromNow = parseInt(req.body.daysFromNow, 10);
+    const subscriptionStatus = (req.body.subscription_status || 'active').toLowerCase();
+
+    const result = await query(
+      `UPDATE users SET
+         subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
+         subscription_status = $2,
+         is_active = true,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3
+       RETURNING id, email, name, subscription_expires_at, subscription_status`,
+      [daysFromNow, subscriptionStatus, id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    await query(
+      `INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        req.user.id,
+        'subscription_expiry_test_set',
+        JSON.stringify({ target_user_id: id, days_from_now: daysFromNow, subscription_status: subscriptionStatus }),
+        req.ip,
+        req.get('User-Agent'),
+      ]
+    );
+
+    res.json({ message: 'Validade da assinatura atualizada.', user: result.rows[0] });
+  } catch (error) {
+    console.error('subscription-expiry-test:', error);
+    res.status(500).json({ message: 'Erro ao atualizar validade' });
+  }
+});
+
 // Buscar usuário por ID
 router.get('/:id', requireRole('admin'), async (req, res) => {
   try {
@@ -1686,7 +1734,7 @@ router.get('/:id/permissions', requireRole('admin'), async (req, res) => {
 
 // Aprovar usuário e definir período de acesso (apenas admin)
 router.post('/:id/approve', requireRole('admin'), [
-  body('durationDays').isIn([5, 30, 90, 365]).withMessage('Período inválido. Use: 5, 30, 90 ou 365 dias')
+  body('durationDays').isInt({ min: 1, max: 365 }).withMessage('Informe entre 1 e 365 dias'),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);

@@ -140,6 +140,13 @@ export const asaasApi = {
   getPlans: () =>
     apiClient.get<{ plans: Array<{ id: string; name: string; planName: string; value: number; cycle: string; durationMonths: number }> }>('/asaas/plans'),
 
+  /** Admin: valor atual do override do mensal (null = padrão 199,99) */
+  getMensalOverride: () => apiClient.get<{ value: number | null }>('/asaas/admin/mensal-override'),
+
+  /** Admin: { value: 1 } ou { clear: true } */
+  setMensalOverride: (payload: { value?: number; clear?: boolean }) =>
+    apiClient.put<{ value: number | null; message?: string }>('/asaas/admin/mensal-override', payload),
+
   getMyPayments: () =>
     apiClient.get<{ payments: Array<{ id: string; status: string; value: number; dueDate?: string; paymentDate?: string; billingType?: string; description?: string }> }>(
       '/asaas/my-payments'
@@ -412,6 +419,10 @@ export const usersApi = {
 
   cleanupInactive: () =>
     apiClient.delete<any>('/users/cleanup-inactive'),
+
+  /** Admin: ajustar subscription_expires_at para NOW + N dias (testes) */
+  patchSubscriptionExpiryTest: (id: string, data: { daysFromNow: number; subscription_status?: string }) =>
+    apiClient.patch<{ message: string; user: unknown }>(`/users/${id}/subscription-expiry-test`, data),
 }
 
 // Calendário compartilhado (vendedor/atendente)

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut, Crown } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
-import { usersApi, registrationApi } from '@/lib/api';
+import { usersApi, registrationApi, asaasApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -71,7 +71,7 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter, setPlanFilter] = useState<'all' | 'mensal' | 'trimestral' | 'anual' | 'embaixador'>('all');
+  const [planFilter, setPlanFilter] = useState<'all' | 'mensal'>('all');
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'expiring'>('users');
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -82,7 +82,10 @@ export default function ManageUsersPage() {
   const [showGenerateLinkModal, setShowGenerateLinkModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [userToApprove, setUserToApprove] = useState<PendingUser | null>(null);
-  const [selectedDuration, setSelectedDuration] = useState<5 | 30 | 90 | 365>(5);
+  const [selectedDuration, setSelectedDuration] = useState<5 | 30>(30);
+  const [mensalOverrideBrl, setMensalOverrideBrl] = useState<number | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+  const [testDaysByUser, setTestDaysByUser] = useState<Record<string, string>>({});
   const [linkExpiresIn, setLinkExpiresIn] = useState(7);
   const [cleanupLoading, setCleanupLoading] = useState(false);
 
@@ -125,6 +128,21 @@ export default function ManageUsersPage() {
       loadCurrentLink();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    let cancelled = false
+    asaasApi
+      .getMensalOverride()
+      .then((data: unknown) => {
+        if (cancelled) return
+        const v = (data as { value?: number | null })?.value
+        setMensalOverrideBrl(typeof v === 'number' && v > 0 ? v : null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, []);
 
   // Função para normalizar URL para sempre usar www.igestorphone.com.br
   const normalizeLinkUrl = (url: string): string => {
@@ -340,6 +358,55 @@ export default function ManageUsersPage() {
     }
   };
 
+  const handleSetAsaasMensalOneReal = async () => {
+    setOverrideLoading(true);
+    try {
+      const res = (await asaasApi.setMensalOverride({ value: 1 })) as { message?: string };
+      setMensalOverrideBrl(1);
+      toast.success(res?.message || 'Checkout mensal: R$ 1,00 (Asaas).');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || 'Erro ao aplicar valor de teste');
+    } finally {
+      setOverrideLoading(false);
+    }
+  };
+
+  const handleClearAsaasMensalOverride = async () => {
+    setOverrideLoading(true);
+    try {
+      const res = (await asaasApi.setMensalOverride({ clear: true })) as { message?: string };
+      setMensalOverrideBrl(null);
+      toast.success(res?.message || 'Valor padrão do checkout restaurado.');
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || 'Erro ao remover override');
+    } finally {
+      setOverrideLoading(false);
+    }
+  };
+
+  const handleApplyTestExpiry = async (targetUserId: string) => {
+    const raw = testDaysByUser[targetUserId] ?? '30';
+    const days = parseInt(raw, 10);
+    if (Number.isNaN(days) || days < 0 || days > 3650) {
+      toast.error('Informe dias entre 0 e 3650');
+      return;
+    }
+    try {
+      await usersApi.patchSubscriptionExpiryTest(targetUserId, { daysFromNow: days });
+      toast.success(
+        days === 0
+          ? 'Validade = agora (usuário deve ir ao checkout).'
+          : `Validade definida: agora + ${days} dia(s).`
+      );
+      await fetchUsers();
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || 'Erro ao atualizar validade');
+    }
+  };
+
   const filteredUsers = users
   .filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -360,33 +427,20 @@ export default function ManageUsersPage() {
     });
     
     const matchesPlan = (() => {
-      if (planFilter === 'all') return true
-      const planType = (user.plan_type || (user as any).subscription?.plan_type || '').toString().toLowerCase()
-      const planName = (user.plan_name || (user as any).subscription?.plan_name || '').toString().toLowerCase()
-      if (planFilter === 'embaixador') {
-        return planType === 'embaixador' || planName.includes('embaixador')
-      }
-      if (planFilter === 'mensal') return planType === 'mensal' || /mensal/.test(planName)
-      if (planFilter === 'trimestral') return planType === 'trimestral' || /trimestral/.test(planName)
-      if (planFilter === 'anual') return planType === 'anual' || /anual/.test(planName)
-      return true
-    })()
+      if (planFilter === 'all') return true;
+      const planType = (user.plan_type || (user as any).subscription?.plan_type || '').toString().toLowerCase();
+      const planName = (user.plan_name || (user as any).subscription?.plan_name || '').toString().toLowerCase();
+      if (planFilter === 'mensal') return planType === 'mensal' || /mensal/.test(planName);
+      return true;
+    })();
     
     return matchesSearch && matchesStatus && matchesPlan;
   })
   .sort((a, b) => {
-    // Admins e Embaixadores vão para o final da lista
-    const isAdminA = (a.tipo || '').toString().toLowerCase() === 'admin'
-    const isAdminB = (b.tipo || '').toString().toLowerCase() === 'admin'
-    const planTypeA = (a.plan_type || (a as any).subscription?.plan_type || '').toString().toLowerCase()
-    const planTypeB = (b.plan_type || (b as any).subscription?.plan_type || '').toString().toLowerCase()
-    const isEmbA = planTypeA === 'embaixador'
-    const isEmbB = planTypeB === 'embaixador'
-
-    const weightA = (isAdminA || isEmbA) ? 1 : 0
-    const weightB = (isAdminB || isEmbB) ? 1 : 0
-    if (weightA !== weightB) return weightA - weightB // 0 primeiro, 1 depois
-    return 0
+    const isAdminA = (a.tipo || '').toString().toLowerCase() === 'admin';
+    const isAdminB = (b.tipo || '').toString().toLowerCase() === 'admin';
+    if (isAdminA !== isAdminB) return isAdminA ? 1 : -1;
+    return 0;
   });
 
   const getStatusBadge = (user: User) => {
@@ -415,24 +469,6 @@ export default function ManageUsersPage() {
       </span>
     );
   };
-
-  const getProfileBadge = (user: any) => {
-    // Recadastramento obrigatório (v1): admin não precisa
-    if ((user.tipo || '').toString().toLowerCase() === 'admin') return null
-    const v = Number(user.profile_completion_version || 0)
-    if (v >= 1) {
-      return (
-        <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-          Cadastro ok
-        </span>
-      )
-    }
-    return (
-      <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
-        Cadastro pendente
-      </span>
-    )
-  }
 
   const getTypeBadge = (tipo: string) => {
     const colors = {
@@ -597,18 +633,46 @@ export default function ManageUsersPage() {
 
           <select
             value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value as any)}
+            onChange={(e) => setPlanFilter(e.target.value as 'all' | 'mensal')}
             className="bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
           >
-            <option value="all">Todos os planos</option>
-            <option value="mensal">Mensal</option>
-            <option value="trimestral">Trimestral</option>
-            <option value="anual">Anual</option>
-            <option value="embaixador">Embaixador</option>
+            <option value="all">Todos (plano)</option>
+            <option value="mensal">Mensal / mensal no nome</option>
           </select>
 
           <div className="text-gray-600 dark:text-white/70 text-sm">
             {filteredUsers.length} de {users.length} usuários
+          </div>
+        </div>
+
+        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Testes (Asaas + validade)</p>
+          <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
+            Valor do plano <strong>mensal</strong> no checkout (só ambiente com API Asaas). Em cada usuário abaixo use &quot;Dias a partir de agora&quot; (0 = forçar vencido / fluxo checkout).
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm text-gray-700 dark:text-white/80">
+              Override atual:{' '}
+              <strong className="text-gray-900 dark:text-white">
+                {mensalOverrideBrl != null ? `R$ ${mensalOverrideBrl.toFixed(2).replace('.', ',')}` : 'padrão R$ 199,99'}
+              </strong>
+            </span>
+            <button
+              type="button"
+              disabled={overrideLoading}
+              onClick={handleSetAsaasMensalOneReal}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 disabled:opacity-50"
+            >
+              Usar R$ 1,00 no checkout
+            </button>
+            <button
+              type="button"
+              disabled={overrideLoading || mensalOverrideBrl == null}
+              onClick={handleClearAsaasMensalOverride}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white border border-gray-300 dark:border-white/20 hover:bg-gray-100 dark:hover:bg-white/15 disabled:opacity-50"
+            >
+              Voltar valor padrão
+            </button>
           </div>
         </div>
       </div>
@@ -676,25 +740,15 @@ export default function ManageUsersPage() {
                   <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
                     {getStatusBadge(user)}
-                    {getProfileBadge(user)}
                     {(() => {
                       const p = (user.plan_name || user.subscription?.plan_name) || '';
-                      const planType = (user.plan_type || user.subscription?.plan_type || '').toString().toLowerCase();
-                      if (planType === 'embaixador' || /embaixador/i.test(p)) {
-                        return (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 flex items-center gap-1">
-                            <Crown className="w-3 h-3" />
-                            Embaixador
-                          </span>
-                        );
-                      }
                       const lastPayment = (user as any).last_payment_amount;
-                      if (!p && !lastPayment) return null;
+                      if (!p && lastPayment == null) return null;
                       const priceLabel = lastPayment != null ? formatPrice(Number(lastPayment)) : '';
                       return (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                           <CreditCard className="w-3 h-3" />
-                          {p ? p.replace(/iGestorPhone\s*/i, '') : 'Plano'}
+                          {p ? p.replace(/iGestorPhone\s*/i, '') : 'Assinatura'}
                           {priceLabel && <span className="opacity-90">· {priceLabel}</span>}
                         </span>
                       );
@@ -761,6 +815,29 @@ export default function ManageUsersPage() {
                     : `${user.subscription_days_remaining ?? Math.max(0, Math.ceil((new Date(user.subscription_expires_at).getTime() - Date.now()) / 86400000))} dias`}
                 </p>
               </div>
+              {user.tipo !== 'admin' && (
+                <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
+                  <span className="text-gray-500 dark:text-white/50 text-xs w-full sm:w-auto">Teste validade (a partir de agora)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={3650}
+                    value={testDaysByUser[user.id] ?? '30'}
+                    onChange={(e) =>
+                      setTestDaysByUser((prev) => ({ ...prev, [user.id]: e.target.value }))
+                    }
+                    className="w-24 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyTestExpiry(String(user.id))}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+                  >
+                    Aplicar
+                  </button>
+                  <span className="text-[11px] text-gray-400 dark:text-white/40">0 = vencido agora</span>
+                </div>
+              )}
             </div>
 
             {/* Permissions */}
@@ -1152,10 +1229,11 @@ export default function ManageUsersPage() {
                   Período de Acesso
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[5, 30, 90, 365].map((days) => (
+                  {([5, 30] as const).map((days) => (
                     <button
                       key={days}
-                      onClick={() => setSelectedDuration(days as 5 | 30 | 90 | 365)}
+                      type="button"
+                      onClick={() => setSelectedDuration(days)}
                       className={`p-3 rounded-lg border transition-colors ${
                         selectedDuration === days
                           ? 'bg-blue-500/20 border-blue-500 text-white'
@@ -1163,17 +1241,9 @@ export default function ManageUsersPage() {
                       }`}
                     >
                       <div className="text-center">
-                        <div className="font-semibold">
-                          {days === 5 && '5 dias'}
-                          {days === 30 && '30 dias'}
-                          {days === 90 && '90 dias'}
-                          {days === 365 && 'Anual'}
-                        </div>
+                        <div className="font-semibold">{days} dias</div>
                         <div className="text-xs opacity-70 mt-1">
-                          {days === 5 && '(Demonstração)'}
-                          {days === 30 && '(1 mês)'}
-                          {days === 90 && '(3 meses)'}
-                          {days === 365 && '(1 ano)'}
+                          {days === 5 ? 'Demonstração' : '1 mês (acesso)'}
                         </div>
                       </div>
                     </button>
