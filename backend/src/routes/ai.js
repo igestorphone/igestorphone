@@ -9,21 +9,8 @@ import { normalizeColor } from '../utils/colorNormalizer.js';
 const router = express.Router();
 
 const detectVariant = (product) => {
-  const extractRegionVariant = (text) => {
-    if (!text) return null;
-    const upper = text.toUpperCase();
-    if (/\bJ\/A\b/.test(upper)) return 'JAPONÊS';
-    if (/\bLL\/A\b/.test(upper) || /\bUS\/A\b/.test(upper)) return 'AMERICANO';
-    if (/\bCH\/A\b/.test(upper)) return 'CHINÊS';
-    if (/\bHN\/A\b/.test(upper)) return 'INDIANO';
-    if (/\bZP\/A\b/.test(upper) || /\bZA\/A\b/.test(upper)) return 'CHINÊS';
-    return null;
-  };
-
-  const modelRegionVariant = extractRegionVariant([product?.model, product?.name].filter(Boolean).join(' '));
-  if (modelRegionVariant) return modelRegionVariant;
-
   const combined = [
+    product?.variant,
     product?.network,
     product?.notes,
     product?.model,
@@ -57,62 +44,7 @@ const detectVariant = (product) => {
   if (combined.includes('dubai')) return 'DUBAI';
   if (combined.includes('cpo')) return 'CPO';
 
-  const rawVariant = (product?.variant || '').toString().toUpperCase().trim();
-  if (rawVariant) {
-    if (rawVariant === 'CHINES') return 'CHINÊS';
-    if (rawVariant === 'JAPONES') return 'JAPONÊS';
-    if (rawVariant === 'ANATEL') return 'ANATEL';
-    if (rawVariant === 'E-SIM' || rawVariant === 'ESIM') return 'E-SIM';
-    if (rawVariant === 'CHIP FÍSICO' || rawVariant === 'CHIP FISICO') return 'CHIP FÍSICO';
-    if (rawVariant === 'CHIP VIRTUAL') return 'CHIP VIRTUAL';
-    if (rawVariant === 'AMERICANO') return 'AMERICANO';
-    if (rawVariant === 'CHINÊS') return 'CHINÊS';
-    if (rawVariant === 'JAPONÊS') return 'JAPONÊS';
-    if (rawVariant === 'INDIANO') return 'INDIANO';
-    if (rawVariant === 'DUBAI') return 'DUBAI';
-    if (rawVariant === 'CPO') return 'CPO';
-  }
-
-  return null;
-};
-
-const splitColorCandidates = (colorValue) => {
-  const raw = (colorValue || '').toString().trim();
-  if (!raw) return [];
-
-  // Remove marcadores comuns de lista para evitar sujeira no nome da cor.
-  const cleaned = raw
-    .replace(/[✅☑️⭐✨•▪️▶️-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  if (!cleaned) return [];
-
-  const chunks = cleaned
-    .split(/\s*\/\s*|\s*,\s*|\s+\+\s+|\s+\be\b\s+/i)
-    .map((v) => v.trim())
-    .filter(Boolean);
-
-  // Se não houve separação real, mantém valor original.
-  return chunks.length > 1 ? Array.from(new Set(chunks)) : [cleaned];
-};
-
-const expandProductsByColor = (products) => {
-  const expanded = [];
-  for (const product of products || []) {
-    const colors = splitColorCandidates(product?.color);
-    if (!colors.length) {
-      expanded.push(product);
-      continue;
-    }
-    for (const color of colors) {
-      expanded.push({
-        ...product,
-        color,
-      });
-    }
-  }
-  return expanded;
+  return product?.variant ? product.variant.toString().toUpperCase() : null;
 };
 
 const normalizeAndroidText = (value) => {
@@ -519,15 +451,14 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
 
     const { supplier_id, supplier_name, supplier_whatsapp, validated_products, raw_list_text, list_type: listType } = req.body;
     const listKind = listType === 'seminovo' ? 'seminovo' : listType === 'android' ? 'android' : 'lacrada';
-    const normalizedValidatedProducts = expandProductsByColor(validated_products);
 
-    if (!normalizedValidatedProducts || normalizedValidatedProducts.length === 0) {
+    if (!validated_products || validated_products.length === 0) {
       return res.status(400).json({ message: 'Nenhum produto válido para salvar' });
     }
 
     // Filtrar conforme o tipo de lista (lacrada = só Novo; seminovo = só Seminovo; android = todos)
     const condicoesInvalidas = ['SWAP', 'VITRINE', 'USADO', 'RECONDICIONADO'];
-    const produtosValidos = normalizedValidatedProducts.filter(product => {
+    const produtosValidos = validated_products.filter(product => {
       const cond = (product.condition || '').toLowerCase();
       if (listKind === 'lacrada') {
         if (cond !== 'novo') {
@@ -560,11 +491,11 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         : listKind === 'seminovo'
           ? 'Nenhum produto válido. Apenas produtos com condition Seminovo são aceitos.'
           : 'Nenhum produto válido para salvar.';
-      return res.status(400).json({ message: msg, filtered_count: normalizedValidatedProducts.length });
+      return res.status(400).json({ message: msg, filtered_count: validated_products.length });
     }
 
-    if (produtosValidos.length < normalizedValidatedProducts.length) {
-      console.log(`⚠️ ${normalizedValidatedProducts.length - produtosValidos.length} produtos filtrados antes de salvar (list_type=${listKind})`);
+    if (produtosValidos.length < validated_products.length) {
+      console.log(`⚠️ ${validated_products.length - produtosValidos.length} produtos filtrados antes de salvar (list_type=${listKind})`);
     }
 
     // Usar apenas produtos válidos
@@ -645,7 +576,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     const saveErrors = [];
 
     console.log(`📦 Processando ${validated_products_filtered.length} produtos válidos para o fornecedor ${finalSupplierId}...`);
-    console.log(`🚫 ${normalizedValidatedProducts.length - validated_products_filtered.length} produtos de vitrine foram filtrados antes de salvar`);
+    console.log(`🚫 ${validated_products.length - validated_products_filtered.length} produtos de vitrine foram filtrados antes de salvar`);
 
     for (const product of validated_products_filtered) {
       try {
@@ -890,7 +821,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       JSON.stringify({
         supplier_id: finalSupplierId,
         total_products: validated_products_filtered.length,
-        filtered_vitrine_count: normalizedValidatedProducts.length - validated_products_filtered.length,
+        filtered_vitrine_count: validated_products.length - validated_products_filtered.length,
         saved_products: savedProducts.length,
         errors: saveErrors.length
       }),
@@ -927,7 +858,7 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       message: 'Lista processada e salva com sucesso',
       summary: {
         total_products: validated_products_filtered.length,
-        filtered_vitrine_count: normalizedValidatedProducts.length - validated_products_filtered.length,
+        filtered_vitrine_count: validated_products.length - validated_products_filtered.length,
         saved_products: savedProducts.length,
         errors: saveErrors.length,
         average_price: Math.round(avgPrice)

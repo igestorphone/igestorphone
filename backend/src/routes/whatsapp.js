@@ -140,30 +140,17 @@ router.post('/webhook', async (req, res) => {
 
 router.get('/status', authenticateToken, requireRole('admin'), async (_req, res) => {
   try {
-    const [lastResult, statsResult] = await Promise.all([
-      query(
-        `SELECT id, from_phone, message_type, message_text, status, received_at
-         FROM whatsapp_inbox
-         ORDER BY received_at DESC
-         LIMIT 1`
-      ),
-      query(
-        `SELECT
-           COUNT(DISTINCT from_phone) FILTER (WHERE status = 'processed')::int AS suppliers_processed,
-           COUNT(DISTINCT from_phone) FILTER (WHERE status = 'pending_supplier')::int AS suppliers_pending
-         FROM whatsapp_inbox`
-      ),
-    ]);
-    const lastEvent = lastResult.rows[0] || null;
-    const statsRow = statsResult.rows[0] || {};
+    const result = await query(
+      `SELECT id, from_phone, message_type, message_text, status, received_at
+       FROM whatsapp_inbox
+       ORDER BY received_at DESC
+       LIMIT 1`
+    );
+    const lastEvent = result.rows[0] || null;
     res.json({
       ok: true,
       webhook_configured: Boolean(process.env.WHATSAPP_VERIFY_TOKEN),
       last_event: lastEvent,
-      inbox_suppliers: {
-        processed: Number(statsRow.suppliers_processed) || 0,
-        pending: Number(statsRow.suppliers_pending) || 0,
-      },
     });
   } catch (error) {
     console.error('❌ Erro ao consultar status do WhatsApp:', error);
@@ -368,78 +355,6 @@ router.patch('/inbox/:id/message-text', authenticateToken, requireRole('admin'),
   }
 });
 
-router.post('/inbox/:id/link-supplier', authenticateToken, requireRole('admin'), async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const supplierId = Number(req.body?.supplier_id);
-
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ message: 'ID inválido' });
-    }
-    if (!Number.isInteger(supplierId) || supplierId <= 0) {
-      return res.status(400).json({ message: 'Fornecedor inválido' });
-    }
-
-    const inboxResult = await query(
-      `SELECT id, from_phone
-       FROM whatsapp_inbox
-       WHERE id = $1
-       LIMIT 1`,
-      [id]
-    );
-    if (inboxResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Item não encontrado' });
-    }
-
-    const fromPhone = normalizePhone(inboxResult.rows[0].from_phone);
-    if (!fromPhone) {
-      return res.status(400).json({ message: 'Telefone da mensagem inválido' });
-    }
-
-    const supplierResult = await query(
-      `SELECT id, name, whatsapp, contact_phone
-       FROM suppliers
-       WHERE id = $1 AND is_active = true
-       LIMIT 1`,
-      [supplierId]
-    );
-    if (supplierResult.rows.length === 0) {
-      return res.status(404).json({ message: 'Fornecedor não encontrado' });
-    }
-    const supplier = supplierResult.rows[0];
-
-    await query(
-      `INSERT INTO supplier_whatsapp_numbers (supplier_id, phone_number, is_primary, description)
-       VALUES ($1, $2, false, 'Vinculado via WhatsApp Inbox')
-       ON CONFLICT (supplier_id, phone_number) DO NOTHING`,
-      [supplierId, fromPhone]
-    );
-
-    // Garantir fallback de compatibilidade no supplier principal
-    if (!supplier.whatsapp) {
-      await query(`UPDATE suppliers SET whatsapp = $1 WHERE id = $2`, [fromPhone, supplierId]);
-    } else if (!supplier.contact_phone) {
-      await query(`UPDATE suppliers SET contact_phone = $1 WHERE id = $2`, [fromPhone, supplierId]);
-    }
-
-    await query(
-      `UPDATE whatsapp_inbox
-       SET status = 'new', updated_at = CURRENT_TIMESTAMP
-       WHERE id = $1`,
-      [id]
-    );
-
-    return res.json({
-      message: 'Fornecedor vinculado ao número com sucesso',
-      supplier: { id: supplier.id, name: supplier.name },
-      phone: fromPhone,
-    });
-  } catch (error) {
-    console.error('❌ Erro ao vincular fornecedor no inbox WhatsApp:', error);
-    return res.status(500).json({ message: 'Erro interno do servidor' });
-  }
-});
-
 router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -487,20 +402,14 @@ router.post('/inbox/:id/process', authenticateToken, requireRole('admin'), async
     // match fornecedor por whatsapp/contact_phone
     const normalizedPhone = normalizePhone(inboxItem.from_phone);
     const supplierResult = await query(
-      `SELECT s.id, s.name, s.whatsapp, s.contact_phone
-       FROM suppliers s
-       WHERE s.is_active = true
+      `SELECT id, name, whatsapp, contact_phone
+       FROM suppliers
+       WHERE is_active = true
          AND (
-           regexp_replace(COALESCE(s.whatsapp, ''), '\D', '', 'g') = $1
-           OR regexp_replace(COALESCE(s.contact_phone, ''), '\D', '', 'g') = $1
-           OR EXISTS (
-             SELECT 1
-             FROM supplier_whatsapp_numbers swn
-             WHERE swn.supplier_id = s.id
-               AND regexp_replace(COALESCE(swn.phone_number, ''), '\D', '', 'g') = $1
-           )
+           regexp_replace(COALESCE(whatsapp, ''), '\D', '', 'g') = $1
+           OR regexp_replace(COALESCE(contact_phone, ''), '\D', '', 'g') = $1
          )
-       ORDER BY s.id ASC
+       ORDER BY id ASC
        LIMIT 1`,
       [normalizedPhone]
     );

@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil, Building2 } from 'lucide-react'
+import { MessageCircle, RefreshCw, CheckCircle2, AlertTriangle, Clock3, Send, Trash2, Split, Pencil } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { fornecedoresApi, whatsappApi } from '@/lib/api'
+import { whatsappApi } from '@/lib/api'
 
 type InboxStatus = 'new' | 'processed' | 'error' | 'pending_supplier' | 'ignored'
 type ListType = 'lacrada' | 'seminovo' | 'android' | 'auto'
@@ -27,19 +27,8 @@ export default function WhatsAppInboxPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [editingMessageText, setEditingMessageText] = useState('')
-  const [supplierByItemId, setSupplierByItemId] = useState<Record<number, number>>({})
-  const [activeProcess, setActiveProcess] = useState<{ id: number; listType: ListType } | null>(null)
-  const messagesBlockRef = useRef<HTMLDivElement>(null)
 
   const PAGE_SIZE = 10
-
-  function applyInboxFilter(next: string) {
-    setStatusFilter(next)
-    setCurrentPage(1)
-    window.setTimeout(() => {
-      messagesBlockRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 80)
-  }
 
   function inferListType(text: string): ListType {
     const t = (text || '').toLowerCase()
@@ -67,12 +56,6 @@ export default function WhatsAppInboxPage() {
     queryKey: ['whatsapp-conversations'],
     queryFn: () => whatsappApi.conversations({ limit: 200 }),
     refetchInterval: 10000,
-  })
-
-  const suppliersQuery = useQuery({
-    queryKey: ['suppliers-for-whatsapp-link'],
-    queryFn: () => fornecedoresApi.getAll({ limit: 500 }),
-    staleTime: 30000,
   })
 
   const conversations = useMemo(() => {
@@ -105,11 +88,6 @@ export default function WhatsAppInboxPage() {
     const raw = (inboxQuery.data as any)?.data ?? inboxQuery.data
     return raw?.items ?? []
   }, [inboxQuery.data])
-
-  const supplierOptions = useMemo(() => {
-    const raw = (suppliersQuery.data as any)?.data ?? suppliersQuery.data
-    return raw?.suppliers ?? raw ?? []
-  }, [suppliersQuery.data])
 
   const pagedItems = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE
@@ -156,12 +134,6 @@ export default function WhatsAppInboxPage() {
   const processMutation = useMutation({
     mutationFn: ({ id, listType }: { id: number; listType?: 'lacrada' | 'seminovo' | 'android' | 'auto' }) =>
       whatsappApi.processInboxItem(id, listType),
-    onMutate: (variables) => {
-      setActiveProcess({
-        id: variables.id,
-        listType: (variables.listType || 'auto') as ListType,
-      })
-    },
     onSuccess: (resp: any) => {
       const raw = resp?.data ?? resp
       const totalSaved = raw?.summary?.total_saved
@@ -174,7 +146,6 @@ export default function WhatsAppInboxPage() {
       statusQuery.refetch()
       conversationsQuery.refetch()
       messagesQuery.refetch()
-      setActiveProcess(null)
     },
     onError: async (e: any, variables) => {
       const message = e?.message || e?.response?.data?.message || 'Erro ao processar item'
@@ -190,17 +161,14 @@ export default function WhatsAppInboxPage() {
           statusQuery.refetch()
           conversationsQuery.refetch()
           messagesQuery.refetch()
-          setActiveProcess(null)
           return
         }
 
         toast('Processamento em andamento. Aguarde e clique em Atualizar.', { icon: '⏳' })
-        setActiveProcess(null)
         return
       }
 
       toast.error(message)
-      setActiveProcess(null)
     },
   })
 
@@ -258,17 +226,6 @@ export default function WhatsAppInboxPage() {
     onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao atualizar mensagem'),
   })
 
-  const linkSupplierMutation = useMutation({
-    mutationFn: ({ id, supplierId }: { id: number; supplierId: number }) =>
-      whatsappApi.linkInboxSupplier(id, supplierId),
-    onSuccess: () => {
-      toast.success('Fornecedor vinculado com sucesso')
-      inboxQuery.refetch()
-      statusQuery.refetch()
-    },
-    onError: (e: any) => toast.error(e?.message || e?.response?.data?.message || 'Erro ao vincular fornecedor'),
-  })
-
   const processBatchMutation = useMutation({
     mutationFn: async () => {
       const targetItems = pagedItems.filter((item: any) => !!selectedBatchIds[item.id])
@@ -306,7 +263,6 @@ export default function WhatsAppInboxPage() {
   const statusRaw = (statusQuery.data as any)?.data ?? statusQuery.data
   const webhookOk = !!statusRaw?.webhook_configured
   const lastEvent = statusRaw?.last_event
-  const inboxSupplierStats = statusRaw?.inbox_suppliers ?? { processed: 0, pending: 0 }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -357,57 +313,6 @@ export default function WhatsAppInboxPage() {
               {lastEvent?.received_at ? new Date(lastEvent.received_at).toLocaleString('pt-BR') : '—'}
             </div>
           </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            type="button"
-            title="Filtrar mensagens processadas (por telefone com lista já processada)"
-            aria-pressed={statusFilter === 'processed'}
-            onClick={() => applyInboxFilter('processed')}
-            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-              statusFilter === 'processed'
-                ? 'border-emerald-500/50 bg-emerald-50/80 dark:bg-emerald-500/10 dark:border-emerald-400/40'
-                : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5'
-            }`}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-              <CheckCircle2 className="w-4 h-4" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Fornecedores processados
-              </span>
-              <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
-                {inboxSupplierStats.processed}
-              </span>
-              <span className="block text-[10px] text-gray-400 dark:text-gray-500">Telefones distintos · clique para filtrar</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            title="Filtrar pendentes de vincular fornecedor"
-            aria-pressed={statusFilter === 'pending_supplier'}
-            onClick={() => applyInboxFilter('pending_supplier')}
-            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
-              statusFilter === 'pending_supplier'
-                ? 'border-amber-500/50 bg-amber-50/80 dark:bg-amber-500/10 dark:border-amber-400/40'
-                : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5'
-            }`}
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200">
-              <Building2 className="w-4 h-4" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[11px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                Fornecedores pendentes
-              </span>
-              <span className="text-lg font-bold tabular-nums text-gray-900 dark:text-white">
-                {inboxSupplierStats.pending}
-              </span>
-              <span className="block text-[10px] text-gray-400 dark:text-gray-500">Aguardando vínculo · clique para filtrar</span>
-            </span>
-          </button>
         </div>
       </motion.div>
 
@@ -537,10 +442,7 @@ export default function WhatsAppInboxPage() {
         </div>
       </div>
 
-      <div
-        ref={messagesBlockRef}
-        className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm scroll-mt-4"
-      >
+      <div className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Mensagens recebidas</h2>
           <div className="flex items-center gap-2 flex-wrap">
@@ -550,17 +452,8 @@ export default function WhatsAppInboxPage() {
               disabled={processBatchMutation.isPending}
               className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
             >
-              {processBatchMutation.isPending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                  Processando selecionadas...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  Processar selecionadas
-                </>
-              )}
+              <CheckCircle2 className="w-4 h-4" />
+              Processar selecionadas
             </button>
             <select
               value={statusFilter}
@@ -663,12 +556,8 @@ export default function WhatsAppInboxPage() {
                           (() => {
                             const text = (item.message_text || '(sem texto)').toString()
                             const isExpanded = !!expandedMessageIds[item.id]
-                            const lines = text.split(/\r?\n/)
-                            const maxLinesPreview = 8
-                            const needsToggle = text.length > 280 || lines.length > maxLinesPreview
-                            const visible = isExpanded || !needsToggle
-                              ? text
-                              : `${lines.slice(0, maxLinesPreview).join('\n')}...`
+                            const needsToggle = text.length > 280
+                            const visible = isExpanded || !needsToggle ? text : `${text.slice(0, 280)}...`
                             return (
                               <>
                                 <div>{visible}</div>
@@ -700,118 +589,38 @@ export default function WhatsAppInboxPage() {
                   </div>
 
                   <div className="mt-3 flex items-center gap-2 flex-wrap">
-                    {status === 'pending_supplier' && (
-                      <>
-                        <select
-                          value={supplierByItemId[item.id] || ''}
-                          onChange={(e) =>
-                            setSupplierByItemId((prev) => ({
-                              ...prev,
-                              [item.id]: Number(e.target.value),
-                            }))
-                          }
-                          className="rounded-lg border border-gray-300 dark:border-white/20 bg-white dark:bg-white/10 px-3 py-1.5 text-xs text-gray-900 dark:text-white"
-                        >
-                          <option value="">Vincular fornecedor...</option>
-                          {supplierOptions.map((s: any) => (
-                            <option key={s.id} value={s.id}>
-                              {s.name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            linkSupplierMutation.mutate({
-                              id: item.id,
-                              supplierId: supplierByItemId[item.id],
-                            })
-                          }
-                          disabled={linkSupplierMutation.isPending || !supplierByItemId[item.id]}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold disabled:opacity-60"
-                        >
-                          Vincular
-                        </button>
-                      </>
-                    )}
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'auto' })}
                       disabled={processMutation.isPending}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
-                        activeProcess?.id === item.id && activeProcess?.listType === 'auto'
-                          ? 'bg-emerald-700 animate-pulse'
-                          : 'bg-emerald-600 hover:bg-emerald-700'
-                      }`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
-                      {activeProcess?.id === item.id && activeProcess?.listType === 'auto' ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle2 className="w-4 h-4" />
-                          Processar auto
-                        </>
-                      )}
+                      <CheckCircle2 className="w-4 h-4" />
+                      Processar auto
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'lacrada' })}
                       disabled={processMutation.isPending}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
-                        activeProcess?.id === item.id && activeProcess?.listType === 'lacrada'
-                          ? 'bg-blue-700 animate-pulse'
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
-                      {activeProcess?.id === item.id && activeProcess?.listType === 'lacrada' ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        'Lacrado'
-                      )}
+                      Lacrado
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'seminovo' })}
                       disabled={processMutation.isPending}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
-                        activeProcess?.id === item.id && activeProcess?.listType === 'seminovo'
-                          ? 'bg-indigo-700 animate-pulse'
-                          : 'bg-indigo-600 hover:bg-indigo-700'
-                      }`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
-                      {activeProcess?.id === item.id && activeProcess?.listType === 'seminovo' ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        'Seminovo'
-                      )}
+                      Seminovo
                     </button>
                     <button
                       type="button"
                       onClick={() => processMutation.mutate({ id: item.id, listType: 'android' })}
                       disabled={processMutation.isPending}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-white text-xs font-semibold disabled:opacity-60 ${
-                        activeProcess?.id === item.id && activeProcess?.listType === 'android'
-                          ? 'bg-cyan-700 animate-pulse'
-                          : 'bg-cyan-600 hover:bg-cyan-700'
-                      }`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-semibold disabled:opacity-60"
                     >
-                      {activeProcess?.id === item.id && activeProcess?.listType === 'android' ? (
-                        <>
-                          <RefreshCw className="w-4 h-4 animate-spin" />
-                          Processando...
-                        </>
-                      ) : (
-                        'Android'
-                      )}
+                      Android
                     </button>
                     <button
                       type="button"
