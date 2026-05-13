@@ -208,7 +208,7 @@ export default function Header() {
               <Link
                 to="/subscription"
                 title="Assinatura e renovação"
-                className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-colors ${
+                className={`hidden lg:flex items-center gap-2 rounded-xl border px-3 py-1.5 transition-colors ${
                   subscriptionUrgent
                     ? 'border-amber-300/80 bg-amber-50 hover:bg-amber-100/90 dark:border-amber-500/40 dark:bg-amber-500/10 dark:hover:bg-amber-500/15'
                     : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
@@ -360,7 +360,7 @@ export default function Header() {
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10, scale: 0.95 }}
                     transition={{ duration: 0.2 }}
-                    className="fixed w-56 bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999]"
+                    className="fixed w-[min(100vw-1.5rem,16rem)] sm:w-56 bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999]"
                     style={{
                       top: `${dropdownPosition.top}px`,
                       right: `${dropdownPosition.right}px`,
@@ -373,6 +373,33 @@ export default function Header() {
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}</p>
                         <p className="text-xs text-gray-600 dark:text-white/70 capitalize">{user?.tipo || user?.role || 'user'}</p>
+                        {user && subscriptionDaysLeft !== null && (
+                          <Link
+                            to="/subscription"
+                            onClick={() => setShowUserMenu(false)}
+                            className={`lg:hidden mt-3 flex w-full items-center gap-2.5 rounded-xl border px-3 py-2.5 transition-colors ${
+                              subscriptionUrgent
+                                ? 'border-amber-300/80 bg-amber-50 hover:bg-amber-100/90 dark:border-amber-500/40 dark:bg-amber-500/10 dark:hover:bg-amber-500/15'
+                                : 'border-gray-200 bg-gray-50 hover:bg-gray-100 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10'
+                            }`}
+                          >
+                            <Clock
+                              className={`h-4 w-4 shrink-0 ${
+                                subscriptionUrgent
+                                  ? 'text-amber-600 dark:text-amber-400'
+                                  : 'text-emerald-600 dark:text-emerald-400'
+                              }`}
+                            />
+                            <div className="min-w-0 flex-1 text-left leading-tight">
+                              <div className="text-sm font-bold text-gray-900 dark:text-white">
+                                {subscriptionDaysLeft} dias restantes
+                              </div>
+                              <div className="text-[10px] font-medium text-gray-500 dark:text-white/55">
+                                Toque para ver assinatura
+                              </div>
+                            </div>
+                          </Link>
+                        )}
                       </div>
                       
                       {/* Menu Items */}
