@@ -768,11 +768,14 @@ function identifyIPhoneModel(model = '') {
   // Verificar modelos específicos primeiro (mais específicos primeiro)
   if (lowerModel.includes('iphone 17 pro max')) return 'iphone 17 pro max'
   if (lowerModel.includes('iphone 17 pro')) return 'iphone 17 pro'
+  if (lowerModel.includes('iphone 17 air')) return 'iphone 17 air'
+  if (lowerModel.includes('iphone 17e') || lowerModel.includes('iphone 17 e') || /\biphone\s*17\s*e\b/i.test(model)) return 'iphone 17e'
   if (lowerModel.includes('iphone 17')) return 'iphone 17'
-  
+
   if (lowerModel.includes('iphone 16 pro max')) return 'iphone 16 pro max'
   if (lowerModel.includes('iphone 16 pro')) return 'iphone 16 pro'
   if (lowerModel.includes('iphone 16 plus')) return 'iphone 16 plus'
+  if (lowerModel.includes('iphone 16e') || lowerModel.includes('iphone 16 e')) return 'iphone 16e'
   if (lowerModel.includes('iphone 16')) return 'iphone 16'
   
   if (lowerModel.includes('iphone 15 pro max')) return 'iphone 15 pro max'

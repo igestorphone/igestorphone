@@ -858,6 +858,8 @@ export function identifyIPhoneModel(model?: string): string | null {
   // Verificar modelos específicos primeiro (mais específicos primeiro)
   if (lowerModel.includes('iphone 17 pro max')) return 'iphone 17 pro max'
   if (lowerModel.includes('iphone 17 pro')) return 'iphone 17 pro'
+  if (lowerModel.includes('iphone 17 air')) return 'iphone 17 air'
+  if (lowerModel.includes('iphone 17e') || lowerModel.includes('iphone 17 e') || /\biphone\s*17\s*e\b/i.test(model)) return 'iphone 17e'
   if (lowerModel.includes('iphone 17')) return 'iphone 17'
   
   if (lowerModel.includes('iphone 16 pro max')) return 'iphone 16 pro max'
