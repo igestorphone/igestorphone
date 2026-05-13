@@ -386,6 +386,18 @@ export default function ManageUsersPage() {
     }
   };
 
+  const handleExpireTestAccountLuiz = async () => {
+    const email = 'luizgustavoengel0305@gmail.com';
+    try {
+      await usersApi.patchSubscriptionExpiryTestByEmail({ email, daysFromNow: 0 });
+      toast.success(`Conta ${email} marcada como vencida (use o checkout para renovar).`);
+      await fetchUsers();
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || 'Erro ao vencer conta de teste');
+    }
+  };
+
   const handleApplyTestExpiry = async (targetUserId: string) => {
     const raw = testDaysByUser[targetUserId] ?? '30';
     const days = parseInt(raw, 10);
@@ -673,6 +685,13 @@ export default function ManageUsersPage() {
             >
               Voltar valor padrão
             </button>
+            <button
+              type="button"
+              onClick={handleExpireTestAccountLuiz}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/35 hover:bg-red-500/25"
+            >
+              Vencer agora: luizgustavoengel0305@gmail.com
+            </button>
           </div>
         </div>
       </div>
@@ -815,29 +834,29 @@ export default function ManageUsersPage() {
                     : `${user.subscription_days_remaining ?? Math.max(0, Math.ceil((new Date(user.subscription_expires_at).getTime() - Date.now()) / 86400000))} dias`}
                 </p>
               </div>
-              {user.tipo !== 'admin' && (
-                <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
-                  <span className="text-gray-500 dark:text-white/50 text-xs w-full sm:w-auto">Teste validade (a partir de agora)</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={3650}
-                    value={testDaysByUser[user.id] ?? '30'}
-                    onChange={(e) =>
-                      setTestDaysByUser((prev) => ({ ...prev, [user.id]: e.target.value }))
-                    }
-                    className="w-24 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleApplyTestExpiry(String(user.id))}
-                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
-                  >
-                    Aplicar
-                  </button>
-                  <span className="text-[11px] text-gray-400 dark:text-white/40">0 = vencido agora</span>
-                </div>
-              )}
+              <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
+                <span className="text-gray-500 dark:text-white/50 text-xs w-full sm:w-auto">
+                  Validade a partir de agora (dias){user.tipo === 'admin' ? ' — admins continuam com acesso ao painel' : ''}
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={3650}
+                  value={testDaysByUser[user.id] ?? '30'}
+                  onChange={(e) =>
+                    setTestDaysByUser((prev) => ({ ...prev, [user.id]: e.target.value }))
+                  }
+                  className="w-24 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyTestExpiry(String(user.id))}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Aplicar
+                </button>
+                <span className="text-[11px] text-gray-400 dark:text-white/40">0 = vencido (status expired, checkout)</span>
+              </div>
             </div>
 
             {/* Permissions */}

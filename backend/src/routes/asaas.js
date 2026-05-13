@@ -349,12 +349,31 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
       return res.json({ paid: false });
     }
 
+    const paymentMoment = paid.paymentDate || paid.clientPaymentDate || paid.confirmedDate || paid.dueDate;
+    const paymentTime = paymentMoment ? new Date(paymentMoment).getTime() : NaN;
+    const expiryTime = user.subscription_expires_at
+      ? new Date(user.subscription_expires_at).getTime()
+      : null;
+    const accountExpiredByDate =
+      expiryTime != null && !Number.isNaN(expiryTime) && expiryTime < Date.now();
+    // Conta já vencida: não reativar com cobrança antiga (ex.: usuário abre /checkout e verify-payment encontrava o primeiro RECEIVED).
+    if (
+      accountExpiredByDate &&
+      Number.isFinite(paymentTime) &&
+      !Number.isNaN(expiryTime) &&
+      paymentTime < expiryTime
+    ) {
+      return res.json({
+        paid: false,
+        message: 'Assinatura vencida; é necessário um novo pagamento.',
+      });
+    }
+
     const userRow = await query(
       `SELECT subscription_expires_at FROM users WHERE id = $1`,
       [userId]
     );
     const currentExpires = userRow.rows[0]?.subscription_expires_at;
-    const paymentMoment = paid.paymentDate || paid.clientPaymentDate || paid.confirmedDate || paid.dueDate;
     const endDate = computeExpiryAfterRenewal({
       currentExpiresAt: currentExpires,
       paymentDate: paymentMoment,

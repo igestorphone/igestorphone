@@ -977,7 +977,72 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Teste admin: ajustar validade da assinatura (NOW + N dias)
+// Teste admin: ajustar validade por e-mail (mesma regra que por id)
+router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
+  body('email').isEmail().normalizeEmail(),
+  body('daysFromNow').isInt({ min: 0, max: 3650 }),
+  body('subscription_status').optional().isIn(['active', 'overdue', 'pending_payment', 'expired', 'trial']),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const email = String(req.body.email).toLowerCase().trim();
+    const daysFromNow = parseInt(req.body.daysFromNow, 10);
+    const subscriptionStatus = (req.body.subscription_status || (daysFromNow <= 0 ? 'expired' : 'active')).toLowerCase();
+
+    const lookup = await query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = $1`, [email]);
+    if (lookup.rows.length === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado para este e-mail' });
+    }
+    const id = lookup.rows[0].id;
+
+    let result;
+    if (daysFromNow <= 0) {
+      result = await query(
+        `UPDATE users SET
+           subscription_expires_at = NOW() - INTERVAL '1 minute',
+           subscription_status = 'expired',
+           is_active = true,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING id, email, name, subscription_expires_at, subscription_status`,
+        [id]
+      );
+    } else {
+      result = await query(
+        `UPDATE users SET
+           subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
+           subscription_status = $2,
+           is_active = true,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3
+         RETURNING id, email, name, subscription_expires_at, subscription_status`,
+        [daysFromNow, subscriptionStatus, id]
+      );
+    }
+
+    await query(
+      `INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        req.user.id,
+        'subscription_expiry_test_set',
+        JSON.stringify({ target_user_id: id, email, days_from_now: daysFromNow, subscription_status: result.rows[0]?.subscription_status }),
+        req.ip,
+        req.get('User-Agent'),
+      ]
+    );
+
+    res.json({ message: 'Validade da assinatura atualizada.', user: result.rows[0] });
+  } catch (error) {
+    console.error('by-email subscription-expiry-test:', error);
+    res.status(500).json({ message: 'Erro ao atualizar validade' });
+  }
+});
+
+// Teste admin: ajustar validade da assinatura (NOW + N dias; 0 = vencido agora + status expired)
 router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
   body('daysFromNow').isInt({ min: 0, max: 3650 }),
   body('subscription_status').optional().isIn(['active', 'overdue', 'pending_payment', 'expired', 'trial']),
@@ -989,18 +1054,32 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
     }
     const { id } = req.params;
     const daysFromNow = parseInt(req.body.daysFromNow, 10);
-    const subscriptionStatus = (req.body.subscription_status || 'active').toLowerCase();
+    const subscriptionStatus = (req.body.subscription_status || (daysFromNow <= 0 ? 'expired' : 'active')).toLowerCase();
 
-    const result = await query(
-      `UPDATE users SET
-         subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
-         subscription_status = $2,
-         is_active = true,
-         updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3
-       RETURNING id, email, name, subscription_expires_at, subscription_status`,
-      [daysFromNow, subscriptionStatus, id]
-    );
+    let result;
+    if (daysFromNow <= 0) {
+      result = await query(
+        `UPDATE users SET
+           subscription_expires_at = NOW() - INTERVAL '1 minute',
+           subscription_status = 'expired',
+           is_active = true,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1
+         RETURNING id, email, name, subscription_expires_at, subscription_status`,
+        [id]
+      );
+    } else {
+      result = await query(
+        `UPDATE users SET
+           subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
+           subscription_status = $2,
+           is_active = true,
+           updated_at = CURRENT_TIMESTAMP
+         WHERE id = $3
+         RETURNING id, email, name, subscription_expires_at, subscription_status`,
+        [daysFromNow, subscriptionStatus, id]
+      );
+    }
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
@@ -1012,7 +1091,7 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
       [
         req.user.id,
         'subscription_expiry_test_set',
-        JSON.stringify({ target_user_id: id, days_from_now: daysFromNow, subscription_status: subscriptionStatus }),
+        JSON.stringify({ target_user_id: id, days_from_now: daysFromNow, subscription_status: result.rows[0]?.subscription_status }),
         req.ip,
         req.get('User-Agent'),
       ]

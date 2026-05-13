@@ -423,6 +423,10 @@ export const usersApi = {
   /** Admin: ajustar subscription_expires_at para NOW + N dias (testes) */
   patchSubscriptionExpiryTest: (id: string, data: { daysFromNow: number; subscription_status?: string }) =>
     apiClient.patch<{ message: string; user: unknown }>(`/users/${id}/subscription-expiry-test`, data),
+
+  /** Admin: mesmo que acima, buscando usuário por e-mail */
+  patchSubscriptionExpiryTestByEmail: (data: { email: string; daysFromNow: number; subscription_status?: string }) =>
+    apiClient.patch<{ message: string; user: unknown }>(`/users/by-email/subscription-expiry-test`, data),
 }
 
 // Calendário compartilhado (vendedor/atendente)

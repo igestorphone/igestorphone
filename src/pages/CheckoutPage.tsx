@@ -90,6 +90,8 @@ export default function CheckoutPage() {
   }, [])
 
   const displayPlanPrice = planPriceFromApi ?? PLAN_VALUES[plan]
+
+  useEffect(() => {
     if (isAuthenticated && user && step === 'auth') {
       setStep('payment')
     }
