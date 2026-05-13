@@ -9,13 +9,36 @@ const router = express.Router();
 
 const MENSAL_VALUE_OVERRIDE_KEY = 'asaas_mensal_value_override';
 
+/** Valor mensal forçado via ambiente (ex.: 1 para testar Asaas sem usar o painel admin). Remove em produção. */
+function getMensalOverrideFromEnv() {
+  const raw = process.env.ASAAS_MENSAL_OVERRIDE_BRL;
+  if (raw == null || String(raw).trim() === '') return null;
+  const num = parseFloat(String(raw).trim().replace(',', '.'));
+  if (Number.isFinite(num) && num > 0) return num;
+  return null;
+}
+
+function normalizeSettingsOverrideRaw(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? raw : null;
+  if (typeof raw === 'object' && raw !== null && 'value' in raw) {
+    const inner = raw.value;
+    if (typeof inner === 'number' && Number.isFinite(inner) && inner > 0) return inner;
+    const parsed = parseFloat(String(inner).replace(',', '.'));
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+  const num = parseFloat(String(raw).replace(',', '.'));
+  return Number.isFinite(num) && num > 0 ? num : null;
+}
+
 async function getMensalValueOverride() {
+  const fromEnv = getMensalOverrideFromEnv();
+  if (fromEnv != null) return fromEnv;
   try {
     const r = await query(`SELECT value FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
     const raw = r.rows[0]?.value;
-    if (raw == null || raw === '') return null;
-    const num = typeof raw === 'number' ? raw : parseFloat(String(raw));
-    if (Number.isFinite(num) && num > 0) return num;
+    const num = normalizeSettingsOverrideRaw(raw);
+    if (num != null) return num;
   } catch (_) {
     /* settings pode não existir em ambientes muito antigos */
   }

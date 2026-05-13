@@ -78,16 +78,27 @@ export default function CheckoutPage() {
   const navigate = useNavigate()
   const [planPriceFromApi, setPlanPriceFromApi] = useState<number | null>(null)
 
-  useEffect(() => {
+  const loadPlanPrice = () => {
     asaasApi
       .getPlans()
       .then((data: unknown) => {
-        const plans = (data as { plans?: { id: string; value: number }[] })?.plans
+        const root = data as { plans?: { id: string; value: number }[]; data?: { plans?: { id: string; value: number }[] } }
+        const plans = root?.plans ?? root?.data?.plans
         const m = plans?.find((p) => p.id === 'mensal')
-        if (m != null && typeof m.value === 'number') setPlanPriceFromApi(m.value)
+        if (m != null && typeof m.value === 'number' && Number.isFinite(m.value)) {
+          setPlanPriceFromApi(m.value)
+        }
       })
       .catch(() => {})
+  }
+
+  useEffect(() => {
+    loadPlanPrice()
   }, [])
+
+  useEffect(() => {
+    if (step === 'payment') loadPlanPrice()
+  }, [step])
 
   const displayPlanPrice = planPriceFromApi ?? PLAN_VALUES[plan]
 
