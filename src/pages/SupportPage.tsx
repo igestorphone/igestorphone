@@ -18,6 +18,7 @@ import {
   Info
 } from 'lucide-react';
 import { supportApi } from '@/lib/api';
+import { CONTACT_EMAIL } from '@/constants/contact';
 
 interface SupportTicket {
   id: string;
@@ -200,11 +201,11 @@ export default function SupportPage() {
                     Envie suas dúvidas por email e receba resposta em até 24 horas.
                   </p>
                   <a
-                    href="mailto:igestorphone@gmail.com"
+                    href={`mailto:${CONTACT_EMAIL}`}
                     className="inline-flex items-center text-gray-900 dark:text-white hover:underline transition-colors"
                   >
                     <Mail className="w-4 h-4 mr-2" />
-                    igestorphone@gmail.com
+                    {CONTACT_EMAIL}
                   </a>
                 </div>
 
@@ -368,7 +369,7 @@ export default function SupportPage() {
               <span className="text-gray-900 dark:text-white font-medium">Chat WhatsApp</span>
             </a>
             <a
-              href="mailto:igestorphone@gmail.com"
+              href={`mailto:${CONTACT_EMAIL}`}
               className="flex items-center justify-center p-4 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 rounded-lg border border-gray-200 dark:border-white/20 transition-colors"
             >
               <Mail className="w-6 h-6 text-gray-700 dark:text-white/80 mr-3" />

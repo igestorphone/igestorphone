@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { Home, ArrowLeft, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { CONTACT_EMAIL } from '@/constants/contact'
 
 export default function NotFoundPage() {
   const navigate = useNavigate()
@@ -78,7 +79,9 @@ export default function NotFoundPage() {
               Se você acredita que esta página deveria existir, entre em contato conosco:
             </p>
             <div className="flex flex-col sm:flex-row gap-2 text-sm">
-              <span className="text-blue-400">suporte@igestorphone.com</span>
+              <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-400 hover:underline">
+                {CONTACT_EMAIL}
+              </a>
               <span className="text-white/40 hidden sm:block">•</span>
               <span className="text-green-400">+55 11 99999-9999</span>
             </div>

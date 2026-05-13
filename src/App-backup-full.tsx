@@ -26,7 +26,7 @@ import SupportPage from '@/pages/SupportPage'
 
 function App() {
   const { isAuthenticated, login } = useAuthStore()
-  const [email, setEmail] = useState('igestorphone@gmail.com')
+  const [email, setEmail] = useState('contato@igestorphone.com.br')
   const [password, setPassword] = useState('Luiz180380@')
   const [error, setError] = useState<string | null>(null)
 

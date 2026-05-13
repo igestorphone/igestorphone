@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
+import { CONTACT_EMAIL } from '@/constants/contact'
 import toast from 'react-hot-toast'
 
 function getPostLoginPath(): string {
@@ -160,7 +161,7 @@ export default function LoginPage() {
           </div>
           <div className="flex justify-end">
             <a
-              href="mailto:igestorphone@gmail.com?subject=Recuperação%20de%20senha%20-%20iGestorPhone"
+              href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Recuperação de senha - iGestorPhone')}`}
               className={`text-xs sm:text-sm font-medium transition-colors ${
                 isDark ? 'text-white/50 hover:text-cyan-300' : 'text-gray-500 hover:text-gray-800'
               }`}

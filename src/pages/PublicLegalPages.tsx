@@ -2,8 +2,8 @@ import type { ReactNode } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { ChevronLeft, FileText, Shield, Lock, Moon, Sun } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
+import { CONTACT_EMAIL } from '@/constants/contact'
 
-const CONTACT_EMAIL = 'igestorphone@gmail.com'
 const PRODUCT = 'iGestorPhone'
 /** Data única de revisão dos documentos legais (termos, privacidade e LGPD). */
 const LEGAL_PAGES_LAST_UPDATED = '13 de maio de 2026'
