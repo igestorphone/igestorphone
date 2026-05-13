@@ -20,7 +20,7 @@ import CreateUserPage from '@/pages/CreateUserPage'
 import EditUserPage from '@/pages/EditUserPage'
 import StatisticsPage from '@/pages/StatisticsPage'
 import ProfilePage from '@/pages/ProfilePage'
-import TermsPage from '@/pages/TermsPage'
+import { TermsPublicPage, PrivacyPublicPage, LgpdPublicPage } from '@/pages/PublicLegalPages'
 import SupportPage from '@/pages/SupportPage'
 import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
 import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
@@ -105,6 +105,9 @@ function App() {
           )
         } />
         <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/terms" element={<TermsPublicPage />} />
+        <Route path="/privacy" element={<PrivacyPublicPage />} />
+        <Route path="/lgpd" element={<LgpdPublicPage />} />
         <Route path="/dashboard" element={<Navigate to="/search-cheapest-iphone" replace />} />
         <Route path="/entrando" element={
           <ProtectedRoute>
@@ -233,13 +236,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<ProfilePage />} />
-        </Route>
-        <Route path="/terms" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<TermsPage />} />
         </Route>
         <Route path="/support" element={
           <ProtectedRoute>

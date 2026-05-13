@@ -21,9 +21,11 @@ export const ROUTES = {
   // Support routes
   SUPPORT: '/support',
   TERMS: '/terms',
+  PRIVACY: '/privacy',
+  LGPD: '/lgpd',
 } as const
 
-export const PUBLIC_ROUTES = [ROUTES.SPLASH, ROUTES.LOGIN]
+export const PUBLIC_ROUTES = [ROUTES.SPLASH, ROUTES.LOGIN, ROUTES.TERMS, ROUTES.PRIVACY, ROUTES.LGPD]
 export const PROTECTED_ROUTES = [
   ROUTES.DASHBOARD,
   ROUTES.PROCESS_LIST,
@@ -32,7 +34,6 @@ export const PROTECTED_ROUTES = [
   ROUTES.SEARCH_CHEAPEST,
   ROUTES.PROFILE,
   ROUTES.SUPPORT,
-  ROUTES.TERMS,
 ]
 export const ADMIN_ROUTES = [
   ROUTES.ADMIN,

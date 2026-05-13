@@ -21,7 +21,7 @@ import EditUserPage from '@/pages/EditUserPage'
 import StatisticsPage from '@/pages/StatisticsPage'
 import ProfilePage from '@/pages/ProfilePage'
 import AIPage from '@/pages/AIPage'
-import TermsPage from '@/pages/TermsPage'
+import { TermsPublicPage, PrivacyPublicPage, LgpdPublicPage } from '@/pages/PublicLegalPages'
 import SupportPage from '@/pages/SupportPage'
 
 function App() {
@@ -99,6 +99,9 @@ function App() {
             </AuthLayout>
           )
         } />
+        <Route path="/terms" element={<TermsPublicPage />} />
+        <Route path="/privacy" element={<PrivacyPublicPage />} />
+        <Route path="/lgpd" element={<LgpdPublicPage />} />
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <MainLayout />
@@ -189,13 +192,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<AIPage />} />
-        </Route>
-        <Route path="/terms" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<TermsPage />} />
         </Route>
         <Route path="/support" element={
           <ProtectedRoute>

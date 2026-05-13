@@ -540,8 +540,10 @@ export default function LandingPage() {
               <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">Atendimento: (11) 94100-7348</a>
               <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">SAC: (11) 92296-1688</a>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
               <Link to="/terms" className="transition-colors hover:text-cyan-400">Termos de uso</Link>
+              <Link to="/privacy" className="transition-colors hover:text-cyan-400">Privacidade</Link>
+              <Link to="/lgpd" className="transition-colors hover:text-cyan-400">LGPD</Link>
               <Link to="/support" className="transition-colors hover:text-cyan-400">Suporte</Link>
             </div>
           </div>

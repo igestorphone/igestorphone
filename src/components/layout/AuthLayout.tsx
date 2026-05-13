@@ -87,13 +87,13 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
             <span className="opacity-40" aria-hidden>
               |
             </span>
-            <Link to="/terms" className={isDark ? 'hover:text-white transition-colors' : 'hover:text-gray-800 transition-colors'}>
+            <Link to="/privacy" className={isDark ? 'hover:text-white transition-colors' : 'hover:text-gray-800 transition-colors'}>
               Privacidade
             </Link>
             <span className="opacity-40" aria-hidden>
               |
             </span>
-            <Link to="/terms" className={isDark ? 'hover:text-white transition-colors' : 'hover:text-gray-800 transition-colors'}>
+            <Link to="/lgpd" className={isDark ? 'hover:text-white transition-colors' : 'hover:text-gray-800 transition-colors'}>
               LGPD
             </Link>
           </nav>
