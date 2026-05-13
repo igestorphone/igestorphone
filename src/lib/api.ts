@@ -143,7 +143,7 @@ export const asaasApi = {
   /** Admin: valor atual do override do mensal (null = padrão 199,99) */
   getMensalOverride: () => apiClient.get<{ value: number | null }>('/asaas/admin/mensal-override'),
 
-  /** Admin: { value: 1 } ou { clear: true } */
+  /** Admin: { value: 5 } (mín. Asaas) ou { clear: true } */
   setMensalOverride: (payload: { value?: number; clear?: boolean }) =>
     apiClient.put<{ value: number | null; message?: string }>('/asaas/admin/mensal-override', payload),
 

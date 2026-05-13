@@ -358,12 +358,12 @@ export default function ManageUsersPage() {
     }
   };
 
-  const handleSetAsaasMensalOneReal = async () => {
+  const handleSetAsaasMensalTestFive = async () => {
     setOverrideLoading(true);
     try {
-      const res = (await asaasApi.setMensalOverride({ value: 1 })) as { message?: string };
-      setMensalOverrideBrl(1);
-      toast.success(res?.message || 'Checkout mensal: R$ 1,00 (Asaas).');
+      const res = (await asaasApi.setMensalOverride({ value: 5 })) as { message?: string };
+      setMensalOverrideBrl(5);
+      toast.success(res?.message || 'Checkout mensal: R$ 5,00 (mínimo Asaas).');
     } catch (error: unknown) {
       const err = error as { message?: string };
       toast.error(err?.message || 'Erro ao aplicar valor de teste');
@@ -660,7 +660,7 @@ export default function ManageUsersPage() {
         <div className="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
           <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Testes (Asaas + validade)</p>
           <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
-            Valor do plano <strong>mensal</strong> no checkout (só ambiente com API Asaas). Em cada usuário abaixo use &quot;Dias a partir de agora&quot; (0 = forçar vencido / fluxo checkout).
+            Valor do plano <strong>mensal</strong> no checkout (Asaas exige mín. <strong>R$ 5,00</strong> por cobrança). Em cada usuário use &quot;Dias a partir de agora&quot; (0 = forçar vencido / fluxo checkout).
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm text-gray-700 dark:text-white/80">
@@ -672,10 +672,10 @@ export default function ManageUsersPage() {
             <button
               type="button"
               disabled={overrideLoading}
-              onClick={handleSetAsaasMensalOneReal}
+              onClick={handleSetAsaasMensalTestFive}
               className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 disabled:opacity-50"
             >
-              Usar R$ 1,00 no checkout
+              Usar R$ 5,00 no checkout (teste)
             </button>
             <button
               type="button"

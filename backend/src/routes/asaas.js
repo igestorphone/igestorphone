@@ -9,7 +9,7 @@ const router = express.Router();
 
 const MENSAL_VALUE_OVERRIDE_KEY = 'asaas_mensal_value_override';
 
-/** Valor mensal forçado via ambiente (ex.: 1 para testar Asaas sem usar o painel admin). Remove em produção. */
+/** Valor mensal forçado via ambiente (ex.: 5 para testar Asaas; mínimo da cobrança é R$ 5). Remova em produção. */
 function getMensalOverrideFromEnv() {
   const raw = process.env.ASAAS_MENSAL_OVERRIDE_BRL;
   if (raw == null || String(raw).trim() === '') return null;
@@ -31,18 +31,20 @@ function normalizeSettingsOverrideRaw(raw) {
   return Number.isFinite(num) && num > 0 ? num : null;
 }
 
+/** Override DB/env; Asaas não aceita cobrança líquida abaixo de R$ 5,00. */
 async function getMensalValueOverride() {
-  const fromEnv = getMensalOverrideFromEnv();
-  if (fromEnv != null) return fromEnv;
-  try {
-    const r = await query(`SELECT value FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
-    const raw = r.rows[0]?.value;
-    const num = normalizeSettingsOverrideRaw(raw);
-    if (num != null) return num;
-  } catch (_) {
-    /* settings pode não existir em ambientes muito antigos */
+  let num = getMensalOverrideFromEnv();
+  if (num == null) {
+    try {
+      const r = await query(`SELECT value FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
+      num = normalizeSettingsOverrideRaw(r.rows[0]?.value);
+    } catch (_) {
+      /* settings pode não existir em ambientes muito antigos */
+    }
   }
-  return null;
+  if (num == null || !Number.isFinite(num) || num <= 0) return null;
+  if (num < 5) return 5;
+  return num;
 }
 
 // Planos disponíveis (público - teste oculto). Valor mensal pode ter override admin (teste Asaas).
@@ -66,7 +68,7 @@ router.get('/plans', async (req, res) => {
   }
 });
 
-// Admin: valor mensal no Asaas (ex.: R$ 1 para teste). null/clear remove o override.
+// Admin: valor mensal no Asaas (ex.: R$ 5 para teste — mínimo da plataforma). null/clear remove o override.
 router.get('/admin/mensal-override', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
     const value = await getMensalValueOverride();
@@ -90,6 +92,12 @@ router.put('/admin/mensal-override', authenticateToken, requireRole('admin'), as
     const num = Number(req.body?.value);
     if (!Number.isFinite(num) || num <= 0) {
       return res.status(400).json({ message: 'Informe value numérico > 0 ou clear: true' });
+    }
+    if (num < 5) {
+      return res.status(400).json({
+        message:
+          'O Asaas não aceita cobrança abaixo de R$ 5,00. Use 5 ou mais para testes, ou clear: true para voltar ao padrão.',
+      });
     }
     await query(
       `INSERT INTO settings (key, value, description)
