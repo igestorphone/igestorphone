@@ -30,6 +30,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
+import { getProductCategoryCode, parseRamFromProduct, CATEGORY_CODE_LABELS, type CategorySearchMode } from '@/lib/productCategoryCodes'
 import toast from 'react-hot-toast'
 import { normalizeColor } from './colorNormalizer'
 
@@ -498,6 +499,10 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }, [searchMode, debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor, selectedSupplier])
 
   useEffect(() => {
+    setSelectedCategory('')
+  }, [searchMode])
+
+  useEffect(() => {
     if (!showSupplierDropdown) return
 
     const handleOutside = (event: MouseEvent) => {
@@ -556,7 +561,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       searchMode,
       debouncedSearch,
       selectedDateKey,
-      selectedCategory,
       selectedStorage,
       selectedRam,
       selectedColor
@@ -564,7 +568,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     queryFn: () => {
       const params: any = {
         search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
-        condition: selectedCategory,
         storage: undefined, // filtro por storage é normalizado no front
         color: filterColorClientSide ? undefined : selectedColor || undefined,
         date_offset: selectedDateOffset,
@@ -657,6 +660,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     const isIPhone17Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('17 pro max'))
     const iPhone17ProOfficialColors = new Set(['Azul Intenso', 'Laranja Cósmico', 'Prateado'])
     const modelOrName = (p: any) => p.model || p.name || ''
+    const modeForCategory: CategorySearchMode =
+      searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
 
     products.forEach((product: any) => {
       if (product.color) {
@@ -675,27 +680,11 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       }
       const normalizedStorage = normalizeStorage(product.storage)
       if (normalizedStorage) storages.add(normalizedStorage)
-      // RAM: region (8GB, 16GB), specifications.ram ou parse do model para MacBook
-      const ramVal = product.specifications?.ram || product.region
-      if (ramVal && typeof ramVal === 'string') {
-        const m = ramVal.match(/(\d+)\s*GB/i)
-        if (m) rams.add(`${m[1]}GB`)
-      }
-      if (product.model?.toLowerCase().includes('macbook')) {
-        const matches = (product.model || '').matchAll(/(\d+)\s*GB/gi)
-        for (const m of matches) {
-          const gb = parseInt(m[1], 10)
-          if (gb <= 96) rams.add(`${gb}GB`) // 8, 16, 24, 32... (evita 256GB como RAM)
-        }
-      }
+      const ramParsed = parseRamFromProduct(product)
+      if (ramParsed) rams.add(ramParsed)
       if (product.supplier_name) suppliers.add(product.supplier_name)
-      if (product.model) {
-        if (product.model.includes('iPhone')) categories.add('iPhone')
-        else if (product.model.includes('iPad')) categories.add('iPad')
-        else if (product.model.includes('MacBook')) categories.add('MacBook')
-        else if (product.model.includes('AirPods')) categories.add('AirPods')
-        else if (product.model.includes('Apple Watch')) categories.add('Apple Watch')
-      }
+      const catCode = getProductCategoryCode(product, modeForCategory)
+      if (catCode) categories.add(catCode)
     })
 
     // Ordenar cores alfabeticamente, mas manter ordem específica para iPhone 17 e 16 Pro
@@ -749,11 +738,14 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       suppliers: Array.from(suppliers).sort(),
       categories: Array.from(categories).sort()
     }
-  }, [productsQuery.data, debouncedSearch])
+  }, [productsQuery.data, debouncedSearch, searchMode])
 
   const filteredProducts = useMemo(() => {
     let all = productsQuery.data || []
     const searchLower = debouncedSearch.toLowerCase().trim()
+    const modeForCategory: CategorySearchMode =
+      searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
+
     if (isPlainIPhone17Search(debouncedSearch)) {
       all = all.filter((p: any) => {
         const blob = `${p.name || ''} ${p.model || ''}`.toLowerCase()
@@ -776,20 +768,29 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     if (selectedSupplier) {
       all = all.filter((p: any) => (p.supplier_name || '').toLowerCase() === selectedSupplier.toLowerCase())
     }
+    if (selectedCategory) {
+      const legacyMap: Record<string, string> = {
+        iPhone: 'IPH',
+        iPad: 'IPAD',
+        MacBook: 'MCB',
+        AirPods: 'PODS',
+        'Apple Watch': 'RLG',
+      }
+      const want = legacyMap[selectedCategory] || selectedCategory
+      all = all.filter((p: any) => (getProductCategoryCode(p, modeForCategory) || '') === want)
+    }
     if (!selectedRam) return all
-    return all.filter((p: any) => {
-      const ramVal = p.specifications?.ram || p.region
-      if (ramVal && typeof ramVal === 'string') {
-        const m = ramVal.match(/(\d+)\s*GB/i)
-        if (m && `${m[1]}GB` === selectedRam) return true
-      }
-      if (p.model?.toLowerCase().includes('macbook')) {
-        const modelMatch = (p.model || '').match(/(\d+)\s*GB/i)
-        if (modelMatch && `${modelMatch[1]}GB` === selectedRam) return true
-      }
-      return false
-    })
-  }, [productsQuery.data, selectedRam, selectedColor, selectedSupplier, debouncedSearch])
+    return all.filter((p: any) => parseRamFromProduct(p) === selectedRam)
+  }, [
+    productsQuery.data,
+    selectedRam,
+    selectedColor,
+    selectedSupplier,
+    selectedCategory,
+    selectedStorage,
+    debouncedSearch,
+    searchMode,
+  ])
 
   const visibleSuppliers = useMemo(() => {
     const term = supplierSearch.trim().toLowerCase()
@@ -1147,6 +1148,14 @@ Ainda tem disponível?`
                 <Building2 className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
                 <span className="truncate">Categoria</span>
               </label>
+              {searchMode === 'seminovo' ? (
+                <div
+                  className="w-full px-3 py-2.5 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 text-xs xl:text-sm font-bold text-emerald-900 dark:text-emerald-100 tracking-wide min-h-[2.5rem] xl:min-h-0 flex items-center"
+                  title="Seminovo: uma única categoria de listagem"
+                >
+                  SEMI
+                </div>
+              ) : (
               <div className="relative">
                 <select
                   value={selectedCategory}
@@ -1157,21 +1166,33 @@ Ainda tem disponível?`
                   {dynamicFilters.categories.length > 0 ? (
                     dynamicFilters.categories.map((cat) => (
                       <option key={cat} value={cat}>
-                        {cat}
+                        {CATEGORY_CODE_LABELS[cat] || cat}
                       </option>
                     ))
+                  ) : searchMode === 'android' ? (
+                    <>
+                      <option value="AND">{CATEGORY_CODE_LABELS.AND}</option>
+                      <option value="IPH">{CATEGORY_CODE_LABELS.IPH}</option>
+                      <option value="IPAD">{CATEGORY_CODE_LABELS.IPAD}</option>
+                      <option value="MCB">{CATEGORY_CODE_LABELS.MCB}</option>
+                      <option value="PODS">{CATEGORY_CODE_LABELS.PODS}</option>
+                      <option value="RLG">{CATEGORY_CODE_LABELS.RLG}</option>
+                      <option value="ACSS">{CATEGORY_CODE_LABELS.ACSS}</option>
+                    </>
                   ) : (
                     <>
-                      <option value="iPhone">iPhone</option>
-                      <option value="iPad">iPad</option>
-                      <option value="MacBook">MacBook</option>
-                      <option value="AirPods">AirPods</option>
-                      <option value="Apple Watch">Apple Watch</option>
+                      <option value="IPH">{CATEGORY_CODE_LABELS.IPH}</option>
+                      <option value="IPAD">{CATEGORY_CODE_LABELS.IPAD}</option>
+                      <option value="MCB">{CATEGORY_CODE_LABELS.MCB}</option>
+                      <option value="PODS">{CATEGORY_CODE_LABELS.PODS}</option>
+                      <option value="RLG">{CATEGORY_CODE_LABELS.RLG}</option>
+                      <option value="ACSS">{CATEGORY_CODE_LABELS.ACSS}</option>
                     </>
                   )}
                 </select>
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
               </div>
+              )}
             </div>
 
             <div className="relative min-w-0">
@@ -1561,40 +1582,20 @@ Ainda tem disponível?`
                               </span>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-gray-300">
-                              {(() => {
-                                const ramVal = product.specifications?.ram || product.region
-                                if (ramVal && typeof ramVal === 'string') {
-                                  const m = ramVal.match(/(\d+)\s*GB/i)
-                                  if (m && parseInt(m[1], 10) <= 96) return `${m[1]}GB`
-                                }
-                                if (product.model?.toLowerCase().includes('macbook')) {
-                                  const matches = [...(product.model || '').matchAll(/(\d+)\s*GB/gi)]
-                                  const ramGb = matches.find((m) => {
-                                    const gb = parseInt(m[1], 10)
-                                    return gb <= 96
-                                  })
-                                  if (ramGb) return `${ramGb[1]}GB`
-                                }
-                                return '—'
-                              })()}
+                              {parseRamFromProduct(product) || '—'}
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
                                 {normalizeColor(product.color, product.model || product.name)}
                               </span>
                             </td>
-                            <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80">
-                              {product.model?.includes('iPhone')
-                                ? 'iPhone'
-                                : product.model?.includes('iPad')
-                                ? 'iPad'
-                                : product.model?.includes('MacBook')
-                                ? 'MacBook'
-                                : product.model?.includes('AirPods')
-                                ? 'AirPods'
-                                : product.model?.includes('Apple Watch')
-                                ? 'Apple Watch'
-                                : '—'}
+                            <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80 font-semibold tracking-wide">
+                              {(() => {
+                                const mode: CategorySearchMode =
+                                  searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
+                                const code = getProductCategoryCode(product, mode)
+                                return code || '—'
+                              })()}
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
                               <div className="flex flex-col items-start space-y-1">
@@ -1729,9 +1730,13 @@ Ainda tem disponível?`
                               {product.variant}
                             </span>
                           ) : null}
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold tracking-wide bg-slate-100 dark:bg-slate-500/25 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-400/30">
+                            {getProductCategoryCode(
+                              product,
+                              searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
+                            ) || '—'}
+                          </span>
                         </div>
-
-                        {/* Supplier info */}
                         <div className="flex items-center gap-2 mb-3 text-sm text-gray-700 dark:text-white/80">
                           <ShoppingCart className="w-4 h-4" />
                           <span>{product.supplier_name || 'N/A'}</span>
