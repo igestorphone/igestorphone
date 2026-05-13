@@ -282,41 +282,42 @@ async function pruneOldProductsAndLists() {
   }
 }
 
-// Rodar migrações e depois iniciar servidor
-runMigrations()
-  .then(() => {
+// Bind na porta antes das migrações: hosts como Render fazem health check cedo; se runMigrations()
+// bloquear por DB lento, o deploy dava "Timed Out" mesmo com o processo saudável depois.
+app.listen(PORT, async () => {
+  logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+  logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
+
+  try {
+    await runMigrations();
     logger.info('✅ Migrações do banco verificadas/aplicadas');
-    app.listen(PORT, () => {
-      logger.info(`🚀 Servidor rodando na porta ${PORT}`);
-      logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
-
-      // Scheduler: reter 3 dias e apagar o resto à 00h SP — em produção LIGADO por padrão; em dev desligado (testes)
-      const explicitOff = process.env.ENABLE_PRODUCTS_PRUNE === 'false' || process.env.ENABLE_PRODUCTS_PRUNE === '0';
-      const explicitOn = process.env.ENABLE_PRODUCTS_PRUNE === 'true' || process.env.ENABLE_PRODUCTS_PRUNE === '1';
-      const isProduction = process.env.NODE_ENV === 'production';
-      const enableProductsPrune = explicitOn || (isProduction && !explicitOff);
-      if (enableProductsPrune) {
-        logger.info('⏰ Iniciando scheduler: reter 3 dias (hoje/ontem/anteontem) e limpar à 00h SP');
-        cleanupInterval = setInterval(pruneOldProductsAndLists, 60000);
-        logger.info('✅ Scheduler ativo');
-      } else {
-        logger.info('⏸️ Scheduler de limpeza de produtos DESATIVADO (em dev: normal; em prod use ENABLE_PRODUCTS_PRUNE=true para forçar)');
-      }
-
-      // Scheduler: assinaturas vencidas há 1+ dia → overdue (pagamento atrasado)
-      const runOverdueCheck = () => {
-        checkSubscriptionOverdue().catch(() => {});
-      };
-      runOverdueCheck(); // executa ao subir
-      subscriptionOverdueInterval = setInterval(runOverdueCheck, 60 * 60 * 1000); // a cada 1h
-      logger.info('📋 Scheduler de assinaturas vencidas ativo (1x/hora)');
-    });
-  })
-  .catch((err) => {
+  } catch (err) {
     logger.error('❌ Falha ao rodar migrações:', err);
     process.exit(1);
-  });
+  }
+
+  // Scheduler: reter 3 dias e apagar o resto à 00h SP — em produção LIGADO por padrão; em dev desligado (testes)
+  const explicitOff = process.env.ENABLE_PRODUCTS_PRUNE === 'false' || process.env.ENABLE_PRODUCTS_PRUNE === '0';
+  const explicitOn = process.env.ENABLE_PRODUCTS_PRUNE === 'true' || process.env.ENABLE_PRODUCTS_PRUNE === '1';
+  const isProduction = process.env.NODE_ENV === 'production';
+  const enableProductsPrune = explicitOn || (isProduction && !explicitOff);
+  if (enableProductsPrune) {
+    logger.info('⏰ Iniciando scheduler: reter 3 dias (hoje/ontem/anteontem) e limpar à 00h SP');
+    cleanupInterval = setInterval(pruneOldProductsAndLists, 60000);
+    logger.info('✅ Scheduler ativo');
+  } else {
+    logger.info('⏸️ Scheduler de limpeza de produtos DESATIVADO (em dev: normal; em prod use ENABLE_PRODUCTS_PRUNE=true para forçar)');
+  }
+
+  // Scheduler: assinaturas vencidas há 1+ dia → overdue (pagamento atrasado)
+  const runOverdueCheck = () => {
+    checkSubscriptionOverdue().catch(() => {});
+  };
+  runOverdueCheck(); // executa ao subir
+  subscriptionOverdueInterval = setInterval(runOverdueCheck, 60 * 60 * 1000); // a cada 1h
+  logger.info('📋 Scheduler de assinaturas vencidas ativo (1x/hora)');
+});
 
 // Tratamento de erros não capturados
 process.on('uncaughtException', (error) => {
