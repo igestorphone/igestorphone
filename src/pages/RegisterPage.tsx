@@ -123,15 +123,12 @@ function TermsCheckbox({
 function RegisterSuccess({ isDark }: { isDark: boolean }) {
   const cardCls = isDark ? 'text-white/90' : 'text-gray-800'
   return (
-    <div className="text-center py-4 space-y-4">
+    <div className="text-center py-4 space-y-6">
       <CheckCircle2 className={`w-16 h-16 mx-auto ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
       <h2 className={`text-2xl font-bold ${cardCls}`}>Cadastro recebido</h2>
-      <p className={`text-sm sm:text-base ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
-        Sua conta fica <strong>inativa</strong> até um administrador aprovar em <strong>Gerenciar usuários</strong>. Se você já combinou o pagamento direto com a equipe, aguarde a liberação — depois disso você poderá entrar normalmente.
-      </p>
       <Link
         to="/login"
-        className={`inline-block mt-2 px-6 py-3 rounded-xl font-semibold transition-colors ${
+        className={`inline-block px-6 py-3 rounded-xl font-semibold transition-colors ${
           isDark ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'
         }`}
       >

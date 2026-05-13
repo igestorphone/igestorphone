@@ -171,13 +171,15 @@ const insertPendingUserRecord = async (req, logAction, logDetails = {}) => {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nome_loja VARCHAR(255)`).catch(() => {});
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`).catch(() => {});
 
+  const phone = whatsapp ? String(whatsapp).trim() : null;
+
   const userResult = await query(
     `
     INSERT INTO users (
       name, email, password_hash, tipo, is_active, approval_status,
-      endereco, data_nascimento, whatsapp, nome_loja, cnpj
+      endereco, data_nascimento, telefone, whatsapp, nome_loja, cnpj
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
     RETURNING id, name, email, tipo, approval_status, created_at
   `,
     [
@@ -189,7 +191,7 @@ const insertPendingUserRecord = async (req, logAction, logDetails = {}) => {
       'pending',
       endereco || null,
       data_nascimento || null,
-      whatsapp || null,
+      phone,
       nome_loja || null,
       cnpj ? String(cnpj).replace(/\D/g, '') : null,
     ]

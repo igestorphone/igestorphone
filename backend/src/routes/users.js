@@ -167,12 +167,33 @@ router.delete('/test-delete/:id', async (req, res) => {
   }
 });
 
+// Primeiro número não vazio entre colunas legadas (telefone / phone / whatsapp)
+function pickPhoneField(...vals) {
+  for (const v of vals) {
+    if (v != null && String(v).trim() !== '') return String(v).trim();
+  }
+  return '';
+}
+
+/** Mesmas permissões de POST /:id/approve — usado ao liberar validade pelo admin. */
+async function grantDefaultUserPermissions(userId) {
+  const defaultPermissions = ['consultar_listas', 'medias_preco', 'buscar_iphone_barato'];
+  for (const permission of defaultPermissions) {
+    await query(
+      `INSERT INTO user_permissions (user_id, permission_name, granted)
+       VALUES ($1, $2, true)
+       ON CONFLICT (user_id, permission_name) DO UPDATE SET granted = true`,
+      [userId, permission]
+    );
+  }
+}
+
 // Buscar perfil do usuário logado
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
+             created_at, last_login, is_active, telefone, phone, whatsapp, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
              last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at,
              avatar_type, avatar_url
       FROM users WHERE id = $1
@@ -183,6 +204,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
 
     const user = result.rows[0];
+    user.telefone = pickPhoneField(user.telefone, user.phone, user.whatsapp);
     
     // Buscar permissões
     const permissionsResult = await query(`
@@ -1016,11 +1038,22 @@ router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
            subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
            subscription_status = $2,
            is_active = true,
+           approval_status = 'approved',
+           access_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
+           access_duration_days = $1,
            updated_at = CURRENT_TIMESTAMP
          WHERE id = $3
          RETURNING id, email, name, subscription_expires_at, subscription_status`,
         [daysFromNow, subscriptionStatus, id]
       );
+    }
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    if (daysFromNow > 0) {
+      await grantDefaultUserPermissions(id);
     }
 
     await query(
@@ -1074,6 +1107,9 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
            subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
            subscription_status = $2,
            is_active = true,
+           approval_status = 'approved',
+           access_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
+           access_duration_days = $1,
            updated_at = CURRENT_TIMESTAMP
          WHERE id = $3
          RETURNING id, email, name, subscription_expires_at, subscription_status`,
@@ -1083,6 +1119,10 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
+    }
+
+    if (daysFromNow > 0) {
+      await grantDefaultUserPermissions(id);
     }
 
     await query(
@@ -1116,7 +1156,7 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
 
     const result = await query(`
       SELECT id, email, name, tipo, subscription_status, subscription_expires_at, 
-             created_at, last_login, is_active, telefone, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
+             created_at, last_login, is_active, telefone, phone, whatsapp, endereco, cidade, estado, cep, cpf, rg, data_nascimento, parent_id,
              last_payment_amount, last_payment_date, plan_label, closed_with, profile_completion_version, profile_completed_at
       FROM users WHERE id = $1
     `, [id]);
@@ -1126,6 +1166,7 @@ router.get('/:id', requireRole('admin'), async (req, res) => {
     }
 
     const user = result.rows[0];
+    user.telefone = pickPhoneField(user.telefone, user.phone, user.whatsapp);
     
     // Buscar permissões
     const permissionsResult = await query(`
@@ -1859,15 +1900,7 @@ router.post('/:id/approve', requireRole('admin'), [
       WHERE id = $3
     `, [accessExpiresAt, durationDays, id]);
     
-    // Garantir permissões padrão
-    const defaultPermissions = ['consultar_listas', 'medias_preco', 'buscar_iphone_barato'];
-    for (const permission of defaultPermissions) {
-      await query(`
-        INSERT INTO user_permissions (user_id, permission_name, granted)
-        VALUES ($1, $2, true)
-        ON CONFLICT (user_id, permission_name) DO UPDATE SET granted = true
-      `, [id, permission]);
-    }
+    await grantDefaultUserPermissions(id);
     
     // Log da ação
     await query(`

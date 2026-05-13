@@ -107,7 +107,7 @@ const EditUserPage: React.FC = () => {
         email: user.email || '',
         senha: '',
         confirmarSenha: '',
-        telefone: user.telefone || '',
+        telefone: user.telefone || user.whatsapp || '',
         tipo: user.tipo || 'user',
         isActive: user.is_active !== false,
         permissions: user.tipo === 'admin' ? (user.permissions || []) : ['consultar_listas', 'medias_preco', 'buscar_iphone_barato']
