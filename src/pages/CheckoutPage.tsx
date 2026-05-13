@@ -60,6 +60,18 @@ type LoginForm = z.infer<typeof loginSchema>
 type RegisterForm = z.infer<typeof registerSchema>
 type CardForm = z.infer<typeof cardSchema>
 
+/** Celular BR: 11 dígitos (DDD + 9 + 8). Fixo: 10 (DDD + 8) — não começa com 9 após DDD. */
+function isBrazilPhoneDigitsComplete(raw: string): boolean {
+  const digits = String(raw ?? '').replace(/\D/g, '')
+  if (digits.length >= 11) return true
+  if (digits.length === 10 && digits.length >= 3) {
+    const afterDdd = digits[2]
+    if (afterDdd === '9') return false
+    return true
+  }
+  return false
+}
+
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams()
   const planParam = (searchParams.get('plan') || 'mensal') as PlanKey
@@ -440,21 +452,25 @@ export default function CheckoutPage() {
               </div>
               {(() => {
                 const cpf = (user?.cpf_cnpj || extraCpf)?.replace(/\D/g, '') || ''
-                const phone = (user?.phone || extraPhone)?.replace(/\D/g, '') || ''
-                const needsData = cpf.length < 11 || phone.length < 10
+                const needsData = cpf.length < 11 || !isBrazilPhoneDigitsComplete(user?.phone || extraPhone || '')
                 return needsData ? (
                   <div className="space-y-3 rounded-xl border border-white/10 bg-white/5 p-4">
                     <p className="text-sm text-white/80">CPF e telefone são obrigatórios para cobrança</p>
+                    <p className="text-xs text-white/45">Celular: 11 dígitos com DDD (ex.: 11999998888). Fixo: 10 dígitos.</p>
                     <input
                       value={extraCpf}
                       onChange={e => setExtraCpf(e.target.value.replace(/\D/g, '').slice(0, 14))}
                       placeholder="CPF * (000.000.000-00)"
+                      inputMode="numeric"
+                      autoComplete="off"
                       className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
                     />
                     <input
                       value={extraPhone}
-                      onChange={e => setExtraPhone(e.target.value)}
-                      placeholder="Telefone * (11) 99999-9999"
+                      onChange={e => setExtraPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                      placeholder="Telefone * (11) 99999-8888"
+                      inputMode="tel"
+                      autoComplete="tel-national"
                       className="w-full rounded-lg bg-black/30 border border-white/10 px-4 py-2.5 text-white placeholder-white/40"
                     />
                   </div>
@@ -470,7 +486,7 @@ export default function CheckoutPage() {
 
               {(() => {
                 const cpfOk = ((user?.cpf_cnpj || extraCpf)?.replace(/\D/g, '') || '').length >= 11
-                const phoneOk = ((user?.phone || extraPhone)?.replace(/\D/g, '') || '').length >= 10
+                const phoneOk = isBrazilPhoneDigitsComplete((user?.phone || extraPhone) as string)
                 const canPay = cpfOk && phoneOk
                 return (
               <div className="flex gap-3">
