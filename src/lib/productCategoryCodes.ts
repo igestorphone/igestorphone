@@ -38,8 +38,15 @@ function lacradoAppleCodeFromBlob(blob: string): string | null {
     return null
   }
 
+  if (/\bipad\b/.test(b)) return 'IPAD'
+  if (/\biphone\b/.test(b)) return 'IPH'
+  if (/\bmacbook\b/.test(b)) return 'MCB'
+  if (/\bairpods\b|\bbeats\s*(studio|fit|solo|pill|pro)\b/i.test(b)) return 'PODS'
+  if (/\bapple watch\b|\bwatch\s*ultra\b|\bwatch\s*se\b|\bwatch\s*series\b/i.test(b)) return 'RLG'
+
   if (
     /\bairtag\b/i.test(b) ||
+    /\bapple\s*pencil\b|\bpencil\s*(pro|usb-c?|2|3)\b/i.test(b) ||
     /\bacess[oó]ri/i.test(b) ||
     /\bcapa\b|\bcase\b|\bcarregador|\bcabo\b|\bfonte\b|\bmagsafe\b|\blightning\b|\bpel[ií]cula\b|\bsuporte\b|\bhub\b/i.test(b) ||
     /\bapple\s*tv\b/i.test(b) ||
@@ -48,12 +55,6 @@ function lacradoAppleCodeFromBlob(blob: string): string | null {
   ) {
     return 'ACSS'
   }
-
-  if (/\bipad\b/.test(b)) return 'IPAD'
-  if (/\biphone\b/.test(b)) return 'IPH'
-  if (/\bmacbook\b/.test(b)) return 'MCB'
-  if (/\bairpods\b|\bbeats\s*(studio|fit|solo|pill|pro)\b/i.test(b)) return 'PODS'
-  if (/\bapple watch\b|\bwatch\s*ultra\b|\bwatch\s*se\b|\bwatch\s*series\b/i.test(b)) return 'RLG'
 
   return null
 }
