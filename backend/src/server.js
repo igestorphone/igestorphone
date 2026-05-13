@@ -3,8 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
+import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import winston from 'winston';
 
 // Importar rotas
@@ -95,6 +96,27 @@ const logger = winston.createLogger({
     })
   ]
 });
+
+/** Onde está o build do Vite (index.html). Render: cwd costuma ser a raiz do repo; __dirname sozinho pode apontar para .../src/dist errado. */
+function resolveFrontendDistDir() {
+  const fromEnv = process.env.FRONTEND_DIST_DIR;
+  if (fromEnv) {
+    const p = resolve(fromEnv);
+    if (existsSync(join(p, 'index.html'))) return p;
+    logger.warn(`FRONTEND_DIST_DIR sem index.html: ${p}`);
+  }
+  const candidates = [
+    join(process.cwd(), 'dist'),
+    join(process.cwd(), '..', 'dist'),
+    join(__dirname, '..', '..', 'dist'),
+    join(__dirname, '..', '..', '..', 'dist'),
+  ];
+  for (const rel of candidates) {
+    const p = resolve(rel);
+    if (existsSync(join(p, 'index.html'))) return p;
+  }
+  return null;
+}
 
 // Middleware de segurança
 app.use(helmet());
@@ -202,16 +224,25 @@ app.get('/api/health', (req, res) => {
 
 // Servir arquivos estáticos do frontend em produção
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(join(__dirname, '../../dist')));
-  
-  // Apenas servir index.html para rotas que não são da API
-  app.get('*', (req, res, next) => {
-    // Se for uma rota da API, não servir o index.html
-    if (req.path.startsWith('/api/')) {
-      return next();
-    }
-    res.sendFile(join(__dirname, '../../dist/index.html'));
-  });
+  const frontendDist = resolveFrontendDistDir();
+  if (frontendDist) {
+    logger.info(`📁 Frontend estático: ${frontendDist}`);
+    app.use(express.static(frontendDist));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      res.sendFile(join(frontendDist, 'index.html'));
+    });
+  } else {
+    logger.warn(
+      '⚠️ dist/ não encontrado (npm run build na raiz do repo ou defina FRONTEND_DIST_DIR). GET / não servirá o SPA.'
+    );
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) return next();
+      res.status(503).type('text').send('Frontend indisponível neste deploy.');
+    });
+  }
 }
 
 // Middleware de tratamento de erros
