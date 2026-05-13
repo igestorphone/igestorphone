@@ -42,6 +42,8 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+// Render (e Docker) exigem escutar em todas as interfaces — só PORT não basta em alguns ambientes
+const LISTEN_HOST = process.env.LISTEN_HOST || '0.0.0.0';
 
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 const allowedOrigins = frontendUrl
@@ -129,7 +131,7 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: 'Muitas tentativas, tente novamente em alguns minutos.',
-  skip: (req) => req.path === '/health'
+  skip: (req) => req.path === '/health' || req.path === '/api/health',
 });
 
 const authLimiter = rateLimit({
@@ -185,13 +187,17 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/products', productsCleanupRoutes);
 
 
-// Rota de health check
+// Health checks (Render: TCP ou HTTP; path costuma ser /health ou /api/health)
+const healthPayload = () => ({
+  status: 'OK',
+  timestamp: new Date().toISOString(),
+  uptime: process.uptime(),
+});
+app.get('/health', (req, res) => {
+  res.json(healthPayload());
+});
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime()
-  });
+  res.json(healthPayload());
 });
 
 // Servir arquivos estáticos do frontend em produção
@@ -284,8 +290,8 @@ async function pruneOldProductsAndLists() {
 
 // Bind na porta antes das migrações: hosts como Render fazem health check cedo; se runMigrations()
 // bloquear por DB lento, o deploy dava "Timed Out" mesmo com o processo saudável depois.
-app.listen(PORT, async () => {
-  logger.info(`🚀 Servidor rodando na porta ${PORT}`);
+app.listen(PORT, LISTEN_HOST, async () => {
+  logger.info(`🚀 Servidor rodando em http://${LISTEN_HOST}:${PORT}`);
   logger.info(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`📊 Health check: http://localhost:${PORT}/api/health`);
 

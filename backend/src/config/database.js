@@ -42,8 +42,8 @@ pool.on('connect', () => {
 });
 
 pool.on('error', (err) => {
+  // Não dar process.exit: erros em cliente idle (ECONNRESET etc.) derrubam o app no meio do deploy no Render
   console.error('❌ Erro no pool de conexões PostgreSQL:', err);
-  process.exit(-1);
 });
 
 // Função para executar queries
