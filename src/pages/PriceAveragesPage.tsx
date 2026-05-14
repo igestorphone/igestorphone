@@ -70,7 +70,7 @@ function buildTableLines(
 export default function PriceAveragesPage() {
   const [dateOffset, setDateOffset] = useState<DateOffset>(0)
   const [marginReais, setMarginReais] = useState(0)
-  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set())
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages', dateOffset],
@@ -98,9 +98,16 @@ export default function PriceAveragesPage() {
         ? 'Sem dados no período: exibindo médias com todas as datas disponíveis (lacrado).'
         : null
 
-  const toggleRow = (key: string) => {
-    setSelectedKey((prev) => (prev === key ? null : key))
+  const toggleKey = (key: string) => {
+    setSelectedKeys((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
   }
+
+  const clearSelection = () => setSelectedKeys(new Set())
 
   const exportCsv = () => {
     const header = ['Modelo', 'Preço médio', 'Menor valor', 'Maior valor', 'Preço de venda']
@@ -113,7 +120,7 @@ export default function PriceAveragesPage() {
       const mn = agg?.min != null ? roundTo50(agg.min) : ''
       const mx = agg?.max != null ? roundTo50(agg.max) : ''
       const sale =
-        selectedKey === line.key && marginReais > 0 && agg
+        selectedKeys.has(line.key) && marginReais > 0 && agg
           ? saleWithMargin(agg.weightedAvg, marginReais)
           : ''
       lines.push(
@@ -149,7 +156,7 @@ export default function PriceAveragesPage() {
           agg ? formatPrice(Math.round(agg.weightedAvg)) : '—',
           agg?.min != null ? formatPrice(roundTo50(agg.min)) : '—',
           agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—',
-          selectedKey === line.key && marginReais > 0 && agg
+          selectedKeys.has(line.key) && marginReais > 0 && agg
             ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais))
             : '—',
         ].join('\t')
@@ -179,8 +186,10 @@ export default function PriceAveragesPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   iPhone lacrado: cada linha é uma capacidade (GB/TB) com média, mínimo e máximo — cores unidas na
                   média, exceto no <strong className="text-gray-700 dark:text-gray-300">iPhone 17 Pro Max</strong>, em
-                  que cada GB aparece com as três cores oficiais (Laranja Cósmico, Azul Intenso, Prateado). Toque na
-                  linha, informe o lucro em reais e veja o preço de venda (média + lucro, arredondado a R$ 50).
+                  que cada GB aparece com as três cores oficiais (Laranja Cósmico, Azul Intenso, Prateado). Marque as
+                  linhas na caixa à esquerda, informe o <strong className="text-gray-700 dark:text-gray-300">Lucro
+                  (R$)</strong> e o preço de venda aparece em cada linha selecionada (média + lucro, arredondado a R$
+                  50). Você pode marcar várias linhas com o mesmo lucro.
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
@@ -188,18 +197,33 @@ export default function PriceAveragesPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Banknote className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" />
-                <input
-                  type="number"
-                  min={0}
-                  step={50}
-                  placeholder="Lucro R$"
-                  value={marginReais || ''}
-                  onChange={(e) => setMarginReais(Number(e.target.value) || 0)}
-                  className="w-28 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-                />
-                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Lucro (R$)</span>
+                <label className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Lucro (R$)</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={50}
+                    placeholder="0"
+                    inputMode="numeric"
+                    value={marginReais === 0 ? '' : marginReais}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setMarginReais(v === '' ? 0 : Number(v) || 0)
+                    }}
+                    className="w-28 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                  />
+                </label>
+                {selectedKeys.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    Limpar seleção ({selectedKeys.size})
+                  </button>
+                )}
               </div>
               <button
                 type="button"
@@ -256,18 +280,26 @@ export default function PriceAveragesPage() {
                 </button>
               ))}
             </div>
-            {marginReais > 0 && !selectedKey && (
+            {marginReais > 0 && selectedKeys.size === 0 && (
               <p className="text-xs text-gray-500 dark:text-gray-400 sm:ml-2">
-                Selecione uma linha na tabela para ver o preço de venda.
+                Marque uma ou mais linhas na tabela para ver o preço de venda.
+              </p>
+            )}
+            {selectedKeys.size > 0 && marginReais <= 0 && (
+              <p className="text-xs text-amber-700 dark:text-amber-400 sm:ml-2">
+                Informe o lucro em R$ acima para calcular o preço de venda nas linhas marcadas.
               </p>
             )}
           </div>
         </div>
 
         <div className="overflow-x-auto -mx-2">
-          <table className="w-full text-sm min-w-[800px]">
+          <table className="w-full text-sm min-w-[860px]">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/10">
+                <th className="w-10 py-3 px-2 text-center font-semibold text-gray-900 dark:text-white" title="Selecionar">
+                  <span className="sr-only">Selecionar</span>
+                </th>
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Modelo</th>
                 <th className="text-right py-3 px-3 font-semibold text-gray-900 dark:text-white">Preço médio</th>
                 <th className="text-right py-3 px-3 font-semibold text-gray-900 dark:text-white">Menor valor</th>
@@ -280,14 +312,15 @@ export default function PriceAveragesPage() {
             <tbody>
               {!hasAnyData && !isFetching && (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                  <td colSpan={6} className="py-12 text-center text-gray-500 dark:text-gray-400">
                     Nenhum dado para lacrado nesse período. Processe listas de fornecedores ou troque o dia acima.
                   </td>
                 </tr>
               )}
               {tableLines.map((line) => {
-                const isSel = selectedKey === line.key
+                const isSel = selectedKeys.has(line.key)
                 const agg = line.agg
+                const canSelect = Boolean(agg)
                 const showSale = isSel && marginReais > 0 && agg
                 const modelCell =
                   line.kind === '17pm' ? (
@@ -302,19 +335,36 @@ export default function PriceAveragesPage() {
                 return (
                   <tr
                     key={line.key}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => toggleRow(line.key)}
+                    className={`border-b border-gray-100 dark:border-white/5 transition-colors ${
+                      canSelect ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5' : 'opacity-75'
+                    } ${isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
+                    onClick={(e) => {
+                      if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return
+                      if (!canSelect) return
+                      toggleKey(line.key)
+                    }}
                     onKeyDown={(e) => {
+                      if (!canSelect) return
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        toggleRow(line.key)
+                        toggleKey(line.key)
                       }
                     }}
-                    className={`border-b border-gray-100 dark:border-white/5 cursor-pointer transition-colors ${
-                      isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                    }`}
+                    tabIndex={canSelect ? 0 : -1}
+                    role={canSelect ? 'button' : undefined}
                   >
+                    <td className="py-3 px-2 text-center align-middle">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-white/30 dark:bg-gray-900"
+                        checked={isSel}
+                        disabled={!canSelect}
+                        title={canSelect ? 'Incluir no cálculo de preço de venda' : 'Sem dados nesta linha'}
+                        onChange={() => {
+                          if (canSelect) toggleKey(line.key)
+                        }}
+                      />
+                    </td>
                     <td className="py-3 px-3">{modelCell}</td>
                     <td className="py-3 px-3 text-right text-gray-800 dark:text-gray-200">
                       {agg ? formatPrice(Math.round(agg.weightedAvg)) : '—'}
