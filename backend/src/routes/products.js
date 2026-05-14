@@ -429,12 +429,15 @@ router.get('/price-averages', async (req, res) => {
   const nonAppleRe =
     '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)'
 
-  // Só lacrado: detalhe tem que ser explícito (vazio = dado ambíguo e costuma puxar seminovo errado pro MIN/AVG).
-  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO', 'CPO')`
+  // Só lacrado na caixa: LACRADO ou NOVO explícitos (sem CPO — preço de CPO puxa o MIN como “seminovo” na prática).
+  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`
 
-  // Texto do anúncio (nome/modelo/cor/armazenamento) não pode indicar seminovo/usado/vitrine.
+  // Texto do anúncio (nome/modelo/cor/armazenamento) não pode indicar seminovo/usado/vitrine/saúde de bateria típica de usado.
   const listingBlob = `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`
-  const antiSeminovoListing = `NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]display[[:>:]]|non[[:space:]]*active|[[:<:]]asis[[:>:]]|[[:<:]]2nd[[:>:]]|second[[:space:]]*hand|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]])')`
+  const antiSeminovoListing = `NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]display[[:>:]]|non[[:space:]]*active|[[:<:]]asis[[:>:]]|[[:<:]]cpo[[:>:]]|[[:<:]]2nd[[:>:]]|second[[:space:]]*hand|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`
+
+  // variant costuma trazer CPO / origem; exclui sinais de usado (AMERICANO/CHINÊS etc. continuam ok).
+  const variantLacradoOk = `(COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|cpo|asis|recondicionado|non[[:space:]]*active)'))`
 
   const lacradoCore = [
     'p.is_active = true',
@@ -446,6 +449,7 @@ router.get('/price-averages', async (req, res) => {
     `(p.product_type = 'apple' OR p.product_type IS NULL)`,
     `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '${nonAppleRe}')`,
     antiSeminovoListing,
+    variantLacradoOk,
   ]
 
   const lacradoAppleIphone = [...lacradoCore, detailLacradoOnly]
@@ -598,6 +602,9 @@ router.get('/price-averages', async (req, res) => {
           let parts = [...lacradoCore]
           if (errMsg.includes('is_active')) {
             parts = parts.filter((line) => !line.toLowerCase().includes('is_active'))
+          }
+          if (errMsg.includes('variant')) {
+            parts = parts.filter((line) => !line.toLowerCase().includes('p.variant'))
           }
           if (!errMsg.includes('condition_detail')) {
             parts.push(detailLacradoOnly)

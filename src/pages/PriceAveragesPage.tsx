@@ -186,21 +186,21 @@ export default function PriceAveragesPage() {
       `Referência: ${dateOffsetLabel} · iGestorPhone · Lucro por unidade: ${formatPrice(applied.margin)}`,
       '',
     ]
-    const colHeader = ['Modelo', 'Preço médio', 'Menor', 'Maior', 'Preço de venda'].join('\t')
-    const body = rows.map((line) => {
+    const blocks = rows.map((line) => {
       const agg = line.agg!
       const sale = saleWithMargin(agg.weightedAvg, applied.margin)
+      const med = formatPrice(Math.round(agg.weightedAvg))
+      const mn = agg.min != null ? formatPrice(roundTo50(agg.min)) : '—'
+      const mx = agg.max != null ? formatPrice(roundTo50(agg.max)) : '—'
+      const vd = formatPrice(sale)
       return [
-        lineModelLabel(line),
-        formatPrice(Math.round(agg.weightedAvg)),
-        agg.min != null ? formatPrice(roundTo50(agg.min)) : '—',
-        agg.max != null ? formatPrice(roundTo50(agg.max)) : '—',
-        formatPrice(sale),
-      ].join('\t')
+        `• ${lineModelLabel(line)}`,
+        `  Média: ${med}  ·  Menor: ${mn}  ·  Maior: ${mx}  ·  Preço de venda: ${vd}`,
+      ].join('\n')
     })
-    const text = [...intro, colHeader, ...body].join('\n')
+    const text = [...intro, ...blocks].join('\n\n')
     navigator.clipboard.writeText(text).then(
-      () => toast.success(`Copiado ${rows.length} linha(s) — pronto para colar no WhatsApp ou Excel.`),
+      () => toast.success(`Copiado ${rows.length} modelo(s) — texto com rótulos; bom para Notas ou WhatsApp.`),
       () => toast.error('Erro ao copiar.')
     )
   }
@@ -225,13 +225,15 @@ export default function PriceAveragesPage() {
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   Apenas <strong className="text-gray-700 dark:text-gray-300">iPhone lacrado / novo na caixa</strong>{' '}
-                  (LACRADO, NOVO, CPO ou novo sem detalhe). <strong className="text-gray-700 dark:text-gray-300">Não</strong>{' '}
-                  entra seminovo nem usado. Cada linha é uma capacidade (GB ou TB); no iPhone 17 Pro Max há também as
+                  com condição explícita <strong className="text-gray-700 dark:text-gray-300">LACRADO</strong> ou{' '}
+                  <strong className="text-gray-700 dark:text-gray-300">NOVO</strong> no cadastro (sem CPO, sem detalhe
+                  vazio). <strong className="text-gray-700 dark:text-gray-300">Não</strong> entra seminovo, vitrine nem
+                  anúncio com sinais de usado. Cada linha é uma capacidade (GB ou TB); no iPhone 17 Pro Max há também as
                   três cores oficiais. Marque as linhas, defina o lucro em R$, clique em{' '}
                   <strong className="text-gray-700 dark:text-gray-300">Aplicar lucro</strong> para preencher “Preço de
                   venda”. O botão <strong className="text-gray-700 dark:text-gray-300">Copiar p/ cliente</strong> copia{' '}
-                  <em>só</em> as linhas em que o preço de venda foi aplicado, em formato de tabela (tabs) para WhatsApp ou
-                  Excel.
+                  <em>só</em> as linhas em que o preço de venda foi aplicado, em texto com rótulos (Média, Menor, Maior,
+                  Venda) para colar legível no WhatsApp ou Notas.
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
