@@ -1,6 +1,15 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BarChart3, Copy, Download, Loader2, RefreshCw, Banknote, CalendarDays } from 'lucide-react'
+import {
+  BarChart3,
+  Banknote,
+  CalendarDays,
+  Check,
+  Copy,
+  Download,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
@@ -29,6 +38,10 @@ type TableLine =
 function saleWithMargin(avg: number, marginReais: number): number {
   if (marginReais <= 0) return avg
   return roundTo50(avg + marginReais)
+}
+
+function lineModelLabel(line: TableLine): string {
+  return line.kind === '17pm' ? `${line.title} — ${line.colorPart}` : line.title
 }
 
 function buildTableLines(
@@ -71,6 +84,7 @@ export default function PriceAveragesPage() {
   const [dateOffset, setDateOffset] = useState<DateOffset>(0)
   const [marginReais, setMarginReais] = useState(0)
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set())
+  const [applied, setApplied] = useState<{ margin: number; keys: Set<string> } | null>(null)
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages', dateOffset],
@@ -107,21 +121,34 @@ export default function PriceAveragesPage() {
     })
   }
 
-  const clearSelection = () => setSelectedKeys(new Set())
+  const clearAll = () => {
+    setSelectedKeys(new Set())
+    setApplied(null)
+  }
+
+  const canApply = selectedKeys.size > 0 && marginReais > 0
+
+  const applyLucro = () => {
+    if (!canApply) {
+      toast.error('Marque linhas com dado e informe um lucro maior que zero.')
+      return
+    }
+    setApplied({ margin: marginReais, keys: new Set(selectedKeys) })
+    toast.success(`Lucro aplicado em ${selectedKeys.size} linha(s). Use “Copiar p/ cliente” para enviar a tabela.`)
+  }
 
   const exportCsv = () => {
     const header = ['Modelo', 'Preço médio', 'Menor valor', 'Maior valor', 'Preço de venda']
     const lines = [header.join(';')]
     for (const line of tableLines) {
-      const labelCol =
-        line.kind === '17pm' ? `${line.title} — ${line.colorPart}` : line.title
+      const labelCol = lineModelLabel(line)
       const agg = line.agg
       const avg = agg ? Math.round(agg.weightedAvg) : ''
       const mn = agg?.min != null ? roundTo50(agg.min) : ''
       const mx = agg?.max != null ? roundTo50(agg.max) : ''
       const sale =
-        selectedKeys.has(line.key) && marginReais > 0 && agg
-          ? saleWithMargin(agg.weightedAvg, marginReais)
+        applied?.keys.has(line.key) && applied.margin > 0 && agg
+          ? saleWithMargin(agg.weightedAvg, applied.margin)
           : ''
       lines.push(
         [
@@ -143,27 +170,37 @@ export default function PriceAveragesPage() {
     toast.success('CSV exportado!')
   }
 
-  const copyToClipboard = () => {
-    const header = ['Modelo', 'Preço médio', 'Menor', 'Maior', 'Preço venda']
-    const lines = [header.join('\t')]
-    for (const line of tableLines) {
-      const labelCol =
-        line.kind === '17pm' ? `${line.title} — ${line.colorPart}` : line.title
-      const agg = line.agg
-      lines.push(
-        [
-          labelCol,
-          agg ? formatPrice(Math.round(agg.weightedAvg)) : '—',
-          agg?.min != null ? formatPrice(roundTo50(agg.min)) : '—',
-          agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—',
-          selectedKeys.has(line.key) && marginReais > 0 && agg
-            ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais))
-            : '—',
-        ].join('\t')
-      )
+  const copyClientTable = () => {
+    if (!applied || applied.keys.size === 0) {
+      toast.error('Aplique o lucro primeiro: marque as linhas, informe o lucro e clique em “Aplicar lucro”.')
+      return
     }
-    navigator.clipboard.writeText(lines.join('\n')).then(
-      () => toast.success('Copiado!'),
+    const rows = tableLines.filter((line) => applied.keys.has(line.key) && line.agg)
+    if (rows.length === 0) {
+      toast.error('Nenhuma linha com preço aplicado para copiar.')
+      return
+    }
+    const intro = [
+      'Modelos Apple novos (lacrado — apenas novos na caixa, sem seminovo)',
+      '',
+      `Referência: ${dateOffsetLabel} · iGestorPhone · Lucro por unidade: ${formatPrice(applied.margin)}`,
+      '',
+    ]
+    const colHeader = ['Modelo', 'Preço médio', 'Menor', 'Maior', 'Preço de venda'].join('\t')
+    const body = rows.map((line) => {
+      const agg = line.agg!
+      const sale = saleWithMargin(agg.weightedAvg, applied.margin)
+      return [
+        lineModelLabel(line),
+        formatPrice(Math.round(agg.weightedAvg)),
+        agg.min != null ? formatPrice(roundTo50(agg.min)) : '—',
+        agg.max != null ? formatPrice(roundTo50(agg.max)) : '—',
+        formatPrice(sale),
+      ].join('\t')
+    })
+    const text = [...intro, colHeader, ...body].join('\n')
+    navigator.clipboard.writeText(text).then(
+      () => toast.success(`Copiado ${rows.length} linha(s) — pronto para colar no WhatsApp ou Excel.`),
       () => toast.error('Erro ao copiar.')
     )
   }
@@ -183,21 +220,26 @@ export default function PriceAveragesPage() {
               <BarChart3 className="w-9 h-9 text-indigo-500 dark:text-indigo-400 shrink-0" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Média de preço</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  iPhone lacrado: cada linha é uma capacidade (GB/TB) com média, mínimo e máximo — cores unidas na
-                  média, exceto no <strong className="text-gray-700 dark:text-gray-300">iPhone 17 Pro Max</strong>, em
-                  que cada GB aparece com as três cores oficiais (Laranja Cósmico, Azul Intenso, Prateado). Marque as
-                  linhas na caixa à esquerda, informe o <strong className="text-gray-700 dark:text-gray-300">Lucro
-                  (R$)</strong> e o preço de venda aparece em cada linha selecionada (média + lucro, arredondado a R$
-                  50). Você pode marcar várias linhas com o mesmo lucro.
+                <p className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-200">
+                  Modelos Apple novos (lacrado)
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                  Apenas <strong className="text-gray-700 dark:text-gray-300">iPhone lacrado / novo na caixa</strong>{' '}
+                  (LACRADO, NOVO, CPO ou novo sem detalhe). <strong className="text-gray-700 dark:text-gray-300">Não</strong>{' '}
+                  entra seminovo nem usado. Cada linha é uma capacidade (GB ou TB); no iPhone 17 Pro Max há também as
+                  três cores oficiais. Marque as linhas, defina o lucro em R$, clique em{' '}
+                  <strong className="text-gray-700 dark:text-gray-300">Aplicar lucro</strong> para preencher “Preço de
+                  venda”. O botão <strong className="text-gray-700 dark:text-gray-300">Copiar p/ cliente</strong> copia{' '}
+                  <em>só</em> as linhas em que o preço de venda foi aplicado, em formato de tabela (tabs) para WhatsApp ou
+                  Excel.
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
                 )}
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
                 <Banknote className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" />
                 <label className="flex items-center gap-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Lucro (R$)</span>
@@ -215,45 +257,58 @@ export default function PriceAveragesPage() {
                     className="w-28 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
                   />
                 </label>
-                {selectedKeys.size > 0 && (
+                <button
+                  type="button"
+                  onClick={applyLucro}
+                  disabled={!canApply}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-45 disabled:pointer-events-none transition-colors"
+                >
+                  <Check className="w-4 h-4" />
+                  Aplicar lucro
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {(selectedKeys.size > 0 || applied) && (
                   <button
                     type="button"
-                    onClick={clearSelection}
+                    onClick={clearAll}
                     className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
                   >
-                    Limpar seleção ({selectedKeys.size})
+                    Limpar tudo
+                    {selectedKeys.size > 0 ? ` (${selectedKeys.size} selec.)` : ''}
+                    {applied ? ` · ${applied.keys.size} c/ venda` : ''}
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300 text-sm"
+                >
+                  {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Atualizar
+                </button>
+                <button
+                  type="button"
+                  onClick={copyClientTable}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copiar p/ cliente
+                </button>
+                <button
+                  type="button"
+                  onClick={exportCsv}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold"
+                >
+                  <Download className="w-4 h-4" />
+                  CSV
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300"
-              >
-                {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                Atualizar
-              </button>
-              <button
-                type="button"
-                onClick={copyToClipboard}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white"
-              >
-                <Copy className="w-4 h-4" />
-                Copiar
-              </button>
-              <button
-                type="button"
-                onClick={exportCsv}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
-              >
-                <Download className="w-4 h-4" />
-                CSV
-              </button>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-wrap">
             <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
               <CalendarDays className="w-4 h-4 shrink-0" />
               <span>Lista do dia</span>
@@ -280,14 +335,14 @@ export default function PriceAveragesPage() {
                 </button>
               ))}
             </div>
-            {marginReais > 0 && selectedKeys.size === 0 && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 sm:ml-2">
-                Marque uma ou mais linhas na tabela para ver o preço de venda.
+            {!canApply && (
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Para ver preço de venda: marque linhas + lucro → <span className="font-medium">Aplicar lucro</span>.
               </p>
             )}
-            {selectedKeys.size > 0 && marginReais <= 0 && (
-              <p className="text-xs text-amber-700 dark:text-amber-400 sm:ml-2">
-                Informe o lucro em R$ acima para calcular o preço de venda nas linhas marcadas.
+            {applied && (
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
+                Preço de venda ativo em {applied.keys.size} linha(s) — use “Copiar p/ cliente” para enviar só essas.
               </p>
             )}
           </div>
@@ -321,7 +376,7 @@ export default function PriceAveragesPage() {
                 const isSel = selectedKeys.has(line.key)
                 const agg = line.agg
                 const canSelect = Boolean(agg)
-                const showSale = isSel && marginReais > 0 && agg
+                const showSale = Boolean(applied && agg && applied.keys.has(line.key) && applied.margin > 0)
                 const modelCell =
                   line.kind === '17pm' ? (
                     <span>
@@ -337,7 +392,9 @@ export default function PriceAveragesPage() {
                     key={line.key}
                     className={`border-b border-gray-100 dark:border-white/5 transition-colors ${
                       canSelect ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5' : 'opacity-75'
-                    } ${isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : ''}`}
+                    } ${isSel ? 'bg-indigo-50/80 dark:bg-indigo-950/30' : ''} ${
+                      applied?.keys.has(line.key) ? 'ring-1 ring-inset ring-emerald-200/80 dark:ring-emerald-900/50' : ''
+                    }`}
                     onClick={(e) => {
                       if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return
                       if (!canSelect) return
@@ -359,7 +416,7 @@ export default function PriceAveragesPage() {
                         className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-white/30 dark:bg-gray-900"
                         checked={isSel}
                         disabled={!canSelect}
-                        title={canSelect ? 'Incluir no cálculo de preço de venda' : 'Sem dados nesta linha'}
+                        title={canSelect ? 'Selecionar para aplicar lucro' : 'Sem dados nesta linha'}
                         onChange={() => {
                           if (canSelect) toggleKey(line.key)
                         }}
@@ -376,7 +433,7 @@ export default function PriceAveragesPage() {
                       {agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right font-semibold text-emerald-800 dark:text-emerald-300 min-w-[8rem]">
-                      {showSale ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais)) : '—'}
+                      {showSale && agg && applied ? formatPrice(saleWithMargin(agg.weightedAvg, applied.margin)) : '—'}
                     </td>
                   </tr>
                 )

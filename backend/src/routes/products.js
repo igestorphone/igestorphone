@@ -434,12 +434,13 @@ router.get('/price-averages', async (req, res) => {
     's.is_active = true',
     'p.price > 0',
     'p.price IS NOT NULL',
+    "p.condition = 'Novo'",
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
     `(p.product_type = 'apple' OR p.product_type IS NULL)`,
     `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '${nonAppleRe}')`,
     `(
       p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-      OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR TRIM(COALESCE(p.condition_detail, '')) = ''))
+      OR (p.condition_detail IS NULL OR TRIM(COALESCE(p.condition_detail, '')) = '')
     )`,
   ]
 
