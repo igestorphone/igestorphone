@@ -1,7 +1,13 @@
 /**
  * Linhas fixas da tabela "Média de preço" (lacrado) e casamento com o campo `model` da API.
  * Ordem: mais específico primeiro no array de matchers.
+ *
+ * iPhone 17 Pro Max: médias separadas por cor (demais modelos: uma linha por aparelho, todas as cores agregadas).
  */
+
+import { normalizeColor } from '@/pages/colorNormalizer'
+
+export const IPHONE_17_PRO_MAX_COLOR_KEYS = ['Laranja Cósmico', 'Azul Intenso', 'Prateado'] as const
 
 export const IPHONE_PRICE_TABLE_ORDER: readonly string[] = [
   'iPhone 11',
@@ -35,8 +41,10 @@ export const IPHONE_PRICE_TABLE_ORDER: readonly string[] = [
   'iPhone 17 Pro Max',
 ] as const
 
-type AvgInput = {
+export type AvgInput = {
   model: string
+  color?: string | null
+  storage?: string | null
   avg_price: number
   count: number
   min_price: number | null
@@ -135,11 +143,56 @@ export function matchIphonePriceTableLabel(rawModel: string): (typeof IPHONE_PRI
   return null
 }
 
+const PM17_LABEL = 'iPhone 17 Pro Max' as const
+
+function bucket17ProMaxColor(rawColor: string | null | undefined, model: string): string | null {
+  if (matchIphonePriceTableLabel(model) !== PM17_LABEL) return null
+  const nc = (normalizeColor(rawColor || '', model) || '').trim()
+  if ((IPHONE_17_PRO_MAX_COLOR_KEYS as readonly string[]).includes(nc)) return nc
+  return null
+}
+
+/** Média/min/max por cor oficial (somente iPhone 17 Pro Max). */
+export function aggregateIphone17ProMaxByColor(rows: AvgInput[]): Map<string, IphoneTableAgg> {
+  const map = new Map<string, { sumW: number; n: number; min: number | null; max: number | null }>()
+  for (const r of rows) {
+    const colorKey = bucket17ProMaxColor(r.color ?? '', r.model)
+    if (!colorKey) continue
+    const prev = map.get(colorKey) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
+    prev.sumW += Number(r.avg_price) * Number(r.count || 0)
+    prev.n += Number(r.count || 0)
+    const mn = r.min_price != null ? Number(r.min_price) : null
+    const mx = r.max_price != null ? Number(r.max_price) : null
+    if (mn != null && !Number.isNaN(mn)) {
+      prev.min = prev.min == null ? mn : Math.min(prev.min, mn)
+    }
+    if (mx != null && !Number.isNaN(mx)) {
+      prev.max = prev.max == null ? mx : Math.max(prev.max, mx)
+    }
+    map.set(colorKey, prev)
+  }
+  const out = new Map<string, IphoneTableAgg>()
+  for (const [colorKey, v] of map) {
+    out.set(colorKey, {
+      weightedAvg: v.n > 0 ? v.sumW / v.n : 0,
+      min: v.min,
+      max: v.max,
+      unitCount: v.n,
+    })
+  }
+  return out
+}
+
+export function selectionKey17ProMax(colorKey: string): string {
+  return `${PM17_LABEL}::${colorKey}`
+}
+
+/** Uma linha por aparelho; cores agregadas. iPhone 17 Pro Max fica de fora (usa aggregateIphone17ProMaxByColor). */
 export function aggregateIphoneAveragesByTableRow(rows: AvgInput[]): Map<string, IphoneTableAgg> {
   const map = new Map<string, { sumW: number; n: number; min: number | null; max: number | null }>()
   for (const r of rows) {
     const label = matchIphonePriceTableLabel(r.model)
-    if (!label) continue
+    if (!label || label === PM17_LABEL) continue
     const prev = map.get(label) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
     prev.sumW += Number(r.avg_price) * Number(r.count || 0)
     prev.n += Number(r.count || 0)

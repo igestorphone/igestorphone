@@ -6,22 +6,58 @@ import { produtosApi } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
+  IPHONE_17_PRO_MAX_COLOR_KEYS,
   IPHONE_PRICE_TABLE_ORDER,
+  aggregateIphone17ProMaxByColor,
   aggregateIphoneAveragesByTableRow,
   roundTo50,
+  selectionKey17ProMax,
+  type IphoneTableAgg,
 } from '@/lib/iphoneAveragePriceCatalog'
 
 type DateOffset = 0 | -1 | -2
+
+type TableLine =
+  | { kind: 'device'; key: string; title: string; agg: IphoneTableAgg | undefined }
+  | { kind: '17pm'; key: string; title: string; colorPart: string; agg: IphoneTableAgg | undefined }
 
 function saleWithMargin(avg: number, marginReais: number): number {
   if (marginReais <= 0) return avg
   return roundTo50(avg + marginReais)
 }
 
+function buildTableLines(
+  aggByLabel: Map<string, IphoneTableAgg>,
+  agg17ByColor: Map<string, IphoneTableAgg>
+): TableLine[] {
+  const lines: TableLine[] = []
+  for (const label of IPHONE_PRICE_TABLE_ORDER) {
+    if (label === 'iPhone 17 Pro Max') {
+      for (const colorKey of IPHONE_17_PRO_MAX_COLOR_KEYS) {
+        lines.push({
+          kind: '17pm',
+          key: selectionKey17ProMax(colorKey),
+          title: 'iPhone 17 Pro Max',
+          colorPart: colorKey,
+          agg: agg17ByColor.get(colorKey),
+        })
+      }
+    } else {
+      lines.push({
+        kind: 'device',
+        key: label,
+        title: label,
+        agg: aggByLabel.get(label),
+      })
+    }
+  }
+  return lines
+}
+
 export default function PriceAveragesPage() {
   const [dateOffset, setDateOffset] = useState<DateOffset>(0)
   const [marginReais, setMarginReais] = useState(0)
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages', dateOffset],
@@ -35,6 +71,9 @@ export default function PriceAveragesPage() {
   const dateFilter = (raw?.dateFilter ?? 'day') as 'day' | 'rolling3' | 'all'
 
   const aggByLabel = useMemo(() => aggregateIphoneAveragesByTableRow(averages), [averages])
+  const agg17ByColor = useMemo(() => aggregateIphone17ProMaxByColor(averages), [averages])
+
+  const tableLines = useMemo(() => buildTableLines(aggByLabel, agg17ByColor), [aggByLabel, agg17ByColor])
 
   const dateOffsetLabel =
     dateOffset === 0 ? 'Hoje' : dateOffset === -1 ? 'Ontem' : 'Anteontem'
@@ -46,31 +85,27 @@ export default function PriceAveragesPage() {
         ? 'Sem dados no período: exibindo médias com todas as datas disponíveis (lacrado).'
         : null
 
-  const toggleRow = (label: string) => {
-    setSelectedLabel((prev) => (prev === label ? null : label))
+  const toggleRow = (key: string) => {
+    setSelectedKey((prev) => (prev === key ? null : key))
   }
-
-  const tableRows = useMemo(() => {
-    return IPHONE_PRICE_TABLE_ORDER.map((label) => {
-      const agg = aggByLabel.get(label)
-      return { label, agg }
-    })
-  }, [aggByLabel])
 
   const exportCsv = () => {
     const header = ['Modelo', 'Preço médio', 'Menor valor', 'Maior valor', 'Preço de venda']
     const lines = [header.join(';')]
-    for (const { label, agg } of tableRows) {
+    for (const line of tableLines) {
+      const labelCol =
+        line.kind === '17pm' ? `${line.title} — ${line.colorPart}` : line.title
+      const agg = line.agg
       const avg = agg ? Math.round(agg.weightedAvg) : ''
       const mn = agg?.min != null ? roundTo50(agg.min) : ''
       const mx = agg?.max != null ? roundTo50(agg.max) : ''
       const sale =
-        selectedLabel === label && marginReais > 0 && agg
+        selectedKey === line.key && marginReais > 0 && agg
           ? saleWithMargin(agg.weightedAvg, marginReais)
           : ''
       lines.push(
         [
-          label,
+          labelCol,
           avg !== '' ? formatPrice(avg) : '',
           mn !== '' ? formatPrice(mn) : '',
           mx !== '' ? formatPrice(mx) : '',
@@ -91,14 +126,17 @@ export default function PriceAveragesPage() {
   const copyToClipboard = () => {
     const header = ['Modelo', 'Preço médio', 'Menor', 'Maior', 'Preço venda']
     const lines = [header.join('\t')]
-    for (const { label, agg } of tableRows) {
+    for (const line of tableLines) {
+      const labelCol =
+        line.kind === '17pm' ? `${line.title} — ${line.colorPart}` : line.title
+      const agg = line.agg
       lines.push(
         [
-          label,
+          labelCol,
           agg ? formatPrice(Math.round(agg.weightedAvg)) : '—',
           agg?.min != null ? formatPrice(roundTo50(agg.min)) : '—',
           agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—',
-          selectedLabel === label && marginReais > 0 && agg
+          selectedKey === line.key && marginReais > 0 && agg
             ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais))
             : '—',
         ].join('\t')
@@ -110,7 +148,7 @@ export default function PriceAveragesPage() {
     )
   }
 
-  const hasAnyData = tableRows.some((r) => r.agg)
+  const hasAnyData = tableLines.some((r) => r.agg)
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -126,9 +164,10 @@ export default function PriceAveragesPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Média de preço</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  iPhone lacrado: preço médio, mínimo e máximo por modelo (referência ao dia em São Paulo). Toque em
-                  uma linha, informe o lucro em reais e veja o preço de venda sugerido (média + lucro, arredondado a
-                  R$ 50).
+                  iPhone lacrado: uma linha por aparelho (todas as cores e capacidades na média), exceto{' '}
+                  <strong className="text-gray-700 dark:text-gray-300">iPhone 17 Pro Max</strong>, com média separada
+                  por cor oficial (Laranja Cósmico, Azul Intenso, Prateado). Toque na linha, informe o lucro em reais e
+                  veja o preço de venda (média + lucro, arredondado a R$ 50).
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
@@ -204,9 +243,9 @@ export default function PriceAveragesPage() {
                 </button>
               ))}
             </div>
-            {marginReais > 0 && !selectedLabel && (
+            {marginReais > 0 && !selectedKey && (
               <p className="text-xs text-gray-500 dark:text-gray-400 sm:ml-2">
-                Selecione um modelo na tabela para ver o preço de venda.
+                Selecione uma linha na tabela para ver o preço de venda.
               </p>
             )}
           </div>
@@ -233,27 +272,38 @@ export default function PriceAveragesPage() {
                   </td>
                 </tr>
               )}
-              {tableRows.map(({ label, agg }) => {
-                const isSel = selectedLabel === label
+              {tableLines.map((line) => {
+                const isSel = selectedKey === line.key
+                const agg = line.agg
                 const showSale = isSel && marginReais > 0 && agg
+                const modelCell =
+                  line.kind === '17pm' ? (
+                    <span>
+                      <span className="font-medium text-gray-900 dark:text-white">{line.title}</span>
+                      <span className="text-gray-500 dark:text-gray-400"> · </span>
+                      <span className="text-indigo-700 dark:text-indigo-300 font-medium">{line.colorPart}</span>
+                    </span>
+                  ) : (
+                    <span className="font-medium text-gray-900 dark:text-white">{line.title}</span>
+                  )
                 return (
                   <tr
-                    key={label}
+                    key={line.key}
                     role="button"
                     tabIndex={0}
-                    onClick={() => toggleRow(label)}
+                    onClick={() => toggleRow(line.key)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        toggleRow(label)
+                        toggleRow(line.key)
                       }
                     }}
                     className={`border-b border-gray-100 dark:border-white/5 cursor-pointer transition-colors ${
                       isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
                     }`}
                   >
-                    <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">
-                      {label}
+                    <td className="py-3 px-3">
+                      {modelCell}
                       {agg && agg.unitCount > 0 && (
                         <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
                           (n={agg.unitCount})
