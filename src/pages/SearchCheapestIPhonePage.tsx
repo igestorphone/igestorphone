@@ -24,6 +24,7 @@ import {
   AlertTriangle,
   SlidersHorizontal,
   Check,
+  X,
   TrendingUp,
   TrendingDown,
   Smartphone,
@@ -44,6 +45,7 @@ import {
   type CategorySearchMode,
 } from '@/lib/productCategoryCodes'
 import toast from 'react-hot-toast'
+import { IPHONE_PRICE_TABLE_ORDER } from '@/lib/iphoneAveragePriceCatalog'
 import { normalizeColor } from './colorNormalizer'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
@@ -373,7 +375,84 @@ const TYPING_SUGGESTIONS: Record<string, string[]> = {
   android: ['Samsung Galaxy', 'Xiaomi', 'Motorola Edge']
 }
 
-// Input de busca com estado local + efeito de digitação quando vazio
+const APPLE_AUTOCOMPLETE_POOL: string[] = [
+  ...IPHONE_PRICE_TABLE_ORDER,
+  'MacBook Air',
+  'MacBook Pro',
+  'MacBook',
+  'iPad',
+  'iPad mini',
+  'iPad Air',
+  'iPad Pro',
+  'AirPods',
+  'AirPods Pro',
+  'AirPods Max',
+  'Apple Watch',
+  'Apple Watch Ultra',
+]
+
+const ANDROID_AUTOCOMPLETE_POOL: string[] = [
+  'Samsung Galaxy S24 Ultra',
+  'Samsung Galaxy S24',
+  'Samsung Galaxy S23',
+  'Samsung Galaxy A',
+  'Xiaomi 14',
+  'Xiaomi Redmi',
+  'Motorola Edge',
+  'Google Pixel',
+  'POCO',
+  'Realme',
+  'OnePlus',
+]
+
+function getAutocompleteSubtitle(label: string, mode: 'apple' | 'android'): string {
+  if (mode === 'android') return 'Android'
+  const s = label.toLowerCase()
+  if (s.includes('iphone')) return 'iPhone'
+  if (s.includes('macbook')) return 'Mac'
+  if (s.includes('ipad')) return 'iPad'
+  if (s.includes('airpods')) return 'Áudio'
+  if (s.includes('watch')) return 'Watch'
+  return 'Apple'
+}
+
+function autocompleteRank(label: string, q: string): number {
+  const l = label.toLowerCase()
+  const words = q
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (!words.length) return 99
+  const joined = words.join(' ')
+  if (l.startsWith(joined)) return 0
+  if (l.startsWith(words[0])) return 1
+  if (words.every((w) => l.includes(w))) return 2
+  if (l.includes(joined)) return 3
+  return 99
+}
+
+function filterAutocompleteModels(query: string, mode: 'apple' | 'android', limit = 10): string[] {
+  const q = query.trim()
+  if (!q) return []
+  const pool = mode === 'android' ? ANDROID_AUTOCOMPLETE_POOL : APPLE_AUTOCOMPLETE_POOL
+  const ranked = pool
+    .map((label) => ({ label, r: autocompleteRank(label, q) }))
+    .filter((x) => x.r < 90)
+    .sort((a, b) => a.r - b.r || a.label.localeCompare(b.label))
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const { label } of ranked) {
+    const k = label.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(label)
+    if (out.length >= limit) break
+  }
+  return out
+}
+
+// Input de busca com estado local + efeito de digitação quando vazio + autocomplete de modelos
 function SearchInputDebounced({
   onDebouncedChange,
   placeholder = 'Buscar produtos...',
@@ -385,13 +464,31 @@ function SearchInputDebounced({
   typingSuggestions?: string[]
   searchMode?: string
 }) {
+  const acMode: 'apple' | 'android' = searchMode === 'android' ? 'android' : 'apple'
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const activeIdxRef = useRef(-1)
+  useEffect(() => {
+    activeIdxRef.current = activeIdx
+  }, [activeIdx])
 
   useEffect(() => {
     const timer = setTimeout(() => onDebouncedChange(localValue.trim() || ''), 400)
     return () => clearTimeout(timer)
   }, [localValue, onDebouncedChange])
+
+  const matches = useMemo(
+    () => (localValue.trim().length >= 1 ? filterAutocompleteModels(localValue, acMode, 10) : []),
+    [localValue, acMode]
+  )
+
+  const showPanel = localValue.trim().length >= 1 && matches.length > 0
+  const showTypingEffect = !localValue
+
+  useEffect(() => {
+    setActiveIdx(-1)
+  }, [localValue, matches.length, acMode])
 
   // Efeito de digitação: só quando input vazio
   const suggestions = typingSuggestions ?? TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
@@ -431,32 +528,116 @@ function SearchInputDebounced({
       }
     }
 
-      t = setTimeout(type, 600)
+    t = setTimeout(type, 600)
     return () => clearTimeout(t)
-  }, [localValue, searchMode])
+  }, [localValue, searchMode, suggestions])
 
-  const showTypingEffect = !localValue
+  const pickSuggestion = (value: string) => {
+    setLocalValue(value)
+    setActiveIdx(-1)
+  }
+
   return (
-    <div className="relative">
-      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 z-10" />
+    <div className="relative z-20">
+      <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 z-10 pointer-events-none" />
       <input
         type="search"
         inputMode="search"
         autoComplete="off"
+        role="combobox"
+        aria-expanded={showPanel}
+        aria-controls="search-autocomplete-listbox"
+        aria-autocomplete="list"
         placeholder={showTypingEffect ? ' ' : placeholder}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
-        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all touch-manipulation min-h-[44px]"
+        onKeyDown={(e) => {
+          if (!showPanel) return
+          if (e.key === 'ArrowDown') {
+            e.preventDefault()
+            setActiveIdx((i) => (matches.length === 0 ? -1 : i < 0 ? 0 : Math.min(matches.length - 1, i + 1)))
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault()
+            setActiveIdx((i) => (i <= 0 ? 0 : i - 1))
+          } else if (e.key === 'Enter') {
+            const idx = activeIdxRef.current
+            if (idx >= 0 && idx < matches.length) {
+              e.preventDefault()
+              pickSuggestion(matches[idx])
+            }
+          } else if (e.key === 'Escape') {
+            e.preventDefault()
+            setActiveIdx(-1)
+          }
+        }}
+        className="w-full pl-12 pr-11 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all touch-manipulation min-h-[44px]"
       />
+      {localValue ? (
+        <button
+          type="button"
+          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-200/80 dark:hover:bg-white/10"
+          aria-label="Limpar busca"
+          onClick={() => {
+            setLocalValue('')
+            setActiveIdx(-1)
+          }}
+        >
+          <X className="w-4 h-4" />
+        </button>
+      ) : null}
       {showTypingEffect && (
         <div
-          className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500 select-none overflow-hidden"
+          className="absolute left-12 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500 select-none overflow-hidden max-w-[calc(100%-3rem)]"
           aria-hidden
         >
           <span>{typingText}</span>
           <span className="animate-pulse">|</span>
         </div>
       )}
+
+      {showPanel ? (
+        <div
+          id="search-autocomplete-listbox"
+          role="listbox"
+          className="absolute left-0 right-0 top-full mt-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-lg shadow-black/10 dark:shadow-black/40 overflow-hidden max-h-[min(70vh,22rem)] overflow-y-auto"
+          onMouseDown={(e) => e.preventDefault()}
+        >
+          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
+            <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Resultados
+            </span>
+            <span className="text-[11px] font-semibold tabular-nums text-gray-400 dark:text-gray-500">{matches.length}</span>
+          </div>
+          <ul className="py-1">
+            {matches.map((label, i) => (
+              <li key={`${label}-${i}`} role="presentation">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={i === activeIdx}
+                  className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors ${
+                    i === activeIdx
+                      ? 'bg-blue-50 dark:bg-blue-950/40'
+                      : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                  }`}
+                  onMouseEnter={() => setActiveIdx(i)}
+                  onClick={() => pickSuggestion(label)}
+                >
+                  <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
+                      {label}
+                    </span>
+                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                      {getAutocompleteSubtitle(label, acMode)}
+                    </span>
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -1071,7 +1252,7 @@ Ainda tem disponível?`
               </div>
             </div>
 
-            <div ref={searchInputRef} className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10">
+            <div ref={searchInputRef} className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 overflow-visible">
               <SearchInputDebounced
                 key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
