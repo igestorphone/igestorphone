@@ -102,6 +102,21 @@ export function parseRamFromProduct(product: {
   return null
 }
 
+/** Evita Tecno/Samsung/etc. na lista Apple quando `product_type` veio NULL no banco. */
+const NON_APPLE_DEVICE_RE =
+  /tecno|infinix|\bsamsung\b|\bgalaxy\b|\bxiaomi\b|\bredmi\b|\bpoco\b|\bmotorola\b|\bmoto[\s-]|\brealme\b|\boppo\b|\bvivo\b|\bhuawei\b|\bnothing\b|\boneplus\b|\bhonor\b|\bzte\b|zenfone|\bpixel\b|black\s*shark|nubia|meizu/i
+
+export function isLikelyNonAppleDevice(product: { name?: string | null; model?: string | null }): boolean {
+  const blob = `${product.name || ''} ${product.model || ''}`
+  if (!blob.trim()) return false
+  if (
+    /\b(iphone|ipad|macbook|airpods|apple\s*watch|apple\s*pencil|airtag|homepod|apple\s*tv|imac|studio\s*display)\b/i.test(blob)
+  ) {
+    return false
+  }
+  return NON_APPLE_DEVICE_RE.test(blob)
+}
+
 /** Rótulos para filtro / UI (lacrado + Android + seminovo). */
 export const CATEGORY_CODE_LABELS: Record<string, string> = {
   IPH: 'IPH — iPhone',

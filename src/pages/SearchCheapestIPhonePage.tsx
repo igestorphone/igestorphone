@@ -30,7 +30,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
-import { getProductCategoryCode, parseRamFromProduct, CATEGORY_CODE_LABELS, type CategorySearchMode } from '@/lib/productCategoryCodes'
+import { getProductCategoryCode, parseRamFromProduct, CATEGORY_CODE_LABELS, isLikelyNonAppleDevice, type CategorySearchMode } from '@/lib/productCategoryCodes'
 import toast from 'react-hot-toast'
 import { normalizeColor } from './colorNormalizer'
 
@@ -634,7 +634,10 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }, [dateOptions, selectedDateKey])
 
   const dynamicFilters = useMemo(() => {
-    const products = productsQuery.data || []
+    let products = productsQuery.data || []
+    if (searchMode === 'novo' || searchMode === 'seminovo') {
+      products = products.filter((p: any) => !isLikelyNonAppleDevice(p))
+    }
     const colors = new Set<string>()
     const storages = new Set<string>()
     const rams = new Set<string>()
@@ -742,6 +745,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   const filteredProducts = useMemo(() => {
     let all = productsQuery.data || []
+    if (searchMode === 'novo' || searchMode === 'seminovo') {
+      all = all.filter((p: any) => !isLikelyNonAppleDevice(p))
+    }
     const searchLower = debouncedSearch.toLowerCase().trim()
     const modeForCategory: CategorySearchMode =
       searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
