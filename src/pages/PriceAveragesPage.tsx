@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   BarChart3,
@@ -84,7 +84,8 @@ export default function PriceAveragesPage() {
   const [dateOffset, setDateOffset] = useState<DateOffset>(0)
   const [marginReais, setMarginReais] = useState(0)
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(() => new Set())
-  const [applied, setApplied] = useState<{ margin: number; keys: Set<string> } | null>(null)
+  /** Lucro em R$ por linha (cada “Aplicar lucro” atualiza só as selecionadas; outras mantêm). */
+  const [appliedMargins, setAppliedMargins] = useState<Record<string, number>>({})
 
   const { data, isFetching, refetch } = useQuery({
     queryKey: ['price-averages', dateOffset],
@@ -101,6 +102,16 @@ export default function PriceAveragesPage() {
   const agg17 = useMemo(() => aggregateIphone17ProMaxByStorageAndColor(averages), [averages])
 
   const tableLines = useMemo(() => buildTableLines(aggByLabelStorage, agg17), [aggByLabelStorage, agg17])
+
+  useEffect(() => {
+    setAppliedMargins({})
+    setSelectedKeys(new Set())
+  }, [dateOffset])
+
+  const appliedCount = useMemo(
+    () => Object.values(appliedMargins).filter((m) => m > 0).length,
+    [appliedMargins]
+  )
 
   const dateOffsetLabel =
     dateOffset === 0 ? 'Hoje' : dateOffset === -1 ? 'Ontem' : 'Anteontem'
@@ -123,7 +134,7 @@ export default function PriceAveragesPage() {
 
   const clearAll = () => {
     setSelectedKeys(new Set())
-    setApplied(null)
+    setAppliedMargins({})
   }
 
   const canApply = selectedKeys.size > 0 && marginReais > 0
@@ -133,8 +144,16 @@ export default function PriceAveragesPage() {
       toast.error('Marque linhas com dado e informe um lucro maior que zero.')
       return
     }
-    setApplied({ margin: marginReais, keys: new Set(selectedKeys) })
-    toast.success(`Lucro aplicado em ${selectedKeys.size} linha(s). Use “Copiar p/ cliente” para enviar a tabela.`)
+    setAppliedMargins((prev) => {
+      const next = { ...prev }
+      for (const key of selectedKeys) {
+        next[key] = marginReais
+      }
+      return next
+    })
+    toast.success(
+      `Lucro de ${formatPrice(marginReais)} aplicado em ${selectedKeys.size} linha(s). Linhas já aplicadas antes continuam iguais.`
+    )
   }
 
   const exportCsv = () => {
@@ -146,10 +165,8 @@ export default function PriceAveragesPage() {
       const avg = agg ? Math.round(agg.weightedAvg) : ''
       const mn = agg?.min != null ? roundTo50(agg.min) : ''
       const mx = agg?.max != null ? roundTo50(agg.max) : ''
-      const sale =
-        applied?.keys.has(line.key) && applied.margin > 0 && agg
-          ? saleWithMargin(agg.weightedAvg, applied.margin)
-          : ''
+      const m = appliedMargins[line.key]
+      const sale = m > 0 && agg ? saleWithMargin(agg.weightedAvg, m) : ''
       lines.push(
         [
           labelCol,
@@ -171,36 +188,20 @@ export default function PriceAveragesPage() {
   }
 
   const copyClientTable = () => {
-    if (!applied || applied.keys.size === 0) {
-      toast.error('Aplique o lucro primeiro: marque as linhas, informe o lucro e clique em “Aplicar lucro”.')
-      return
-    }
-    const rows = tableLines.filter((line) => applied.keys.has(line.key) && line.agg)
+    const rows = tableLines.filter((line) => (appliedMargins[line.key] ?? 0) > 0 && line.agg)
     if (rows.length === 0) {
-      toast.error('Nenhuma linha com preço aplicado para copiar.')
+      toast.error('Aplique o lucro em pelo menos uma linha antes de copiar.')
       return
     }
-    const intro = [
-      'Modelos Apple novos (lacrado — apenas novos na caixa, sem seminovo)',
-      '',
-      `Referência: ${dateOffsetLabel} · iGestorPhone · Lucro por unidade: ${formatPrice(applied.margin)}`,
-      '',
-    ]
-    const blocks = rows.map((line) => {
+    const linesOut = rows.map((line) => {
       const agg = line.agg!
-      const sale = saleWithMargin(agg.weightedAvg, applied.margin)
-      const med = formatPrice(Math.round(agg.weightedAvg))
-      const mn = agg.min != null ? formatPrice(roundTo50(agg.min)) : '—'
-      const mx = agg.max != null ? formatPrice(roundTo50(agg.max)) : '—'
-      const vd = formatPrice(sale)
-      return [
-        `• ${lineModelLabel(line)}`,
-        `  Média: ${med}  ·  Menor: ${mn}  ·  Maior: ${mx}  ·  Preço de venda: ${vd}`,
-      ].join('\n')
+      const m = appliedMargins[line.key]
+      const sale = saleWithMargin(agg.weightedAvg, m)
+      return `${lineModelLabel(line)} — ${formatPrice(sale)}`
     })
-    const text = [...intro, ...blocks].join('\n\n')
+    const text = linesOut.join('\n\n')
     navigator.clipboard.writeText(text).then(
-      () => toast.success(`Copiado ${rows.length} modelo(s) — texto com rótulos; bom para Notas ou WhatsApp.`),
+      () => toast.success(`Copiado ${rows.length} linha(s) — só modelo e preço de venda.`),
       () => toast.error('Erro ao copiar.')
     )
   }
@@ -222,18 +223,6 @@ export default function PriceAveragesPage() {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Média de preço</h1>
                 <p className="mt-1 text-base font-semibold text-gray-800 dark:text-gray-200">
                   Modelos Apple novos (lacrado)
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  Apenas <strong className="text-gray-700 dark:text-gray-300">iPhone lacrado / novo na caixa</strong>{' '}
-                  com condição explícita <strong className="text-gray-700 dark:text-gray-300">LACRADO</strong> ou{' '}
-                  <strong className="text-gray-700 dark:text-gray-300">NOVO</strong> no cadastro (sem CPO, sem detalhe
-                  vazio). <strong className="text-gray-700 dark:text-gray-300">Não</strong> entra seminovo, vitrine nem
-                  anúncio com sinais de usado. Cada linha é uma capacidade (GB ou TB); no iPhone 17 Pro Max há também as
-                  três cores oficiais. Marque as linhas, defina o lucro em R$, clique em{' '}
-                  <strong className="text-gray-700 dark:text-gray-300">Aplicar lucro</strong> para preencher “Preço de
-                  venda”. O botão <strong className="text-gray-700 dark:text-gray-300">Copiar p/ cliente</strong> copia{' '}
-                  <em>só</em> as linhas em que o preço de venda foi aplicado, em texto com rótulos (Média, Menor, Maior,
-                  Venda) para colar legível no WhatsApp ou Notas.
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
@@ -270,7 +259,7 @@ export default function PriceAveragesPage() {
                 </button>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                {(selectedKeys.size > 0 || applied) && (
+                {(selectedKeys.size > 0 || appliedCount > 0) && (
                   <button
                     type="button"
                     onClick={clearAll}
@@ -278,7 +267,7 @@ export default function PriceAveragesPage() {
                   >
                     Limpar tudo
                     {selectedKeys.size > 0 ? ` (${selectedKeys.size} selec.)` : ''}
-                    {applied ? ` · ${applied.keys.size} c/ venda` : ''}
+                    {appliedCount > 0 ? ` · ${appliedCount} c/ venda` : ''}
                   </button>
                 )}
                 <button
@@ -342,9 +331,9 @@ export default function PriceAveragesPage() {
                 Para ver preço de venda: marque linhas + lucro → <span className="font-medium">Aplicar lucro</span>.
               </p>
             )}
-            {applied && (
+            {appliedCount > 0 && (
               <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-                Preço de venda ativo em {applied.keys.size} linha(s) — use “Copiar p/ cliente” para enviar só essas.
+                Preço de venda em {appliedCount} linha(s) — “Copiar p/ cliente” envia só modelo e valor.
               </p>
             )}
           </div>
@@ -378,7 +367,8 @@ export default function PriceAveragesPage() {
                 const isSel = selectedKeys.has(line.key)
                 const agg = line.agg
                 const canSelect = Boolean(agg)
-                const showSale = Boolean(applied && agg && applied.keys.has(line.key) && applied.margin > 0)
+                const rowMargin = appliedMargins[line.key] ?? 0
+                const showSale = Boolean(agg && rowMargin > 0)
                 const modelCell =
                   line.kind === '17pm' ? (
                     <span>
@@ -395,7 +385,7 @@ export default function PriceAveragesPage() {
                     className={`border-b border-gray-100 dark:border-white/5 transition-colors ${
                       canSelect ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5' : 'opacity-75'
                     } ${isSel ? 'bg-indigo-50/80 dark:bg-indigo-950/30' : ''} ${
-                      applied?.keys.has(line.key) ? 'ring-1 ring-inset ring-emerald-200/80 dark:ring-emerald-900/50' : ''
+                      rowMargin > 0 ? 'ring-1 ring-inset ring-emerald-200/80 dark:ring-emerald-900/50' : ''
                     }`}
                     onClick={(e) => {
                       if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return
@@ -435,7 +425,7 @@ export default function PriceAveragesPage() {
                       {agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right font-semibold text-emerald-800 dark:text-emerald-300 min-w-[8rem]">
-                      {showSale && agg && applied ? formatPrice(saleWithMargin(agg.weightedAvg, applied.margin)) : '—'}
+                      {showSale && agg ? formatPrice(saleWithMargin(agg.weightedAvg, rowMargin)) : '—'}
                     </td>
                   </tr>
                 )
