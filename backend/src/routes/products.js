@@ -429,11 +429,12 @@ router.get('/price-averages', async (req, res) => {
   const nonAppleRe =
     '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)'
 
-  // Só lacrado: detalhe vazio ou LACRADO/NOVO/CPO (normalizado), nunca SWAP/SEMINOVO/etc.
-  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('', 'LACRADO', 'NOVO', 'CPO')`
+  // Só lacrado: detalhe tem que ser explícito (vazio = dado ambíguo e costuma puxar seminovo errado pro MIN/AVG).
+  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO', 'CPO')`
 
-  // Texto do anúncio não pode indicar seminovo/usado (dados inconsistentes com condition = Novo)
-  const antiSeminovoNameModel = `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine[[:space:]]*de|swap[[:space:]]*de|\\b2nd\\b|second[[:space:]]*hand)')`
+  // Texto do anúncio (nome/modelo/cor/armazenamento) não pode indicar seminovo/usado/vitrine.
+  const listingBlob = `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`
+  const antiSeminovoListing = `NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]display[[:>:]]|non[[:space:]]*active|[[:<:]]asis[[:>:]]|[[:<:]]2nd[[:>:]]|second[[:space:]]*hand|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]])')`
 
   const lacradoCore = [
     'p.is_active = true',
@@ -444,7 +445,7 @@ router.get('/price-averages', async (req, res) => {
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
     `(p.product_type = 'apple' OR p.product_type IS NULL)`,
     `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '${nonAppleRe}')`,
-    antiSeminovoNameModel,
+    antiSeminovoListing,
   ]
 
   const lacradoAppleIphone = [...lacradoCore, detailLacradoOnly]
