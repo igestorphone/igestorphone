@@ -429,7 +429,13 @@ router.get('/price-averages', async (req, res) => {
   const nonAppleRe =
     '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)'
 
-  const lacradoAppleIphone = [
+  // Só lacrado: detalhe vazio ou LACRADO/NOVO/CPO (normalizado), nunca SWAP/SEMINOVO/etc.
+  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('', 'LACRADO', 'NOVO', 'CPO')`
+
+  // Texto do anúncio não pode indicar seminovo/usado (dados inconsistentes com condition = Novo)
+  const antiSeminovoNameModel = `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine[[:space:]]*de|swap[[:space:]]*de|\\b2nd\\b|second[[:space:]]*hand)')`
+
+  const lacradoCore = [
     'p.is_active = true',
     's.is_active = true',
     'p.price > 0',
@@ -438,11 +444,10 @@ router.get('/price-averages', async (req, res) => {
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
     `(p.product_type = 'apple' OR p.product_type IS NULL)`,
     `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '${nonAppleRe}')`,
-    `(
-      p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-      OR (p.condition_detail IS NULL OR TRIM(COALESCE(p.condition_detail, '')) = '')
-    )`,
+    antiSeminovoNameModel,
   ]
+
+  const lacradoAppleIphone = [...lacradoCore, detailLacradoOnly]
 
   const dateExact = `(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetDateExpr}`
   const dateRolling3 = `(
@@ -587,11 +592,15 @@ router.get('/price-averages', async (req, res) => {
     const errMsg = (error?.message || '').toLowerCase()
     if (errMsg.includes('condition_detail') || errMsg.includes('is_active') || errMsg.includes('column') || errMsg.includes('does not exist')) {
       try {
-        const lacradoFallback = lacradoAppleIphone.map((line) =>
-          line.includes('condition_detail') ? "(p.condition = 'Novo')" : line
-        )
+        // Sem coluna condition_detail ou is_active: não usar o map antigo (ele removia o filtro de detalhe e liberava seminovo).
         function buildFallbackWhere(dateSqlOptional) {
-          const parts = [...lacradoFallback]
+          let parts = [...lacradoCore]
+          if (errMsg.includes('is_active')) {
+            parts = parts.filter((line) => !line.toLowerCase().includes('is_active'))
+          }
+          if (!errMsg.includes('condition_detail')) {
+            parts.push(detailLacradoOnly)
+          }
           if (dateSqlOptional) parts.push(dateSqlOptional)
           const vals = []
           let pc = 1
