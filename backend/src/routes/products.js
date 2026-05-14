@@ -416,65 +416,68 @@ router.get('/', [
   }
 });
 
-// Média de preços por modelo + cor + capacidade (iPhones novos processados HOJE, timezone Brasil)
-// Modelo normalizado: agrupa variantes (Anatel, E-SIM, com Chip, etc.) em uma única linha
+// Média de preços por modelo + cor + capacidade (lacrados Apple iPhone; referência = dia SP + date_offset; fallback 3 dias / sem data)
 router.get('/price-averages', async (req, res) => {
   const search = (req.query.search || '').trim()
   const color = (req.query.color || '').trim()
   const storage = (req.query.storage || '').trim()
-  const values = []
-  let paramCount = 1
+  const dateOffsetInt = Math.max(-2, Math.min(0, parseInt(String(req.query.date_offset ?? '0'), 10) || 0))
 
-  // Últimos 3 dias em Brasília (evita problema de timezone; se ainda 0, fallback sem data)
-  const todayBrazil = `(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`
-  const conditions = [
+  const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`
+  const targetDateExpr = `(${todaySP} + ${dateOffsetInt})`
+
+  const nonAppleRe =
+    '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)'
+
+  const lacradoAppleIphone = [
     'p.is_active = true',
     's.is_active = true',
     'p.price > 0',
     'p.price IS NOT NULL',
-    "p.condition = 'Novo'",
     "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
+    `(p.product_type = 'apple' OR p.product_type IS NULL)`,
+    `NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* '${nonAppleRe}')`,
     `(
-      (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ${todayBrazil} - 3
-      OR (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ${todayBrazil} - 3
+      p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
+      OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR TRIM(COALESCE(p.condition_detail, '')) = ''))
     )`,
   ]
-  const conditionsNoDate = [
-    'p.is_active = true',
-    's.is_active = true',
-    'p.price > 0',
-    'p.price IS NOT NULL',
-    "p.condition = 'Novo'",
-    "(LOWER(p.name) LIKE '%iphone%' OR LOWER(COALESCE(p.model, '')) LIKE '%iphone%')",
-  ]
 
-  if (search) {
-    const term = `%${search.toLowerCase()}%`
-    conditions.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
-    conditionsNoDate.push(`(LOWER(p.name) LIKE $${paramCount} OR LOWER(COALESCE(p.model, '')) LIKE $${paramCount})`)
-    values.push(term)
-    paramCount++
-  }
-  if (color) {
-    conditions.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
-    conditionsNoDate.push(`TRIM(COALESCE(p.color, '')) ILIKE $${paramCount}`)
-    values.push(color)
-    paramCount++
-  }
-  if (storage) {
-    conditions.push(`p.storage = $${paramCount}`)
-    conditionsNoDate.push(`p.storage = $${paramCount}`)
-    values.push(storage)
-    paramCount++
+  const dateExact = `(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetDateExpr}`
+  const dateRolling3 = `(
+    (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date <= ${targetDateExpr}
+    AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ((${targetDateExpr}) - 2)
+  )`
+
+  function buildPriceAverageWhere(dateSqlOptional) {
+    const parts = [...lacradoAppleIphone]
+    if (dateSqlOptional) parts.push(dateSqlOptional)
+    const vals = []
+    let pc = 1
+    if (search) {
+      const term = `%${search.toLowerCase()}%`
+      parts.push(`(LOWER(p.name) LIKE $${pc} OR LOWER(COALESCE(p.model, '')) LIKE $${pc})`)
+      vals.push(term)
+      pc++
+    }
+    if (color) {
+      parts.push(`TRIM(COALESCE(p.color, '')) ILIKE $${pc}`)
+      vals.push(color)
+      pc++
+    }
+    if (storage) {
+      parts.push(`p.storage = $${pc}`)
+      vals.push(storage)
+      pc++
+    }
+    return { whereClause: parts.join(' AND '), values: vals }
   }
 
-  // Normaliza modelo (o frontend faz normalização adicional: Promax→Pro Max, remove LI/Pons/etc)
   const normalizedModelExpr = `LOWER(TRIM(COALESCE(p.model, p.name)))`
 
-  const whereClause = conditions.join(' AND ');
-  const whereClauseNoDate = conditionsNoDate.join(' AND ');
-  try {
-    let result = await query(`
+  const runAverages = (whereClause, values) =>
+    query(
+      `
       WITH base AS (
         SELECT
           p.price,
@@ -497,38 +500,26 @@ router.get('/price-averages', async (req, res) => {
       GROUP BY model_canonical, color, storage
       HAVING COUNT(*) >= 1
       ORDER BY model_key, color, storage
-    `, values);
+    `,
+      values
+    )
 
-    let noDateFilter = false;
-    if (result.rows.length === 0 && whereClauseNoDate !== whereClause) {
-      result = await query(`
-        WITH base AS (
-          SELECT
-            p.price,
-            ${normalizedModelExpr} AS model_canonical,
-            TRIM(COALESCE(p.color, '')) AS color,
-            TRIM(COALESCE(p.storage, '')) AS storage
-          FROM products p
-          JOIN suppliers s ON p.supplier_id = s.id
-          WHERE ${whereClauseNoDate}
-        )
-        SELECT
-          model_canonical AS model_key,
-          color,
-          storage,
-          AVG(price)::numeric AS avg_price,
-          COUNT(*)::int AS count,
-          MIN(price)::numeric AS min_price,
-          MAX(price)::numeric AS max_price
-        FROM base
-        GROUP BY model_canonical, color, storage
-        HAVING COUNT(*) >= 1
-        ORDER BY model_key, color, storage
-      `, values);
-      noDateFilter = result.rows.length > 0;
+  try {
+    const wDay = buildPriceAverageWhere(dateExact)
+    let result = await runAverages(wDay.whereClause, wDay.values)
+    let dateFilter = 'day'
+    if (result.rows.length === 0) {
+      const w3 = buildPriceAverageWhere(dateRolling3)
+      result = await runAverages(w3.whereClause, w3.values)
+      if (result.rows.length > 0) dateFilter = 'rolling3'
+    }
+    if (result.rows.length === 0) {
+      const wAll = buildPriceAverageWhere(null)
+      result = await runAverages(wAll.whereClause, wAll.values)
+      if (result.rows.length > 0) dateFilter = 'all'
     }
 
-  const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
+    const roundTo50 = (v) => Math.round(Number(v) / 50) * 50
   const toDisplayModel = (key) => {
     if (!key || key === '—') return '—';
     const rest = key.replace(/^iphone\s*/i, '').trim();
@@ -584,48 +575,79 @@ router.get('/price-averages', async (req, res) => {
     max_price: r.max_price != null ? roundTo50(r.max_price) : null,
   }));
 
-  res.json({ averages: rows, noDateFilter: noDateFilter || undefined });
+  res.json({
+    averages: rows,
+    dateFilter,
+    dateOffset: dateOffsetInt,
+    noDateFilter: dateFilter !== 'day',
+  })
   } catch (error) {
-    console.error('Erro ao buscar médias de preço:', error);
-    // Fallback: se condition_detail não existir, tentar com condition = 'Novo' apenas
-    const errMsg = (error?.message || '').toLowerCase();
+    console.error('Erro ao buscar médias de preço:', error)
+    const errMsg = (error?.message || '').toLowerCase()
     if (errMsg.includes('condition_detail') || errMsg.includes('is_active') || errMsg.includes('column') || errMsg.includes('does not exist')) {
       try {
-        const fallbackCond = conditions
-          .filter((c) => !c.includes('p.is_active'))
-          .map((c) => (c.includes('condition_detail') ? '(p.condition = \'Novo\')' : c))
-          .join(' AND ');
-        const result2 = await query(`
-          WITH base AS (
-            SELECT p.price, ${normalizedModelExpr} AS model_canonical,
-              TRIM(COALESCE(p.color, '')) AS color, TRIM(COALESCE(p.storage, '')) AS storage
-            FROM products p JOIN suppliers s ON p.supplier_id = s.id
-            WHERE ${fallbackCond}
-          )
-          SELECT model_canonical AS model_key, color, storage,
-            AVG(price)::numeric AS avg_price, COUNT(*)::int AS count,
-            MIN(price)::numeric AS min_price, MAX(price)::numeric AS max_price
-          FROM base GROUP BY model_canonical, color, storage HAVING COUNT(*) >= 1
-          ORDER BY model_key, color, storage
-        `, values);
-        const roundTo50 = (v) => Math.round(Number(v) / 50) * 50;
-        const toDisplayModel = (key) => {
-          if (!key || key === '—') return '—';
-          const rest = key.replace(/^iphone\s*/i, '').trim();
-          return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone';
-        };
+        const lacradoFallback = lacradoAppleIphone.map((line) =>
+          line.includes('condition_detail') ? "(p.condition = 'Novo')" : line
+        )
+        function buildFallbackWhere(dateSqlOptional) {
+          const parts = [...lacradoFallback]
+          if (dateSqlOptional) parts.push(dateSqlOptional)
+          const vals = []
+          let pc = 1
+          if (search) {
+            const term = `%${search.toLowerCase()}%`
+            parts.push(`(LOWER(p.name) LIKE $${pc} OR LOWER(COALESCE(p.model, '')) LIKE $${pc})`)
+            vals.push(term)
+            pc++
+          }
+          if (color) {
+            parts.push(`TRIM(COALESCE(p.color, '')) ILIKE $${pc}`)
+            vals.push(color)
+            pc++
+          }
+          if (storage) {
+            parts.push(`p.storage = $${pc}`)
+            vals.push(storage)
+            pc++
+          }
+          return { whereClause: parts.join(' AND '), values: vals }
+        }
+        const wDay = buildFallbackWhere(dateExact)
+        let result2 = await runAverages(wDay.whereClause, wDay.values)
+        let dateFilter = 'day'
+        if (result2.rows.length === 0) {
+          const w3 = buildFallbackWhere(dateRolling3)
+          result2 = await runAverages(w3.whereClause, w3.values)
+          if (result2.rows.length > 0) dateFilter = 'rolling3'
+        }
+        if (result2.rows.length === 0) {
+          const wAll = buildFallbackWhere(null)
+          result2 = await runAverages(wAll.whereClause, wAll.values)
+          if (result2.rows.length > 0) dateFilter = 'all'
+        }
+        const roundTo50fb = (v) => Math.round(Number(v) / 50) * 50
+        const toDisplayModelfb = (key) => {
+          if (!key || key === '—') return '—'
+          const rest = key.replace(/^iphone\s*/i, '').trim()
+          return rest ? 'iPhone ' + rest.replace(/\b\w/g, (c) => c.toUpperCase()) : 'iPhone'
+        }
         const rows = result2.rows.map((r) => ({
-          model: toDisplayModel(r.model_key),
+          model: toDisplayModelfb(r.model_key),
           color: r.color || '—',
           storage: r.storage || '—',
           avg_price: Number(r.avg_price),
           count: r.count,
-          min_price: r.min_price != null ? roundTo50(r.min_price) : null,
-          max_price: r.max_price != null ? roundTo50(r.max_price) : null,
-        }));
-        return res.json({ averages: rows });
+          min_price: r.min_price != null ? roundTo50fb(r.min_price) : null,
+          max_price: r.max_price != null ? roundTo50fb(r.max_price) : null,
+        }))
+        return res.json({
+          averages: rows,
+          dateFilter,
+          dateOffset: dateOffsetInt,
+          noDateFilter: dateFilter !== 'day',
+        })
       } catch (fallbackErr) {
-        console.error('Fallback também falhou:', fallbackErr);
+        console.error('Fallback também falhou:', fallbackErr)
       }
     }
     const isDev = process.env.NODE_ENV !== 'production';

@@ -234,8 +234,27 @@ export const produtosApi = {
   getPriceHistoryByModel: (params: { model: string; storage?: string; color?: string }) =>
     apiClient.get<any>('/products/price-history-by-model', { params }),
 
-  getPriceAverages: (params?: { search?: string; color?: string; storage?: string }) =>
-    apiClient.get<{ averages: { model: string; color: string; storage: string; avg_price: number; count: number; min_price: number | null; max_price: number | null }[] }>('/products/price-averages', { params })
+  getPriceAverages: (params?: {
+    search?: string
+    color?: string
+    storage?: string
+    /** 0 = hoje (SP), -1 = ontem, -2 = anteontem */
+    date_offset?: number
+  }) =>
+    apiClient.get<{
+      averages: {
+        model: string
+        color: string
+        storage: string
+        avg_price: number
+        count: number
+        min_price: number | null
+        max_price: number | null
+      }[]
+      dateFilter?: 'day' | 'rolling3' | 'all'
+      dateOffset?: number
+      noDateFilter?: boolean
+    }>('/products/price-averages', { params })
 }
 
 export const statisticsApi = {

@@ -1,165 +1,116 @@
-/*
- * Federated and Distributed data Sharing Appliance (FDSA)
- * Copyright 2026 Alzheimer's Disease Data Initiative (ADDI)
- * Licensed under LICENSE at project root.
- */
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import {
-  BarChart3,
-  Copy,
-  Download,
-  Banknote,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react'
+import { BarChart3, Copy, Download, Loader2, RefreshCw, Banknote, CalendarDays } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { produtosApi } from '@/lib/api'
 import { formatPrice } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import {
+  IPHONE_PRICE_TABLE_ORDER,
+  aggregateIphoneAveragesByTableRow,
+  roundTo50,
+} from '@/lib/iphoneAveragePriceCatalog'
 
-// Catálogo canônico: iPhone 11 a 17 Pro Max (evita duplicatas por variações como "lac")
-const CANONICAL_MODELS = [
-  'iPhone 11',
-  'iPhone 12',
-  'iPhone 12 mini',
-  'iPhone 13',
-  'iPhone 13 mini',
-  'iPhone 14',
-  'iPhone 14 Plus',
-  'iPhone 15',
-  'iPhone 15 Plus',
-  'iPhone 16',
-  'iPhone 16 Plus',
-  'iPhone 17',
-  'iPhone 17 Plus',
-  'iPhone 17 Pro',
-  'iPhone 17 Pro Max',
-]
+type DateOffset = 0 | -1 | -2
 
-const STORAGES = ['64GB', '128GB', '256GB', '512GB', '1TB']
-
-// Cores oficiais 17 Pro / 17 Pro Max
-const IPHONE_17_PRO_COLORS = [
-  { key: 'Laranja Cósmico', label: 'Laranja', short: 'Lar' },
-  { key: 'Azul Intenso', label: 'Azul', short: 'Azul' },
-  { key: 'Prateado', label: 'Prata', short: 'Prata' },
-]
-
-interface AvgRow {
-  model: string
-  color: string
-  storage: string
-  avg_price: number
-  count: number
-  min_price: number | null
-  max_price: number | null
-}
-
-function buildLookup(averages: AvgRow[]): Map<string, AvgRow> {
-  const map = new Map<string, AvgRow>()
-  for (const r of averages) {
-    const key = `${r.model}|${r.color}|${r.storage}`
-    map.set(key, r)
-  }
-  return map
-}
-
-function getAvg(lookup: Map<string, AvgRow>, model: string, color: string, storage: string): AvgRow | null {
-  return lookup.get(`${model}|${color}|${storage}`) || null
-}
-
-function getAvgAnyColor(averages: AvgRow[], model: string, storage: string): number | null {
-  const rows = averages.filter((r) => r.model === model && r.storage === storage)
-  if (rows.length === 0) return null
-  const sum = rows.reduce((s, r) => s + r.avg_price * r.count, 0)
-  const total = rows.reduce((s, r) => s + r.count, 0)
-  return total > 0 ? sum / total : null
+function saleWithMargin(avg: number, marginReais: number): number {
+  if (marginReais <= 0) return avg
+  return roundTo50(avg + marginReais)
 }
 
 export default function PriceAveragesPage() {
+  const [dateOffset, setDateOffset] = useState<DateOffset>(0)
   const [marginReais, setMarginReais] = useState(0)
+  const [selectedLabel, setSelectedLabel] = useState<string | null>(null)
 
   const { data, isFetching, refetch } = useQuery({
-    queryKey: ['price-averages'],
-    queryFn: () => produtosApi.getPriceAverages(),
+    queryKey: ['price-averages', dateOffset],
+    queryFn: () => produtosApi.getPriceAverages({ date_offset: dateOffset }),
     staleTime: 15000,
     refetchOnWindowFocus: true,
   })
 
-  const rawResponse = useMemo(() => (data as any)?.data ?? data, [data])
-  const averages = useMemo(() => rawResponse?.averages ?? [], [rawResponse])
-  const noDateFilter = Boolean(rawResponse?.noDateFilter)
-  const lookup = useMemo(() => buildLookup(averages), [averages])
+  const raw = useMemo(() => (data as any)?.data ?? data, [data])
+  const averages = useMemo(() => raw?.averages ?? [], [raw])
+  const dateFilter = (raw?.dateFilter ?? 'day') as 'day' | 'rolling3' | 'all'
 
-  const applyMargin = (price: number) => {
-    if (marginReais <= 0) return price
-    return Math.round((price + marginReais) / 50) * 50
+  const aggByLabel = useMemo(() => aggregateIphoneAveragesByTableRow(averages), [averages])
+
+  const dateOffsetLabel =
+    dateOffset === 0 ? 'Hoje' : dateOffset === -1 ? 'Ontem' : 'Anteontem'
+
+  const dateFilterHint =
+    dateFilter === 'rolling3'
+      ? 'Poucos dados no dia selecionado: médias usam os últimos 3 dias até essa data.'
+      : dateFilter === 'all'
+        ? 'Sem dados no período: exibindo médias com todas as datas disponíveis (lacrado).'
+        : null
+
+  const toggleRow = (label: string) => {
+    setSelectedLabel((prev) => (prev === label ? null : label))
   }
 
-  const buildRows = () => {
-    const rows: { model: string; storage: string; cells: (AvgRow | null)[]; mediaGeral: number | null; is17Pro: boolean }[] = []
-    for (const model of CANONICAL_MODELS) {
-      const is17Pro = model === 'iPhone 17 Pro' || model === 'iPhone 17 Pro Max'
-      for (const storage of STORAGES) {
-        const cells = is17Pro
-          ? IPHONE_17_PRO_COLORS.map((c) => getAvg(lookup, model, c.key, storage))
-          : []
-        const mediaGeral = getAvgAnyColor(averages, model, storage)
-        const hasAny = cells.some(Boolean) || mediaGeral != null
-        if (hasAny) {
-          rows.push({ model, storage, cells, mediaGeral, is17Pro })
-        }
-      }
-    }
-    return rows
-  }
-
-  const displayRows = useMemo(() => buildRows(), [lookup, averages])
-  const has17ProData = useMemo(() => displayRows.some((r) => r.is17Pro), [displayRows])
+  const tableRows = useMemo(() => {
+    return IPHONE_PRICE_TABLE_ORDER.map((label) => {
+      const agg = aggByLabel.get(label)
+      return { label, agg }
+    })
+  }, [aggByLabel])
 
   const exportCsv = () => {
-    const colorCols = has17ProData ? ['Laranja', 'Azul', 'Prata'] : []
-    const header = ['Modelo', 'Armazenamento', ...colorCols, 'Média geral']
+    const header = ['Modelo', 'Preço médio', 'Menor valor', 'Maior valor', 'Preço de venda']
     const lines = [header.join(';')]
-    for (const row of displayRows) {
-      const cols = has17ProData && row.is17Pro
-        ? row.cells.map((c) => (c ? formatPrice(applyMargin(c.avg_price)) : ''))
-        : has17ProData && !row.is17Pro
-          ? ['', '', '']
-          : []
-      const mediaVal = row.mediaGeral != null ? formatPrice(applyMargin(row.mediaGeral)) : ''
-      lines.push([row.model, row.storage, ...cols, mediaVal].join(';'))
+    for (const { label, agg } of tableRows) {
+      const avg = agg ? Math.round(agg.weightedAvg) : ''
+      const mn = agg?.min != null ? roundTo50(agg.min) : ''
+      const mx = agg?.max != null ? roundTo50(agg.max) : ''
+      const sale =
+        selectedLabel === label && marginReais > 0 && agg
+          ? saleWithMargin(agg.weightedAvg, marginReais)
+          : ''
+      lines.push(
+        [
+          label,
+          avg !== '' ? formatPrice(avg) : '',
+          mn !== '' ? formatPrice(mn) : '',
+          mx !== '' ? formatPrice(mx) : '',
+          sale !== '' ? formatPrice(sale) : '',
+        ].join(';')
+      )
     }
     const blob = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `medias-iphone-${new Date().toISOString().slice(0, 10)}.csv`
+    a.download = `medias-iphone-lacrado-${dateOffsetLabel.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
     toast.success('CSV exportado!')
   }
 
   const copyToClipboard = () => {
-    const colorCols = has17ProData ? ['Laranja', 'Azul', 'Prata'] : []
-    const header = ['Modelo', 'Armazenamento', ...colorCols, 'Média geral']
+    const header = ['Modelo', 'Preço médio', 'Menor', 'Maior', 'Preço venda']
     const lines = [header.join('\t')]
-    for (const row of displayRows) {
-      const cols = has17ProData && row.is17Pro
-        ? row.cells.map((c) => (c ? formatPrice(applyMargin(c.avg_price)) : '—'))
-        : has17ProData && !row.is17Pro
-          ? ['—', '—', '—']
-          : []
-      const mediaVal = row.mediaGeral != null ? formatPrice(applyMargin(row.mediaGeral)) : '—'
-      lines.push([row.model, row.storage, ...cols, mediaVal].join('\t'))
+    for (const { label, agg } of tableRows) {
+      lines.push(
+        [
+          label,
+          agg ? formatPrice(Math.round(agg.weightedAvg)) : '—',
+          agg?.min != null ? formatPrice(roundTo50(agg.min)) : '—',
+          agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—',
+          selectedLabel === label && marginReais > 0 && agg
+            ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais))
+            : '—',
+        ].join('\t')
+      )
     }
-    const text = lines.join('\n')
-    navigator.clipboard.writeText(text).then(
-      () => toast.success('Copiado! Cole no Excel ou Bloco de Notas.'),
+    navigator.clipboard.writeText(lines.join('\n')).then(
+      () => toast.success('Copiado!'),
       () => toast.error('Erro ao copiar.')
     )
   }
+
+  const hasAnyData = tableRows.some((r) => r.agg)
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -168,132 +119,158 @@ export default function PriceAveragesPage() {
         animate={{ opacity: 1, y: 0 }}
         className="bg-white dark:bg-black rounded-xl border border-gray-200 dark:border-white/10 p-6 shadow-sm"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <BarChart3 className="w-9 h-9 text-indigo-500 dark:text-indigo-400" />
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Média de Preço
-              </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                iPhone 11 a 17 Pro Max — Novos/Lacrados (listas processadas nos últimos 3 dias). Atualiza ao voltar para esta aba.
-              </p>
-              {noDateFilter && (
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                  Mostrando todos os ativos (sem filtro de data).
+        <div className="flex flex-col gap-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <BarChart3 className="w-9 h-9 text-indigo-500 dark:text-indigo-400 shrink-0" />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Média de preço</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  iPhone lacrado: preço médio, mínimo e máximo por modelo (referência ao dia em São Paulo). Toque em
+                  uma linha, informe o lucro em reais e veja o preço de venda sugerido (média + lucro, arredondado a
+                  R$ 50).
                 </p>
-              )}
+                {dateFilterHint && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Banknote className="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" />
+                <input
+                  type="number"
+                  min={0}
+                  step={50}
+                  placeholder="Lucro R$"
+                  value={marginReais || ''}
+                  onChange={(e) => setMarginReais(Number(e.target.value) || 0)}
+                  className="w-28 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                />
+                <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">Lucro (R$)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300"
+              >
+                {isFetching ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Atualizar
+              </button>
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white"
+              >
+                <Copy className="w-4 h-4" />
+                Copiar
+              </button>
+              <button
+                type="button"
+                onClick={exportCsv}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
+              >
+                <Download className="w-4 h-4" />
+                CSV
+              </button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Banknote className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-              <input
-                type="number"
-                min={0}
-                step={50}
-                placeholder="0"
-                value={marginReais}
-                onChange={(e) => setMarginReais(Number(e.target.value) || 0)}
-                className="w-24 px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
-              />
-              <span className="text-sm text-gray-500 dark:text-gray-400">R$ margem</span>
+
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <CalendarDays className="w-4 h-4 shrink-0" />
+              <span>Lista do dia</span>
             </div>
-            <button
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-700 dark:text-gray-300"
-            >
-              {isFetching ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              Atualizar
-            </button>
-            <button
-              onClick={copyToClipboard}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white"
-            >
-              <Copy className="w-4 h-4" />
-              Copiar
-            </button>
-            <button
-              onClick={exportCsv}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white"
-            >
-              <Download className="w-4 h-4" />
-              Exportar Excel
-            </button>
+            <div className="flex rounded-lg border border-gray-200 dark:border-white/10 overflow-hidden">
+              {(
+                [
+                  { o: 0 as const, l: 'Hoje' },
+                  { o: -1 as const, l: 'Ontem' },
+                  { o: -2 as const, l: 'Anteontem' },
+                ] as const
+              ).map(({ o, l }) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => setDateOffset(o)}
+                  className={`px-4 py-2 text-sm font-semibold transition-colors ${
+                    dateOffset === o
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                      : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'
+                  }`}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+            {marginReais > 0 && !selectedLabel && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 sm:ml-2">
+                Selecione um modelo na tabela para ver o preço de venda.
+              </p>
+            )}
           </div>
         </div>
 
         <div className="overflow-x-auto -mx-2">
-          <table className={`w-full text-sm ${has17ProData ? 'min-w-[640px]' : 'min-w-[320px]'}`}>
+          <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/10">
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Modelo</th>
-                <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Armazenamento</th>
-                {has17ProData && (
-                  <>
-                    <th className="text-left py-3 px-3 font-semibold text-orange-600 dark:text-orange-400">Laranja</th>
-                    <th className="text-left py-3 px-3 font-semibold text-blue-600 dark:text-blue-400">Azul</th>
-                    <th className="text-left py-3 px-3 font-semibold text-gray-500 dark:text-gray-400">Prata</th>
-                  </>
-                )}
-                <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Média geral</th>
+                <th className="text-right py-3 px-3 font-semibold text-gray-900 dark:text-white">Preço médio</th>
+                <th className="text-right py-3 px-3 font-semibold text-gray-900 dark:text-white">Menor valor</th>
+                <th className="text-right py-3 px-3 font-semibold text-gray-900 dark:text-white">Maior valor</th>
+                <th className="text-right py-3 px-3 font-semibold text-emerald-700 dark:text-emerald-400">
+                  Preço de venda
+                </th>
               </tr>
             </thead>
             <tbody>
-              {displayRows.length === 0 && !isFetching && (
+              {!hasAnyData && !isFetching && (
                 <tr>
-                  <td colSpan={has17ProData ? 6 : 3} className="py-12 text-center text-gray-500 dark:text-gray-400">
-                    Nenhuma média disponível. Processe listas de fornecedores primeiro.
+                  <td colSpan={5} className="py-12 text-center text-gray-500 dark:text-gray-400">
+                    Nenhum dado para lacrado nesse período. Processe listas de fornecedores ou troque o dia acima.
                   </td>
                 </tr>
               )}
-              {displayRows.map((row, i) => {
-                const mediaGeral =
-                  row.mediaGeral != null
-                    ? applyMargin(row.mediaGeral)
-                    : row.is17Pro && row.cells.some(Boolean)
-                      ? Math.round(
-                          row.cells
-                            .filter(Boolean)
-                            .reduce((s, c) => s + applyMargin(c!.avg_price), 0) /
-                            row.cells.filter(Boolean).length /
-                            50
-                        ) * 50
-                      : null
+              {tableRows.map(({ label, agg }) => {
+                const isSel = selectedLabel === label
+                const showSale = isSel && marginReais > 0 && agg
                 return (
                   <tr
-                    key={`${row.model}-${row.storage}-${i}`}
-                    className="border-b border-gray-100 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5"
+                    key={label}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleRow(label)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        toggleRow(label)
+                      }
+                    }}
+                    className={`border-b border-gray-100 dark:border-white/5 cursor-pointer transition-colors ${
+                      isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
                   >
-                    <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">{row.model}</td>
-                    <td className="py-3 px-3 text-gray-700 dark:text-gray-300">{row.storage}</td>
-                    {has17ProData &&
-                      IPHONE_17_PRO_COLORS.map((col, j) => {
-                        const cell = row.is17Pro ? row.cells[j] : null
-                        return (
-                          <td key={col.key} className="py-3 px-3">
-                            {cell ? (
-                              <span className="font-medium">
-                                {formatPrice(applyMargin(cell.avg_price))}
-                                {cell.count > 1 && (
-                                  <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">
-                                    (n={cell.count})
-                                  </span>
-                                )}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 dark:text-gray-500">—</span>
-                            )}
-                          </td>
-                        )
-                      })}
-                    <td className="py-3 px-3 font-semibold text-gray-900 dark:text-white">
-                      {mediaGeral != null ? formatPrice(mediaGeral) : '—'}
+                    <td className="py-3 px-3 font-medium text-gray-900 dark:text-white">
+                      {label}
+                      {agg && agg.unitCount > 0 && (
+                        <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
+                          (n={agg.unitCount})
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3 px-3 text-right text-gray-800 dark:text-gray-200">
+                      {agg ? formatPrice(Math.round(agg.weightedAvg)) : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">
+                      {agg?.min != null ? formatPrice(roundTo50(agg.min)) : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">
+                      {agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—'}
+                    </td>
+                    <td className="py-3 px-3 text-right font-semibold text-emerald-800 dark:text-emerald-300 min-w-[8rem]">
+                      {showSale ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais)) : ''}
                     </td>
                   </tr>
                 )
