@@ -308,15 +308,11 @@ router.get('/', [
       if (cleanProductType === 'apple') {
         const nonAppleBlobRe =
           '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)';
-        whereClause += ` AND (
-          p.product_type = 'apple'
-          OR (
-            p.product_type IS NULL
-            AND NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* $${paramCount})
-          )
-        )`;
+        // Sempre excluir blob não-Apple no nome/modelo (mesmo com product_type='apple' errado no banco).
+        whereClause += ` AND NOT (LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '')) ~* $${paramCount})`;
         values.push(nonAppleBlobRe);
         paramCount++;
+        whereClause += ` AND (p.product_type = 'apple' OR p.product_type IS NULL)`;
       } else {
         whereClause += ` AND p.product_type = $${paramCount}`;
         values.push(cleanProductType);
