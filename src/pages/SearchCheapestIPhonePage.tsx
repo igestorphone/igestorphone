@@ -1098,7 +1098,7 @@ Ainda tem disponível?`
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => setSearchMode(mode)}
+                    onClick={() => setSearchMode(searchMode === mode ? null : mode)}
                     className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-4 rounded-lg border-2 text-sm font-semibold transition-all ${
                       searchMode === mode
                         ? `${activeClass} shadow-sm`
