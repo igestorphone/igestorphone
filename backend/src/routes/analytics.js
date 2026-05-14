@@ -2,6 +2,8 @@ import express from 'express';
 import { query as queryValidator } from 'express-validator';
 import { query } from '../config/database.js';
 import { requireRole } from '../middleware/auth.js';
+import { summarizeUserAgent } from '../services/userSessions.js';
+import { lookupIpv4GeoBatch, isPublicIpv4 } from '../services/ipGeoLookup.js';
 
 const router = express.Router();
 
@@ -515,6 +517,70 @@ router.get('/price-history', async (req, res) => {
   } catch (error) {
     console.error('Erro ao carregar histórico de preços:', error);
     res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
+  }
+});
+
+/** Sessões recentes + geo aproximada por IP (admin). */
+router.get('/live-presence', requireRole('admin'), async (req, res) => {
+  try {
+    const raw = parseInt(String(req.query.minutes ?? '10'), 10);
+    const minutes = Number.isFinite(raw) ? Math.min(120, Math.max(1, raw)) : 10;
+    const r = await query(
+      `SELECT s.id, s.user_id, s.created_at, s.last_activity_at, s.ip_address, s.user_agent,
+              u.name AS user_name, u.email AS user_email, u.tipo AS user_tipo
+       FROM user_sessions s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.revoked_at IS NULL
+         AND COALESCE(s.last_activity_at, s.created_at) >= NOW() - ($1::int * INTERVAL '1 minute')
+       ORDER BY s.last_activity_at DESC NULLS LAST, s.created_at DESC
+       LIMIT 200`,
+      [minutes]
+    );
+
+    const ips = r.rows.map((row) => row.ip_address).filter(Boolean);
+    const geoByIp = await lookupIpv4GeoBatch(ips);
+
+    const sessions = r.rows.map((row) => {
+      const ip = row.ip_address ? String(row.ip_address).trim() : null;
+      const geo = ip && geoByIp.has(ip) ? geoByIp.get(ip) : null;
+      return {
+        sessionId: String(row.id),
+        userId: row.user_id,
+        userName: row.user_name || null,
+        userEmail: row.user_email || null,
+        userTipo: row.user_tipo || null,
+        createdAt: row.created_at,
+        lastActivityAt: row.last_activity_at,
+        ip,
+        ipIsPublic: ip ? isPublicIpv4(ip) : false,
+        deviceLabel: summarizeUserAgent(row.user_agent),
+        geo,
+      };
+    });
+
+    const userIds = new Set(sessions.map((s) => s.userId));
+    const byState = {};
+    for (const s of sessions) {
+      if (s.geo && s.geo.countryCode === 'BR' && s.geo.region) {
+        const k = s.geo.region;
+        byState[k] = (byState[k] || 0) + 1;
+      }
+    }
+    const brazilByState = Object.entries(byState)
+      .map(([state, count]) => ({ state, count }))
+      .sort((a, b) => b.count - a.count);
+
+    res.json({
+      withinMinutes: minutes,
+      generatedAt: new Date().toISOString(),
+      uniqueUsers: userIds.size,
+      sessionCount: sessions.length,
+      brazilByState,
+      sessions,
+    });
+  } catch (error) {
+    console.error('Erro em live-presence:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });
 

@@ -363,6 +363,43 @@ export const notificationsApi = {
   markRead: (id: number) => apiClient.post<any>(`/notifications/my/${id}/read`, {}),
 }
 
+export type LivePresenceGeo = {
+  lat: number
+  lng: number
+  city: string | null
+  region: string | null
+  country: string | null
+  countryCode: string | null
+}
+
+export type LivePresenceSession = {
+  sessionId: string
+  userId: number
+  userName: string | null
+  userEmail: string | null
+  userTipo: string | null
+  createdAt: string
+  lastActivityAt: string
+  ip: string | null
+  ipIsPublic: boolean
+  deviceLabel: string
+  geo: LivePresenceGeo | null
+}
+
+export type LivePresenceResponse = {
+  withinMinutes: number
+  generatedAt: string
+  uniqueUsers: number
+  sessionCount: number
+  brazilByState: Array<{ state: string; count: number }>
+  sessions: LivePresenceSession[]
+}
+
+export const analyticsApi = {
+  livePresence: (params?: { minutes?: number }) =>
+    apiClient.get<LivePresenceResponse>('/analytics/live-presence', { params }),
+}
+
 export const whatsappApi = {
   status: () => apiClient.get<any>('/whatsapp/status'),
   inbox: (params?: { status?: string; limit?: number }) => apiClient.get<any>('/whatsapp/inbox', { params }),

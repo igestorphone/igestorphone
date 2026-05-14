@@ -37,7 +37,7 @@ import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
 import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
-import WhatsAppInboxPage from '@/pages/WhatsAppInboxPage'
+import AdminLiveOverviewPage from '@/pages/AdminLiveOverviewPage'
 import { hasActiveSubscriptionAccess, requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 
 const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
@@ -202,12 +202,13 @@ function App() {
         }>
           <Route index element={<NotificationsAdminPage />} />
         </Route>
-        <Route path="/admin/whatsapp-inbox" element={
+        <Route path="/admin/whatsapp-inbox" element={<Navigate to="/admin/monitor" replace />} />
+        <Route path="/admin/monitor" element={
           <ProtectedRoute>
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<WhatsAppInboxPage />} />
+          <Route index element={<AdminLiveOverviewPage />} />
         </Route>
         <Route path="/supplier-suggestions" element={
           <ProtectedRoute>
