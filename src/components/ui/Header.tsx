@@ -11,13 +11,7 @@ import ReportBugModal from '@/components/forms/ReportBugModal'
 import { notificationsApi } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-
-function daysRemainingFromExpiry(iso: string | undefined | null): number | null {
-  if (!iso) return null
-  const end = new Date(iso).getTime()
-  if (Number.isNaN(end)) return null
-  return Math.max(0, Math.ceil((end - Date.now()) / 86400000))
-}
+import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 
 export default function Header() {
   const { user, logout } = useAuthStore()
@@ -35,9 +29,16 @@ export default function Header() {
   const prevUnreadRef = useRef<number | null>(null)
   const didInitUnreadRef = useRef(false)
 
+  /** Re-render após meia-noite (SP) para o contador de dias baixar sem recarregar a página. */
+  const [dayTick, setDayTick] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setDayTick((t) => t + 1), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
   const subscriptionDaysLeft = useMemo(
-    () => daysRemainingFromExpiry(user?.subscription_expires_at),
-    [user?.subscription_expires_at]
+    () => calendarDaysRemainingSaoPaulo(user?.subscription_expires_at),
+    [user?.subscription_expires_at, dayTick]
   )
 
   const subscriptionUrgent =

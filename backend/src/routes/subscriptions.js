@@ -2,15 +2,10 @@ import express from 'express';
 import Stripe from 'stripe';
 import { query } from '../config/database.js';
 import { requireRole } from '../middleware/auth.js';
+import { calendarDaysRemainingSaoPaulo } from '../utils/subscriptionExpiryCalendar.js';
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-
-function daysRemainingFromExpires(expiresAt) {
-  if (!expiresAt) return null;
-  const ms = new Date(expiresAt).getTime() - Date.now();
-  return Math.max(0, Math.ceil(ms / 86400000));
-}
 
 // Buscar assinatura do usuário
 router.get('/my-subscription', async (req, res) => {
@@ -40,7 +35,7 @@ router.get('/my-subscription', async (req, res) => {
       }
 
       const u = userResult.rows[0];
-      const dr = daysRemainingFromExpires(u.subscription_expires_at);
+      const dr = calendarDaysRemainingSaoPaulo(u.subscription_expires_at);
       const st = (u.subscription_status || '').toLowerCase();
       const renewRecommended = st === 'overdue' || st === 'pending_payment' || (dr !== null && dr <= 30);
       return res.json({
@@ -52,7 +47,7 @@ router.get('/my-subscription', async (req, res) => {
     }
 
     const subscription = subscriptionResult.rows[0];
-    const dr = daysRemainingFromExpires(subscription.subscription_expires_at);
+    const dr = calendarDaysRemainingSaoPaulo(subscription.subscription_expires_at);
     const st = (subscription.subscription_status || '').toLowerCase();
     const renewRecommended =
       st === 'overdue' || st === 'pending_payment' || (dr !== null && dr <= 30);

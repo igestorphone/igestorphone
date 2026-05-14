@@ -1,0 +1,45 @@
+/** Fuso usado para “dia de validade” e contagem de dias restantes (meia-noite local). */
+export const SUBSCRIPTION_CALENDAR_TZ = 'America/Sao_Paulo'
+
+function ymdInTimeZone(d: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
+function parseYmdUtcMidnight(ymd: string): number {
+  const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10))
+  if (!y || !m || !d) return NaN
+  return Date.UTC(y, m - 1, d)
+}
+
+/**
+ * Dias entre “hoje” (data civil no fuso de SP) e o dia civil da expiração (no mesmo fuso).
+ * No dia da expiração retorna 0; no dia anterior, 1. Atualiza à meia-noite de São Paulo.
+ */
+export function calendarDaysRemainingSaoPaulo(iso: string | null | undefined): number | null {
+  if (!iso) return null
+  const exp = new Date(iso)
+  if (Number.isNaN(exp.getTime())) return null
+
+  const todayYmd = ymdInTimeZone(new Date(), SUBSCRIPTION_CALENDAR_TZ)
+  const expiryYmd = ymdInTimeZone(exp, SUBSCRIPTION_CALENDAR_TZ)
+  const diffDays = Math.round((parseYmdUtcMidnight(expiryYmd) - parseYmdUtcMidnight(todayYmd)) / 86400000)
+  return Math.max(0, diffDays)
+}
+
+/** Data de validade exibida no mesmo critério do contador (civil em SP). */
+export function formatExpiryDatePtBrSaoPaulo(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  const exp = new Date(iso)
+  if (Number.isNaN(exp.getTime())) return '—'
+  return new Intl.DateTimeFormat('pt-BR', {
+    timeZone: SUBSCRIPTION_CALENDAR_TZ,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(exp)
+}

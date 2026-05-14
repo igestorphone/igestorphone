@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { asaasApi, subscriptionsApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
+import { calendarDaysRemainingSaoPaulo, formatExpiryDatePtBrSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 import toast from 'react-hot-toast'
 
 interface SubscriptionData {
@@ -91,8 +92,15 @@ export default function SubscriptionPage() {
   const [paymentsLoading, setPaymentsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cardSaving, setCardSaving] = useState(false)
+  /** Atualiza contador de dias após meia-noite (America/Sao_Paulo) sem F5. */
+  const [dayTick, setDayTick] = useState(0)
 
   const cardForm = useForm<CardUpdateForm>({ resolver: zodResolver(cardUpdateSchema) })
+
+  useEffect(() => {
+    const id = window.setInterval(() => setDayTick((t) => t + 1), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -138,11 +146,7 @@ export default function SubscriptionPage() {
   }, [subscription?.id])
 
   const expiresAt = subscription?.subscription_expires_at ?? profileUser?.subscription_expires_at
-  const daysRemaining =
-    subscription?.days_remaining ??
-    (expiresAt != null
-      ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000))
-      : null)
+  const daysRemaining = useMemo(() => calendarDaysRemainingSaoPaulo(expiresAt), [expiresAt, dayTick])
   const accountStatus = subscription?.subscription_status ?? profileUser?.subscription_status
   const renewRecommended =
     ['overdue', 'pending_payment'].includes(String(accountStatus || '').toLowerCase()) ||
@@ -326,7 +330,10 @@ export default function SubscriptionPage() {
                 <p className="mt-2 text-sm text-gray-600 dark:text-white/70">
                   {expiresAt ? (
                     <>
-                      Válido até <span className="font-semibold text-gray-900 dark:text-white">{formatDateOnly(expiresAt)}</span>
+                      Válido até{' '}
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {formatExpiryDatePtBrSaoPaulo(expiresAt)}
+                      </span>
                     </>
                   ) : (
                     'Data de expiração não definida.'

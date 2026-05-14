@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi, asaasApi } from '@/lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -831,7 +832,7 @@ export default function ManageUsersPage() {
                 <p className="text-gray-700 dark:text-white/80">
                   {user.subscription_expires_at == null
                     ? '—'
-                    : `${user.subscription_days_remaining ?? Math.max(0, Math.ceil((new Date(user.subscription_expires_at).getTime() - Date.now()) / 86400000))} dias`}
+                    : `${user.subscription_days_remaining ?? calendarDaysRemainingSaoPaulo(user.subscription_expires_at) ?? 0} dias`}
                 </p>
               </div>
               <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100 dark:border-white/5">

@@ -834,7 +834,10 @@ router.get('/', authenticateToken, requireRole('admin'), async (req, res) => {
              (SELECT plan_type FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as plan_type,
              (SELECT asaas_subscription_id FROM subscriptions WHERE user_id = users.id ORDER BY created_at DESC LIMIT 1) as asaas_subscription_id,
              CASE WHEN subscription_expires_at IS NULL THEN NULL
-                  ELSE GREATEST(0, CEIL(EXTRACT(EPOCH FROM (subscription_expires_at - NOW())) / 86400))::int
+                  ELSE GREATEST(0, (
+                    ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+                    - (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+                  )::int)
              END AS subscription_days_remaining
       FROM users 
       ${whereClause}
