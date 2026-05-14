@@ -25,7 +25,12 @@ import {
   SlidersHorizontal,
   Check,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Smartphone,
+  Headphones,
+  Watch,
+  Tablet,
+  Laptop,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
@@ -98,6 +103,61 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(price || 0)
+
+/** Lista estilo mercado: uma linha; `model` costuma trazer capacidade (ex. 128GB) sem repetir `name`. */
+function productListDisplayLine(product: { name?: string | null; model?: string | null }): string {
+  const name = (product.name || '').trim()
+  const model = (product.model || '').trim()
+  if (!name && !model) return 'N/A'
+  if (!model) return name
+  if (!name) return model
+  if (model.toLowerCase() === name.toLowerCase()) return name
+  return model
+}
+
+/** Ícone + cor ao lado do nome (referência mercado: celular / fone / relógio / tablet / notebook). */
+function productListIconSpec(product: { name?: string | null; model?: string | null }) {
+  const blob = `${product.name || ''} ${product.model || ''}`.toLowerCase()
+  const ring = 'shrink-0 flex h-8 w-8 items-center justify-center rounded-lg border sm:h-9 sm:w-9'
+  if (/\bipad\b|\bxiaomi\s*pad\b|\bredmi\s*pad\b|\bpoco\s*pad\b|\bmi\s*pad\b|\btablet\b/i.test(blob)) {
+    return {
+      Icon: Tablet,
+      wrap: `${ring} border-violet-200 bg-violet-50 text-violet-600 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-300`,
+    }
+  }
+  if (/\bmacbook\b|\bimac\b|\bmac\s*mini\b|\bmac\s*studio\b/i.test(blob)) {
+    return {
+      Icon: Laptop,
+      wrap: `${ring} border-slate-200 bg-slate-100 text-slate-700 dark:border-white/15 dark:bg-white/10 dark:text-slate-200`,
+    }
+  }
+  if (/\bairpods\b|\bbeats\b|\bhomepod\b/i.test(blob)) {
+    return {
+      Icon: Headphones,
+      wrap: `${ring} border-fuchsia-200 bg-fuchsia-50 text-fuchsia-600 dark:border-fuchsia-500/30 dark:bg-fuchsia-500/10 dark:text-fuchsia-300`,
+    }
+  }
+  if (/\bairtag\b|\bapple\s*pencil\b|\bpencil\s*(pro|usb)?\b/i.test(blob)) {
+    return {
+      Icon: Package,
+      wrap: `${ring} border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300`,
+    }
+  }
+  if (
+    /\bapple watch\b|\bwatch\s*ultra\b|\bwatch\s*se\b|\bwatch\s*series\b|\bgalaxy watch\b|\bwatch\s*active\b/i.test(
+      blob
+    )
+  ) {
+    return {
+      Icon: Watch,
+      wrap: `${ring} border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300`,
+    }
+  }
+  return {
+    Icon: Smartphone,
+    wrap: `${ring} border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/25 dark:bg-emerald-500/10 dark:text-emerald-300`,
+  }
+}
 
 const formatTime = (date: Date) =>
   date.toLocaleTimeString('pt-BR', {
@@ -858,7 +918,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
     let message: string
     if (product) {
-      const modelStr = (product.model || product.name || 'Produto').replace(/^iPhone\s*/i, '').trim()
+      const modelStr = productListDisplayLine(product).replace(/^iPhone\s*/i, '').trim() || 'Produto'
       const parts = [modelStr]
       const normalizedStorage = normalizeStorage(product.storage)
       if (normalizedStorage) parts.push(normalizedStorage)
@@ -1558,24 +1618,29 @@ Ainda tem disponível?`
                             className="hover:bg-gray-50 dark:hover:bg-white/10 transition-colors group"
                           >
                             <td className="px-2 py-3 whitespace-normal">
-                              <div className="flex items-center">
+                              <div className="flex items-center gap-2">
                                 {currentPage === 1 && index === 0 && (
                                   <motion.span
                                     initial={{ scale: 0 }}
                                     animate={{ scale: 1 }}
                                     transition={{ type: 'spring', stiffness: 200 }}
-                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold mr-1.5 flex-shrink-0"
+                                    className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500 text-white text-xs font-bold flex-shrink-0"
                                   >
                                     1
                                   </motion.span>
                                 )}
-                                <div className="min-w-0">
-                                  <div className="text-xs font-semibold text-gray-900 dark:text-white truncate">
-                                    {product.name || product.model || 'N/A'}
+                                {(() => {
+                                  const { Icon, wrap } = productListIconSpec(product)
+                                  return (
+                                    <div className={wrap} aria-hidden title="Categoria visual">
+                                      <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" strokeWidth={2.25} />
+                                    </div>
+                                  )
+                                })()}
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight truncate">
+                                    {productListDisplayLine(product).toUpperCase()}
                                   </div>
-                                  {product.model && product.model !== product.name && (
-                                    <div className="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5 truncate">{product.model}</div>
-                                  )}
                                 </div>
                               </div>
                             </td>
@@ -1657,7 +1722,7 @@ Ainda tem disponível?`
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
-                                    const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                                    const text = `${productListDisplayLine(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
                                     }`
                                     navigator.clipboard.writeText(text)
@@ -1690,26 +1755,31 @@ Ainda tem disponível?`
                         className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-gray-200 dark:border-white/20"
                       >
                         {/* Header with product name and badge */}
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-start justify-between mb-3 gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start gap-2">
                               {currentPage === 1 && index === 0 && (
                                 <motion.span
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
                                   transition={{ type: 'spring', stiffness: 200 }}
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold"
+                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold shrink-0 mt-0.5"
                                 >
                                   1
                                 </motion.span>
                               )}
-                              <h3 className="text-base font-bold text-gray-900 dark:text-white">
-                                {product.name || product.model || 'N/A'}
+                              {(() => {
+                                const { Icon, wrap } = productListIconSpec(product)
+                                return (
+                                  <div className={wrap} aria-hidden title="Categoria visual">
+                                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
+                                  </div>
+                                )
+                              })()}
+                              <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight leading-snug flex-1 min-w-0">
+                                {productListDisplayLine(product).toUpperCase()}
                               </h3>
                             </div>
-                            {product.model && product.model !== product.name && (
-                              <p className="text-xs text-gray-600 dark:text-gray-300">{product.model}</p>
-                            )}
                           </div>
                           <div className="text-right">
                             <div className="text-xl font-bold text-green-600 dark:text-green-400">
@@ -1782,7 +1852,7 @@ Ainda tem disponível?`
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              const text = `${product.name || product.model}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                              const text = `${productListDisplayLine(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
                               }`
                               navigator.clipboard.writeText(text)
