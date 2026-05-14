@@ -30,7 +30,14 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { produtosApi, utilsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
-import { getProductCategoryCode, parseRamFromProduct, CATEGORY_CODE_LABELS, isLikelyNonAppleDevice, type CategorySearchMode } from '@/lib/productCategoryCodes'
+import {
+  getProductCategoryCode,
+  parseRamFromProduct,
+  CATEGORY_CODE_LABELS,
+  isLikelyNonAppleDevice,
+  ANDROID_CATEGORY_ORDER,
+  type CategorySearchMode,
+} from '@/lib/productCategoryCodes'
 import toast from 'react-hot-toast'
 import { normalizeColor } from './colorNormalizer'
 
@@ -739,7 +746,19 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         return aNum - bNum
       }),
       suppliers: Array.from(suppliers).sort(),
-      categories: Array.from(categories).sort()
+      categories: (() => {
+        const list = Array.from(categories)
+        if (searchMode !== 'android') return list.sort()
+        const order = ANDROID_CATEGORY_ORDER as readonly string[]
+        return list.sort((a, b) => {
+          const ia = order.indexOf(a)
+          const ib = order.indexOf(b)
+          if (ia === -1 && ib === -1) return a.localeCompare(b)
+          if (ia === -1) return 1
+          if (ib === -1) return -1
+          return ia - ib
+        })
+      })(),
     }
   }, [productsQuery.data, debouncedSearch, searchMode])
 
@@ -1177,13 +1196,11 @@ Ainda tem disponível?`
                     ))
                   ) : searchMode === 'android' ? (
                     <>
-                      <option value="AND">{CATEGORY_CODE_LABELS.AND}</option>
-                      <option value="IPH">{CATEGORY_CODE_LABELS.IPH}</option>
-                      <option value="IPAD">{CATEGORY_CODE_LABELS.IPAD}</option>
-                      <option value="MCB">{CATEGORY_CODE_LABELS.MCB}</option>
-                      <option value="PODS">{CATEGORY_CODE_LABELS.PODS}</option>
-                      <option value="RLG">{CATEGORY_CODE_LABELS.RLG}</option>
-                      <option value="ACSS">{CATEGORY_CODE_LABELS.ACSS}</option>
+                      {ANDROID_CATEGORY_ORDER.map((code) => (
+                        <option key={code} value={code}>
+                          {CATEGORY_CODE_LABELS[code] || code}
+                        </option>
+                      ))}
                     </>
                   ) : (
                     <>
