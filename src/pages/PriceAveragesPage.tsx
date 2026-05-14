@@ -8,8 +8,13 @@ import toast from 'react-hot-toast'
 import {
   IPHONE_17_PRO_MAX_COLOR_KEYS,
   IPHONE_PRICE_TABLE_ORDER,
-  aggregateIphone17ProMaxByColor,
+  PM17_LABEL,
+  aggregateIphone17ProMaxByStorageAndColor,
   aggregateIphoneAveragesByTableRow,
+  deviceAggKey,
+  listStoragesFor17PmAgg,
+  listStoragesForDeviceAgg,
+  pm17AggKey,
   roundTo50,
   selectionKey17ProMax,
   type IphoneTableAgg,
@@ -27,28 +32,36 @@ function saleWithMargin(avg: number, marginReais: number): number {
 }
 
 function buildTableLines(
-  aggByLabel: Map<string, IphoneTableAgg>,
-  agg17ByColor: Map<string, IphoneTableAgg>
+  aggByLabelStorage: Map<string, IphoneTableAgg>,
+  agg17: Map<string, IphoneTableAgg>
 ): TableLine[] {
   const lines: TableLine[] = []
   for (const label of IPHONE_PRICE_TABLE_ORDER) {
-    if (label === 'iPhone 17 Pro Max') {
-      for (const colorKey of IPHONE_17_PRO_MAX_COLOR_KEYS) {
-        lines.push({
-          kind: '17pm',
-          key: selectionKey17ProMax(colorKey),
-          title: 'iPhone 17 Pro Max',
-          colorPart: colorKey,
-          agg: agg17ByColor.get(colorKey),
-        })
+    if (label === PM17_LABEL) {
+      const storages17 = listStoragesFor17PmAgg(agg17)
+      for (const st of storages17) {
+        for (const colorKey of IPHONE_17_PRO_MAX_COLOR_KEYS) {
+          const k = pm17AggKey(st, colorKey)
+          lines.push({
+            kind: '17pm',
+            key: selectionKey17ProMax(st, colorKey),
+            title: `${PM17_LABEL} ${st}`,
+            colorPart: colorKey,
+            agg: agg17.get(k),
+          })
+        }
       }
     } else {
-      lines.push({
-        kind: 'device',
-        key: label,
-        title: label,
-        agg: aggByLabel.get(label),
-      })
+      const storages = listStoragesForDeviceAgg(aggByLabelStorage, label)
+      for (const st of storages) {
+        const dk = deviceAggKey(label, st)
+        lines.push({
+          kind: 'device',
+          key: dk,
+          title: `${label} ${st}`,
+          agg: aggByLabelStorage.get(dk),
+        })
+      }
     }
   }
   return lines
@@ -70,10 +83,10 @@ export default function PriceAveragesPage() {
   const averages = useMemo(() => raw?.averages ?? [], [raw])
   const dateFilter = (raw?.dateFilter ?? 'day') as 'day' | 'rolling3' | 'all'
 
-  const aggByLabel = useMemo(() => aggregateIphoneAveragesByTableRow(averages), [averages])
-  const agg17ByColor = useMemo(() => aggregateIphone17ProMaxByColor(averages), [averages])
+  const aggByLabelStorage = useMemo(() => aggregateIphoneAveragesByTableRow(averages), [averages])
+  const agg17 = useMemo(() => aggregateIphone17ProMaxByStorageAndColor(averages), [averages])
 
-  const tableLines = useMemo(() => buildTableLines(aggByLabel, agg17ByColor), [aggByLabel, agg17ByColor])
+  const tableLines = useMemo(() => buildTableLines(aggByLabelStorage, agg17), [aggByLabelStorage, agg17])
 
   const dateOffsetLabel =
     dateOffset === 0 ? 'Hoje' : dateOffset === -1 ? 'Ontem' : 'Anteontem'
@@ -164,10 +177,10 @@ export default function PriceAveragesPage() {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Média de preço</h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  iPhone lacrado: uma linha por aparelho (todas as cores e capacidades na média), exceto{' '}
-                  <strong className="text-gray-700 dark:text-gray-300">iPhone 17 Pro Max</strong>, com média separada
-                  por cor oficial (Laranja Cósmico, Azul Intenso, Prateado). Toque na linha, informe o lucro em reais e
-                  veja o preço de venda (média + lucro, arredondado a R$ 50).
+                  iPhone lacrado: cada linha é uma capacidade (GB/TB) com média, mínimo e máximo — cores unidas na
+                  média, exceto no <strong className="text-gray-700 dark:text-gray-300">iPhone 17 Pro Max</strong>, em
+                  que cada GB aparece com as três cores oficiais (Laranja Cósmico, Azul Intenso, Prateado). Toque na
+                  linha, informe o lucro em reais e veja o preço de venda (média + lucro, arredondado a R$ 50).
                 </p>
                 {dateFilterHint && (
                   <p className="text-xs text-amber-700 dark:text-amber-400 mt-2 font-medium">{dateFilterHint}</p>
@@ -252,7 +265,7 @@ export default function PriceAveragesPage() {
         </div>
 
         <div className="overflow-x-auto -mx-2">
-          <table className="w-full text-sm min-w-[720px]">
+          <table className="w-full text-sm min-w-[800px]">
             <thead>
               <tr className="border-b border-gray-200 dark:border-white/10">
                 <th className="text-left py-3 px-3 font-semibold text-gray-900 dark:text-white">Modelo</th>
@@ -302,14 +315,7 @@ export default function PriceAveragesPage() {
                       isSel ? 'bg-indigo-50 dark:bg-indigo-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
                     }`}
                   >
-                    <td className="py-3 px-3">
-                      {modelCell}
-                      {agg && agg.unitCount > 0 && (
-                        <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">
-                          (n={agg.unitCount})
-                        </span>
-                      )}
-                    </td>
+                    <td className="py-3 px-3">{modelCell}</td>
                     <td className="py-3 px-3 text-right text-gray-800 dark:text-gray-200">
                       {agg ? formatPrice(Math.round(agg.weightedAvg)) : '—'}
                     </td>
@@ -320,7 +326,7 @@ export default function PriceAveragesPage() {
                       {agg?.max != null ? formatPrice(roundTo50(agg.max)) : '—'}
                     </td>
                     <td className="py-3 px-3 text-right font-semibold text-emerald-800 dark:text-emerald-300 min-w-[8rem]">
-                      {showSale ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais)) : ''}
+                      {showSale ? formatPrice(saleWithMargin(agg.weightedAvg, marginReais)) : '—'}
                     </td>
                   </tr>
                 )

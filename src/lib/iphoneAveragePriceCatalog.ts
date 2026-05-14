@@ -1,8 +1,7 @@
 /**
- * Linhas fixas da tabela "Média de preço" (lacrado) e casamento com o campo `model` da API.
- * Ordem: mais específico primeiro no array de matchers.
- *
- * iPhone 17 Pro Max: médias separadas por cor (demais modelos: uma linha por aparelho, todas as cores agregadas).
+ * Linhas da tabela "Média de preço" (lacrado): casamento de modelo + normalização de armazenamento.
+ * - Demais iPhones: uma linha por modelo + capacidade (cores agregadas).
+ * - iPhone 17 Pro Max: uma linha por capacidade + cor oficial (Laranja / Azul / Prateado).
  */
 
 import { normalizeColor } from '@/pages/colorNormalizer'
@@ -55,7 +54,6 @@ export type IphoneTableAgg = {
   weightedAvg: number
   min: number | null
   max: number | null
-  unitCount: number
 }
 
 const ORDERED_MATCHERS: { label: (typeof IPHONE_PRICE_TABLE_ORDER)[number]; test: (s: string) => boolean }[] = [
@@ -134,6 +132,8 @@ const ORDERED_MATCHERS: { label: (typeof IPHONE_PRICE_TABLE_ORDER)[number]; test
   },
 ]
 
+export const PM17_LABEL = 'iPhone 17 Pro Max' as const
+
 export function matchIphonePriceTableLabel(rawModel: string): (typeof IPHONE_PRICE_TABLE_ORDER)[number] | null {
   const s = (rawModel || '').toLowerCase().replace(/\s+/g, ' ').trim()
   if (!s.includes('iphone')) return null
@@ -143,7 +143,43 @@ export function matchIphonePriceTableLabel(rawModel: string): (typeof IPHONE_PRI
   return null
 }
 
-const PM17_LABEL = 'iPhone 17 Pro Max' as const
+/** Normaliza texto de armazenamento da API para chave estável (ex.: 256GB, 1T). */
+export function normalizeStorageKey(raw: string | null | undefined): string {
+  const s0 = String(raw ?? '').trim()
+  if (!s0 || s0 === '—' || s0 === 'N/A' || s0 === '-') return ''
+  const s = s0.replace(/\s+/g, ' ').trim()
+  const upper = s.toUpperCase()
+  if (/\b1\s*T(?:B)?\b/i.test(s)) return '1T'
+  if (/\b2\s*T(?:B)?\b/i.test(s)) return '2T'
+  const m = upper.match(/\b(8|16|32|64|128|256|512|1024|2048)\s*G(?:B)?\b/)
+  if (m) {
+    const n = parseInt(m[1], 10)
+    if (n === 1024) return '1T'
+    if (n === 2048) return '2T'
+    return `${n}GB`
+  }
+  return ''
+}
+
+function storageSortKey(st: string): number {
+  const g = st.match(/^(\d+)GB$/i)
+  if (g) return parseInt(g[1], 10)
+  const t = st.match(/^(\d+)T$/i)
+  if (t) return 100000 + parseInt(t[1], 10) * 1000
+  return 999999
+}
+
+export function deviceAggKey(label: string, storage: string): string {
+  return `${label}::${storage}`
+}
+
+export function pm17AggKey(storage: string, colorKey: string): string {
+  return `${storage}::${colorKey}`
+}
+
+export function selectionKey17ProMax(storage: string, colorKey: string): string {
+  return `${PM17_LABEL}::${storage}::${colorKey}`
+}
 
 function bucket17ProMaxColor(rawColor: string | null | undefined, model: string): string | null {
   if (matchIphonePriceTableLabel(model) !== PM17_LABEL) return null
@@ -152,13 +188,16 @@ function bucket17ProMaxColor(rawColor: string | null | undefined, model: string)
   return null
 }
 
-/** Média/min/max por cor oficial (somente iPhone 17 Pro Max). */
-export function aggregateIphone17ProMaxByColor(rows: AvgInput[]): Map<string, IphoneTableAgg> {
+/** Média/min/max por capacidade + cor (somente iPhone 17 Pro Max). */
+export function aggregateIphone17ProMaxByStorageAndColor(rows: AvgInput[]): Map<string, IphoneTableAgg> {
   const map = new Map<string, { sumW: number; n: number; min: number | null; max: number | null }>()
   for (const r of rows) {
     const colorKey = bucket17ProMaxColor(r.color ?? '', r.model)
     if (!colorKey) continue
-    const prev = map.get(colorKey) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
+    const st = normalizeStorageKey(r.storage)
+    if (!st) continue
+    const k = pm17AggKey(st, colorKey)
+    const prev = map.get(k) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
     prev.sumW += Number(r.avg_price) * Number(r.count || 0)
     prev.n += Number(r.count || 0)
     const mn = r.min_price != null ? Number(r.min_price) : null
@@ -169,31 +208,29 @@ export function aggregateIphone17ProMaxByColor(rows: AvgInput[]): Map<string, Ip
     if (mx != null && !Number.isNaN(mx)) {
       prev.max = prev.max == null ? mx : Math.max(prev.max, mx)
     }
-    map.set(colorKey, prev)
+    map.set(k, prev)
   }
   const out = new Map<string, IphoneTableAgg>()
-  for (const [colorKey, v] of map) {
-    out.set(colorKey, {
+  for (const [k, v] of map) {
+    out.set(k, {
       weightedAvg: v.n > 0 ? v.sumW / v.n : 0,
       min: v.min,
       max: v.max,
-      unitCount: v.n,
     })
   }
   return out
 }
 
-export function selectionKey17ProMax(colorKey: string): string {
-  return `${PM17_LABEL}::${colorKey}`
-}
-
-/** Uma linha por aparelho; cores agregadas. iPhone 17 Pro Max fica de fora (usa aggregateIphone17ProMaxByColor). */
+/** Uma entrada por modelo + capacidade; cores agregadas. Exclui iPhone 17 Pro Max. */
 export function aggregateIphoneAveragesByTableRow(rows: AvgInput[]): Map<string, IphoneTableAgg> {
   const map = new Map<string, { sumW: number; n: number; min: number | null; max: number | null }>()
   for (const r of rows) {
     const label = matchIphonePriceTableLabel(r.model)
     if (!label || label === PM17_LABEL) continue
-    const prev = map.get(label) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
+    const st = normalizeStorageKey(r.storage)
+    if (!st) continue
+    const k = deviceAggKey(label, st)
+    const prev = map.get(k) || { sumW: 0, n: 0, min: null as number | null, max: null as number | null }
     prev.sumW += Number(r.avg_price) * Number(r.count || 0)
     prev.n += Number(r.count || 0)
     const mn = r.min_price != null ? Number(r.min_price) : null
@@ -204,18 +241,35 @@ export function aggregateIphoneAveragesByTableRow(rows: AvgInput[]): Map<string,
     if (mx != null && !Number.isNaN(mx)) {
       prev.max = prev.max == null ? mx : Math.max(prev.max, mx)
     }
-    map.set(label, prev)
+    map.set(k, prev)
   }
   const out = new Map<string, IphoneTableAgg>()
-  for (const [label, v] of map) {
-    out.set(label, {
+  for (const [k, v] of map) {
+    out.set(k, {
       weightedAvg: v.n > 0 ? v.sumW / v.n : 0,
       min: v.min,
       max: v.max,
-      unitCount: v.n,
     })
   }
   return out
+}
+
+export function listStoragesForDeviceAgg(agg: Map<string, IphoneTableAgg>, label: string): string[] {
+  const prefix = `${label}::`
+  const found = new Set<string>()
+  for (const key of agg.keys()) {
+    if (key.startsWith(prefix)) found.add(key.slice(prefix.length))
+  }
+  return Array.from(found).sort((a, b) => storageSortKey(a) - storageSortKey(b))
+}
+
+export function listStoragesFor17PmAgg(agg: Map<string, IphoneTableAgg>): string[] {
+  const found = new Set<string>()
+  for (const key of agg.keys()) {
+    const [st] = key.split('::')
+    if (st) found.add(st)
+  }
+  return Array.from(found).sort((a, b) => storageSortKey(a) - storageSortKey(b))
 }
 
 export function roundTo50(n: number): number {
