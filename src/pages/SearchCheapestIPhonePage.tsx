@@ -146,6 +146,24 @@ function productListDisplayLine(product: { name?: string | null; model?: string 
   return name.length >= model.length ? name : model
 }
 
+/** Remove capacidade no fim do título (já existe coluna Storage): ex. "IPHONE 13 PRO 256GB" → "IPHONE 13 PRO". */
+function stripTrailingStorageFromTitle(title: string): string {
+  let s = title.trim()
+  s = s.replace(/\s+\d{1,3}\s*\/\s*\d{1,4}\s*(GB|TB)\s*$/i, '').trim()
+  const re = /\s+\d{1,4}\s*(GB|TB)\s*$/i
+  let prev = ''
+  while (s !== prev) {
+    prev = s
+    s = s.replace(re, '').trim()
+  }
+  return s || title.trim()
+}
+
+/** Texto final da coluna PRODUTO (nome sem GB/TB redundante). */
+function productListTitleShown(product: { name?: string | null; model?: string | null }): string {
+  return stripTrailingStorageFromTitle(productListDisplayLine(product))
+}
+
 /** Ícone + cor ao lado do nome (referência mercado: celular / fone / relógio / tablet / notebook). */
 function productListIconSpec(product: { name?: string | null; model?: string | null }) {
   const blob = `${product.name || ''} ${product.model || ''}`.toLowerCase()
@@ -949,7 +967,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
     let message: string
     if (product) {
-      const modelStr = productListDisplayLine(product).replace(/^iPhone\s*/i, '').trim() || 'Produto'
+      const modelStr = productListTitleShown(product).replace(/^iPhone\s*/i, '').trim() || 'Produto'
       const parts = [modelStr]
       const normalizedStorage = normalizeStorage(product.storage)
       if (normalizedStorage) parts.push(normalizedStorage)
@@ -1670,7 +1688,7 @@ Ainda tem disponível?`
                                 })()}
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight truncate">
-                                    {productListDisplayLine(product).toUpperCase()}
+                                    {productListTitleShown(product).toUpperCase()}
                                   </div>
                                 </div>
                               </div>
@@ -1753,7 +1771,7 @@ Ainda tem disponível?`
                                   whileHover={{ scale: 1.1 }}
                                   whileTap={{ scale: 0.95 }}
                                   onClick={() => {
-                                    const text = `${productListDisplayLine(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                                    const text = `${productListTitleShown(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                       product.variant ? `Variante: ${product.variant}\n` : ''
                                     }`
                                     navigator.clipboard.writeText(text)
@@ -1808,7 +1826,7 @@ Ainda tem disponível?`
                                 )
                               })()}
                               <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight leading-snug flex-1 min-w-0">
-                                {productListDisplayLine(product).toUpperCase()}
+                                {productListTitleShown(product).toUpperCase()}
                               </h3>
                             </div>
                           </div>
@@ -1883,7 +1901,7 @@ Ainda tem disponível?`
                           <motion.button
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
-                              const text = `${productListDisplayLine(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
+                              const text = `${productListTitleShown(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
                                 product.variant ? `Variante: ${product.variant}\n` : ''
                               }`
                               navigator.clipboard.writeText(text)
