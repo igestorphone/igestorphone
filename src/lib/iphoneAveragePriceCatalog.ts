@@ -56,6 +56,9 @@ export type IphoneTableAgg = {
   max: number | null
 }
 
+/** Menor exibido não fica muito abaixo da média ponderada (uma cor/fornecedor puxa outlier). */
+const REF_MIN_FLOOR_VS_AVG = 0.92
+
 const ORDERED_MATCHERS: { label: (typeof IPHONE_PRICE_TABLE_ORDER)[number]; test: (s: string) => boolean }[] = [
   { label: 'iPhone 17 Pro Max', test: (s) => /\biphone\s*17\s*pro\s*max\b/i.test(s) },
   { label: 'iPhone 17 Pro', test: (s) => /\biphone\s*17\s*pro\b/i.test(s) && !/\bmax\b/i.test(s) },
@@ -212,9 +215,14 @@ export function aggregateIphone17ProMaxByStorageAndColor(rows: AvgInput[]): Map<
   }
   const out = new Map<string, IphoneTableAgg>()
   for (const [k, v] of map) {
+    const wAvg = v.n > 0 ? v.sumW / v.n : 0
+    const minOut =
+      v.min != null && wAvg > 0 && Number.isFinite(v.min) && Number.isFinite(wAvg)
+        ? Math.max(v.min, wAvg * REF_MIN_FLOOR_VS_AVG)
+        : v.min
     out.set(k, {
-      weightedAvg: v.n > 0 ? v.sumW / v.n : 0,
-      min: v.min,
+      weightedAvg: wAvg,
+      min: minOut,
       max: v.max,
     })
   }
@@ -245,9 +253,14 @@ export function aggregateIphoneAveragesByTableRow(rows: AvgInput[]): Map<string,
   }
   const out = new Map<string, IphoneTableAgg>()
   for (const [k, v] of map) {
+    const wAvg = v.n > 0 ? v.sumW / v.n : 0
+    const minOut =
+      v.min != null && wAvg > 0 && Number.isFinite(v.min) && Number.isFinite(wAvg)
+        ? Math.max(v.min, wAvg * REF_MIN_FLOOR_VS_AVG)
+        : v.min
     out.set(k, {
-      weightedAvg: v.n > 0 ? v.sumW / v.n : 0,
-      min: v.min,
+      weightedAvg: wAvg,
+      min: minOut,
       max: v.max,
     })
   }

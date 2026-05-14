@@ -505,7 +505,11 @@ router.get('/price-averages', async (req, res) => {
         storage,
         AVG(price)::numeric AS avg_price,
         COUNT(*)::int AS count,
-        MIN(price)::numeric AS min_price,
+        CASE
+          WHEN COUNT(*) >= 10 THEN PERCENTILE_DISC(0.2) WITHIN GROUP (ORDER BY price)::numeric
+          WHEN COUNT(*) >= 3 THEN (ARRAY_AGG(price ORDER BY price ASC))[2]::numeric
+          ELSE MIN(price)::numeric
+        END AS min_price,
         MAX(price)::numeric AS max_price
       FROM base
       GROUP BY model_canonical, color, storage
@@ -514,6 +518,15 @@ router.get('/price-averages', async (req, res) => {
     `,
       values
     )
+
+  /** Evita “menor” muito abaixo da média do mesmo grupo (outlier / lixo ainda lacrado no texto). */
+  const floorDisplayedMin = (minVal, avgVal) => {
+    if (minVal == null || avgVal == null) return minVal
+    const mn = Number(minVal)
+    const av = Number(avgVal)
+    if (!Number.isFinite(mn) || !Number.isFinite(av) || av <= 0) return minVal
+    return Math.max(mn, av * 0.92)
+  }
 
   try {
     const wDay = buildPriceAverageWhere(dateExact)
@@ -574,6 +587,10 @@ router.get('/price-averages', async (req, res) => {
         max_price: maxP,
       });
     }
+  }
+
+  for (const r of merged.values()) {
+    r.min_price = floorDisplayedMin(r.min_price, r.avg_price)
   }
 
   const rows = Array.from(merged.values()).map((r) => ({
@@ -655,7 +672,7 @@ router.get('/price-averages', async (req, res) => {
           storage: r.storage || '—',
           avg_price: Number(r.avg_price),
           count: r.count,
-          min_price: r.min_price != null ? roundTo50fb(r.min_price) : null,
+          min_price: r.min_price != null ? roundTo50fb(floorDisplayedMin(r.min_price, r.avg_price)) : null,
           max_price: r.max_price != null ? roundTo50fb(r.max_price) : null,
         }))
         return res.json({
