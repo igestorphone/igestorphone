@@ -291,11 +291,8 @@ router.get('/', [
     // Filtro por tipo de condição (lacrados_novos ou seminovos)
     if (cleanConditionType) {
       if (cleanConditionType === 'lacrados_novos') {
-        // Filtrar produtos com condition_detail = LACRADO, NOVO, CPO ou condition = Novo sem condition_detail específico
-        whereClause += ` AND (
-          p.condition_detail IN ('LACRADO', 'NOVO', 'CPO')
-          OR (p.condition = 'Novo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
-        )`;
+        // Lacrado na busca = mesmo critério da média: só LACRADO ou NOVO explícito (sem CPO, sem detalhe vazio).
+        whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`;
       } else if (cleanConditionType === 'seminovos') {
         whereClause += ` AND (
           p.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')
@@ -519,13 +516,21 @@ router.get('/price-averages', async (req, res) => {
       values
     )
 
-  /** Evita “menor” muito abaixo da média do mesmo grupo (outlier / lixo ainda lacrado no texto). */
-  const floorDisplayedMin = (minVal, avgVal) => {
+  /** “Menor” não fica fora da faixa real do grupo: piso vs média e vs maior (média contaminada ainda tinha min ~1650). */
+  const floorDisplayedMin = (minVal, avgVal, maxVal) => {
     if (minVal == null || avgVal == null) return minVal
     const mn = Number(minVal)
     const av = Number(avgVal)
     if (!Number.isFinite(mn) || !Number.isFinite(av) || av <= 0) return minVal
-    return Math.max(mn, av * 0.92)
+    const fromAvg = av * 0.92
+    let fromMax = -Infinity
+    if (maxVal != null) {
+      const mx = Number(maxVal)
+      if (Number.isFinite(mx) && mx > 0) {
+        fromMax = Math.min(mx * 0.72, av * 1.12)
+      }
+    }
+    return Math.max(mn, fromAvg, fromMax)
   }
 
   try {
@@ -590,7 +595,7 @@ router.get('/price-averages', async (req, res) => {
   }
 
   for (const r of merged.values()) {
-    r.min_price = floorDisplayedMin(r.min_price, r.avg_price)
+    r.min_price = floorDisplayedMin(r.min_price, r.avg_price, r.max_price)
   }
 
   const rows = Array.from(merged.values()).map((r) => ({
@@ -672,7 +677,7 @@ router.get('/price-averages', async (req, res) => {
           storage: r.storage || '—',
           avg_price: Number(r.avg_price),
           count: r.count,
-          min_price: r.min_price != null ? roundTo50fb(floorDisplayedMin(r.min_price, r.avg_price)) : null,
+          min_price: r.min_price != null ? roundTo50fb(floorDisplayedMin(r.min_price, r.avg_price, r.max_price)) : null,
           max_price: r.max_price != null ? roundTo50fb(r.max_price) : null,
         }))
         return res.json({

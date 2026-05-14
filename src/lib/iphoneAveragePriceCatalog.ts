@@ -56,8 +56,10 @@ export type IphoneTableAgg = {
   max: number | null
 }
 
-/** Menor exibido não fica muito abaixo da média ponderada (uma cor/fornecedor puxa outlier). */
+/** Menor exibido não fica muito abaixo da média ponderada nem fora da faixa min–max do agregado. */
 const REF_MIN_FLOOR_VS_AVG = 0.92
+const REF_MIN_VS_MAX_FRAC = 0.72
+const REF_MIN_MAX_CAP_VS_AVG = 1.12
 
 const ORDERED_MATCHERS: { label: (typeof IPHONE_PRICE_TABLE_ORDER)[number]; test: (s: string) => boolean }[] = [
   { label: 'iPhone 17 Pro Max', test: (s) => /\biphone\s*17\s*pro\s*max\b/i.test(s) },
@@ -216,9 +218,15 @@ export function aggregateIphone17ProMaxByStorageAndColor(rows: AvgInput[]): Map<
   const out = new Map<string, IphoneTableAgg>()
   for (const [k, v] of map) {
     const wAvg = v.n > 0 ? v.sumW / v.n : 0
+    const fromAvg = wAvg * REF_MIN_FLOOR_VS_AVG
+    const mx = v.max
+    const fromMax =
+      mx != null && Number.isFinite(mx) && mx > 0 && wAvg > 0
+        ? Math.min(mx * REF_MIN_VS_MAX_FRAC, wAvg * REF_MIN_MAX_CAP_VS_AVG)
+        : null
     const minOut =
       v.min != null && wAvg > 0 && Number.isFinite(v.min) && Number.isFinite(wAvg)
-        ? Math.max(v.min, wAvg * REF_MIN_FLOOR_VS_AVG)
+        ? Math.max(v.min, fromAvg, fromMax ?? -Infinity)
         : v.min
     out.set(k, {
       weightedAvg: wAvg,
@@ -254,9 +262,15 @@ export function aggregateIphoneAveragesByTableRow(rows: AvgInput[]): Map<string,
   const out = new Map<string, IphoneTableAgg>()
   for (const [k, v] of map) {
     const wAvg = v.n > 0 ? v.sumW / v.n : 0
+    const fromAvg = wAvg * REF_MIN_FLOOR_VS_AVG
+    const mx = v.max
+    const fromMax =
+      mx != null && Number.isFinite(mx) && mx > 0 && wAvg > 0
+        ? Math.min(mx * REF_MIN_VS_MAX_FRAC, wAvg * REF_MIN_MAX_CAP_VS_AVG)
+        : null
     const minOut =
       v.min != null && wAvg > 0 && Number.isFinite(v.min) && Number.isFinite(wAvg)
-        ? Math.max(v.min, wAvg * REF_MIN_FLOOR_VS_AVG)
+        ? Math.max(v.min, fromAvg, fromMax ?? -Infinity)
         : v.min
     out.set(k, {
       weightedAvg: wAvg,
