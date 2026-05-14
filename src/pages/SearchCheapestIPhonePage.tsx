@@ -104,15 +104,46 @@ const formatPrice = (price: number) =>
     maximumFractionDigits: 0
   }).format(price || 0)
 
-/** Lista estilo mercado: uma linha; `model` costuma trazer capacidade (ex. 128GB) sem repetir `name`. */
+/** Campo `model` que é só RAM/GB ou código minúsculo — não dá para usar como título da linha. */
+function looksLikeSpecsOnlyFragment(s: string): boolean {
+  const t = s.trim().replace(/\s+/g, ' ')
+  if (t.length < 2) return true
+  if (/^\d+\s*gb\s*\d+\s*ram$/i.test(t)) return true
+  if (/^\d+\s*gb\s+\d+\s*ram$/i.test(t)) return true
+  if (/^\d+\s*\/\s*\d+\s*gb$/i.test(t)) return true
+  if (/^\d+\s*gb\s*\/\s*\d+$/i.test(t)) return true
+  if (/^\d+\s*gb$/i.test(t)) return true
+  if (/^\d+\s*ram$/i.test(t)) return true
+  if (/^\d+\s*tb$/i.test(t)) return true
+  // Só números + separadores + GB/RAM/TB (sem palavra de produto)
+  if (!/[a-zA-Z]{2,}/.test(t.replace(/\s/g, ''))) {
+    if (/\d/.test(t)) return true
+  }
+  // Uma letra + dígitos tipo "A5" (código solto; o nome completo costuma estar em `name`)
+  if (/^[a-z]\d+$/i.test(t) && t.length <= 6) return true
+  return false
+}
+
+/** Uma linha: prioriza `model` só quando ele estende o nome (ex. iPhone 13 → 128GB), não fragmento de specs. */
 function productListDisplayLine(product: { name?: string | null; model?: string | null }): string {
   const name = (product.name || '').trim()
   const model = (product.model || '').trim()
   if (!name && !model) return 'N/A'
   if (!model) return name
   if (!name) return model
-  if (model.toLowerCase() === name.toLowerCase()) return name
-  return model
+  const nl = name.toLowerCase()
+  const ml = model.toLowerCase()
+  if (ml === nl) return name
+
+  if (looksLikeSpecsOnlyFragment(model)) return name
+  if (looksLikeSpecsOnlyFragment(name) && !looksLikeSpecsOnlyFragment(model)) return model
+
+  if (nl.includes(ml) || ml.includes(nl)) {
+    return name.length >= model.length ? name : model
+  }
+  if (ml.startsWith(nl) && model.length > name.length) return model
+
+  return name.length >= model.length ? name : model
 }
 
 /** Ícone + cor ao lado do nome (referência mercado: celular / fone / relógio / tablet / notebook). */
