@@ -26,6 +26,7 @@ export default function Header() {
   const notifRef = useRef<HTMLDivElement>(null)
   const [showNotifs, setShowNotifs] = useState(false)
   const [notifPos, setNotifPos] = useState({ top: 0, right: 0 })
+  const [scrolled, setScrolled] = useState(false)
   const prevUnreadRef = useRef<number | null>(null)
   const didInitUnreadRef = useRef(false)
 
@@ -49,6 +50,13 @@ export default function Header() {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   // Calcular posição do dropdown quando abrir
   useEffect(() => {
@@ -171,7 +179,13 @@ export default function Header() {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen)
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-black backdrop-blur-xl border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl">
+    <header
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-white/70 dark:bg-black/55 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-md'
+          : 'bg-white dark:bg-black border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl'
+      }`}
+    >
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20 relative">
           {/* Left side */}

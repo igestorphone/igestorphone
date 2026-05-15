@@ -48,6 +48,8 @@ import { matchesProductSearchMode } from '@/lib/productSearchCondition'
 import toast from 'react-hot-toast'
 import { IPHONE_PRICE_TABLE_ORDER, matchIphonePriceTableLabel } from '@/lib/iphoneAveragePriceCatalog'
 import { normalizeColor } from './colorNormalizer'
+import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
+import { isAccessoryProduct } from '@/lib/productColorSwatch'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
 const OFFICIAL_COLORS = ['Preto', 'Branco', 'Azul-névoa', 'Lavanda', 'Sálvia']
@@ -632,51 +634,77 @@ function SearchInputDebounced({
     }
   }, [showPanel, localValue, matches.length])
 
-  // Efeito de digitação: exemplos do estoque do dia; fallback estático se ainda carregando
-  const suggestions =
-    typingSuggestions ??
-    (suggestionPool.length > 0
-      ? suggestionPool.slice(0, 6)
-      : TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo)
+  // Lista estável — evita reiniciar o efeito a cada re-render (travava em "ip")
+  const typingSuggestionsList = useMemo(() => {
+    if (typingSuggestions?.length) return typingSuggestions
+    if (suggestionPool.length > 0) return suggestionPool.slice(0, 6)
+    return TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
+  }, [typingSuggestions, suggestionPool, searchMode])
+
   useEffect(() => {
     if (localValue) {
       setTypingText('')
       return
     }
+
+    if (!typingSuggestionsList.length) {
+      setTypingText('')
+      return
+    }
+
+    let cancelled = false
+    const timeouts: ReturnType<typeof setTimeout>[] = []
+    const schedule = (fn: () => void, ms: number) => {
+      const id = setTimeout(() => {
+        if (!cancelled) fn()
+      }, ms)
+      timeouts.push(id)
+    }
+
     let index = 0
     let charIndex = 0
     let isDeleting = false
-    let t: ReturnType<typeof setTimeout>
+    setTypingText('')
 
     const type = () => {
-      const current = suggestions[index] || ''
+      if (cancelled) return
+      const list = typingSuggestionsList
+      if (!list.length) return
+      const current = list[index] || ''
+
       if (isDeleting) {
         if (charIndex > 0) {
           charIndex--
           setTypingText(current.slice(0, charIndex))
-          t = setTimeout(type, 40)
+          schedule(type, 40)
         } else {
           isDeleting = false
-          index = (index + 1) % suggestions.length
-          t = setTimeout(type, 500)
+          index = (index + 1) % list.length
+          schedule(type, 500)
         }
-      } else {
-        if (charIndex < current.length) {
-          charIndex++
-          setTypingText(current.slice(0, charIndex))
-          t = setTimeout(type, 80)
-        } else {
-          t = setTimeout(() => {
-            isDeleting = true
-            type()
-          }, 2200)
-        }
+        return
       }
+
+      if (charIndex < current.length) {
+        charIndex++
+        setTypingText(current.slice(0, charIndex))
+        schedule(type, 80)
+        return
+      }
+
+      schedule(() => {
+        isDeleting = true
+        type()
+      }, 2200)
     }
 
-    t = setTimeout(type, 600)
-    return () => clearTimeout(t)
-  }, [localValue, searchMode, suggestions])
+    schedule(type, 600)
+
+    return () => {
+      cancelled = true
+      timeouts.forEach(clearTimeout)
+    }
+  }, [localValue, typingSuggestionsList])
 
   const pickSuggestion = (value: string) => {
     const v = value.trim()
@@ -927,6 +955,18 @@ function AnimatedNumber({ value, durationMs = 700 }: { value: number; durationMs
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
 type SearchMode = 'novo' | 'seminovo' | 'android'
+
+function productSwatchProps(product: any, searchMode: SearchMode | null) {
+  const mode: CategorySearchMode =
+    searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
+  const categoryCode = getProductCategoryCode(product, mode)
+  return {
+    rawColor: product.color,
+    normalizedLabel: normalizeColor(product.color, product.model || product.name),
+    categoryCode,
+    isAccessory: isAccessoryProduct(product) || categoryCode === 'ACSS',
+  }
+}
 
 function getDefaultSearchForMode(mode: SearchMode | null): string {
   if (!mode) return ''
@@ -1561,7 +1601,8 @@ Ainda tem disponível?`
                     key={mode}
                     type="button"
                     onClick={() => {
-                      if (searchMode !== mode) setSearchMode(mode)
+                      if (searchMode === mode) setSearchMode(null)
+                      else setSearchMode(mode)
                     }}
                     className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-4 rounded-lg border-2 text-sm font-semibold transition-all ${
                       searchMode === mode
@@ -1884,30 +1925,36 @@ Ainda tem disponível?`
             <div className="relative min-w-0">
               <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
                 <Palette className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
-                <span className="truncate">Cor</span>
+                <span className="truncate">Cores</span>
               </label>
-              <div className="relative">
-                <select
-                  value={selectedColor}
-                  onChange={(e) => setSelectedColor(e.target.value)}
-                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
+              <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 overflow-hidden max-h-[11rem] overflow-y-auto">
+                <button
+                  type="button"
+                  onClick={() => setSelectedColor('')}
+                  title="Todas as cores"
+                  className={`w-full flex items-center justify-center py-2.5 border-b border-gray-100 dark:border-white/10 transition-colors ${
+                    !selectedColor ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                  }`}
                 >
-                  <option value="">Todas as Cores</option>
-                  {dynamicFilters.colors.length > 0 ? (
-                    dynamicFilters.colors.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))
-                  ) : (
-                    OFFICIAL_COLORS.map((color) => (
-                      <option key={color} value={color}>
-                        {color}
-                      </option>
-                    ))
-                  )}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
+                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Todas
+                  </span>
+                </button>
+                {(dynamicFilters.colors.length > 0 ? dynamicFilters.colors : OFFICIAL_COLORS).map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setSelectedColor(color)}
+                    title={color}
+                    className={`w-full flex items-center justify-center py-2.5 border-b border-gray-100 dark:border-white/5 last:border-0 transition-colors ${
+                      selectedColor === color
+                        ? 'bg-blue-50 dark:bg-blue-950/40'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <ProductColorSwatch normalizedLabel={color} size="md" />
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -2113,7 +2160,7 @@ Ainda tem disponível?`
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto max-w-full">
                   <table className="w-full min-w-max table-auto">
-                    <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-white/10">
+                    <thead className="sticky top-20 z-30 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-white/10">
                       <tr>
                         <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[180px]">
                           <div className="flex items-center space-x-1">
@@ -2223,9 +2270,7 @@ Ainda tem disponível?`
                               {parseRamFromProduct(product) || '—'}
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
-                                {normalizeColor(product.color, product.model || product.name)}
-                              </span>
+                              <ProductColorSwatch {...productSwatchProps(product, searchMode)} />
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80 font-semibold tracking-wide">
                               {(() => {
@@ -2354,9 +2399,8 @@ Ainda tem disponível?`
                             <BarChart3 className="w-3 h-3 mr-1" />
                             {normalizeStorage(product.storage) || 'N/A'}
                           </span>
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 dark:bg-purple-500/30 text-purple-700 dark:text-purple-200 border border-purple-300 dark:border-purple-400/30">
-                            <Palette className="w-3 h-3 mr-1" />
-                            {normalizeColor(product.color, product.model || product.name)}
+                          <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/15">
+                            <ProductColorSwatch size="sm" {...productSwatchProps(product, searchMode)} />
                           </span>
                           {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
