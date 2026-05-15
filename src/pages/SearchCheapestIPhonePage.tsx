@@ -1660,9 +1660,9 @@ Ainda tem disponível?`
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div ref={searchWorkspaceRef} className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Topo estilo concorrente: cards + busca + modos + banner */}
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-          <motion.div layout className="order-1 xl:col-span-7 space-y-3">
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
+        <div className="space-y-3">
+          <motion.div layout className="space-y-3">
+            <motion.div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 auto-rows-min">
               <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Produtos</p>
@@ -1696,7 +1696,12 @@ Ainda tem disponível?`
                   <AnimatedNumber value={totalWithoutListToday} />
                 </p>
               </div>
-            </div>
+              <ReferralProgramCard
+                className="col-span-2 sm:col-span-1"
+                userName={authUser?.nome || authUser?.name}
+                userEmail={authUser?.email}
+              />
+            </motion.div>
 
             <div ref={searchInputRef} className="relative z-30 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-sm overflow-visible">
               <div className="p-3 sm:p-4 pb-2 sm:pb-3">
@@ -1771,11 +1776,6 @@ Ainda tem disponível?`
             ) : null}
           </motion.div>
 
-          <ReferralProgramCard
-            className="order-2 xl:col-span-5"
-            userName={authUser?.nome || authUser?.name}
-            userEmail={authUser?.email}
-          />
         </div>
 
         {/* Update status and filters */}
