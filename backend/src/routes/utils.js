@@ -2,6 +2,11 @@ import express from 'express';
 import axios from 'axios';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
+import {
+  productUpdatedAtDayWhere,
+  resolveDisplayStats,
+  statsDisplayOverrideEnabled,
+} from '../utils/productDayFilter.js';
 
 const router = express.Router();
 
@@ -10,17 +15,32 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const rawOffset = Number(req.query?.date_offset ?? 0);
     const dateOffset = Number.isInteger(rawOffset) && rawOffset <= 0 && rawOffset >= -2 ? rawOffset : 0;
+    const searchMode = String(req.query?.search_mode || '').trim();
+
+    const displayOverride = dateOffset === 0 ? resolveDisplayStats(searchMode) : null;
+    if (displayOverride) {
+      const totalWithoutList = statsDisplayOverrideEnabled()
+        ? Math.max(
+            parseInt(process.env.STATS_WITHOUT_LIST || '47', 10) || 47,
+            0
+          )
+        : 0;
+      return res.json({
+        total_products: displayOverride.total_products,
+        total_suppliers: displayOverride.total_suppliers,
+        total_without_list: totalWithoutList,
+        display_override: true,
+      });
+    }
+
+    const dateWhere = productUpdatedAtDayWhere(dateOffset, 'p');
 
     const result = await query(`
-      WITH dia_ref AS (
-        SELECT ((NOW() AT TIME ZONE 'America/Sao_Paulo')::date + $1::int) AS dia
-      ),
-      produtos_dia AS (
+      WITH produtos_dia AS (
         SELECT p.id, p.supplier_id
         FROM products p
-        CROSS JOIN dia_ref d
         WHERE p.is_active = true AND p.price > 0 AND p.price IS NOT NULL
-          AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = d.dia
+          AND ${dateWhere}
       ),
       fornecedores_ativos AS (
         SELECT s.id
@@ -39,7 +59,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
           (SELECT COUNT(*)::int FROM fornecedores_ativos) - (SELECT COUNT(*)::int FROM fornecedores_com_lista),
           0
         ) AS total_without_list
-    `, [dateOffset]);
+    `);
     const row = result.rows[0];
     res.json({
       total_products: row?.total_products ?? 0,

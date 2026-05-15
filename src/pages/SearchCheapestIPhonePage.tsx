@@ -1197,18 +1197,28 @@ Ainda tem disponível?`
   })
 
   const todayStatsQuery = useQuery({
-    queryKey: ['stats-dia', selectedDateOffset],
-    queryFn: () => utilsApi.getGlobalStats(selectedDateOffset),
+    queryKey: ['stats-dia', selectedDateOffset, searchMode ?? 'all'],
+    queryFn: () => utilsApi.getGlobalStats(selectedDateOffset, searchMode),
     staleTime: 15000,
     refetchInterval: 15000,
     refetchOnWindowFocus: true
   })
 
-  const totalProductsToday = todayStatsQuery.data?.total_products ?? 0
-  const totalSuppliersToday = todayStatsQuery.data?.total_suppliers ?? 0
-  const totalWithoutListToday = (todayStatsQuery.data as any)?.total_without_list ?? 0
-  const displayTopProducts = searchMode ? stats.total : totalProductsToday
-  const displayTopSuppliers = searchMode ? stats.suppliersCount : totalSuppliersToday
+  const statsFromApi = todayStatsQuery.data
+  const useDisplayStatsOverride = statsFromApi?.display_override === true
+  const totalProductsToday = statsFromApi?.total_products ?? 0
+  const totalSuppliersToday = statsFromApi?.total_suppliers ?? 0
+  const totalWithoutListToday = statsFromApi?.total_without_list ?? 0
+  const displayTopProducts = useDisplayStatsOverride
+    ? totalProductsToday
+    : searchMode
+      ? stats.total
+      : totalProductsToday
+  const displayTopSuppliers = useDisplayStatsOverride
+    ? totalSuppliersToday
+    : searchMode
+      ? stats.suppliersCount
+      : totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">

@@ -3,6 +3,7 @@ import { body, validationResult, query as queryValidator } from 'express-validat
 import { query } from '../config/database.js';
 import { requireSubscription } from '../middleware/auth.js';
 import { normalizeColor } from '../utils/colorNormalizer.js';
+import { productUpdatedAtDayWhere } from '../utils/productDayFilter.js';
 
 const router = express.Router();
 
@@ -341,11 +342,7 @@ router.get('/', [
 
     if (cleanDateOffset !== null && Number.isFinite(cleanDateOffset)) {
       const offsetInt = Math.trunc(cleanDateOffset);
-      const targetExpr = `(${todaySP} + ${offsetInt})`;
-
-      whereClause += ` AND (
-        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetExpr}
-      )`;
+      whereClause += ` AND (${productUpdatedAtDayWhere(offsetInt, 'p')})`;
 
       usedDate = offsetInt;
       usedDateLabel = offsetInt === 0 ? 'today' : offsetInt === -1 ? 'yesterday' : 'day_before';
@@ -360,10 +357,7 @@ router.get('/', [
       usedDate = cleanDate;
       usedDateLabel = 'custom';
     } else {
-      // Por padrão: apenas HOJE (SP)
-      whereClause += ` AND (
-        (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${todaySP}
-      )`;
+      whereClause += ` AND (${productUpdatedAtDayWhere(0, 'p')})`;
       usedDate = 'today';
       usedDateLabel = 'today';
     }
@@ -451,8 +445,17 @@ router.get('/price-averages', async (req, res) => {
 
   const lacradoAppleIphone = [...lacradoCore, detailLacradoOnly]
 
-  const dateExact = `(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetDateExpr}`
-  const dateRolling3 = `(
+  const dateExact =
+    dateOffsetInt === 0
+      ? productUpdatedAtDayWhere(0, 'p')
+      : `(p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ${targetDateExpr}`
+  const dateRolling3 =
+    dateOffsetInt === 0
+      ? `(
+    (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date <= ${targetDateExpr}
+    AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ((${targetDateExpr}) - 2)
+  ) OR (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = ((${todaySP}) - 1)`
+      : `(
     (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date <= ${targetDateExpr}
     AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date >= ((${targetDateExpr}) - 2)
   )`

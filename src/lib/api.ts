@@ -288,8 +288,21 @@ export const utilsApi = {
     const response = await api.get('/health')
     return response.data
   },
-  getGlobalStats: async (dateOffset: 0 | -1 | -2 = 0): Promise<{ total_products: number; total_suppliers: number }> => {
-    const response = await api.get('/utils/stats', { params: { date_offset: dateOffset } })
+  getGlobalStats: async (
+    dateOffset: 0 | -1 | -2 = 0,
+    searchMode?: string | null
+  ): Promise<{
+    total_products: number
+    total_suppliers: number
+    total_without_list?: number
+    display_override?: boolean
+  }> => {
+    const response = await api.get('/utils/stats', {
+      params: {
+        date_offset: dateOffset,
+        ...(searchMode ? { search_mode: searchMode } : {}),
+      },
+    })
     return response.data
   }
 }
