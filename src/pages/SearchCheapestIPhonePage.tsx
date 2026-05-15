@@ -50,6 +50,8 @@ import { IPHONE_PRICE_TABLE_ORDER, matchIphonePriceTableLabel } from '@/lib/ipho
 import { normalizeColor } from './colorNormalizer'
 import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
 import { isAccessoryProduct } from '@/lib/productColorSwatch'
+import ReferralProgramCard from '@/components/referral/ReferralProgramCard'
+import { useAuthStore } from '@/stores/authStore'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
 const OFFICIAL_COLORS = ['Preto', 'Branco', 'Azul-névoa', 'Lavanda', 'Sálvia']
@@ -1129,6 +1131,7 @@ function getDefaultSearchForMode(mode: SearchMode | null): string {
 export default function SearchCheapestIPhonePage({ initialSearchMode }: { initialSearchMode?: SearchMode }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
+  const authUser = useAuthStore((s) => s.user)
 
   const modeFromUrl = searchParams.get('mode')
   const searchModeFromUrl = (): SearchMode | null => {
@@ -1768,33 +1771,11 @@ Ainda tem disponível?`
             ) : null}
           </motion.div>
 
-          <div className="order-2 xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[120px] xl:min-h-[210px]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-white/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30">
-                  <Users className="w-3.5 h-3.5" />
-                  Programa de indicacao
-                </div>
-                <h3 className="mt-3 text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                  Indique e ganhe R$ 50,00 de desconto na mensalidade
-                </h3>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300 hidden sm:block">
-                  Traga um lojista para o iGestorPhone e receba desconto no proximo ciclo.
-                </p>
-              </div>
-              <span className="hidden sm:inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border border-emerald-300/50 dark:border-emerald-400/30">
-                <Users className="w-6 h-6" />
-              </span>
-            </div>
-            <div className="mt-4">
-              <button
-                type="button"
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-colors"
-              >
-                Quero indicar
-              </button>
-            </div>
-          </div>
+          <ReferralProgramCard
+            className="order-2 xl:col-span-5"
+            userName={authUser?.nome || authUser?.name}
+            userEmail={authUser?.email}
+          />
         </div>
 
         {/* Update status and filters */}
