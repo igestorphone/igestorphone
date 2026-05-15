@@ -646,6 +646,8 @@ function SearchInputDebounced({
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const activeIdxRef = useRef(-1)
+  /** Evita reabrir o painel logo após escolher um modelo no autocomplete. */
+  const suppressPanelOpenRef = useRef(false)
   useEffect(() => {
     activeIdxRef.current = activeIdx
   }, [activeIdx])
@@ -668,6 +670,7 @@ function SearchInputDebounced({
 
   useEffect(() => {
     setActiveIdx(-1)
+    if (suppressPanelOpenRef.current) return
     if (canShowPanel) setPanelOpen(true)
   }, [localValue, matches.length, acMode, canShowPanel])
 
@@ -840,6 +843,7 @@ function SearchInputDebounced({
 
   const pickSuggestion = (value: string) => {
     const v = value.trim()
+    suppressPanelOpenRef.current = true
     setLocalValue(v)
     setActiveIdx(-1)
     setPanelOpen(false)
@@ -875,6 +879,10 @@ function SearchInputDebounced({
                     }`}
                     onMouseEnter={() => setActiveIdx(i)}
                     onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                    }}
+                    onClick={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
                       pickSuggestion(entry.label)
@@ -958,8 +966,12 @@ function SearchInputDebounced({
         aria-autocomplete="list"
         placeholder={showTypingEffect ? ' ' : placeholder}
         value={localValue}
-        onChange={(e) => setLocalValue(e.target.value)}
+        onChange={(e) => {
+          suppressPanelOpenRef.current = false
+          setLocalValue(e.target.value)
+        }}
         onFocus={() => {
+          if (suppressPanelOpenRef.current) return
           if (queryTrimmed.length >= 1) setPanelOpen(true)
         }}
         onKeyDown={(e) => {
