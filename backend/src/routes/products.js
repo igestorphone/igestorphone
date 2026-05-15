@@ -292,7 +292,8 @@ router.get('/', [
     // Filtro por tipo de condição (lacrados_novos ou seminovos)
     if (cleanConditionType) {
       if (cleanConditionType === 'lacrados_novos') {
-        // Lacrado na busca = mesmo critério da média: só LACRADO ou NOVO explícito (sem CPO, sem detalhe vazio).
+        // Lacrado = mesmo critério da média de preços: Novo + detail LACRADO/NOVO + anti-seminovo no texto.
+        whereClause += ` AND p.condition = 'Novo'`;
         whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`;
         const listingBlob =
           `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`;

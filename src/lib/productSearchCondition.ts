@@ -15,8 +15,10 @@ const SEMINOVO_DETAILS = new Set([
   'CPO',
 ])
 
+const SEMINOVO_CONDITIONS = new Set(['seminovo', 'usado', 'recondicionado'])
+
 const SEMINOVO_LISTING_RE =
-  /seminovo|semi[\s-]*novo|recondicionado|pré[\s-]*usado|vitrine|swap|open\s*box|mostru[aá]rio|\bdisplay\b|non\s*active|\bcpo\b|\b2nd\b|second\s*hand|\busad[oa]\b|\bused\b|(?:^|[^\d,.])(8\d|9\d)\s*%/i
+  /seminovo|semi[\s-]*novo|recondicionado|pré[\s-]*usado|pré-usado|vitrine|swap|open\s*box|mostru[aá]rio|\bdisplay\b|non\s*active|\bcpo\b|\b2nd\b|second\s*hand|\busad[oa]\b|\bused\b|refurb|outlet|\bgrade\s*[abc]\b|(?:^|[^\d,.])(8\d|9\d)\s*%/i
 
 const VARIANT_SEMINOVO_RE = /swap|vitrine|seminovo|cpo|asis|recondicionado|non\s*active/i
 
@@ -43,6 +45,7 @@ export function hasSeminovoListingSignals(product: {
   return variant.length > 0 && VARIANT_SEMINOVO_RE.test(variant)
 }
 
+/** Lacrado = só condition_detail LACRADO ou NOVO, sem sinais de seminovo no anúncio. */
 export function isLacradoProduct(product: {
   condition?: string | null
   condition_detail?: string | null
@@ -53,11 +56,13 @@ export function isLacradoProduct(product: {
   variant?: string | null
 }): boolean {
   const detail = (product.condition_detail || '').trim().toUpperCase()
-  if (detail && !LACRADO_DETAILS.has(detail)) return false
-  if (hasSeminovoListingSignals(product)) return false
-  if (detail && LACRADO_DETAILS.has(detail)) return true
   const cond = (product.condition || '').trim().toLowerCase()
-  return cond === 'novo' && !detail
+
+  if (SEMINOVO_CONDITIONS.has(cond)) return false
+  if (detail && SEMINOVO_DETAILS.has(detail)) return false
+  if (hasSeminovoListingSignals(product)) return false
+  if (!detail || !LACRADO_DETAILS.has(detail)) return false
+  return true
 }
 
 export function isSeminovoProduct(product: {
@@ -71,11 +76,11 @@ export function isSeminovoProduct(product: {
 }): boolean {
   const detail = (product.condition_detail || '').trim().toUpperCase()
   if (detail && LACRADO_DETAILS.has(detail)) return false
-  if (detail && SEMINOVO_DETAILS.has(detail)) return true
+
   const cond = (product.condition || '').trim().toLowerCase()
-  if (cond === 'seminovo' && !detail) return true
-  if (hasSeminovoListingSignals(product)) return true
-  return false
+  if (SEMINOVO_CONDITIONS.has(cond)) return true
+  if (detail && SEMINOVO_DETAILS.has(detail)) return true
+  return hasSeminovoListingSignals(product)
 }
 
 export function matchesProductSearchMode(

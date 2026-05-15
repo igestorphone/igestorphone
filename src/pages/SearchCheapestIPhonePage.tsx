@@ -376,22 +376,6 @@ const TYPING_SUGGESTIONS: Record<string, string[]> = {
   android: ['Samsung Galaxy', 'Xiaomi', 'Motorola Edge']
 }
 
-const APPLE_AUTOCOMPLETE_POOL: string[] = [
-  ...IPHONE_PRICE_TABLE_ORDER,
-  'MacBook Air',
-  'MacBook Pro',
-  'MacBook',
-  'iPad',
-  'iPad mini',
-  'iPad Air',
-  'iPad Pro',
-  'AirPods',
-  'AirPods Pro',
-  'AirPods Max',
-  'Apple Watch',
-  'Apple Watch Ultra',
-]
-
 const ANDROID_AUTOCOMPLETE_POOL: string[] = [
   'Samsung Galaxy S24 Ultra',
   'Samsung Galaxy S24',
@@ -406,15 +390,59 @@ const ANDROID_AUTOCOMPLETE_POOL: string[] = [
   'OnePlus',
 ]
 
-function getAutocompleteSubtitle(label: string, mode: 'apple' | 'android'): string {
+function iphoneGeneration(label: string): number | null {
+  const m = label.match(/iphone\s*(\d+)/i)
+  return m ? parseInt(m[1], 10) : null
+}
+
+const LACRADO_IPHONE_POOL = IPHONE_PRICE_TABLE_ORDER.filter((label) => {
+  const gen = iphoneGeneration(label)
+  return gen === null || gen >= 14
+})
+
+const SEMINOVO_IPHONE_POOL = IPHONE_PRICE_TABLE_ORDER.filter((label) => {
+  const gen = iphoneGeneration(label)
+  return gen === null || (gen >= 11 && gen <= 15)
+})
+
+const LACRADO_APPLE_POOL: string[] = [
+  ...LACRADO_IPHONE_POOL,
+  'MacBook Air',
+  'MacBook Pro',
+  'MacBook',
+  'iPad',
+  'iPad mini',
+  'iPad Air',
+  'iPad Pro',
+  'AirPods',
+  'AirPods Pro',
+  'AirPods Max',
+  'Apple Watch',
+  'Apple Watch Ultra',
+]
+
+const SEMINOVO_APPLE_POOL: string[] = [
+  ...SEMINOVO_IPHONE_POOL,
+  'MacBook Air',
+  'iPad',
+  'AirPods',
+  'Apple Watch',
+]
+
+function getAutocompleteSubtitle(label: string, mode: 'android' | 'lacrado' | 'seminovo'): string {
   if (mode === 'android') return 'Android'
-  const s = label.toLowerCase()
-  if (s.includes('iphone')) return 'iPhone'
-  if (s.includes('macbook')) return 'Mac'
-  if (s.includes('ipad')) return 'iPad'
-  if (s.includes('airpods')) return 'Áudio'
-  if (s.includes('watch')) return 'Watch'
-  return 'Apple'
+  const kind = (() => {
+    const s = label.toLowerCase()
+    if (s.includes('iphone')) return 'iPhone'
+    if (s.includes('macbook')) return 'Mac'
+    if (s.includes('ipad')) return 'iPad'
+    if (s.includes('airpods')) return 'Áudio'
+    if (s.includes('watch')) return 'Watch'
+    return 'Apple'
+  })()
+  if (mode === 'lacrado') return `Lacrado · ${kind}`
+  if (mode === 'seminovo') return `Semi-novo · ${kind}`
+  return kind
 }
 
 function autocompleteRank(label: string, q: string): number {
@@ -433,10 +461,19 @@ function autocompleteRank(label: string, q: string): number {
   return 99
 }
 
-function filterAutocompleteModels(query: string, mode: 'apple' | 'android', limit = 10): string[] {
+function filterAutocompleteModels(
+  query: string,
+  mode: 'android' | 'lacrado' | 'seminovo',
+  limit = 10
+): string[] {
   const q = query.trim()
   if (!q) return []
-  const pool = mode === 'android' ? ANDROID_AUTOCOMPLETE_POOL : APPLE_AUTOCOMPLETE_POOL
+  const pool =
+    mode === 'android'
+      ? ANDROID_AUTOCOMPLETE_POOL
+      : mode === 'seminovo'
+        ? SEMINOVO_APPLE_POOL
+        : LACRADO_APPLE_POOL
   const ranked = pool
     .map((label) => ({ label, r: autocompleteRank(label, q) }))
     .filter((x) => x.r < 90)
@@ -467,7 +504,8 @@ function SearchInputDebounced({
   typingSuggestions?: string[]
   searchMode?: string
 }) {
-  const acMode: 'apple' | 'android' = searchMode === 'android' ? 'android' : 'apple'
+  const acMode: 'android' | 'lacrado' | 'seminovo' =
+    searchMode === 'android' ? 'android' : searchMode === 'seminovo' ? 'seminovo' : 'lacrado'
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
