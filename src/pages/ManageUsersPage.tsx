@@ -920,7 +920,7 @@ export default function ManageUsersPage() {
                     <span>Aprovar</span>
                   </button>
                 </div>
-              </div>
+              </motion.div>
             ))
           )}
         </div>

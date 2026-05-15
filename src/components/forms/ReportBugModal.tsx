@@ -285,7 +285,7 @@ export default function ReportBugModal({ isOpen, onClose }: ReportBugModalProps)
               </form>
             </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   )
