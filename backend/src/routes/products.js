@@ -294,6 +294,10 @@ router.get('/', [
       if (cleanConditionType === 'lacrados_novos') {
         // Lacrado na busca = mesmo critério da média: só LACRADO ou NOVO explícito (sem CPO, sem detalhe vazio).
         whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`;
+        const listingBlob =
+          `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`;
+        whereClause += ` AND NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|recondicionado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]cpo[[:>:]]|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`;
+        whereClause += ` AND (COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|cpo|asis|recondicionado)'))`;
       } else if (cleanConditionType === 'seminovos') {
         whereClause += ` AND (
           p.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')

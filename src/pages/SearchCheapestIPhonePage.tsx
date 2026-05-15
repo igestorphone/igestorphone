@@ -44,6 +44,7 @@ import {
   ANDROID_CATEGORY_ORDER,
   type CategorySearchMode,
 } from '@/lib/productCategoryCodes'
+import { matchesProductSearchMode } from '@/lib/productSearchCondition'
 import toast from 'react-hot-toast'
 import { IPHONE_PRICE_TABLE_ORDER } from '@/lib/iphoneAveragePriceCatalog'
 import { normalizeColor } from './colorNormalizer'
@@ -455,11 +456,13 @@ function filterAutocompleteModels(query: string, mode: 'apple' | 'android', limi
 // Input de busca com estado local + efeito de digitação quando vazio + autocomplete de modelos
 function SearchInputDebounced({
   onDebouncedChange,
+  onPick,
   placeholder = 'Buscar produtos...',
   typingSuggestions,
   searchMode = 'novo'
 }: {
   onDebouncedChange: (value: string) => void
+  onPick?: (value: string) => void
   placeholder?: string
   typingSuggestions?: string[]
   searchMode?: string
@@ -468,8 +471,9 @@ function SearchInputDebounced({
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
-  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const activeIdxRef = useRef(-1)
   useEffect(() => {
     activeIdxRef.current = activeIdx
@@ -501,14 +505,28 @@ function SearchInputDebounced({
       const el = rootRef.current
       if (!el) return
       const r = el.getBoundingClientRect()
-      setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width })
+      const vv = window.visualViewport
+      const viewportTop = vv?.offsetTop ?? 0
+      const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+      const spaceBelow = viewportBottom - r.bottom - 10
+      const spaceAbove = r.top - viewportTop - 10
+      const maxHeight = Math.min(280, Math.max(120, Math.max(spaceBelow, spaceAbove) - 8))
+      const placeAbove = spaceBelow < 140 && spaceAbove > spaceBelow
+      const top = placeAbove
+        ? Math.max(viewportTop + 4, r.top - maxHeight - 6)
+        : r.bottom + 6
+      setPanelPos({ top, left: r.left, width: r.width, maxHeight })
     }
     update()
     window.addEventListener('scroll', update, true)
     window.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
     return () => {
       window.removeEventListener('scroll', update, true)
       window.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
     }
   }, [showPanel, localValue, matches.length])
 
@@ -560,6 +578,8 @@ function SearchInputDebounced({
     setActiveIdx(-1)
     setPanelPos(null)
     onDebouncedChange(v)
+    inputRef.current?.blur()
+    onPick?.(v)
   }
 
   const autocompletePanel =
@@ -570,7 +590,12 @@ function SearchInputDebounced({
         initial={{ opacity: 0, y: -4 }}
         animate={{ opacity: 1, y: 0 }}
         className="fixed z-[200] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden max-h-[min(70vh,22rem)] overflow-y-auto"
-        style={{ top: panelPos.top, left: panelPos.left, width: panelPos.width }}
+        style={{
+          top: panelPos.top,
+          left: panelPos.left,
+          width: panelPos.width,
+          maxHeight: panelPos.maxHeight,
+        }}
       >
         <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
           <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -618,6 +643,7 @@ function SearchInputDebounced({
     <div ref={rootRef} className="relative z-30">
       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 z-10 pointer-events-none" />
       <input
+        ref={inputRef}
         type="text"
         inputMode="search"
         autoComplete="off"
@@ -628,6 +654,11 @@ function SearchInputDebounced({
         placeholder={showTypingEffect ? ' ' : placeholder}
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
+        onFocus={() => {
+          if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+            rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown' && showPanel && matches.length > 0) {
             e.preventDefault()
@@ -777,10 +808,12 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }, []) // eslint-disable-line react-hooks/exhaustive-deps -- só na entrada
 
   const setSearchMode = (mode: SearchMode | null) => {
+    const prev = debouncedSearch.trim()
+    const prevDefault = getDefaultSearchForMode(searchMode).trim()
     setSearchModeState(mode)
     if (mode) setSearchParams({ mode }, { replace: true })
     else setSearchParams({}, { replace: true })
-    setDebouncedSearch(getDefaultSearchForMode(mode))
+    if (!prev || prev === prevDefault) setDebouncedSearch(getDefaultSearchForMode(mode))
   }
 
   const [debouncedSearch, setDebouncedSearch] = useState(() => getDefaultSearchForMode(searchMode))
@@ -831,6 +864,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const searchInputRef = useRef<HTMLDivElement>(null)
   const filtersPanelRef = useRef<HTMLDivElement>(null)
   const searchWorkspaceRef = useRef<HTMLDivElement>(null)
+  const resultsSectionRef = useRef<HTMLDivElement>(null)
+  const [activeSearchLabel, setActiveSearchLabel] = useState('')
 
   useEffect(() => {
     if (queryReady) return
@@ -868,10 +903,13 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
     const handleOutsideModeChips = (event: MouseEvent) => {
       const target = event.target as Node
+      const el = event.target as Element
+      const clickedAutocomplete = !!el?.closest?.('#search-autocomplete-listbox')
       const clickedModeChips = !!modeChipsRef.current?.contains(target)
       const clickedSearchInput = !!searchInputRef.current?.contains(target)
       const clickedFiltersPanel = !!filtersPanelRef.current?.contains(target)
       const clickedSearchWorkspace = !!searchWorkspaceRef.current?.contains(target)
+      if (clickedAutocomplete) return
       if (!clickedModeChips && !clickedSearchInput && !clickedFiltersPanel && !clickedSearchWorkspace) {
         setSearchModeState(null)
         setSearchParams({}, { replace: true })
@@ -984,6 +1022,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     let products = productsQuery.data || []
     if (searchMode === 'novo' || searchMode === 'seminovo') {
       products = products.filter((p: any) => !isLikelyNonAppleDevice(p))
+    }
+    if (searchMode === 'novo' || searchMode === 'seminovo') {
+      products = products.filter((p: any) => matchesProductSearchMode(p, searchMode))
     }
     const colors = new Set<string>()
     const storages = new Set<string>()
@@ -1102,10 +1143,32 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     }
   }, [productsQuery.data, debouncedSearch, searchMode])
 
+  const handleSearchPick = (term: string) => {
+    const v = term.trim()
+    setDebouncedSearch(v)
+    setActiveSearchLabel(v)
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
+      setShowFiltersMobile(false)
+    }
+    window.setTimeout(() => {
+      searchInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      resultsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 80)
+  }
+
+  useEffect(() => {
+    const t = debouncedSearch.trim()
+    if (t.length >= 2) setActiveSearchLabel(t)
+    else if (!t) setActiveSearchLabel('')
+  }, [debouncedSearch])
+
   const filteredProducts = useMemo(() => {
     let all = productsQuery.data || []
     if (searchMode === 'novo' || searchMode === 'seminovo') {
       all = all.filter((p: any) => !isLikelyNonAppleDevice(p))
+    }
+    if (searchMode === 'novo' || searchMode === 'seminovo') {
+      all = all.filter((p: any) => matchesProductSearchMode(p, searchMode))
     }
     const searchLower = debouncedSearch.toLowerCase().trim()
     const modeForCategory: CategorySearchMode =
@@ -1316,6 +1379,7 @@ Ainda tem disponível?`
               <SearchInputDebounced
                 key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
+                onPick={handleSearchPick}
                 searchMode={searchMode ?? 'all'}
                 placeholder={
                   searchMode === 'android'
@@ -1339,7 +1403,9 @@ Ainda tem disponível?`
                   <button
                     key={mode}
                     type="button"
-                    onClick={() => setSearchMode(searchMode === mode ? null : mode)}
+                    onClick={() => {
+                      if (searchMode !== mode) setSearchMode(mode)
+                    }}
                     className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-4 rounded-lg border-2 text-sm font-semibold transition-all ${
                       searchMode === mode
                         ? `${activeClass} shadow-sm`
@@ -1352,6 +1418,32 @@ Ainda tem disponível?`
                 ))}
               </div>
             </div>
+
+            {activeSearchLabel.length >= 2 ? (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-blue-200 dark:border-blue-500/30 bg-blue-50/90 dark:bg-blue-950/30 px-3 py-2.5"
+              >
+                <Search className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-tight">
+                  {activeSearchLabel}
+                </span>
+                {searchMode ? (
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                      searchMode === 'novo'
+                        ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                        : searchMode === 'seminovo'
+                          ? 'bg-emerald-600 text-white'
+                          : 'bg-green-600 text-white'
+                    }`}
+                  >
+                    {searchMode === 'novo' ? 'Lacrado' : searchMode === 'seminovo' ? 'Semi-novo' : 'Android'}
+                  </span>
+                ) : null}
+              </motion.div>
+            ) : null}
           </div>
 
           <div className="order-1 xl:order-2 xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[180px] sm:min-h-[210px]">
@@ -1762,6 +1854,7 @@ Ainda tem disponível?`
 
         {/* Results */}
         <motion.div
+          ref={resultsSectionRef}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -1800,7 +1893,7 @@ Ainda tem disponível?`
                 <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Erro ao buscar produtos</p>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">{(productsQuery.error as any)?.message || 'Erro desconhecido'}</p>
               </motion.div>
-            ) : !productsQuery.data || productsQuery.data.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0, scale: 0.95 }}
