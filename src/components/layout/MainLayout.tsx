@@ -76,7 +76,7 @@ export default function MainLayout() {
         }}
       >
         <Header />
-        <main className="flex-1 overflow-x-hidden w-full max-w-full">
+        <main className="flex-1 overflow-x-hidden w-full max-w-full pt-16 sm:pt-20 lg:pt-0">
           <Outlet />
         </main>
       </div>

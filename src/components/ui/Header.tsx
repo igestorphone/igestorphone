@@ -52,10 +52,21 @@ export default function Header() {
   }
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    const readScroll = () => {
+      const y =
+        window.scrollY ||
+        document.documentElement.scrollTop ||
+        document.body.scrollTop ||
+        0
+      setScrolled(y > 4)
+    }
+    readScroll()
+    window.addEventListener('scroll', readScroll, { passive: true })
+    document.addEventListener('scroll', readScroll, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', readScroll)
+      document.removeEventListener('scroll', readScroll)
+    }
   }, [])
 
   // Calcular posição do dropdown quando abrir
@@ -180,14 +191,14 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 transition-all duration-300 ${
+      className={`z-50 transition-[background-color,box-shadow,border-color,backdrop-filter] duration-300 max-lg:fixed max-lg:top-0 max-lg:left-0 max-lg:right-0 max-lg:pt-[env(safe-area-inset-top,0px)] lg:sticky lg:top-0 ${
         scrolled
-          ? 'bg-white/70 dark:bg-black/55 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-md'
+          ? 'bg-white/80 dark:bg-black/45 backdrop-blur-xl border-b border-gray-200/60 dark:border-white/10 shadow-md'
           : 'bg-white dark:bg-black border-b border-gray-200 dark:border-white/10 shadow-lg dark:shadow-2xl'
       }`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 relative">
+        <div className="flex items-center justify-between h-16 sm:h-20 relative">
           {/* Left side */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {/* Mobile menu button - min 44px tap target (iOS) */}
