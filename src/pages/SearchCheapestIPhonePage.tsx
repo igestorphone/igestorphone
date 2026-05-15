@@ -2154,45 +2154,45 @@ Ainda tem disponível?`
                 {/* Desktop Table View */}
                 <div className="hidden md:block overflow-x-auto max-w-full">
                   <table className="w-full min-w-max table-auto">
-                    <thead className="sticky top-20 z-30 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-white/10">
+                    <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-white/10">
                       <tr>
                         <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[180px]">
                           <div className="flex items-center space-x-1">
-                            <Package className="w-3 h-3" />
+                            <Package className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                             <span>Produto</span>
                           </div>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[120px]">
                           <div className="flex items-center space-x-1">
-                            <ShoppingCart className="w-3 h-3" />
+                            <ShoppingCart className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                             <span>Fornecedor</span>
                           </div>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[100px]">
                           <div className="flex items-center space-x-1">
-                            <BarChart3 className="w-3 h-3" />
+                            <BarChart3 className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                             <span>Storage</span>
                           </div>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[80px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[80px]">
                           <span>RAM</span>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[100px]">
                           <div className="flex items-center space-x-1">
-                            <Palette className="w-3 h-3" />
+                            <Palette className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                             <span>Cor</span>
                           </div>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[100px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[100px]">
                           <div className="flex items-center space-x-1">
-                            <Building2 className="w-3 h-3" />
+                            <Building2 className="w-3 h-3 text-gray-600 dark:text-gray-300" />
                             <span>Categoria</span>
                           </div>
                         </th>
-                        <th className="px-2 py-3 text-left text-xs font-bold text-white uppercase tracking-wider min-w-[120px]">
+                        <th className="px-2 py-3 text-left text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[120px]">
                           <span>Preço</span>
                         </th>
-                        <th className="px-2 py-3 text-center text-xs font-bold text-white uppercase tracking-wider min-w-[140px]">
+                        <th className="px-2 py-3 text-center text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wider min-w-[140px]">
                           Ações
                         </th>
                       </tr>

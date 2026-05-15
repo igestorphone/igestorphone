@@ -31,8 +31,13 @@ export default function ProductColorSwatch({
 
   const dim =
     size === 'sm' ? 'h-3.5 w-3.5' : size === 'lg' ? 'h-6 w-6' : 'h-5 w-5'
-  const needsRing =
-    hex === '#f5f5f7' || hex === '#f5f0e8' || hex === '#e8e6e3' || hex === '#f2f2f7'
+  const isLightFill =
+    hex === '#f5f5f7' ||
+    hex === '#f5f0e8' ||
+    hex === '#e8e6e3' ||
+    hex === '#f2f2f7' ||
+    hex === '#d4d4d8'
+  const isMutedFill = hex === '#9ca3af'
 
   return (
     <span
@@ -40,10 +45,12 @@ export default function ProductColorSwatch({
       title={title}
     >
       <span
-        className={`${dim} shrink-0 rounded-full border shadow-sm ${
-          needsRing
-            ? 'border-gray-300 dark:border-white/30'
-            : 'border-black/15 dark:border-white/20'
+        className={`${dim} shrink-0 rounded-full border-2 shadow-sm ${
+          isLightFill
+            ? 'border-gray-500 dark:border-white/35'
+            : isMutedFill
+              ? 'border-gray-500 dark:border-white/30'
+              : 'border-gray-400/90 dark:border-white/25'
         }`}
         style={{ backgroundColor: hex }}
         role="img"
