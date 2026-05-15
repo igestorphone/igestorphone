@@ -881,12 +881,12 @@ export default function ManageUsersPage() {
           {pendingLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-white/70">Carregando usuários pendentes...</p>
+              <p className="text-gray-600 dark:text-white/70">Carregando usuários pendentes...</p>
             </div>
           ) : pendingUsers.length === 0 ? (
             <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-12 text-center">
-              <CheckCircle2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
-              <p className="text-white/70">Nenhum usuário pendente de aprovação.</p>
+              <CheckCircle2 className="w-16 h-16 text-gray-300 dark:text-white/30 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-white/70">Nenhum usuário pendente de aprovação.</p>
             </div>
           ) : (
             pendingUsers.map((pendingUser) => (
@@ -896,15 +896,15 @@ export default function ManageUsersPage() {
                 animate={{ opacity: 1, y: 0 }}
                 className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full flex items-center justify-center">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center space-x-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full flex items-center justify-center shrink-0">
                       <Clock className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{pendingUser.name}</h3>
-                      <p className="text-white/70 text-sm">{pendingUser.email}</p>
-                      <p className="text-white/50 text-xs mt-1">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{pendingUser.name}</h3>
+                      <p className="text-gray-600 dark:text-white/70 text-sm truncate">{pendingUser.email}</p>
+                      <p className="text-gray-500 dark:text-white/50 text-xs mt-1">
                         Cadastrado em {new Date(pendingUser.created_at).toLocaleString()}
                       </p>
                     </div>
@@ -920,7 +920,7 @@ export default function ManageUsersPage() {
                     <span>Aprovar</span>
                   </button>
                 </div>
-              </motion.div>
+              </div>
             ))
           )}
         </div>
@@ -932,7 +932,7 @@ export default function ManageUsersPage() {
           {expiringLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
-              <p className="text-white/70">Carregando usuários próximos do vencimento...</p>
+              <p className="text-gray-600 dark:text-white/70">Carregando usuários próximos do vencimento...</p>
             </div>
           ) : (
             <>
@@ -941,7 +941,7 @@ export default function ManageUsersPage() {
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <AlertCircle className="w-5 h-5 text-red-400" />
-                    <h3 className="text-lg font-semibold text-white">Expirados ({expiringUsers.expired.length})</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expirados ({expiringUsers.expired.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {expiringUsers.expired.map((user) => (
@@ -951,16 +951,16 @@ export default function ManageUsersPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-red-500"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-white font-semibold">{user.name}</h4>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30">
+                              <h4 className="text-gray-900 dark:text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-500/20 dark:text-red-400 dark:border-red-500/30">
                                 Expirado
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
-                            <div className="flex items-center space-x-4 text-xs text-white/50">
+                            <p className="text-gray-600 dark:text-white/70 text-sm mb-1 truncate">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-white/50">
                               <span>Expirou há {Math.abs(Math.round(user.days_expired || 0))} dias</span>
                               {user.access_expires_at && (
                                 <span>
@@ -987,7 +987,7 @@ export default function ManageUsersPage() {
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <AlertCircle className="w-5 h-5 text-orange-400" />
-                    <h3 className="text-lg font-semibold text-white">Expirando em até 3 dias ({expiringUsers.expiring_3_days.length})</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expirando em até 3 dias ({expiringUsers.expiring_3_days.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {expiringUsers.expiring_3_days.map((user) => (
@@ -997,17 +997,17 @@ export default function ManageUsersPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-orange-500"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-white font-semibold">{user.name}</h4>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                              <h4 className="text-gray-900 dark:text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-500/20 dark:text-orange-400 dark:border-orange-500/30">
                                 Urgente
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
-                            <div className="flex items-center space-x-4 text-xs text-white/50">
-                              <span className="text-orange-400 font-semibold">
+                            <p className="text-gray-600 dark:text-white/70 text-sm mb-1 truncate">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-white/50">
+                              <span className="text-orange-600 dark:text-orange-400 font-semibold">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
                               {user.access_expires_at && (
@@ -1035,7 +1035,7 @@ export default function ManageUsersPage() {
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <Clock className="w-5 h-5 text-yellow-400" />
-                    <h3 className="text-lg font-semibold text-white">Expirando em até 7 dias ({expiringUsers.expiring_7_days.length})</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expirando em até 7 dias ({expiringUsers.expiring_7_days.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {expiringUsers.expiring_7_days.map((user) => (
@@ -1045,17 +1045,17 @@ export default function ManageUsersPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-yellow-500"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-white font-semibold">{user.name}</h4>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                              <h4 className="text-gray-900 dark:text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200 dark:bg-yellow-500/20 dark:text-yellow-400 dark:border-yellow-500/30">
                                 Atenção
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
-                            <div className="flex items-center space-x-4 text-xs text-white/50">
-                              <span className="text-yellow-400 font-semibold">
+                            <p className="text-gray-600 dark:text-white/70 text-sm mb-1 truncate">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-white/50">
+                              <span className="text-amber-700 dark:text-yellow-400 font-semibold">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
                               {user.access_expires_at && (
@@ -1083,7 +1083,7 @@ export default function ManageUsersPage() {
                 <div>
                   <div className="flex items-center space-x-2 mb-4">
                     <Calendar className="w-5 h-5 text-blue-400" />
-                    <h3 className="text-lg font-semibold text-white">Expirando em até 30 dias ({expiringUsers.expiring_30_days.length})</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Expirando em até 30 dias ({expiringUsers.expiring_30_days.length})</h3>
                   </div>
                   <div className="space-y-3">
                     {expiringUsers.expiring_30_days.map((user) => (
@@ -1093,17 +1093,17 @@ export default function ManageUsersPage() {
                         animate={{ opacity: 1, y: 0 }}
                         className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-4 border-l-4 border-blue-500"
                       >
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-center justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3 mb-2">
-                              <h4 className="text-white font-semibold">{user.name}</h4>
-                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                              <h4 className="text-gray-900 dark:text-white font-semibold">{user.name}</h4>
+                              <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/20 dark:text-blue-400 dark:border-blue-500/30">
                                 Em breve
                               </span>
                             </div>
-                            <p className="text-white/70 text-sm mb-1">{user.email}</p>
-                            <div className="flex items-center space-x-4 text-xs text-white/50">
-                              <span className="text-blue-400">
+                            <p className="text-gray-600 dark:text-white/70 text-sm mb-1 truncate">{user.email}</p>
+                            <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-white/50">
+                              <span className="text-blue-600 dark:text-blue-400">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
                               {user.access_expires_at && (
@@ -1132,9 +1132,9 @@ export default function ManageUsersPage() {
                expiringUsers.expiring_7_days.length === 0 &&
                expiringUsers.expiring_30_days.length === 0 && (
                 <div className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-12 text-center">
-                  <CheckCircle2 className="w-16 h-16 text-white/30 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-white/70 mb-2">Nenhum usuário próximo do vencimento</h3>
-                  <p className="text-white/50">Todos os usuários estão com acesso válido.</p>
+                  <CheckCircle2 className="w-16 h-16 text-gray-300 dark:text-white/30 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-700 dark:text-white/70 mb-2">Nenhum usuário próximo do vencimento</h3>
+                  <p className="text-gray-500 dark:text-white/50">Todos os usuários estão com acesso válido.</p>
                 </div>
               )}
             </>
@@ -1150,8 +1150,8 @@ export default function ManageUsersPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Confirmar Exclusão</h3>
-            <p className="text-white/70 mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Confirmar Exclusão</h3>
+            <p className="text-gray-600 dark:text-white/70 mb-6">
               Tem certeza que deseja excluir o usuário <strong>{userToDelete.name}</strong>? 
               Esta ação não pode ser desfeita.
             </p>
@@ -1192,10 +1192,10 @@ export default function ManageUsersPage() {
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Gerar Link de Cadastro</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Gerar Link de Cadastro</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Válido por quantos dias?
                 </label>
                 <input
@@ -1233,19 +1233,18 @@ export default function ManageUsersPage() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="glass rounded-xl p-6 w-full max-w-md relative"
-            style={{ background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(10px)' }}
+            className="bg-white dark:bg-slate-900/95 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md relative shadow-xl"
           >
-            <h3 className="text-xl font-bold text-white mb-4">Aprovar Usuário</h3>
-            <p className="text-white/70 mb-4">
-              Aprovar <strong className="text-white">{userToApprove.name}</strong> e definir período de acesso:
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Aprovar Usuário</h3>
+            <p className="text-gray-600 dark:text-white/70 mb-4">
+              Aprovar <strong className="text-gray-900 dark:text-white">{userToApprove.name}</strong> e definir período de acesso:
             </p>
-            <div className="text-sm text-white/60 mb-6">
+            <div className="text-sm text-gray-500 dark:text-white/60 mb-6">
               <p>Email: {userToApprove.email}</p>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-white/90 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                   Período de Acesso
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -1256,8 +1255,8 @@ export default function ManageUsersPage() {
                       onClick={() => setSelectedDuration(days)}
                       className={`p-3 rounded-lg border transition-colors ${
                         selectedDuration === days
-                          ? 'bg-blue-500/20 border-blue-500 text-white'
-                          : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10'
+                          ? 'bg-blue-100 border-blue-500 text-blue-800 dark:bg-blue-500/20 dark:border-blue-500 dark:text-white'
+                          : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100 dark:bg-white/5 dark:border-white/10 dark:text-white/70 dark:hover:bg-white/10'
                       }`}
                     >
                       <div className="text-center">
