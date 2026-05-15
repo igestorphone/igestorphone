@@ -1925,36 +1925,30 @@ Ainda tem disponível?`
             <div className="relative min-w-0">
               <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
                 <Palette className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
-                <span className="truncate">Cores</span>
+                <span className="truncate">Cor</span>
               </label>
-              <div className="rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900 overflow-hidden max-h-[11rem] overflow-y-auto">
-                <button
-                  type="button"
-                  onClick={() => setSelectedColor('')}
-                  title="Todas as cores"
-                  className={`w-full flex items-center justify-center py-2.5 border-b border-gray-100 dark:border-white/10 transition-colors ${
-                    !selectedColor ? 'bg-blue-50 dark:bg-blue-950/40' : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                  }`}
+              <div className="relative">
+                <select
+                  value={selectedColor}
+                  onChange={(e) => setSelectedColor(e.target.value)}
+                  className="w-full pl-2 pr-7 xl:pl-3 xl:pr-8 py-2 xl:py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-xs xl:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 appearance-none font-medium text-gray-900 dark:text-white min-h-[2.5rem] xl:min-h-0"
                 >
-                  <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                    Todas
-                  </span>
-                </button>
-                {(dynamicFilters.colors.length > 0 ? dynamicFilters.colors : OFFICIAL_COLORS).map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setSelectedColor(color)}
-                    title={color}
-                    className={`w-full flex items-center justify-center py-2.5 border-b border-gray-100 dark:border-white/5 last:border-0 transition-colors ${
-                      selectedColor === color
-                        ? 'bg-blue-50 dark:bg-blue-950/40'
-                        : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <ProductColorSwatch normalizedLabel={color} size="md" />
-                  </button>
-                ))}
+                  <option value="">Todas as Cores</option>
+                  {dynamicFilters.colors.length > 0 ? (
+                    dynamicFilters.colors.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))
+                  ) : (
+                    OFFICIAL_COLORS.map((color) => (
+                      <option key={color} value={color}>
+                        {color}
+                      </option>
+                    ))
+                  )}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
               </div>
             </div>
 
