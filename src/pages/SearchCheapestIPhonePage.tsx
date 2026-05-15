@@ -509,6 +509,7 @@ function SearchInputDebounced({
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
+  const [panelOpen, setPanelOpen] = useState(false)
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -527,12 +528,35 @@ function SearchInputDebounced({
     [localValue, acMode]
   )
 
-  const showPanel = localValue.trim().length >= 1 && matches.length > 0
+  const canShowPanel = localValue.trim().length >= 1 && matches.length > 0
+  const showPanel = panelOpen && canShowPanel
   const showTypingEffect = !localValue
 
   useEffect(() => {
     setActiveIdx(-1)
+    if (canShowPanel) setPanelOpen(true)
   }, [localValue, matches.length, acMode])
+
+  useEffect(() => {
+    if (!panelOpen || !canShowPanel) return
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node
+      if (rootRef.current?.contains(target)) return
+      const listbox = document.getElementById('search-autocomplete-listbox')
+      if (listbox?.contains(target)) return
+      setPanelOpen(false)
+      setActiveIdx(-1)
+      setPanelPos(null)
+    }
+
+    document.addEventListener('mousedown', handlePointerDown)
+    document.addEventListener('touchstart', handlePointerDown, { passive: true })
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown)
+      document.removeEventListener('touchstart', handlePointerDown)
+    }
+  }, [panelOpen, canShowPanel])
 
   useEffect(() => {
     if (!showPanel || !rootRef.current) {
@@ -614,6 +638,7 @@ function SearchInputDebounced({
     const v = value.trim()
     setLocalValue(v)
     setActiveIdx(-1)
+    setPanelOpen(false)
     setPanelPos(null)
     onDebouncedChange(v)
     inputRef.current?.blur()
@@ -693,6 +718,7 @@ function SearchInputDebounced({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         onFocus={() => {
+          if (canShowPanel) setPanelOpen(true)
           if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
             rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
@@ -715,9 +741,10 @@ function SearchInputDebounced({
             pickSuggestion(pick)
             return
           }
-          if (e.key === 'Escape' && showPanel) {
+          if (e.key === 'Escape' && (showPanel || canShowPanel)) {
             e.preventDefault()
             setActiveIdx(-1)
+            setPanelOpen(false)
             setPanelPos(null)
           }
         }}
@@ -731,6 +758,8 @@ function SearchInputDebounced({
           onClick={() => {
             setLocalValue('')
             setActiveIdx(-1)
+            setPanelOpen(false)
+            setPanelPos(null)
             onDebouncedChange('')
           }}
         >
