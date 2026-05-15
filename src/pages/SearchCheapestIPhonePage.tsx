@@ -457,11 +457,9 @@ async function fetchProductsCatalog(
   return merged
 }
 
-/** Modelos distintos disponíveis hoje no modo selecionado (ou todos os modos). */
-function buildStockAutocompletePool(
-  products: any[],
-  searchMode: SearchMode | null
-): string[] {
+type StockAutocompleteEntry = { label: string; subtitle: string; key: string }
+
+function filterProductsForAutocomplete(products: any[], searchMode: SearchMode | null): any[] {
   let list = products
   if (searchMode === 'novo' || searchMode === 'seminovo') {
     list = list.filter((p: any) => !isLikelyNonAppleDevice(p))
@@ -474,33 +472,52 @@ function buildStockAutocompletePool(
       return false
     })
   }
+  return list
+}
+
+/** Modelos no estoque do dia; em modo "todos" o mesmo modelo pode aparecer com IPH e SEMI. */
+function buildStockAutocompleteEntries(
+  products: any[],
+  searchMode: SearchMode | null
+): StockAutocompleteEntry[] {
+  const list = filterProductsForAutocomplete(products, searchMode)
   const seen = new Set<string>()
-  const out: string[] = []
+  const out: StockAutocompleteEntry[] = []
   for (const p of list) {
     const label = autocompleteLabelForProduct(p)
     if (!label) continue
-    const k = label.toLowerCase()
-    if (seen.has(k)) continue
-    seen.add(k)
-    out.push(label)
+    const catMode = resolveCategorySearchMode(p, searchMode)
+    const subtitle = getProductCategoryCode(p, catMode) || (catMode === 'android' ? 'AND' : catMode === 'seminovo' ? 'SEMI' : 'IPH')
+    const key = `${label.toLowerCase()}|${subtitle}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push({ label, subtitle, key })
   }
-  return sortAutocompleteLabels(out)
+  out.sort((a, b) => {
+    const ia = IPHONE_LABEL_SORT_INDEX.get(a.label.toLowerCase())
+    const ib = IPHONE_LABEL_SORT_INDEX.get(b.label.toLowerCase())
+    if (ia != null && ib != null) return ia - ib
+    if (ia != null) return -1
+    if (ib != null) return 1
+    const labelCmp = a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' })
+    return labelCmp !== 0 ? labelCmp : a.subtitle.localeCompare(b.subtitle)
+  })
+  return out
 }
 
 function getAutocompleteSubtitle(label: string, mode: 'android' | 'lacrado' | 'seminovo' | 'all'): string {
-  if (mode === 'all') return 'Disponível hoje'
   if (mode === 'android') return 'Android'
   const kind = (() => {
     const s = label.toLowerCase()
-    if (s.includes('iphone')) return 'iPhone'
-    if (s.includes('macbook')) return 'Mac'
-    if (s.includes('ipad')) return 'iPad'
-    if (s.includes('airpods')) return 'Áudio'
-    if (s.includes('watch')) return 'Watch'
-    return 'Apple'
+    if (s.includes('iphone')) return 'IPH'
+    if (s.includes('macbook')) return 'MCB'
+    if (s.includes('ipad')) return 'IPAD'
+    if (s.includes('airpods')) return 'PODS'
+    if (s.includes('watch')) return 'RLG'
+    return 'IPH'
   })()
-  if (mode === 'lacrado') return `Lacrado · ${kind}`
-  if (mode === 'seminovo') return `Semi-novo · ${kind}`
+  if (mode === 'lacrado') return kind
+  if (mode === 'seminovo') return 'SEMI'
   return kind
 }
 
@@ -556,32 +573,39 @@ function normalizeProductsApiResponse(response: any): any[] {
     })
 }
 
-function filterAutocompleteModels(query: string, pool: string[], limit = 10): string[] {
+function filterAutocompleteEntries(
+  query: string,
+  entries: StockAutocompleteEntry[],
+  limit = 10
+): StockAutocompleteEntry[] {
   const q = query.trim()
-  if (!q || pool.length === 0) return []
-  let ranked = pool
-    .map((label) => ({ label, r: autocompleteRank(label, q) }))
+  if (!q || entries.length === 0) return []
+  let ranked = entries
+    .map((entry) => ({ entry, r: autocompleteRank(entry.label, q) }))
     .filter((x) => x.r < 90)
-    .sort((a, b) => a.r - b.r || a.label.localeCompare(b.label))
+    .sort((a, b) => a.r - b.r || a.entry.label.localeCompare(b.entry.label))
 
   const iphoneNum = q.match(/iphone\s*(\d{1,2})/i)?.[1]
   if (iphoneNum) {
     const want = parseInt(iphoneNum, 10)
-    const sameGen = ranked.filter(({ label }) => iphoneGeneration(label) === want)
+    const sameGen = ranked.filter(({ entry }) => iphoneGeneration(entry.label) === want)
     if (sameGen.length > 0) ranked = sameGen
   }
 
   const seen = new Set<string>()
-  const out: string[] = []
-  for (const { label } of ranked) {
-    const k = label.toLowerCase()
-    if (seen.has(k)) continue
-    seen.add(k)
-    out.push(label)
+  const out: StockAutocompleteEntry[] = []
+  for (const { entry } of ranked) {
+    if (seen.has(entry.key)) continue
+    seen.add(entry.key)
+    out.push(entry)
     if (out.length >= limit) break
   }
   return out
 }
+
+const isTouchSearchUi = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(hover: none) and (pointer: coarse), (max-width: 767px)').matches
 
 // Input de busca com estado local + efeito de digitação quando vazio + autocomplete de modelos
 function SearchInputDebounced({
@@ -590,7 +614,7 @@ function SearchInputDebounced({
   placeholder = 'Buscar produtos...',
   typingSuggestions,
   searchMode = 'all',
-  suggestionPool = [],
+  suggestionEntries = [],
   inventoryLoading = false,
 }: {
   onDebouncedChange: (value: string) => void
@@ -598,8 +622,8 @@ function SearchInputDebounced({
   placeholder?: string
   typingSuggestions?: string[]
   searchMode?: string
-  /** Modelos que existem no estoque do dia (modo atual). */
-  suggestionPool?: string[]
+  /** Modelos + código (IPH, SEMI…) do estoque do dia. */
+  suggestionEntries?: StockAutocompleteEntry[]
   inventoryLoading?: boolean
 }) {
   const acMode: 'android' | 'lacrado' | 'seminovo' | 'all' =
@@ -615,7 +639,10 @@ function SearchInputDebounced({
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
-  const [inlinePanel, setInlinePanel] = useState(false)
+  const [inlinePanel, setInlinePanel] = useState(() =>
+    typeof window !== 'undefined' ? isTouchSearchUi() : false
+  )
+  const [inlinePanelMaxH, setInlinePanelMaxH] = useState<number>(240)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const activeIdxRef = useRef(-1)
@@ -629,8 +656,8 @@ function SearchInputDebounced({
   }, [localValue, onDebouncedChange])
 
   const matches = useMemo(
-    () => (localValue.trim().length >= 1 ? filterAutocompleteModels(localValue, suggestionPool, 10) : []),
-    [localValue, suggestionPool]
+    () => (localValue.trim().length >= 1 ? filterAutocompleteEntries(localValue, suggestionEntries, 10) : []),
+    [localValue, suggestionEntries]
   )
 
   const queryTrimmed = localValue.trim()
@@ -666,12 +693,33 @@ function SearchInputDebounced({
   }, [panelOpen, canShowPanel])
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)')
+    const mq = window.matchMedia('(hover: none) and (pointer: coarse), (max-width: 767px)')
     const sync = () => setInlinePanel(mq.matches)
     sync()
     mq.addEventListener('change', sync)
     return () => mq.removeEventListener('change', sync)
   }, [])
+
+  useEffect(() => {
+    if (!inlinePanel || !showPanel || !rootRef.current) return
+    const updateInlineMaxH = () => {
+      const el = rootRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const vv = window.visualViewport
+      const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+      setInlinePanelMaxH(Math.min(280, Math.max(120, viewportBottom - r.bottom - 12)))
+    }
+    updateInlineMaxH()
+    window.visualViewport?.addEventListener('resize', updateInlineMaxH)
+    window.visualViewport?.addEventListener('scroll', updateInlineMaxH)
+    window.addEventListener('resize', updateInlineMaxH)
+    return () => {
+      window.visualViewport?.removeEventListener('resize', updateInlineMaxH)
+      window.visualViewport?.removeEventListener('scroll', updateInlineMaxH)
+      window.removeEventListener('resize', updateInlineMaxH)
+    }
+  }, [inlinePanel, showPanel, localValue])
 
   useEffect(() => {
     if (inlinePanel || !showPanel || !rootRef.current) {
@@ -710,9 +758,20 @@ function SearchInputDebounced({
   // Lista estável — evita reiniciar o efeito a cada re-render (travava em "ip")
   const typingSuggestionsList = useMemo(() => {
     if (typingSuggestions?.length) return typingSuggestions
-    if (suggestionPool.length > 0) return suggestionPool.slice(0, 6)
+    if (suggestionEntries.length > 0) {
+      const seen = new Set<string>()
+      const labels: string[] = []
+      for (const e of suggestionEntries) {
+        const k = e.label.toLowerCase()
+        if (seen.has(k)) continue
+        seen.add(k)
+        labels.push(e.label)
+        if (labels.length >= 6) break
+      }
+      return labels
+    }
     return TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.all
-  }, [typingSuggestions, suggestionPool, searchMode])
+  }, [typingSuggestions, suggestionEntries, searchMode])
 
   useEffect(() => {
     if (localValue) {
@@ -803,8 +862,8 @@ function SearchInputDebounced({
               </span>
             </div>
             <ul className="py-1">
-              {matches.map((label, i) => (
-                <li key={`${label}-${i}`} role="presentation">
+              {matches.map((entry, i) => (
+                <li key={entry.key} role="presentation">
                   <button
                     type="button"
                     role="option"
@@ -818,16 +877,16 @@ function SearchInputDebounced({
                     onMouseDown={(e) => {
                       e.preventDefault()
                       e.stopPropagation()
-                      pickSuggestion(label)
+                      pickSuggestion(entry.label)
                     }}
                   >
                     <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
                     <span className="min-w-0 flex-1">
                       <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
-                        {label}
+                        {entry.label}
                       </span>
-                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                        {getAutocompleteSubtitle(label, acMode)}
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 font-semibold tracking-wide">
+                        {acMode === 'all' ? entry.subtitle : getAutocompleteSubtitle(entry.label, acMode)}
                       </span>
                     </span>
                   </button>
@@ -840,7 +899,7 @@ function SearchInputDebounced({
             <Loader2 className="w-8 h-8 mx-auto text-gray-400 animate-spin mb-2" aria-hidden />
             <p className="text-sm text-gray-500 dark:text-gray-400">Carregando estoque do dia…</p>
           </div>
-        ) : suggestionPool.length === 0 ? (
+        ) : suggestionEntries.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <Search className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden />
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -869,13 +928,15 @@ function SearchInputDebounced({
       animate={{ opacity: 1, y: 0 }}
       className={
         placement === 'inline'
-          ? 'absolute left-0 right-0 top-full mt-1 z-[60] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden overflow-y-auto max-h-[min(42vh,240px)]'
+          ? 'absolute left-0 right-0 top-full mt-1 z-[60] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden overflow-y-auto overscroll-contain'
           : 'fixed z-[200] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden overflow-y-auto'
       }
       style={
-        placement === 'fixed' && panelPos
-          ? { top: panelPos.top, left: panelPos.left, width: panelPos.width, maxHeight: panelPos.maxHeight }
-          : undefined
+        placement === 'inline'
+          ? { maxHeight: inlinePanelMaxH }
+          : placement === 'fixed' && panelPos
+            ? { top: panelPos.top, left: panelPos.left, width: panelPos.width, maxHeight: panelPos.maxHeight }
+            : undefined
       }
     >
       {autocompleteListBody}
@@ -900,9 +961,6 @@ function SearchInputDebounced({
         onChange={(e) => setLocalValue(e.target.value)}
         onFocus={() => {
           if (queryTrimmed.length >= 1) setPanelOpen(true)
-          if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
-            rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
         }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && showPanel && !hasAutocompleteMatches && queryTrimmed.length >= 1) {
@@ -925,7 +983,7 @@ function SearchInputDebounced({
           if (e.key === 'Enter' && showPanel && matches.length > 0) {
             e.preventDefault()
             const idx = activeIdxRef.current
-            const pick = idx >= 0 && idx < matches.length ? matches[idx] : matches[0]
+            const pick = idx >= 0 && idx < matches.length ? matches[idx].label : matches[0].label
             pickSuggestion(pick)
             return
           }
@@ -1248,8 +1306,8 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     refetchOnWindowFocus: true,
   })
 
-  const stockAutocompletePool = useMemo(
-    () => buildStockAutocompletePool(inventoryQuery.data || [], searchMode),
+  const stockAutocompleteEntries = useMemo(
+    () => buildStockAutocompleteEntries(inventoryQuery.data || [], searchMode),
     [inventoryQuery.data, searchMode]
   )
 
@@ -1588,7 +1646,7 @@ Ainda tem disponível?`
       <div ref={searchWorkspaceRef} className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Topo estilo concorrente: cards + busca + modos + banner */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-          <div className="order-2 xl:order-1 xl:col-span-7 space-y-3">
+          <motion.div layout className="order-1 xl:col-span-7 space-y-3">
             <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
               <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
                 <div className="flex items-center justify-between">
@@ -1625,13 +1683,14 @@ Ainda tem disponível?`
               </div>
             </div>
 
-            <motion.div ref={searchInputRef} className="relative z-30 bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 overflow-visible">
-              <SearchInputDebounced
+            <div ref={searchInputRef} className="relative z-30 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-sm overflow-visible">
+              <div className="p-3 sm:p-4 pb-2 sm:pb-3">
+                <SearchInputDebounced
                 key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
                 onPick={handleSearchPick}
                 searchMode={searchMode ?? 'all'}
-                suggestionPool={stockAutocompletePool}
+                suggestionEntries={stockAutocompleteEntries}
                 inventoryLoading={inventoryQuery.isLoading || inventoryQuery.isFetching}
                 placeholder={
                   searchMode === 'android'
@@ -1640,17 +1699,15 @@ Ainda tem disponível?`
                       ? 'Ex: iPhone 15, iPhone 14...'
                       : searchMode === 'novo'
                         ? 'Ex: iPhone 16, MacBook, AirPods...'
-                        : 'Ex: iPhone, Samsung, Xiaomi, MacBook...'
+                        : 'iPhone 17 Pro Max...'
                 }
               />
-            </motion.div>
-
-            <div ref={modeChipsRef} className="relative z-10 bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
-              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+              </div>
+              <div ref={modeChipsRef} className="px-3 sm:px-4 pb-3 sm:pb-4 flex gap-2">
                 {([
-                  { mode: 'novo' as const, label: 'Lacrado', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
-                  { mode: 'android' as const, label: 'Android', emoji: '🤖', activeClass: 'bg-green-600 text-white border-green-600' },
-                  { mode: 'seminovo' as const, label: 'Semi-novo', emoji: '💚', activeClass: 'bg-emerald-600 text-white border-emerald-600' }
+                  { mode: 'novo' as const, label: 'Lacrado', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-sm' },
+                  { mode: 'android' as const, label: 'Android', emoji: '🤖', activeClass: 'bg-blue-600 text-white border-blue-600 shadow-sm' },
+                  { mode: 'seminovo' as const, label: 'Semi-novo', emoji: '♻️', activeClass: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
                 ]).map(({ mode, label, emoji, activeClass }) => (
                   <button
                     key={mode}
@@ -1659,14 +1716,14 @@ Ainda tem disponível?`
                       if (searchMode === mode) setSearchMode(null)
                       else setSearchMode(mode)
                     }}
-                    className={`w-full sm:w-auto flex items-center justify-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-4 rounded-lg border-2 text-sm font-semibold transition-all ${
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 rounded-full border text-sm font-semibold transition-all touch-manipulation min-h-[40px] ${
                       searchMode === mode
-                        ? `${activeClass} shadow-sm`
-                        : 'bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-900 dark:hover:text-white'
+                        ? activeClass
+                        : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/15 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/25'
                     }`}
                   >
-                    <span aria-hidden>{emoji}</span>
-                    <span>{label}</span>
+                    <span aria-hidden className="text-base leading-none">{emoji}</span>
+                    <span className="truncate">{label}</span>
                   </button>
                 ))}
               </div>
@@ -1697,9 +1754,9 @@ Ainda tem disponível?`
                 ) : null}
               </motion.div>
             ) : null}
-          </div>
+          </motion.div>
 
-          <div className="order-1 xl:order-2 xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[180px] sm:min-h-[210px]">
+          <div className="order-2 xl:col-span-5 rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 bg-gradient-to-r from-emerald-50 via-white to-green-50 dark:from-emerald-950/30 dark:via-black dark:to-green-950/20 p-4 sm:p-5 min-h-[120px] xl:min-h-[210px]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-semibold bg-white/80 dark:bg-white/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-400/30">
