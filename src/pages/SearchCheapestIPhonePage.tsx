@@ -468,6 +468,8 @@ function SearchInputDebounced({
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
   const activeIdxRef = useRef(-1)
   useEffect(() => {
     activeIdxRef.current = activeIdx
@@ -489,6 +491,26 @@ function SearchInputDebounced({
   useEffect(() => {
     setActiveIdx(-1)
   }, [localValue, matches.length, acMode])
+
+  useEffect(() => {
+    if (!showPanel || !rootRef.current) {
+      setPanelPos(null)
+      return
+    }
+    const update = () => {
+      const el = rootRef.current
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      setPanelPos({ top: r.bottom + 6, left: r.left, width: r.width })
+    }
+    update()
+    window.addEventListener('scroll', update, true)
+    window.addEventListener('resize', update)
+    return () => {
+      window.removeEventListener('scroll', update, true)
+      window.removeEventListener('resize', update)
+    }
+  }, [showPanel, localValue, matches.length])
 
   // Efeito de digitação: só quando input vazio
   const suggestions = typingSuggestions ?? TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
@@ -533,15 +555,70 @@ function SearchInputDebounced({
   }, [localValue, searchMode, suggestions])
 
   const pickSuggestion = (value: string) => {
-    setLocalValue(value)
+    const v = value.trim()
+    setLocalValue(v)
     setActiveIdx(-1)
+    setPanelPos(null)
+    onDebouncedChange(v)
   }
 
+  const autocompletePanel =
+    showPanel && panelPos ? (
+      <motion.div
+        id="search-autocomplete-listbox"
+        role="listbox"
+        initial={{ opacity: 0, y: -4 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="fixed z-[200] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden max-h-[min(70vh,22rem)] overflow-y-auto"
+        style={{ top: panelPos.top, left: panelPos.left, width: panelPos.width }}
+      >
+        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
+          <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            Resultados
+          </span>
+          <span className="text-[11px] font-semibold tabular-nums text-gray-400 dark:text-gray-500">{matches.length}</span>
+        </div>
+        <ul className="py-1">
+          {matches.map((label, i) => (
+            <li key={`${label}-${i}`} role="presentation">
+              <button
+                type="button"
+                role="option"
+                aria-selected={i === activeIdx}
+                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                  i === activeIdx
+                    ? 'bg-blue-50 dark:bg-blue-950/40'
+                    : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                }`}
+                onMouseEnter={() => setActiveIdx(i)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  pickSuggestion(label)
+                }}
+              >
+                <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
+                    {label}
+                  </span>
+                  <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                    {getAutocompleteSubtitle(label, acMode)}
+                  </span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </motion.div>
+    ) : null
+
   return (
-    <div className="relative z-20">
+    <>
+    <div ref={rootRef} className="relative z-30">
       <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 z-10 pointer-events-none" />
       <input
-        type="search"
+        type="text"
         inputMode="search"
         autoComplete="off"
         role="combobox"
@@ -552,22 +629,27 @@ function SearchInputDebounced({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         onKeyDown={(e) => {
-          if (!showPanel) return
-          if (e.key === 'ArrowDown') {
+          if (e.key === 'ArrowDown' && showPanel && matches.length > 0) {
             e.preventDefault()
-            setActiveIdx((i) => (matches.length === 0 ? -1 : i < 0 ? 0 : Math.min(matches.length - 1, i + 1)))
-          } else if (e.key === 'ArrowUp') {
+            setActiveIdx((i) => (i < 0 ? 0 : Math.min(matches.length - 1, i + 1)))
+            return
+          }
+          if (e.key === 'ArrowUp' && showPanel && matches.length > 0) {
             e.preventDefault()
             setActiveIdx((i) => (i <= 0 ? 0 : i - 1))
-          } else if (e.key === 'Enter') {
+            return
+          }
+          if (e.key === 'Enter' && showPanel && matches.length > 0) {
+            e.preventDefault()
             const idx = activeIdxRef.current
-            if (idx >= 0 && idx < matches.length) {
-              e.preventDefault()
-              pickSuggestion(matches[idx])
-            }
-          } else if (e.key === 'Escape') {
+            const pick = idx >= 0 && idx < matches.length ? matches[idx] : matches[0]
+            pickSuggestion(pick)
+            return
+          }
+          if (e.key === 'Escape' && showPanel) {
             e.preventDefault()
             setActiveIdx(-1)
+            setPanelPos(null)
           }
         }}
         className="w-full pl-12 pr-11 py-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all touch-manipulation min-h-[44px]"
@@ -580,6 +662,7 @@ function SearchInputDebounced({
           onClick={() => {
             setLocalValue('')
             setActiveIdx(-1)
+            onDebouncedChange('')
           }}
         >
           <X className="w-4 h-4" />
@@ -595,50 +678,11 @@ function SearchInputDebounced({
         </div>
       )}
 
-      {showPanel ? (
-        <div
-          id="search-autocomplete-listbox"
-          role="listbox"
-          className="absolute left-0 right-0 top-full mt-1.5 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-lg shadow-black/10 dark:shadow-black/40 overflow-hidden max-h-[min(70vh,22rem)] overflow-y-auto"
-          onMouseDown={(e) => e.preventDefault()}
-        >
-          <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
-            <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              Resultados
-            </span>
-            <span className="text-[11px] font-semibold tabular-nums text-gray-400 dark:text-gray-500">{matches.length}</span>
-          </div>
-          <ul className="py-1">
-            {matches.map((label, i) => (
-              <li key={`${label}-${i}`} role="presentation">
-                <button
-                  type="button"
-                  role="option"
-                  aria-selected={i === activeIdx}
-                  className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors ${
-                    i === activeIdx
-                      ? 'bg-blue-50 dark:bg-blue-950/40'
-                      : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                  }`}
-                  onMouseEnter={() => setActiveIdx(i)}
-                  onClick={() => pickSuggestion(label)}
-                >
-                  <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
-                      {label}
-                    </span>
-                    <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                      {getAutocompleteSubtitle(label, acMode)}
-                    </span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
     </div>
+    {typeof document !== 'undefined' && autocompletePanel
+      ? createPortal(autocompletePanel, document.body)
+      : null}
+    </>
   )
 }
 
@@ -1268,7 +1312,7 @@ Ainda tem disponível?`
               </div>
             </div>
 
-            <div ref={searchInputRef} className="bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 overflow-visible">
+            <motion.div ref={searchInputRef} className="relative z-30 bg-white dark:bg-black rounded-lg shadow-sm p-4 border border-gray-200 dark:border-white/10 overflow-visible">
               <SearchInputDebounced
                 key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
@@ -1283,9 +1327,9 @@ Ainda tem disponível?`
                         : 'Ex: iPhone, Samsung, Xiaomi, MacBook...'
                 }
               />
-            </div>
+            </motion.div>
 
-            <div ref={modeChipsRef} className="bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
+            <div ref={modeChipsRef} className="relative z-10 bg-white dark:bg-black rounded-xl shadow-sm p-3 border border-gray-200 dark:border-white/10">
               <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-3">
                 {([
                   { mode: 'novo' as const, label: 'Lacrado', emoji: '🍎', activeClass: 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white' },
