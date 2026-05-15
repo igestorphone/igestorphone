@@ -44,7 +44,7 @@ import {
   ANDROID_CATEGORY_ORDER,
   type CategorySearchMode,
 } from '@/lib/productCategoryCodes'
-import { matchesProductSearchMode } from '@/lib/productSearchCondition'
+import { isLacradoProduct, isSeminovoProduct, matchesProductSearchMode } from '@/lib/productSearchCondition'
 import toast from 'react-hot-toast'
 import { IPHONE_PRICE_TABLE_ORDER, matchIphonePriceTableLabel } from '@/lib/iphoneAveragePriceCatalog'
 import { normalizeColor } from './colorNormalizer'
@@ -370,6 +370,8 @@ function getSeminovoOriginBadge(variant: string | null | undefined) {
   return SEMINOVO_ORIGIN[key] ?? null
 }
 
+type SearchMode = 'novo' | 'seminovo' | 'android'
+
 // Sugestões para efeito de digitação por modo
 const TYPING_SUGGESTIONS: Record<string, string[]> = {
   all: ['iPhone 17 Pro Max', 'Samsung Galaxy S24', 'Xiaomi 14', 'MacBook Air'],
@@ -406,16 +408,71 @@ function sortAutocompleteLabels(labels: string[]): string[] {
   })
 }
 
-/** Modelos distintos disponíveis hoje no modo selecionado (lacrado / semi-novo / Android). */
+function resolveCategorySearchMode(product: any, searchMode: SearchMode | null): CategorySearchMode {
+  if (searchMode) return searchMode
+  return detectProductCatalogMode(product)
+}
+
+function detectProductCatalogMode(product: any): SearchMode {
+  if (product.catalogMode === 'novo' || product.catalogMode === 'seminovo' || product.catalogMode === 'android') {
+    return product.catalogMode
+  }
+  if (isLikelyNonAppleDevice(product)) return 'android'
+  if (isSeminovoProduct(product)) return 'seminovo'
+  if (isLacradoProduct(product)) return 'novo'
+  return 'novo'
+}
+
+async function fetchProductsCatalog(
+  mode: SearchMode | null,
+  params: { date_offset: number; search?: string; limit?: number }
+): Promise<any[]> {
+  const base: Record<string, unknown> = {
+    date_offset: params.date_offset,
+    sort_by: 'price',
+    sort_order: 'asc',
+    limit: params.limit ?? 5000,
+  }
+  if (params.search) base.search = params.search
+
+  const fetchOne = async (catalogMode: SearchMode) => {
+    const apiParams: Record<string, unknown> = { ...base }
+    if (catalogMode === 'novo') {
+      apiParams.condition_type = 'lacrados_novos'
+      apiParams.product_type = 'apple'
+    } else if (catalogMode === 'seminovo') {
+      apiParams.condition_type = 'seminovos'
+      apiParams.product_type = 'apple'
+    } else {
+      apiParams.product_type = 'android'
+    }
+    const raw = await produtosApi.getAll(apiParams)
+    return normalizeProductsApiResponse(raw).map((item) => ({ ...item, catalogMode }))
+  }
+
+  if (mode) return fetchOne(mode)
+
+  const merged = (await Promise.all([fetchOne('novo'), fetchOne('seminovo'), fetchOne('android')])).flat()
+  merged.sort((a, b) => a.price - b.price)
+  return merged
+}
+
+/** Modelos distintos disponíveis hoje no modo selecionado (ou todos os modos). */
 function buildStockAutocompletePool(
   products: any[],
-  searchMode: 'novo' | 'seminovo' | 'android' | null
+  searchMode: SearchMode | null
 ): string[] {
-  if (!searchMode) return []
   let list = products
   if (searchMode === 'novo' || searchMode === 'seminovo') {
     list = list.filter((p: any) => !isLikelyNonAppleDevice(p))
     list = list.filter((p: any) => matchesProductSearchMode(p, searchMode))
+  } else if (!searchMode) {
+    list = list.filter((p: any) => {
+      const m = detectProductCatalogMode(p)
+      if (m === 'android') return true
+      if (m === 'novo' || m === 'seminovo') return matchesProductSearchMode(p, m)
+      return false
+    })
   }
   const seen = new Set<string>()
   const out: string[] = []
@@ -430,7 +487,8 @@ function buildStockAutocompletePool(
   return sortAutocompleteLabels(out)
 }
 
-function getAutocompleteSubtitle(label: string, mode: 'android' | 'lacrado' | 'seminovo'): string {
+function getAutocompleteSubtitle(label: string, mode: 'android' | 'lacrado' | 'seminovo' | 'all'): string {
+  if (mode === 'all') return 'Disponível hoje'
   if (mode === 'android') return 'Android'
   const kind = (() => {
     const s = label.toLowerCase()
@@ -531,7 +589,7 @@ function SearchInputDebounced({
   onPick,
   placeholder = 'Buscar produtos...',
   typingSuggestions,
-  searchMode = 'novo',
+  searchMode = 'all',
   suggestionPool = [],
   inventoryLoading = false,
 }: {
@@ -544,13 +602,20 @@ function SearchInputDebounced({
   suggestionPool?: string[]
   inventoryLoading?: boolean
 }) {
-  const acMode: 'android' | 'lacrado' | 'seminovo' =
-    searchMode === 'android' ? 'android' : searchMode === 'seminovo' ? 'seminovo' : 'lacrado'
+  const acMode: 'android' | 'lacrado' | 'seminovo' | 'all' =
+    searchMode === 'all' || !searchMode
+      ? 'all'
+      : searchMode === 'android'
+        ? 'android'
+        : searchMode === 'seminovo'
+          ? 'seminovo'
+          : 'lacrado'
   const [localValue, setLocalValue] = useState('')
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelOpen, setPanelOpen] = useState(false)
   const [panelPos, setPanelPos] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null)
+  const [inlinePanel, setInlinePanel] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const activeIdxRef = useRef(-1)
@@ -601,7 +666,15 @@ function SearchInputDebounced({
   }, [panelOpen, canShowPanel])
 
   useEffect(() => {
-    if (!showPanel || !rootRef.current) {
+    const mq = window.matchMedia('(max-width: 767px)')
+    const sync = () => setInlinePanel(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    if (inlinePanel || !showPanel || !rootRef.current) {
       setPanelPos(null)
       return
     }
@@ -612,13 +685,13 @@ function SearchInputDebounced({
       const vv = window.visualViewport
       const viewportTop = vv?.offsetTop ?? 0
       const viewportBottom = vv ? vv.offsetTop + vv.height : window.innerHeight
-      const spaceBelow = viewportBottom - r.bottom - 10
-      const spaceAbove = r.top - viewportTop - 10
-      const maxHeight = Math.min(280, Math.max(120, Math.max(spaceBelow, spaceAbove) - 8))
-      const placeAbove = spaceBelow < 140 && spaceAbove > spaceBelow
+      const spaceBelow = viewportBottom - r.bottom - 8
+      const spaceAbove = r.top - viewportTop - 8
+      const maxHeight = Math.min(240, Math.max(100, Math.max(spaceBelow, spaceAbove) - 8))
+      const placeAbove = spaceBelow < 120 && spaceAbove > spaceBelow
       const top = placeAbove
-        ? Math.max(viewportTop + 4, r.top - maxHeight - 6)
-        : r.bottom + 6
+        ? Math.max(viewportTop + 4, r.top - maxHeight - 4)
+        : Math.min(r.bottom + 4, viewportBottom - maxHeight - 4)
       setPanelPos({ top, left: r.left, width: r.width, maxHeight })
     }
     update()
@@ -632,13 +705,13 @@ function SearchInputDebounced({
       window.visualViewport?.removeEventListener('resize', update)
       window.visualViewport?.removeEventListener('scroll', update)
     }
-  }, [showPanel, localValue, matches.length])
+  }, [showPanel, localValue, matches.length, inlinePanel])
 
   // Lista estável — evita reiniciar o efeito a cada re-render (travava em "ip")
   const typingSuggestionsList = useMemo(() => {
     if (typingSuggestions?.length) return typingSuggestions
     if (suggestionPool.length > 0) return suggestionPool.slice(0, 6)
-    return TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
+    return TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.all
   }, [typingSuggestions, suggestionPool, searchMode])
 
   useEffect(() => {
@@ -717,21 +790,8 @@ function SearchInputDebounced({
     onPick?.(v)
   }
 
-  const autocompletePanel =
-    showPanel && panelPos ? (
-      <motion.div
-        id="search-autocomplete-listbox"
-        role="listbox"
-        initial={{ opacity: 0, y: -4 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="fixed z-[200] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden max-h-[min(70vh,22rem)] overflow-y-auto"
-        style={{
-          top: panelPos.top,
-          left: panelPos.left,
-          width: panelPos.width,
-          maxHeight: panelPos.maxHeight,
-        }}
-      >
+  const autocompleteListBody = (
+    <>
         {hasAutocompleteMatches ? (
           <>
             <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
@@ -785,7 +845,9 @@ function SearchInputDebounced({
             <Search className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden />
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Nenhum produto{' '}
-              {acMode === 'lacrado' ? 'lacrado' : acMode === 'seminovo' ? 'semi-novo' : 'Android'} hoje
+              {acMode === 'all'
+                ? 'em nenhuma categoria hoje'
+                : `${acMode === 'lacrado' ? 'lacrado' : acMode === 'seminovo' ? 'semi-novo' : 'Android'} hoje`}
             </p>
           </div>
         ) : (
@@ -796,8 +858,29 @@ function SearchInputDebounced({
             </p>
           </div>
         )}
-      </motion.div>
-    ) : null
+    </>
+  )
+
+  const autocompletePanelShell = (placement: 'inline' | 'fixed') => (
+    <motion.div
+      id="search-autocomplete-listbox"
+      role="listbox"
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={
+        placement === 'inline'
+          ? 'absolute left-0 right-0 top-full mt-1 z-[60] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden overflow-y-auto max-h-[min(42vh,240px)]'
+          : 'fixed z-[200] rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-900 shadow-xl shadow-black/15 dark:shadow-black/50 overflow-hidden overflow-y-auto'
+      }
+      style={
+        placement === 'fixed' && panelPos
+          ? { top: panelPos.top, left: panelPos.left, width: panelPos.width, maxHeight: panelPos.maxHeight }
+          : undefined
+      }
+    >
+      {autocompleteListBody}
+    </motion.div>
+  )
 
   return (
     <>
@@ -881,9 +964,10 @@ function SearchInputDebounced({
         </div>
       )}
 
+      {showPanel && inlinePanel ? autocompletePanelShell('inline') : null}
     </div>
-    {typeof document !== 'undefined' && autocompletePanel
-      ? createPortal(autocompletePanel, document.body)
+    {showPanel && !inlinePanel && panelPos && typeof document !== 'undefined'
+      ? createPortal(autocompletePanelShell('fixed'), document.body)
       : null}
     </>
   )
@@ -954,11 +1038,8 @@ function AnimatedNumber({ value, durationMs = 700 }: { value: number; durationMs
 
 const isMobile = () => typeof window !== 'undefined' && window.innerWidth < 768
 
-type SearchMode = 'novo' | 'seminovo' | 'android'
-
 function productSwatchProps(product: any, searchMode: SearchMode | null) {
-  const mode: CategorySearchMode =
-    searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
+  const mode = resolveCategorySearchMode(product, searchMode)
   const categoryCode = getProductCategoryCode(product, mode)
   return {
     rawColor: product.color,
@@ -979,23 +1060,29 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
 
-  const modeFromUrl = searchParams.get('mode') as SearchMode | null
-  const urlModeValid = modeFromUrl === 'novo' || modeFromUrl === 'seminovo' || modeFromUrl === 'android'
+  const modeFromUrl = searchParams.get('mode')
+  const searchModeFromUrl = (): SearchMode | null => {
+    if (modeFromUrl === 'seminovo' || modeFromUrl === 'android') return modeFromUrl
+    // Lacrado só quando o usuário escolheu (URL nova); ?mode=novo era default antigo — ignorar
+    if (modeFromUrl === 'lacrado') return 'novo'
+    return null
+  }
   const [searchMode, setSearchModeState] = useState<SearchMode | null>(() =>
-    initialSearchMode ?? (urlModeValid ? modeFromUrl! : 'novo')
+    initialSearchMode ?? searchModeFromUrl()
   )
 
   useEffect(() => {
-    if (!urlModeValid && !initialSearchMode && searchMode === 'novo') {
-      setSearchParams({ mode: 'novo' }, { replace: true })
+    if (modeFromUrl === 'novo') {
+      setSearchParams({}, { replace: true })
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- só na entrada
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- limpa default legado na URL
 
   const setSearchMode = (mode: SearchMode | null) => {
     const prev = debouncedSearch.trim()
     const prevDefault = getDefaultSearchForMode(searchMode).trim()
     setSearchModeState(mode)
-    if (mode) setSearchParams({ mode }, { replace: true })
+    if (mode === 'novo') setSearchParams({ mode: 'lacrado' }, { replace: true })
+    else if (mode) setSearchParams({ mode }, { replace: true })
     else setSearchParams({}, { replace: true })
     if (!prev || prev === prevDefault) setDebouncedSearch(getDefaultSearchForMode(mode))
   }
@@ -1127,69 +1214,38 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const productsQuery = useQuery({
     queryKey: [
       'produtos',
-      searchMode,
+      searchMode ?? 'all',
       debouncedSearch,
       selectedDateKey,
       selectedStorage,
       selectedRam,
       selectedColor
     ],
-    queryFn: () => {
-      const params: any = {
-        search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
-        storage: undefined, // filtro por storage é normalizado no front
-        color: filterColorClientSide ? undefined : selectedColor || undefined,
+    queryFn: () =>
+      fetchProductsCatalog(searchMode, {
         date_offset: selectedDateOffset,
-        sort_by: 'price',
-        sort_order: 'asc',
-        limit: 5000
-      }
-      // Cada opção carrega APENAS o tipo selecionado (nunca misturar Apple novo com Android/Xiaomi)
-      if (searchMode === 'novo') {
-        params.condition_type = 'lacrados_novos'
-        params.product_type = 'apple'
-      } else if (searchMode === 'seminovo') {
-        params.condition_type = 'seminovos'
-        params.product_type = 'apple'
-      } else if (searchMode === 'android') {
-        params.product_type = 'android'
-      }
-      return produtosApi.getAll(params)
-    },
+        search: debouncedSearch.length >= 2 ? debouncedSearch.trim() || undefined : undefined,
+        limit: 5000,
+      }),
     enabled: shouldFetchProducts && queryReady,
     staleTime: 10000,
     gcTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    select: normalizeProductsApiResponse,
   })
 
   // Estoque completo do dia (sem filtro de busca) — só isso alimenta o autocomplete
   const inventoryQuery = useQuery({
-    queryKey: ['produtos-inventory', searchMode, selectedDateKey],
-    queryFn: () => {
-      const params: any = {
+    queryKey: ['produtos-inventory', searchMode ?? 'all', selectedDateKey],
+    queryFn: () =>
+      fetchProductsCatalog(searchMode, {
         date_offset: selectedDateOffset,
-        sort_by: 'price',
-        sort_order: 'asc',
         limit: 5000,
-      }
-      if (searchMode === 'novo') {
-        params.condition_type = 'lacrados_novos'
-        params.product_type = 'apple'
-      } else if (searchMode === 'seminovo') {
-        params.condition_type = 'seminovos'
-        params.product_type = 'apple'
-      } else if (searchMode === 'android') {
-        params.product_type = 'android'
-      }
-      return produtosApi.getAll(params)
-    },
-    enabled: shouldFetchProducts && queryReady && !!searchMode,
+      }),
+    enabled: shouldFetchProducts && queryReady,
     staleTime: 10000,
     gcTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true,
-    select: normalizeProductsApiResponse,
   })
 
   const stockAutocompletePool = useMemo(
@@ -1246,10 +1302,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     const isIPhone17Pro = searchLower.includes('iphone') && (searchLower.includes('17 pro') || searchLower.includes('17 pro max'))
     const iPhone17ProOfficialColors = new Set(['Azul Intenso', 'Laranja Cósmico', 'Prateado'])
     const modelOrName = (p: any) => p.model || p.name || ''
-    const modeForCategory: CategorySearchMode =
-      searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
 
     products.forEach((product: any) => {
+      const modeForCategory = resolveCategorySearchMode(product, searchMode)
       if (product.color) {
         const normalized = normalizeColor(product.color, modelOrName(product))
         if (normalized && normalized !== 'N/A') {
@@ -1366,8 +1421,6 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
       all = all.filter((p: any) => matchesProductSearchMode(p, searchMode))
     }
     const searchLower = debouncedSearch.toLowerCase().trim()
-    const modeForCategory: CategorySearchMode =
-      searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
 
     if (isPlainIPhone17Search(debouncedSearch)) {
       all = all.filter((p: any) => {
@@ -1400,7 +1453,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
         'Apple Watch': 'RLG',
       }
       const want = legacyMap[selectedCategory] || selectedCategory
-      all = all.filter((p: any) => (getProductCategoryCode(p, modeForCategory) || '') === want)
+      all = all.filter(
+        (p: any) => (getProductCategoryCode(p, resolveCategorySearchMode(p, searchMode)) || '') === want
+      )
     }
     if (!selectedRam) return all
     return all.filter((p: any) => parseRamFromProduct(p) === selectedRam)
@@ -2110,7 +2165,9 @@ Ainda tem disponível?`
                           ? 'semi-novo'
                           : searchMode === 'android'
                             ? 'Android'
-                            : 'lacrado'
+                            : searchMode === 'novo'
+                              ? 'lacrado'
+                              : 'em nenhuma categoria'
                       } para "${debouncedSearch.trim()}" com os filtros atuais.`
                     : 'Digite um termo de busca ou ajuste os filtros.'}
                 </p>
@@ -2268,9 +2325,7 @@ Ainda tem disponível?`
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap text-xs text-gray-700 dark:text-white/80 font-semibold tracking-wide">
                               {(() => {
-                                const mode: CategorySearchMode =
-                                  searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
-                                const code = getProductCategoryCode(product, mode)
+                                const code = getProductCategoryCode(product, resolveCategorySearchMode(product, searchMode))
                                 return code || '—'
                               })()}
                             </td>
@@ -2412,10 +2467,7 @@ Ainda tem disponível?`
                             </span>
                           ) : null}
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold tracking-wide bg-slate-100 dark:bg-slate-500/25 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-400/30">
-                            {getProductCategoryCode(
-                              product,
-                              searchMode === 'seminovo' ? 'seminovo' : searchMode === 'android' ? 'android' : 'novo'
-                            ) || '—'}
+                            {getProductCategoryCode(product, resolveCategorySearchMode(product, searchMode)) || '—'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 mb-3 text-sm text-gray-700 dark:text-white/80">
