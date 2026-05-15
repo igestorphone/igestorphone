@@ -46,7 +46,7 @@ import {
 } from '@/lib/productCategoryCodes'
 import { matchesProductSearchMode } from '@/lib/productSearchCondition'
 import toast from 'react-hot-toast'
-import { IPHONE_PRICE_TABLE_ORDER } from '@/lib/iphoneAveragePriceCatalog'
+import { IPHONE_PRICE_TABLE_ORDER, matchIphonePriceTableLabel } from '@/lib/iphoneAveragePriceCatalog'
 import { normalizeColor } from './colorNormalizer'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
@@ -376,58 +376,57 @@ const TYPING_SUGGESTIONS: Record<string, string[]> = {
   android: ['Samsung Galaxy', 'Xiaomi', 'Motorola Edge']
 }
 
-const ANDROID_AUTOCOMPLETE_POOL: string[] = [
-  'Samsung Galaxy S24 Ultra',
-  'Samsung Galaxy S24',
-  'Samsung Galaxy S23',
-  'Samsung Galaxy A',
-  'Xiaomi 14',
-  'Xiaomi Redmi',
-  'Motorola Edge',
-  'Google Pixel',
-  'POCO',
-  'Realme',
-  'OnePlus',
-]
-
 function iphoneGeneration(label: string): number | null {
   const m = label.match(/iphone\s*(\d+)/i)
   return m ? parseInt(m[1], 10) : null
 }
 
-const LACRADO_IPHONE_POOL = IPHONE_PRICE_TABLE_ORDER.filter((label) => {
-  const gen = iphoneGeneration(label)
-  return gen === null || gen >= 14
-})
+const IPHONE_LABEL_SORT_INDEX = new Map(
+  IPHONE_PRICE_TABLE_ORDER.map((label, index) => [label.toLowerCase(), index])
+)
 
-const SEMINOVO_IPHONE_POOL = IPHONE_PRICE_TABLE_ORDER.filter((label) => {
-  const gen = iphoneGeneration(label)
-  return gen === null || (gen >= 11 && gen <= 15)
-})
+/** Rótulo único por produto para autocomplete (só o que existe no estoque do dia). */
+function autocompleteLabelForProduct(product: { name?: string | null; model?: string | null }): string {
+  const raw = productListTitleShown(product).trim()
+  if (!raw || raw === 'N/A') return ''
+  const iphone = matchIphonePriceTableLabel(raw)
+  return iphone || raw
+}
 
-const LACRADO_APPLE_POOL: string[] = [
-  ...LACRADO_IPHONE_POOL,
-  'MacBook Air',
-  'MacBook Pro',
-  'MacBook',
-  'iPad',
-  'iPad mini',
-  'iPad Air',
-  'iPad Pro',
-  'AirPods',
-  'AirPods Pro',
-  'AirPods Max',
-  'Apple Watch',
-  'Apple Watch Ultra',
-]
+function sortAutocompleteLabels(labels: string[]): string[] {
+  return [...labels].sort((a, b) => {
+    const ia = IPHONE_LABEL_SORT_INDEX.get(a.toLowerCase())
+    const ib = IPHONE_LABEL_SORT_INDEX.get(b.toLowerCase())
+    if (ia != null && ib != null) return ia - ib
+    if (ia != null) return -1
+    if (ib != null) return 1
+    return a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+  })
+}
 
-const SEMINOVO_APPLE_POOL: string[] = [
-  ...SEMINOVO_IPHONE_POOL,
-  'MacBook Air',
-  'iPad',
-  'AirPods',
-  'Apple Watch',
-]
+/** Modelos distintos disponíveis hoje no modo selecionado (lacrado / semi-novo / Android). */
+function buildStockAutocompletePool(
+  products: any[],
+  searchMode: 'novo' | 'seminovo' | 'android' | null
+): string[] {
+  if (!searchMode) return []
+  let list = products
+  if (searchMode === 'novo' || searchMode === 'seminovo') {
+    list = list.filter((p: any) => !isLikelyNonAppleDevice(p))
+    list = list.filter((p: any) => matchesProductSearchMode(p, searchMode))
+  }
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const p of list) {
+    const label = autocompleteLabelForProduct(p)
+    if (!label) continue
+    const k = label.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(label)
+  }
+  return sortAutocompleteLabels(out)
+}
 
 function getAutocompleteSubtitle(label: string, mode: 'android' | 'lacrado' | 'seminovo'): string {
   if (mode === 'android') return 'Android'
@@ -455,29 +454,63 @@ function autocompleteRank(label: string, q: string): number {
   if (!words.length) return 99
   const joined = words.join(' ')
   if (l.startsWith(joined)) return 0
-  if (l.startsWith(words[0])) return 1
-  if (words.every((w) => l.includes(w))) return 2
-  if (l.includes(joined)) return 3
+  if (l.includes(joined)) return 1
+
+  const iphoneNum = q.toLowerCase().match(/iphone\s*(\d{1,2})/)?.[1]
+  if (iphoneNum && l.includes('iphone')) {
+    const gen = iphoneGeneration(label)
+    const want = parseInt(iphoneNum, 10)
+    if (gen === want) {
+      if (l.startsWith(`iphone ${iphoneNum}`)) return 2
+      return 3
+    }
+    return 40
+  }
+
+  if (l.startsWith(words[0])) return 4
+  if (words.every((w) => l.includes(w))) return 5
+  if (l.includes(joined)) return 6
   return 99
 }
 
-function filterAutocompleteModels(
-  query: string,
-  mode: 'android' | 'lacrado' | 'seminovo',
-  limit = 10
-): string[] {
+function normalizeProductsApiResponse(response: any): any[] {
+  let products: any[] = []
+  if (Array.isArray(response)) products = response
+  else if (response?.products) products = response.products
+  else if (response?.data?.products) products = response.data.products
+  else if (response?.data && Array.isArray(response.data)) products = response.data
+
+  const getVariantPriority = (variant?: string | null) =>
+    variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
+
+  return products
+    .map((product: any) => ({
+      ...product,
+      price: parseFloat(product.price) || 0,
+      variant: product.variant ? product.variant.toString() : null,
+    }))
+    .sort((a: any, b: any) => {
+      const priorityDiff = getVariantPriority(a.variant) - getVariantPriority(b.variant)
+      if (priorityDiff !== 0) return priorityDiff
+      return a.price - b.price
+    })
+}
+
+function filterAutocompleteModels(query: string, pool: string[], limit = 10): string[] {
   const q = query.trim()
-  if (!q) return []
-  const pool =
-    mode === 'android'
-      ? ANDROID_AUTOCOMPLETE_POOL
-      : mode === 'seminovo'
-        ? SEMINOVO_APPLE_POOL
-        : LACRADO_APPLE_POOL
-  const ranked = pool
+  if (!q || pool.length === 0) return []
+  let ranked = pool
     .map((label) => ({ label, r: autocompleteRank(label, q) }))
     .filter((x) => x.r < 90)
     .sort((a, b) => a.r - b.r || a.label.localeCompare(b.label))
+
+  const iphoneNum = q.match(/iphone\s*(\d{1,2})/i)?.[1]
+  if (iphoneNum) {
+    const want = parseInt(iphoneNum, 10)
+    const sameGen = ranked.filter(({ label }) => iphoneGeneration(label) === want)
+    if (sameGen.length > 0) ranked = sameGen
+  }
+
   const seen = new Set<string>()
   const out: string[] = []
   for (const { label } of ranked) {
@@ -496,13 +529,18 @@ function SearchInputDebounced({
   onPick,
   placeholder = 'Buscar produtos...',
   typingSuggestions,
-  searchMode = 'novo'
+  searchMode = 'novo',
+  suggestionPool = [],
+  inventoryLoading = false,
 }: {
   onDebouncedChange: (value: string) => void
   onPick?: (value: string) => void
   placeholder?: string
   typingSuggestions?: string[]
   searchMode?: string
+  /** Modelos que existem no estoque do dia (modo atual). */
+  suggestionPool?: string[]
+  inventoryLoading?: boolean
 }) {
   const acMode: 'android' | 'lacrado' | 'seminovo' =
     searchMode === 'android' ? 'android' : searchMode === 'seminovo' ? 'seminovo' : 'lacrado'
@@ -524,18 +562,20 @@ function SearchInputDebounced({
   }, [localValue, onDebouncedChange])
 
   const matches = useMemo(
-    () => (localValue.trim().length >= 1 ? filterAutocompleteModels(localValue, acMode, 10) : []),
-    [localValue, acMode]
+    () => (localValue.trim().length >= 1 ? filterAutocompleteModels(localValue, suggestionPool, 10) : []),
+    [localValue, suggestionPool]
   )
 
-  const canShowPanel = localValue.trim().length >= 1 && matches.length > 0
+  const queryTrimmed = localValue.trim()
+  const canShowPanel = queryTrimmed.length >= 1
   const showPanel = panelOpen && canShowPanel
+  const hasAutocompleteMatches = matches.length > 0
   const showTypingEffect = !localValue
 
   useEffect(() => {
     setActiveIdx(-1)
     if (canShowPanel) setPanelOpen(true)
-  }, [localValue, matches.length, acMode])
+  }, [localValue, matches.length, acMode, canShowPanel])
 
   useEffect(() => {
     if (!panelOpen || !canShowPanel) return
@@ -592,8 +632,12 @@ function SearchInputDebounced({
     }
   }, [showPanel, localValue, matches.length])
 
-  // Efeito de digitação: só quando input vazio
-  const suggestions = typingSuggestions ?? TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo
+  // Efeito de digitação: exemplos do estoque do dia; fallback estático se ainda carregando
+  const suggestions =
+    typingSuggestions ??
+    (suggestionPool.length > 0
+      ? suggestionPool.slice(0, 6)
+      : TYPING_SUGGESTIONS[searchMode] ?? TYPING_SUGGESTIONS.novo)
   useEffect(() => {
     if (localValue) {
       setTypingText('')
@@ -660,44 +704,70 @@ function SearchInputDebounced({
           maxHeight: panelPos.maxHeight,
         }}
       >
-        <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-            Resultados
-          </span>
-          <span className="text-[11px] font-semibold tabular-nums text-gray-400 dark:text-gray-500">{matches.length}</span>
-        </div>
-        <ul className="py-1">
-          {matches.map((label, i) => (
-            <li key={`${label}-${i}`} role="presentation">
-              <button
-                type="button"
-                role="option"
-                aria-selected={i === activeIdx}
-                className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
-                  i === activeIdx
-                    ? 'bg-blue-50 dark:bg-blue-950/40'
-                    : 'hover:bg-gray-50 dark:hover:bg-white/5'
-                }`}
-                onMouseEnter={() => setActiveIdx(i)}
-                onMouseDown={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  pickSuggestion(label)
-                }}
-              >
-                <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
-                <span className="min-w-0 flex-1">
-                  <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
-                    {label}
-                  </span>
-                  <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
-                    {getAutocompleteSubtitle(label, acMode)}
-                  </span>
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+        {hasAutocompleteMatches ? (
+          <>
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50/80 dark:bg-white/5">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Resultados
+              </span>
+              <span className="text-[11px] font-semibold tabular-nums text-gray-400 dark:text-gray-500">
+                {matches.length}
+              </span>
+            </div>
+            <ul className="py-1">
+              {matches.map((label, i) => (
+                <li key={`${label}-${i}`} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={i === activeIdx}
+                    className={`w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors cursor-pointer ${
+                      i === activeIdx
+                        ? 'bg-blue-50 dark:bg-blue-950/40'
+                        : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}
+                    onMouseEnter={() => setActiveIdx(i)}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      pickSuggestion(label)
+                    }}
+                  >
+                    <Search className="w-4 h-4 shrink-0 mt-0.5 text-gray-400 dark:text-gray-500" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-sm text-gray-900 dark:text-white uppercase tracking-tight leading-snug">
+                        {label}
+                      </span>
+                      <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                        {getAutocompleteSubtitle(label, acMode)}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : inventoryLoading ? (
+          <div className="px-4 py-8 text-center">
+            <Loader2 className="w-8 h-8 mx-auto text-gray-400 animate-spin mb-2" aria-hidden />
+            <p className="text-sm text-gray-500 dark:text-gray-400">Carregando estoque do dia…</p>
+          </div>
+        ) : suggestionPool.length === 0 ? (
+          <div className="px-4 py-10 text-center">
+            <Search className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden />
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Nenhum produto{' '}
+              {acMode === 'lacrado' ? 'lacrado' : acMode === 'seminovo' ? 'semi-novo' : 'Android'} hoje
+            </p>
+          </div>
+        ) : (
+          <div className="px-4 py-10 text-center">
+            <Search className="w-10 h-10 mx-auto text-gray-300 dark:text-gray-600 mb-3" aria-hidden />
+            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Nenhum resultado para &lsquo;{queryTrimmed}&rsquo;
+            </p>
+          </div>
+        )}
       </motion.div>
     ) : null
 
@@ -718,12 +788,19 @@ function SearchInputDebounced({
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}
         onFocus={() => {
-          if (canShowPanel) setPanelOpen(true)
+          if (queryTrimmed.length >= 1) setPanelOpen(true)
           if (typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches) {
             rootRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
         }}
         onKeyDown={(e) => {
+          if (e.key === 'Enter' && showPanel && !hasAutocompleteMatches && queryTrimmed.length >= 1) {
+            e.preventDefault()
+            setPanelOpen(false)
+            setPanelPos(null)
+            onDebouncedChange(queryTrimmed)
+            return
+          }
           if (e.key === 'ArrowDown' && showPanel && matches.length > 0) {
             e.preventDefault()
             setActiveIdx((i) => (i < 0 ? 0 : Math.min(matches.length - 1, i + 1)))
@@ -1044,30 +1121,41 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     gcTime: 2 * 60 * 1000,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
-    select: (response: any) => {
-      let products: any[] = []
-      if (Array.isArray(response)) products = response
-      else if (response?.products) products = response.products
-      else if (response?.data?.products) products = response.data.products
-      else if (response?.data && Array.isArray(response.data)) products = response.data
-
-      // Filtro por cor para 17 Pro/16 Pro é aplicado no useMemo filteredProducts (para o dropdown de cores continuar mostrando todas as opções)
-      const getVariantPriority = (variant?: string | null) =>
-        variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
-
-      return products
-        .map((product: any) => ({
-          ...product,
-          price: parseFloat(product.price) || 0,
-          variant: product.variant ? product.variant.toString() : null
-        }))
-        .sort((a: any, b: any) => {
-          const priorityDiff = getVariantPriority(a.variant) - getVariantPriority(b.variant)
-          if (priorityDiff !== 0) return priorityDiff
-          return a.price - b.price
-        })
-    }
+    select: normalizeProductsApiResponse,
   })
+
+  // Estoque completo do dia (sem filtro de busca) — só isso alimenta o autocomplete
+  const inventoryQuery = useQuery({
+    queryKey: ['produtos-inventory', searchMode, selectedDateKey],
+    queryFn: () => {
+      const params: any = {
+        date_offset: selectedDateOffset,
+        sort_by: 'price',
+        sort_order: 'asc',
+        limit: 5000,
+      }
+      if (searchMode === 'novo') {
+        params.condition_type = 'lacrados_novos'
+        params.product_type = 'apple'
+      } else if (searchMode === 'seminovo') {
+        params.condition_type = 'seminovos'
+        params.product_type = 'apple'
+      } else if (searchMode === 'android') {
+        params.product_type = 'android'
+      }
+      return produtosApi.getAll(params)
+    },
+    enabled: shouldFetchProducts && queryReady && !!searchMode,
+    staleTime: 10000,
+    gcTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: true,
+    select: normalizeProductsApiResponse,
+  })
+
+  const stockAutocompletePool = useMemo(
+    () => buildStockAutocompletePool(inventoryQuery.data || [], searchMode),
+    [inventoryQuery.data, searchMode]
+  )
 
   const dateOptions: Array<{ key: DateKey; offset: number; label: string }> = useMemo(
     () => [
@@ -1448,6 +1536,8 @@ Ainda tem disponível?`
                 onDebouncedChange={setDebouncedSearch}
                 onPick={handleSearchPick}
                 searchMode={searchMode ?? 'all'}
+                suggestionPool={stockAutocompletePool}
+                inventoryLoading={inventoryQuery.isLoading || inventoryQuery.isFetching}
                 placeholder={
                   searchMode === 'android'
                     ? 'Ex: Samsung, Xiaomi, Motorola...'
@@ -1972,7 +2062,17 @@ Ainda tem disponível?`
                   <Search className="w-10 h-10 text-gray-400 dark:text-gray-300" />
                 </div>
                 <p className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Nenhum produto encontrado</p>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">Digite um termo de busca ou ajuste os filtros</p>
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  {debouncedSearch.trim().length >= 2
+                    ? `Não há ofertas ${
+                        searchMode === 'seminovo'
+                          ? 'semi-novo'
+                          : searchMode === 'android'
+                            ? 'Android'
+                            : 'lacrado'
+                      } para "${debouncedSearch.trim()}" com os filtros atuais.`
+                    : 'Digite um termo de busca ou ajuste os filtros.'}
+                </p>
               </motion.div>
             ) : (
               <motion.div
