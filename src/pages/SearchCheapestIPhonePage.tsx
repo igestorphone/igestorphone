@@ -723,8 +723,14 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   const modeFromUrl = searchParams.get('mode') as SearchMode | null
   const urlModeValid = modeFromUrl === 'novo' || modeFromUrl === 'seminovo' || modeFromUrl === 'android'
   const [searchMode, setSearchModeState] = useState<SearchMode | null>(() =>
-    initialSearchMode ?? (urlModeValid ? modeFromUrl! : null)
+    initialSearchMode ?? (urlModeValid ? modeFromUrl! : 'novo')
   )
+
+  useEffect(() => {
+    if (!urlModeValid && !initialSearchMode && searchMode === 'novo') {
+      setSearchParams({ mode: 'novo' }, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- só na entrada
 
   const setSearchMode = (mode: SearchMode | null) => {
     setSearchModeState(mode)

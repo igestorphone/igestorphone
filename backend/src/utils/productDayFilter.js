@@ -1,7 +1,15 @@
-/** Ban WPP / sem lista nova: tratar ontem como hoje nas consultas por dia (SP). */
-export function useYesterdayAsToday() {
-  const v = String(process.env.USE_YESTERDAY_AS_TODAY || '').toLowerCase()
+/** Lê env: vazio = defaultOn; "false" desliga; "true" liga. */
+function envEnabled(name, defaultOn = false) {
+  const raw = process.env[name]
+  if (raw === undefined || raw === '') return defaultOn
+  const v = String(raw).toLowerCase().trim()
+  if (v === 'false' || v === '0' || v === 'no') return false
   return v === 'true' || v === '1' || v === 'yes'
+}
+
+/** Ban WPP: por padrão LIGADO até definir USE_YESTERDAY_AS_TODAY=false no servidor. */
+export function useYesterdayAsToday() {
+  return envEnabled('USE_YESTERDAY_AS_TODAY', true)
 }
 
 const TODAY_SP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`
@@ -17,10 +25,9 @@ export function productUpdatedAtDayWhere(offsetInt = 0, alias = 'p') {
   return `${dateCol} = ${targetExpr}`
 }
 
-/** Números exibidos no topo da busca (temporário — ban 24h WPP). */
+/** Números 5287/98 no topo: por padrão LIGADO até STATS_DISPLAY_OVERRIDE=false. */
 export function statsDisplayOverrideEnabled() {
-  const v = String(process.env.STATS_DISPLAY_OVERRIDE || '').toLowerCase()
-  return v === 'true' || v === '1' || v === 'yes'
+  return envEnabled('STATS_DISPLAY_OVERRIDE', true)
 }
 
 export const STATS_DISPLAY_TOTALS = {
