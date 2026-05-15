@@ -1660,8 +1660,13 @@ Ainda tem disponível?`
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
       <div ref={searchWorkspaceRef} className="space-y-4 p-4 md:p-6 max-w-full">
         {/* Topo estilo concorrente: cards + busca + modos + banner */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-stretch">
-          <motion.div layout className="order-1 xl:col-span-7 space-y-3">
+        <motion.div className="grid grid-cols-1 xl:grid-cols-12 gap-3 xl:gap-4 items-stretch">
+          <ReferralProgramCard
+            className="order-1 xl:order-2 xl:col-span-5"
+            userName={authUser?.nome || authUser?.name}
+            userEmail={authUser?.email}
+          />
+          <motion.div layout className="order-2 xl:order-1 xl:col-span-7 space-y-3">
             <motion.div className="grid grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
               <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
                 <div className="flex items-center justify-between">
@@ -1771,11 +1776,6 @@ Ainda tem disponível?`
             ) : null}
 
           </motion.div>
-          <ReferralProgramCard
-            className="order-2 xl:col-span-5"
-            userName={authUser?.nome || authUser?.name}
-            userEmail={authUser?.email}
-          />
         </motion.div>
 
 
