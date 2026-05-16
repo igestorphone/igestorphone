@@ -19,9 +19,26 @@ router.get('/stats', authenticateToken, async (req, res) => {
 
     const displayOverride = dateOffset === 0 ? resolveDisplayStats(searchMode) : null;
     if (displayOverride) {
+      const activeCheck = await query(`
+        SELECT COUNT(*)::int AS n
+        FROM products
+        WHERE is_active = true AND price > 0 AND price IS NOT NULL
+      `);
+      const activeProducts = activeCheck.rows[0]?.n ?? 0;
+
+      // Estoque zerado: cards do topo mostram 0 (não os números fixos de marketing)
+      if (activeProducts === 0) {
+        return res.json({
+          total_products: 0,
+          total_suppliers: 0,
+          total_without_list: 0,
+          display_override: false,
+        });
+      }
+
       const totalWithoutList = statsDisplayOverrideEnabled()
         ? Math.max(
-            parseInt(process.env.STATS_WITHOUT_LIST || '47', 10) || 47,
+            parseInt(process.env.STATS_WITHOUT_LIST || '0', 10) || 0,
             0
           )
         : 0;

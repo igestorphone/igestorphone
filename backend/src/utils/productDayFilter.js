@@ -30,18 +30,19 @@ export function statsDisplayOverrideEnabled() {
   return envEnabled('STATS_DISPLAY_OVERRIDE', true)
 }
 
+/** Atualize após reprocessar o dia ou defina STATS_DISPLAY_OVERRIDE=false no servidor. */
 export const STATS_DISPLAY_TOTALS = {
-  total_products: 5287,
-  total_suppliers: 98,
+  total_products: 0,
+  total_suppliers: 0,
 }
 
 /** Mais lacrado, médio seminovo, menos android (soma = totais). */
 export const STATS_DISPLAY_BY_MODE = {
-  novo: { total_products: 3100, total_suppliers: 58 },
-  lacrados_novos: { total_products: 3100, total_suppliers: 58 },
-  seminovo: { total_products: 1550, total_suppliers: 27 },
-  seminovos: { total_products: 1550, total_suppliers: 27 },
-  android: { total_products: 637, total_suppliers: 13 },
+  novo: { total_products: 0, total_suppliers: 0 },
+  lacrados_novos: { total_products: 0, total_suppliers: 0 },
+  seminovo: { total_products: 0, total_suppliers: 0 },
+  seminovos: { total_products: 0, total_suppliers: 0 },
+  android: { total_products: 0, total_suppliers: 0 },
 }
 
 export function resolveDisplayStats(searchMode) {
