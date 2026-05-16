@@ -1,9 +1,11 @@
-import { type ReactNode } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowRight,
   Check,
+  ChevronRight,
+  Menu,
   MessageCircle,
   Minus,
   Rocket,
@@ -11,8 +13,17 @@ import {
   Sparkles,
   TrendingUp,
   Workflow,
+  X,
   Zap
 } from 'lucide-react'
+
+const navLinks = [
+  { href: '#top', label: 'Home', id: 'top' },
+  { href: '#recursos', label: 'Recursos', id: 'recursos' },
+  { href: '#comparativo', label: 'Comparativo', id: 'comparativo' },
+  { href: '#passos', label: 'Como funciona', id: 'passos' },
+  { href: '#faq', label: 'Dúvidas', id: 'faq' }
+] as const
 
 const WHATSAPP_ATENDIMENTO = 'https://wa.me/5511941007348?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
 const WHATSAPP_SAC = 'https://wa.me/5511922961688'
@@ -142,6 +153,162 @@ function SectionLabel({ children }: { children: ReactNode }) {
   )
 }
 
+function LandingNav() {
+  const [activeId, setActiveId] = useState<string>('top')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    const sectionIds = navLinks.map((l) => l.id)
+    const elements = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el != null)
+
+    if (elements.length === 0) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)
+        if (visible[0]?.target.id) setActiveId(visible[0].target.id)
+      },
+      { rootMargin: '-35% 0px -55% 0px', threshold: [0, 0.15, 0.35, 0.6] }
+    )
+
+    elements.forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = menuOpen ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menuOpen])
+
+  const navPill =
+    'rounded-full border border-white/12 bg-[#0c0c14]/80 shadow-[0_12px_48px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150'
+
+  return (
+    <>
+      <header
+        className={`fixed inset-x-0 top-0 z-50 px-3 pt-3 transition-[padding] duration-300 sm:px-4 sm:pt-4 ${
+          scrolled ? 'sm:pt-3' : ''
+        }`}
+      >
+        <div className="mx-auto flex max-w-5xl items-center justify-center gap-3">
+          <nav
+            className={`flex w-full max-w-4xl items-center gap-1 p-1.5 sm:gap-1.5 sm:p-2 ${navPill} ${
+              scrolled ? 'shadow-[0_16px_56px_rgba(0,0,0,0.55)]' : ''
+            }`}
+            aria-label="Principal"
+          >
+            <div className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 md:flex">
+              {navLinks.map((link) => {
+                const isActive = activeId === link.id
+                return (
+                  <a
+                    key={link.id}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`shrink-0 rounded-full px-3.5 py-2 text-sm font-medium transition-all sm:px-4 ${
+                      isActive
+                        ? 'bg-white/12 text-white shadow-inner'
+                        : 'text-white/70 hover:bg-white/6 hover:text-white'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                )
+              })}
+            </div>
+
+            <div className="flex flex-1 items-center justify-between gap-2 md:hidden">
+              <a
+                href="#top"
+                className={`rounded-full px-3.5 py-2 text-sm font-medium ${
+                  activeId === 'top' ? 'bg-white/12 text-white' : 'text-white/70'
+                }`}
+              >
+                Home
+              </a>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((o) => !o)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white"
+                aria-expanded={menuOpen}
+                aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'}
+              >
+                {menuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <Link
+              to="/login"
+              className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:from-blue-400 hover:to-blue-500 sm:px-5 sm:py-2.5"
+            >
+              Login
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </nav>
+        </div>
+      </header>
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className={`absolute left-3 right-3 top-[4.25rem] p-3 ${navPill}`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <motion.div className="flex flex-col gap-1">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.id}
+                    href={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`rounded-xl px-4 py-3 text-sm font-medium ${
+                      activeId === link.id ? 'bg-white/12 text-white' : 'text-white/70'
+                    }`}
+                  >
+                    {link.label}
+                  </a>
+                ))}
+                <a
+                  href={WHATSAPP_ATENDIMENTO}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMenuOpen(false)}
+                  className="mt-2 rounded-xl border border-cyan-400/30 bg-cyan-500/10 px-4 py-3 text-center text-sm font-medium text-cyan-300"
+                >
+                  Falar com especialista
+                </a>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
 function CompareCell({ ok }: { ok: boolean }) {
   return (
     <span
@@ -175,48 +342,27 @@ export default function LandingPage() {
         />
       </div>
 
-      {/* Header glass */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#06060b]/60 backdrop-blur-2xl backdrop-saturate-150">
-        <motion.div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-6">
-          <Link to="/" className="group flex items-center gap-3">
-            <img
-              src={LOGO_URL}
-              alt="iGestorPhone"
-              className="h-10 w-auto max-w-[130px] object-contain transition-transform group-hover:scale-105 sm:h-11"
-            />
-          </Link>
-          <nav className="hidden items-center gap-7 text-sm font-medium text-white/65 md:flex">
-            <a href="#recursos" className="transition-colors hover:text-white">Recursos</a>
-            <a href="#comparativo" className="transition-colors hover:text-white">Comparativo</a>
-            <a href="#passos" className="transition-colors hover:text-white">Como funciona</a>
-            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
-          </nav>
-          <motion.div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/login"
-              className="hidden rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition hover:bg-white/10 md:inline-flex"
-            >
-              Entrar
-            </Link>
-            <a
-              href={WHATSAPP_ATENDIMENTO}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:shadow-cyan-500/35 sm:px-5"
-            >
-              Falar com especialista
-            </a>
-          </motion.div>
-        </motion.div>
-      </header>
+      <LandingNav />
 
-      <main>
+      <main className="scroll-smooth">
         {/* Hero */}
-        <section className="relative px-5 pb-20 pt-16 sm:px-6 sm:pt-20 lg:pb-28 lg:pt-24">
+        <section
+          id="top"
+          className="relative scroll-mt-28 px-5 pb-20 pt-24 sm:px-6 sm:pt-28 lg:pb-28 lg:pt-32"
+        >
           <motion.div className="mx-auto max-w-6xl">
             <motion.div className="flex flex-col items-center gap-14 lg:flex-row lg:items-center lg:gap-12">
               <motion.div className="w-full text-center lg:w-[48%] lg:text-left">
-                <motion.div {...fadeUp(0)}>
+                <motion.div {...fadeUp(0)} className="mb-8 flex justify-center lg:justify-start">
+                  <Link to="/" className="inline-block">
+                    <img
+                      src={LOGO_URL}
+                      alt="iGestorPhone"
+                      className="h-10 w-auto object-contain sm:h-11"
+                    />
+                  </Link>
+                </motion.div>
+                <motion.div {...fadeUp(0.04)}>
                   <SectionLabel>
                     <Sparkles className="h-3.5 w-3.5" />
                     Automação para revendas Apple
@@ -352,7 +498,7 @@ export default function LandingPage() {
         </section>
 
         {/* Recursos */}
-        <section id="recursos" className="scroll-mt-24 px-5 py-20 sm:px-6 sm:py-24">
+        <section id="recursos" className="scroll-mt-28 px-5 py-20 sm:px-6 sm:py-24">
           <motion.div className="mx-auto max-w-6xl">
             <motion.div {...fadeInView(0)} className="mx-auto max-w-2xl text-center">
               <SectionLabel>Recursos</SectionLabel>
@@ -381,7 +527,7 @@ export default function LandingPage() {
         </section>
 
         {/* Comparativo — estilo Mercado Phone */}
-        <section id="comparativo" className="scroll-mt-24 px-5 py-20 sm:px-6 sm:py-24">
+        <section id="comparativo" className="scroll-mt-28 px-5 py-20 sm:px-6 sm:py-24">
           <motion.div className="mx-auto max-w-4xl">
             <motion.div {...fadeInView(0)} className="text-center">
               <SectionLabel>Comparativo</SectionLabel>
@@ -415,7 +561,7 @@ export default function LandingPage() {
         </section>
 
         {/* Passos */}
-        <section id="passos" className="scroll-mt-24 border-t border-white/10 px-5 py-20 sm:px-6 sm:py-24">
+        <section id="passos" className="scroll-mt-28 border-t border-white/10 px-5 py-20 sm:px-6 sm:py-24">
           <motion.div className="mx-auto max-w-6xl">
             <motion.div {...fadeInView(0)} className="text-center">
               <SectionLabel>Como funciona</SectionLabel>
@@ -439,7 +585,7 @@ export default function LandingPage() {
         </section>
 
         {/* Assinatura CTA glass */}
-        <section id="assinatura" className="scroll-mt-24 px-5 py-20 sm:px-6">
+        <section id="assinatura" className="scroll-mt-28 px-5 py-20 sm:px-6">
           <motion.div {...fadeInView(0)} className={`relative mx-auto max-w-3xl overflow-hidden p-8 text-center sm:p-12 ${glassPanel}`}>
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-600/10" />
             <motion.div className="relative">
@@ -484,7 +630,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section id="faq" className="scroll-mt-24 px-5 pb-20 sm:px-6">
+        <section id="faq" className="scroll-mt-28 px-5 pb-20 sm:px-6">
           <motion.div className="mx-auto max-w-3xl">
             <motion.div {...fadeInView(0)} className="text-center">
               <SectionLabel>FAQ</SectionLabel>
