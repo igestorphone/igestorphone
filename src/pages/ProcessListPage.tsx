@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, RefreshCw, AlertTriangle, Apple, Smartphone } from 'lucide-react'
+import { FileText, Upload, Bot, CheckCircle, AlertCircle, Plus, Users, Phone, Mail, MapPin, Download, ChevronDown, Brain, X, Search, RefreshCw, AlertTriangle, Apple, Smartphone, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const RAW_API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001/api').replace(/\/+$/, '')
@@ -146,6 +146,43 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
 
     loadSuppliers()
   }, [])
+
+  const [isZeroing, setIsZeroing] = useState(false)
+  const handleZeroAllProducts = async () => {
+    if (!confirm('⚠️ Zerar TODO o estoque ativo?\n\nOs produtos somem da busca até você processar as listas de novo.')) {
+      return
+    }
+
+    setIsZeroing(true)
+    try {
+      const authData = localStorage.getItem('auth-storage')
+      if (!authData) throw new Error('Token não encontrado')
+
+      const token = JSON.parse(authData).state?.token
+      if (!token) throw new Error('Token inválido')
+
+      const response = await fetch(buildApiUrl('/products/zero-all-products'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Erro ao zerar produtos')
+      }
+
+      const result = await response.json()
+      alert(`✅ Estoque zerado!\n\n• ${result.deactivated} produto(s) desativado(s)\n• Ativos agora: ${result.statistics?.active ?? 0}`)
+    } catch (error: any) {
+      console.error('Erro ao zerar produtos:', error)
+      alert(`❌ Erro ao zerar produtos: ${error.message}`)
+    } finally {
+      setIsZeroing(false)
+    }
+  }
 
   // Função para restaurar produtos de hoje (emergência)
   const [isRestoring, setIsRestoring] = useState(false)
@@ -719,14 +756,34 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
           </p>
           <p className="text-gray-500 dark:text-white/50 text-sm mt-2">O status de processamento é resetado automaticamente às 00h</p>
           
-          {/* Botão de emergência para restaurar produtos */}
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <motion.button
-              onClick={handleRestoreTodayProducts}
-              disabled={isRestoring}
+              type="button"
+              onClick={handleZeroAllProducts}
+              disabled={isZeroing || isRestoring}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center space-x-2 mx-auto"
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              {isZeroing ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Zerando...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Zerar estoque</span>
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={handleRestoreTodayProducts}
+              disabled={isRestoring || isZeroing}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
               {isRestoring ? (
                 <>
@@ -736,12 +793,12 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
               ) : (
                 <>
                   <AlertTriangle className="w-4 h-4" />
-                  <span>Restaurar Produtos de Hoje</span>
+                  <span>Restaurar produtos de hoje</span>
                 </>
               )}
             </motion.button>
             <p className="text-xs text-gray-500 dark:text-white/40 mt-2">
-              Use apenas se os produtos foram zerados por engano
+              Zerar antes de colar listas novas. Restaurar só se zerou por engano.
             </p>
           </div>
         </div>

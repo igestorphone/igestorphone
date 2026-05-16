@@ -83,6 +83,43 @@ router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), as
   }
 });
 
+// Emergência: desativa TODOS os produtos ativos antes de reprocessar listas do dia
+router.post('/zero-all-products', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const countBefore = await query(`
+      SELECT COUNT(*)::int AS total FROM products WHERE is_active = true
+    `);
+    const totalBefore = countBefore.rows[0]?.total ?? 0;
+
+    const result = await query(`
+      UPDATE products SET is_active = false, updated_at = NOW() WHERE is_active = true
+    `);
+    const deactivated = result.rowCount || 0;
+
+    const stats = await query(`
+      SELECT
+        COUNT(*) FILTER (WHERE is_active = true) AS produtos_ativos,
+        COUNT(*) FILTER (WHERE is_active = false) AS produtos_inativos
+      FROM products
+    `);
+
+    console.log(`🧹 [zero-all-products] ${deactivated} produto(s) desativado(s) por admin ${req.user?.id}`);
+
+    res.json({
+      message: 'Estoque zerado. Pode processar as novas listas.',
+      deactivated,
+      had_active_before: totalBefore,
+      statistics: {
+        active: parseInt(stats.rows[0].produtos_ativos, 10),
+        inactive: parseInt(stats.rows[0].produtos_inativos, 10),
+      },
+    });
+  } catch (error) {
+    console.error('❌ Erro ao zerar produtos:', error);
+    res.status(500).json({ message: 'Erro ao zerar produtos', error: error.message });
+  }
+});
+
 // Rota para restaurar produtos desativados (útil se foram zerados por engano)
 router.post('/restore-products', authenticateToken, requireRole('admin'), async (req, res) => {
   try {

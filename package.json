@@ -23,7 +23,8 @@
     "users:force-logout-all": "node backend/src/scripts/force-logout-all.js",
     "admin:create": "node backend/src/scripts/create-admin-user.js",
     "db:roll-yesterday-to-today": "node backend/src/scripts/roll-yesterday-products-to-today.js",
-    "db:roll-yesterday-to-today:dry": "node backend/src/scripts/roll-yesterday-products-to-today.js --dry-run"
+    "db:roll-yesterday-to-today:dry": "node backend/src/scripts/roll-yesterday-products-to-today.js --dry-run",
+    "db:zero-products": "node backend/src/scripts/zero-all-products.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
