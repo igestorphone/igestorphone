@@ -2,11 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
-import {
-  productUpdatedAtDayWhere,
-  resolveDisplayStats,
-  statsDisplayOverrideEnabled,
-} from '../utils/productDayFilter.js';
+import { productUpdatedAtDayWhere } from '../utils/productDayFilter.js';
 
 const router = express.Router();
 
@@ -15,41 +11,6 @@ router.get('/stats', authenticateToken, async (req, res) => {
   try {
     const rawOffset = Number(req.query?.date_offset ?? 0);
     const dateOffset = Number.isInteger(rawOffset) && rawOffset <= 0 && rawOffset >= -2 ? rawOffset : 0;
-    const searchMode = String(req.query?.search_mode || '').trim();
-
-    const displayOverride = dateOffset === 0 ? resolveDisplayStats(searchMode) : null;
-    if (displayOverride) {
-      const activeCheck = await query(`
-        SELECT COUNT(*)::int AS n
-        FROM products
-        WHERE is_active = true AND price > 0 AND price IS NOT NULL
-      `);
-      const activeProducts = activeCheck.rows[0]?.n ?? 0;
-
-      // Estoque zerado: cards do topo mostram 0 (não os números fixos de marketing)
-      if (activeProducts === 0) {
-        return res.json({
-          total_products: 0,
-          total_suppliers: 0,
-          total_without_list: 0,
-          display_override: false,
-        });
-      }
-
-      const totalWithoutList = statsDisplayOverrideEnabled()
-        ? Math.max(
-            parseInt(process.env.STATS_WITHOUT_LIST || '0', 10) || 0,
-            0
-          )
-        : 0;
-      return res.json({
-        total_products: displayOverride.total_products,
-        total_suppliers: displayOverride.total_suppliers,
-        total_without_list: totalWithoutList,
-        display_override: true,
-      });
-    }
-
     const dateWhere = productUpdatedAtDayWhere(dateOffset, 'p');
 
     const result = await query(`

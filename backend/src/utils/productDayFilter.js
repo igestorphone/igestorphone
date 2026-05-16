@@ -7,9 +7,9 @@ function envEnabled(name, defaultOn = false) {
   return v === 'true' || v === '1' || v === 'yes'
 }
 
-/** Ban WPP: por padrão LIGADO até definir USE_YESTERDAY_AS_TODAY=false no servidor. */
+/** Inclui listas de ontem no filtro "hoje" (só se USE_YESTERDAY_AS_TODAY=true no servidor). */
 export function useYesterdayAsToday() {
-  return envEnabled('USE_YESTERDAY_AS_TODAY', true)
+  return envEnabled('USE_YESTERDAY_AS_TODAY', false)
 }
 
 const TODAY_SP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`
@@ -25,24 +25,22 @@ export function productUpdatedAtDayWhere(offsetInt = 0, alias = 'p') {
   return `${dateCol} = ${targetExpr}`
 }
 
-/** Números 5287/98 no topo: por padrão LIGADO até STATS_DISPLAY_OVERRIDE=false. */
+/** Números fixos no topo (marketing). Desligado por padrão — usa contagem real do banco. */
 export function statsDisplayOverrideEnabled() {
-  return envEnabled('STATS_DISPLAY_OVERRIDE', true)
+  return envEnabled('STATS_DISPLAY_OVERRIDE', false)
 }
 
-/** Atualize após reprocessar o dia ou defina STATS_DISPLAY_OVERRIDE=false no servidor. */
 export const STATS_DISPLAY_TOTALS = {
-  total_products: 0,
-  total_suppliers: 0,
+  total_products: 5287,
+  total_suppliers: 98,
 }
 
-/** Mais lacrado, médio seminovo, menos android (soma = totais). */
 export const STATS_DISPLAY_BY_MODE = {
-  novo: { total_products: 0, total_suppliers: 0 },
-  lacrados_novos: { total_products: 0, total_suppliers: 0 },
-  seminovo: { total_products: 0, total_suppliers: 0 },
-  seminovos: { total_products: 0, total_suppliers: 0 },
-  android: { total_products: 0, total_suppliers: 0 },
+  novo: { total_products: 3100, total_suppliers: 58 },
+  lacrados_novos: { total_products: 3100, total_suppliers: 58 },
+  seminovo: { total_products: 1550, total_suppliers: 27 },
+  seminovos: { total_products: 1550, total_suppliers: 27 },
+  android: { total_products: 637, total_suppliers: 13 },
 }
 
 export function resolveDisplayStats(searchMode) {

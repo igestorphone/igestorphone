@@ -1641,20 +1641,11 @@ Ainda tem disponível?`
   })
 
   const statsFromApi = todayStatsQuery.data
-  const useDisplayStatsOverride = statsFromApi?.display_override === true
   const totalProductsToday = statsFromApi?.total_products ?? 0
   const totalSuppliersToday = statsFromApi?.total_suppliers ?? 0
   const totalWithoutListToday = statsFromApi?.total_without_list ?? 0
-  const displayTopProducts = useDisplayStatsOverride
-    ? totalProductsToday
-    : searchMode
-      ? stats.total
-      : totalProductsToday
-  const displayTopSuppliers = useDisplayStatsOverride
-    ? totalSuppliersToday
-    : searchMode
-      ? stats.suppliersCount
-      : totalSuppliersToday
+  const displayTopProducts = totalProductsToday
+  const displayTopSuppliers = totalSuppliersToday
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-black transition-colors duration-200 overflow-x-hidden">
