@@ -8,13 +8,11 @@ import {
   Menu,
   MessageCircle,
   Minus,
-  Rocket,
   Shield,
   Sparkles,
   TrendingUp,
   Workflow,
-  X,
-  Zap
+  X
 } from 'lucide-react'
 
 const navLinks = [
@@ -28,6 +26,7 @@ const navLinks = [
 const WHATSAPP_ATENDIMENTO = 'https://wa.me/5511941007348?text=Ol%C3%A1!%20Quero%20assinar%20o%20iGestorPhone.'
 const WHATSAPP_SAC = 'https://wa.me/5511922961688'
 const LOGO_URL = '/assets/images/logo-dark.png'
+const LANDING_DASHBOARD_IMG = '/assets/images/landing-dashboard-search.png'
 
 const glass =
   'rounded-2xl border border-white/10 bg-white/[0.07] shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150'
@@ -401,71 +400,31 @@ export default function LandingPage() {
                 </motion.div>
               </motion.div>
 
-              {/* Mockup glass */}
-              <motion.div {...fadeUp(0.12)} className="relative w-full max-w-xl lg:w-[52%]">
-                <motion.div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-cyan-400/20 via-transparent to-blue-600/20 blur-2xl" />
-                <motion.div className={`relative overflow-hidden p-6 sm:p-7 ${glassPanel}`}>
-                  <motion.div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-60" />
-                  <motion.div className="relative">
-                    <motion.div className="flex items-center justify-between gap-3">
-                      <motion.div className="flex items-center gap-3">
-                        <img src={LOGO_URL} alt="" className="h-11 w-auto object-contain" />
-                        <motion.div>
-                          <p className="text-sm font-semibold">iGestorPhone</p>
-                          <p className="text-xs text-white/50">Painel ao vivo</p>
-                        </motion.div>
-                      </motion.div>
-                      <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-                        IA ativa
-                      </span>
-                    </motion.div>
-
-                    <motion.div className="mt-6 grid gap-3 sm:grid-cols-2">
-                      {[
-                        { label: 'Listas hoje', value: '243', sub: '+18% vs ontem' },
-                        { label: 'Fornecedores', value: '37', sub: '4 novos na semana' }
-                      ].map((item) => (
-                        <motion.div key={item.label} className={`p-4 ${glass}`}>
-                          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">{item.label}</p>
-                          <p className="mt-2 text-xl font-bold">
-                            {item.value}
-                            <span className="ml-2 text-[10px] font-medium text-white/45">{item.sub}</span>
-                          </p>
-                        </motion.div>
-                      ))}
-                      <motion.div className={`col-span-1 p-4 sm:col-span-2 ${glass}`}>
-                        <motion.div className="flex flex-wrap items-start justify-between gap-2">
-                          <motion.div>
-                            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Top do dia</p>
-                            <p className="mt-1 text-sm font-medium">iPhone 16 Pro • 256 GB • Azul</p>
-                          </motion.div>
-                          <span className="rounded-lg border border-cyan-400/30 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-200">
-                            Mais barato
-                          </span>
-                        </motion.div>
-                        <motion.div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <motion.div className="h-full w-3/4 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" />
-                        </motion.div>
-                      </motion.div>
-                    </motion.div>
-
-                    <motion.div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <motion.div className={`p-3 text-sm ${glass}`}>
-                        <motion.div className="flex items-center justify-between">
-                          <span className="font-medium">Metas</span>
-                          <Rocket className="h-4 w-4 text-white/40" />
-                        </motion.div>
-                        <p className="mt-2 text-xs text-white/50">TM • IA automática</p>
-                      </motion.div>
-                      <motion.div className={`p-3 text-sm ${glass}`}>
-                        <motion.div className="flex items-center justify-between">
-                          <span className="font-medium">Alertas</span>
-                          <Zap className="h-4 w-4 text-white/40" />
-                        </motion.div>
-                        <p className="mt-2 text-xs text-white/50">Reprocessar listas da manhã</p>
-                      </motion.div>
-                    </motion.div>
+              {/* Preview real — Buscar mais barato */}
+              <motion.div {...fadeUp(0.12)} className="relative w-full lg:w-[52%]">
+                <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-cyan-400/20 via-transparent to-blue-600/20 blur-2xl" />
+                <motion.div
+                  className={`relative overflow-hidden ${glassPanel}`}
+                  whileHover={{ y: -4 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                >
+                  <motion.div className="flex items-center gap-2 border-b border-white/10 bg-white/[0.04] px-3 py-2.5 sm:px-4">
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-400/90" aria-hidden />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-400/90" aria-hidden />
+                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-emerald-400/90" aria-hidden />
+                    <span className="ml-1 min-w-0 flex-1 truncate rounded-lg border border-white/8 bg-black/30 px-3 py-1 text-[10px] text-white/45 sm:text-xs">
+                      app.igestorphone.com.br — Buscar mais barato
+                    </span>
                   </motion.div>
+                  <img
+                    src={LANDING_DASHBOARD_IMG}
+                    alt="Tela Buscar mais barato: estatísticas, busca, filtros, Indique e Ganhe e lista de preços"
+                    className="block w-full"
+                    width={1400}
+                    height={900}
+                    loading="eager"
+                    decoding="async"
+                  />
                 </motion.div>
               </motion.div>
             </motion.div>
