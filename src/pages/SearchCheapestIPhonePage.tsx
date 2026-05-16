@@ -25,8 +25,6 @@ import {
   SlidersHorizontal,
   Check,
   X,
-  TrendingUp,
-  TrendingDown,
   Smartphone,
   Headphones,
   Watch,
@@ -1616,23 +1614,6 @@ Ainda tem disponível?`
     window.open(url, '_blank')
   }
 
-  const priceHistoryQuery = useQuery({
-    queryKey: ['price-history-by-model', debouncedSearch, selectedStorage, selectedColor],
-    queryFn: () =>
-      produtosApi.getPriceHistoryByModel({
-        model: debouncedSearch,
-        storage: selectedStorage || undefined,
-        color: selectedColor || undefined
-      }),
-    enabled:
-      debouncedSearch.length >= 1 &&
-      productsQuery.data &&
-      productsQuery.data.length > 0 &&
-      !productsQuery.isFetching,
-    staleTime: 60000,
-    gcTime: 5 * 60 * 1000
-  })
-
   const serverStatusQuery = useQuery({
     queryKey: ['server-status'],
     queryFn: () => utilsApi.getServerStatus(),
@@ -2237,25 +2218,6 @@ Ainda tem disponível?`
                       Ordenado por: Menor Preço
                     </span>
                   </div>
-                  {priceHistoryQuery.data && Array.isArray((priceHistoryQuery.data as any).prices) && (priceHistoryQuery.data as any).prices.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-white/10">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Preços dos últimos 2 dias:</p>
-                      <div className="flex gap-4 flex-wrap text-xs">
-                        {(priceHistoryQuery.data as any).prices.slice(0, 2).map((day: any) => (
-                          <div key={day.date} className="flex items-center gap-2">
-                            <span className="text-gray-600 dark:text-gray-300 font-medium">{day.date}:</span>
-                            <span className="text-gray-900 dark:text-white font-semibold">{formatPrice(day.average_price)}</span>
-                            {day.variation !== undefined && day.variation !== 0 && (
-                              <span className={`flex items-center gap-1 ${day.variation > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                {day.variation > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                                {Math.abs(day.variation_percentage).toFixed(1)}%
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Desktop Table View */}
