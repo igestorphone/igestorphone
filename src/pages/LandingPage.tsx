@@ -1,8 +1,11 @@
+import { type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
+  Check,
   MessageCircle,
+  Minus,
   Rocket,
   Shield,
   Sparkles,
@@ -15,84 +18,105 @@ const WHATSAPP_ATENDIMENTO = 'https://wa.me/5511941007348?text=Ol%C3%A1!%20Quero
 const WHATSAPP_SAC = 'https://wa.me/5511922961688'
 const LOGO_URL = '/assets/images/logo-dark.png'
 
+const glass =
+  'rounded-2xl border border-white/10 bg-white/[0.07] shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl backdrop-saturate-150'
+const glassPanel =
+  'rounded-3xl border border-white/[0.14] bg-gradient-to-br from-white/[0.14] via-white/[0.06] to-white/[0.02] shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl backdrop-saturate-150'
+
 const heroStats = [
   { value: '+12 mil', label: 'Listas processadas' },
   { value: '+180', label: 'Fornecedores monitorados' },
-  { value: '97%', label: 'Clientes ativos renovam' }
+  { value: '97%', label: 'Renovam a assinatura' }
+]
+
+const trustStats = [
+  { value: 'Brasil', label: 'Operação em todo o país' },
+  { value: '+12 mil', label: 'Listas organizadas pela IA' },
+  { value: '+180', label: 'Fornecedores no radar' },
+  { value: '24/7', label: 'Acesso web em qualquer lugar' }
 ]
 
 const highlights = [
   {
-    title: 'Compare preços',
-    description: 'Pesquise iPhones e veja os melhores preços dos fornecedores em tempo real.',
+    title: 'Busca o menor preço',
+    description: 'Compare iPhones lacrado, semi-novo e Android entre fornecedores em tempo real.',
     icon: Sparkles
   },
   {
-    title: 'Calendário de vendas',
-    description: 'Acompanhe médias, tendências e planeje suas compras com base em dados reais.',
+    title: 'IA nas listas',
+    description: 'Cole a lista bruta do WhatsApp e receba produtos, cores e preços organizados.',
     icon: Workflow
   },
   {
-    title: 'Resultados visíveis',
-    description: 'Dashboards com indicadores e alertas para agir na hora certa e manter margens saudáveis.',
+    title: 'Calendário e médias',
+    description: 'Acompanhe tendências de preço e planeje compras com dados do dia.',
     icon: TrendingUp
   },
   {
-    title: 'Camada de segurança',
-    description: 'Acesso por usuário, logs e infraestrutura em nuvem com alta disponibilidade.',
+    title: 'Operação segura',
+    description: 'Usuários por loja, logs e infraestrutura em nuvem com alta disponibilidade.',
     icon: Shield
   }
 ]
 
+const comparisonRows = [
+  { label: 'Busca menor preço entre fornecedores', us: true, them: false },
+  { label: 'Processamento de listas com IA', us: true, them: false },
+  { label: 'Calendário e médias de preço', us: true, them: false },
+  { label: 'Painel de metas e fornecedores', us: true, them: false },
+  { label: 'Atualização em tempo real no dia', us: true, them: false },
+  { label: 'Planilhas e grupos de WhatsApp', us: false, them: true }
+]
+
 const steps = [
   {
-    title: 'Pesquise o iPhone',
-    description: 'Busque o modelo que deseja: iPhone 16, 15, cores, armazenamento. Tudo organizado e fácil de encontrar.',
-    highlight: 'Modelos e variantes em um só lugar.'
+    title: 'Pesquise o modelo',
+    description: 'iPhone 16, Pro Max, cores e armazenamento — tudo numa busca só.',
+    highlight: 'Lacrado, semi-novo ou Android.'
   },
   {
-    title: 'Ache o menor preço',
-    description: 'Compare preços entre fornecedores em tempo real e veja qual oferece o melhor custo-benefício.',
-    highlight: 'Atualização automática dos valores.'
+    title: 'Veja o menor preço',
+    description: 'Fornecedores ranqueados com preço, variante e contato na hora.',
+    highlight: 'Atualização automática do dia.'
   },
   {
-    title: 'Compre economizando',
-    description: 'Feche a compra com o fornecedor que tem o melhor preço e maximize sua margem.',
-    highlight: 'Calendário de vendas e médias para planejar.'
+    title: 'Feche comprando melhor',
+    description: 'WhatsApp do fornecedor com um clique e margem protegida.',
+    highlight: 'Sem planilha, sem caos no grupo.'
   }
 ]
 
 const testimonials = [
   {
-    content: '“Simplificou o trabalho da equipe e garantiu que as listas cheguem limpas para os clientes.”',
-    role: 'Loja parceira em São Paulo'
+    content: 'Simplificou o trabalho da equipe e garantiu listas limpas para os clientes.',
+    role: 'Loja parceira — São Paulo'
   },
   {
-    content: '“Em poucos minutos, a IA organiza tudo. O retorno em produtividade foi imediato.”',
-    role: 'Revendedor Apple em Minas Gerais'
+    content: 'Em poucos minutos a IA organiza tudo. O retorno em produtividade foi imediato.',
+    role: 'Revendedor Apple — Minas Gerais'
   },
   {
-    content: '“O painel mostra exatamente o que precisa de atenção. Hoje gerimos fornecedores sem planilhas.”',
-    role: 'Operação no Rio de Janeiro'
+    content: 'O painel mostra o que precisa de atenção. Hoje gerimos fornecedores sem planilhas.',
+    role: 'Operação — Rio de Janeiro'
   }
 ]
 
 const faqs = [
   {
     question: 'A assinatura inclui todos os módulos?',
-    answer: 'Sim. Você recebe IA para listas, painel de metas, gestão de fornecedores, notas, relatórios e suporte via WhatsApp.'
+    answer: 'Sim. Busca, IA para listas, calendário, metas, fornecedores e suporte via WhatsApp.'
   },
   {
-    question: 'Consigo usar no celular?',
-    answer: 'Totalmente. O iGestorPhone roda no navegador, então basta ter internet para acompanhar sua operação de qualquer lugar.'
+    question: 'Funciona no celular?',
+    answer: 'Sim. É 100% web — abra no navegador do iPhone ou Android com internet.'
   },
   {
-    question: 'Quanto tempo leva para entrar no ar?',
-    answer: 'Após a assinatura, criamos seu acesso na hora e acompanhamos a migração das primeiras listas com você.'
+    question: 'Quanto tempo para começar?',
+    answer: 'Após a assinatura criamos seu acesso na hora e ajudamos nas primeiras listas.'
   },
   {
-    question: 'Existe contrato de fidelidade?',
-    answer: 'Não. A assinatura é mensal e você cancela quando quiser. Mas a maioria dos clientes continua porque vê resultado.'
+    question: 'Tem fidelidade?',
+    answer: 'Não. Mensal e você cancela quando quiser.'
   }
 ]
 
@@ -110,43 +134,67 @@ const fadeInView = (delay = 0) => ({
   transition: { duration: 0.55, delay, ease: [0.25, 0.46, 0.45, 0.94] }
 })
 
-const cardHover = {
-  rest: { scale: 1 },
-  hover: { scale: 1.02 },
-  tap: { scale: 0.99 }
+function SectionLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-500/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300/90 backdrop-blur-md">
+      {children}
+    </span>
+  )
 }
-const buttonHover = {
-  rest: { scale: 1 },
-  hover: { scale: 1.03 },
-  tap: { scale: 0.98 }
+
+function CompareCell({ ok }: { ok: boolean }) {
+  return (
+    <span
+      className={`inline-flex h-8 w-8 items-center justify-center rounded-full border ${
+        ok
+          ? 'border-emerald-400/40 bg-emerald-500/15 text-emerald-300'
+          : 'border-white/10 bg-white/5 text-white/25'
+      }`}
+    >
+      {ok ? <Check className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
+    </span>
+  )
 }
 
 export default function LandingPage() {
   return (
-    <div className="relative min-h-screen bg-[#0a0a0f] text-white">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute left-1/2 top-0 h-[700px] w-[900px] -translate-x-1/2 rounded-full bg-cyan-500/[0.06] blur-[120px]" />
-        <div className="absolute -left-40 top-1/3 h-80 w-80 rounded-full bg-blue-500/[0.05] blur-[100px]" />
-        <div className="absolute -right-40 bottom-1/3 h-80 w-80 rounded-full bg-indigo-500/[0.05] blur-[100px]" />
-        <div className="absolute left-1/2 bottom-0 h-[400px] w-[600px] -translate-x-1/2 rounded-full bg-cyan-400/[0.03] blur-[80px]" />
+    <motion.div className="relative min-h-screen overflow-x-hidden bg-[#06060b] text-white">
+      {/* Fundo atmosférico */}
+      <div className="pointer-events-none fixed inset-0 -z-10">
+        <motion.div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(34,211,238,0.14),transparent)]" />
+        <motion.div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_40%_at_100%_50%,rgba(59,130,246,0.08),transparent)]" />
+        <motion.div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_0%_80%,rgba(99,102,241,0.08),transparent)]" />
+        <motion.div
+          className="absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)',
+            backgroundSize: '64px 64px',
+            maskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black, transparent)'
+          }}
+        />
       </div>
 
-      <header className="sticky top-0 z-20 border-b border-white/[0.08] bg-[#0a0a0f]/95 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link to="/" className="flex items-center gap-3 group">
-            <img src={LOGO_URL} alt="iGestorPhone" className="h-11 w-auto max-w-[140px] object-contain transition-transform group-hover:scale-105" />
+      {/* Header glass */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#06060b]/60 backdrop-blur-2xl backdrop-saturate-150">
+        <motion.div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 sm:px-6">
+          <Link to="/" className="group flex items-center gap-3">
+            <img
+              src={LOGO_URL}
+              alt="iGestorPhone"
+              className="h-10 w-auto max-w-[130px] object-contain transition-transform group-hover:scale-105 sm:h-11"
+            />
           </Link>
-          <nav className="hidden items-center gap-8 text-sm font-medium text-white/70 md:flex">
-            <a href="#features" className="transition-colors hover:text-cyan-400">Recursos</a>
-            <a href="#steps" className="transition-colors hover:text-cyan-400">Como funciona</a>
-            <a href="#assinatura" className="transition-colors hover:text-cyan-400">Assinatura</a>
-            <a href="#depoimentos" className="transition-colors hover:text-cyan-400">Depoimentos</a>
-            <a href="#faq" className="transition-colors hover:text-cyan-400">FAQ</a>
+          <nav className="hidden items-center gap-7 text-sm font-medium text-white/65 md:flex">
+            <a href="#recursos" className="transition-colors hover:text-white">Recursos</a>
+            <a href="#comparativo" className="transition-colors hover:text-white">Comparativo</a>
+            <a href="#passos" className="transition-colors hover:text-white">Como funciona</a>
+            <a href="#faq" className="transition-colors hover:text-white">FAQ</a>
           </nav>
-          <div className="flex items-center gap-3">
+          <motion.div className="flex items-center gap-2 sm:gap-3">
             <Link
               to="/login"
-              className="hidden rounded-xl border border-cyan-500/30 px-4 py-2.5 text-sm font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10 md:inline-flex"
+              className="hidden rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-md transition hover:bg-white/10 md:inline-flex"
             >
               Entrar
             </Link>
@@ -154,401 +202,334 @@ export default function LandingPage() {
               href={WHATSAPP_ATENDIMENTO}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 hover:scale-[1.02]"
+              className="inline-flex items-center rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:shadow-cyan-500/35 sm:px-5"
             >
               Falar com especialista
             </a>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       </header>
 
       <main>
-        <section className="relative overflow-hidden pb-28 pt-24">
-          <div className="mx-auto flex max-w-6xl flex-col-reverse items-center gap-16 px-6 md:flex-row md:items-start md:gap-12">
-            <div className="w-full text-center md:w-1/2 md:text-left">
-              <motion.div {...fadeUp(0)}>
-                <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-[11px] font-medium uppercase tracking-[0.25em] text-cyan-400">
-                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                  Automação para revendas Apple
-                </span>
-              </motion.div>
-              <motion.h1
-                {...fadeUp(0.1)}
-                className="mt-8 text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-[3.25rem]"
-              >
-                Centralize fornecedores, listas e metas com{' '}
-                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-300 bg-clip-text text-transparent">
-                  suporte direto no WhatsApp
-                </span>
-              </motion.h1>
-              <motion.p
-                {...fadeUp(0.2)}
-                className="mt-6 max-w-lg text-base leading-relaxed text-white/50 md:text-lg"
-              >
-                Esqueça planilhas e mensagens perdidas. IA para organizar listas,
-                identificar variantes e dashboards que aceleram vendas na sua operação Apple.
-              </motion.p>
-              <motion.div
-                {...fadeUp(0.3)}
-                className="mt-10 flex flex-col gap-3 sm:flex-row"
-              >
-                <motion.a
-                  href={WHATSAPP_ATENDIMENTO}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40"
-                  variants={buttonHover}
-                  initial="rest"
-                  whileHover="hover"
-                  whileTap="tap"
-                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        {/* Hero */}
+        <section className="relative px-5 pb-20 pt-16 sm:px-6 sm:pt-20 lg:pb-28 lg:pt-24">
+          <motion.div className="mx-auto max-w-6xl">
+            <motion.div className="flex flex-col items-center gap-14 lg:flex-row lg:items-center lg:gap-12">
+              <motion.div className="w-full text-center lg:w-[48%] lg:text-left">
+                <motion.div {...fadeUp(0)}>
+                  <SectionLabel>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Automação para revendas Apple
+                  </SectionLabel>
+                </motion.div>
+                <motion.h1
+                  {...fadeUp(0.08)}
+                  className="mt-8 text-4xl font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.35rem]"
                 >
-                  Quero uma demonstração <ArrowRight className="h-4 w-4" />
-                </motion.a>
-                <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
+                  O sistema que organiza{' '}
+                  <span className="bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-400 bg-clip-text text-transparent">
+                    fornecedores, listas e preços
+                  </span>{' '}
+                  no mesmo lugar
+                </motion.h1>
+                <motion.p {...fadeUp(0.16)} className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-white/55 lg:mx-0 lg:text-lg">
+                  Esqueça planilhas e mensagens perdidas no WhatsApp. IA para listas, busca do menor preço e painéis
+                  que aceleram a decisão de compra.
+                </motion.p>
+                <motion.div {...fadeUp(0.24)} className="mt-10 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+                  <a
+                    href={WHATSAPP_ATENDIMENTO}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-7 py-3.5 text-base font-semibold text-white shadow-xl shadow-cyan-500/25 transition hover:scale-[1.02] hover:shadow-cyan-500/40"
+                  >
+                    Quero uma demonstração
+                    <ArrowRight className="h-4 w-4" />
+                  </a>
                   <Link
                     to="/login"
-                    className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-6 py-3.5 text-base font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
+                    className={`inline-flex items-center justify-center px-7 py-3.5 text-base font-medium text-white/90 transition hover:bg-white/10 ${glass}`}
                   >
                     Já sou cliente
                   </Link>
                 </motion.div>
               </motion.div>
-              <motion.div
-                className="mt-12 grid gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 md:grid-cols-3"
-                initial="hidden"
-                animate="visible"
-                variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
-              >
-                {heroStats.map(stat => (
-                  <motion.div
-                    key={stat.label}
-                    variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 10 } }}
-                    transition={{ duration: 0.4 }}
-                    className="text-left"
-                  >
-                    <p className="text-2xl font-semibold tracking-tight text-white">{stat.value}</p>
-                    <p className="mt-1 text-[11px] font-medium uppercase tracking-widest text-white/40">{stat.label}</p>
+
+              {/* Mockup glass */}
+              <motion.div {...fadeUp(0.12)} className="relative w-full max-w-xl lg:w-[52%]">
+                <motion.div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-cyan-400/20 via-transparent to-blue-600/20 blur-2xl" />
+                <motion.div className={`relative overflow-hidden p-6 sm:p-7 ${glassPanel}`}>
+                  <motion.div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-60" />
+                  <motion.div className="relative">
+                    <motion.div className="flex items-center justify-between gap-3">
+                      <motion.div className="flex items-center gap-3">
+                        <img src={LOGO_URL} alt="" className="h-11 w-auto object-contain" />
+                        <motion.div>
+                          <p className="text-sm font-semibold">iGestorPhone</p>
+                          <p className="text-xs text-white/50">Painel ao vivo</p>
+                        </motion.div>
+                      </motion.div>
+                      <span className="rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                        IA ativa
+                      </span>
+                    </motion.div>
+
+                    <motion.div className="mt-6 grid gap-3 sm:grid-cols-2">
+                      {[
+                        { label: 'Listas hoje', value: '243', sub: '+18% vs ontem' },
+                        { label: 'Fornecedores', value: '37', sub: '4 novos na semana' }
+                      ].map((item) => (
+                        <motion.div key={item.label} className={`p-4 ${glass}`}>
+                          <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">{item.label}</p>
+                          <p className="mt-2 text-xl font-bold">
+                            {item.value}
+                            <span className="ml-2 text-[10px] font-medium text-white/45">{item.sub}</span>
+                          </p>
+                        </motion.div>
+                      ))}
+                      <motion.div className={`col-span-1 p-4 sm:col-span-2 ${glass}`}>
+                        <motion.div className="flex flex-wrap items-start justify-between gap-2">
+                          <motion.div>
+                            <p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Top do dia</p>
+                            <p className="mt-1 text-sm font-medium">iPhone 16 Pro • 256 GB • Azul</p>
+                          </motion.div>
+                          <span className="rounded-lg border border-cyan-400/30 bg-cyan-500/15 px-2.5 py-1 text-xs font-semibold text-cyan-200">
+                            Mais barato
+                          </span>
+                        </motion.div>
+                        <motion.div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <motion.div className="h-full w-3/4 rounded-full bg-gradient-to-r from-cyan-400 to-blue-500" />
+                        </motion.div>
+                      </motion.div>
+                    </motion.div>
+
+                    <motion.div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <motion.div className={`p-3 text-sm ${glass}`}>
+                        <motion.div className="flex items-center justify-between">
+                          <span className="font-medium">Metas</span>
+                          <Rocket className="h-4 w-4 text-white/40" />
+                        </motion.div>
+                        <p className="mt-2 text-xs text-white/50">TM • IA automática</p>
+                      </motion.div>
+                      <motion.div className={`p-3 text-sm ${glass}`}>
+                        <motion.div className="flex items-center justify-between">
+                          <span className="font-medium">Alertas</span>
+                          <Zap className="h-4 w-4 text-white/40" />
+                        </motion.div>
+                        <p className="mt-2 text-xs text-white/50">Reprocessar listas da manhã</p>
+                      </motion.div>
+                    </motion.div>
                   </motion.div>
-                ))}
-              </motion.div>
-            </div>
-
-            <motion.div
-              {...fadeUp(0.2)}
-              className="relative w-full max-w-xl md:w-1/2"
-              whileHover={{ y: -4 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-            >
-              <div className="absolute -inset-px rounded-3xl bg-gradient-to-b from-white/10 to-transparent opacity-50" />
-              <motion.div
-                className="relative overflow-hidden rounded-3xl border border-white/[0.08] bg-white/[0.02] p-[1px]"
-                initial={{ boxShadow: '0 0 0 0 rgba(255,255,255,0)' }}
-                whileHover={{ boxShadow: '0 20px 40px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06)' }}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="relative rounded-[22px] bg-black/80 p-6 backdrop-blur-sm">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src={LOGO_URL} alt="iGestorPhone" className="h-12 w-auto object-contain" />
-                      <div>
-                        <p className="text-sm font-semibold text-white">iGestorPhone</p>
-                        <p className="text-xs text-white/50">Dashboard em tempo real</p>
-                      </div>
-                    </div>
-                    <span className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/70">IA ativa</span>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
-                      <p className="text-xs font-medium uppercase tracking-wider text-white/50">Listas processadas hoje</p>
-                      <p className="mt-2 flex items-baseline gap-2 text-xl font-semibold text-white">
-                        243 <span className="text-[10px] font-medium text-white/50">+18% vs ontem</span>
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
-                      <p className="text-xs font-medium uppercase tracking-wider text-white/50">Fornecedores monitorados</p>
-                      <p className="mt-2 flex items-baseline gap-2 text-xl font-semibold text-white">
-                        37 <span className="text-[10px] font-medium text-white/50">4 novos na semana</span>
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 md:col-span-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-medium uppercase tracking-wider text-white/50">Top linha do dia</p>
-                          <p className="mt-1 text-sm text-white">iPhone 16 Pro • Azul • e-SIM • 256 GB</p>
-                        </div>
-                        <span className="rounded-lg bg-white/10 px-2.5 py-1 text-xs font-semibold text-cyan-300/90">
-                          Melhor oferta
-                        </span>
-                      </div>
-                      <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full w-3/4 rounded-full bg-white/30" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white/90">Metas da semana</span>
-                        <Rocket className="h-4 w-4 text-white/40" />
-                      </div>
-                      <p className="mt-2 text-[10px] font-medium uppercase tracking-wider text-white/40">Listas priorizadas</p>
-                      <ul className="mt-1 space-y-0.5 text-xs text-white/50">
-                        <li>• TM • IA automática</li>
-                        <li>• AFZ • Conferência manual</li>
-                      </ul>
-                    </div>
-                    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-white/90">Notas rápidas</span>
-                        <Zap className="h-4 w-4 text-white/40" />
-                      </div>
-                      <ul className="mt-2 space-y-0.5 text-xs text-white/50">
-                        <li>• Reprocessar listas da manhã</li>
-                        <li>• Atualizar status fornecedor</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+                </motion.div>
               </motion.div>
             </motion.div>
-          </div>
-        </section>
 
-        <section id="features" className="scroll-mt-20 border-t border-white/[0.06] py-24">
-          <div className="mx-auto max-w-6xl px-6">
-            <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Recursos</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Feito para operações Apple</h2>
-              <p className="mt-4 text-white/50 sm:mx-auto sm:max-w-2xl text-sm leading-relaxed">
-                Da captura da lista à decisão. Cada módulo pensado para lojistas Apple.
-              </p>
-            </motion.div>
+            {/* Stats hero */}
             <motion.div
-              className="mt-14 grid gap-4 lg:grid-cols-2"
-              initial="hidden"
-              whileInView="visible"
-              viewport={viewport}
-              variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
+              {...fadeInView(0.2)}
+              className={`mt-14 grid gap-4 p-6 sm:grid-cols-3 sm:p-8 ${glassPanel}`}
             >
-              {highlights.map(({ title, description, icon: Icon }, index) => (
-                <motion.div
-                  key={title}
-                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
-                  transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="group relative flex items-start gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 transition-all hover:border-cyan-500/20 hover:bg-cyan-500/5"
-                  whileHover={{ y: -2 }}
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-cyan-400 transition-colors group-hover:from-cyan-500/30 group-hover:to-blue-500/30">
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white">{title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-white/50">{description}</p>
-                  </div>
+              {heroStats.map((stat) => (
+                <motion.div key={stat.label} className="text-center sm:text-left">
+                  <p className="text-2xl font-bold sm:text-3xl">{stat.value}</p>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-widest text-white/45">{stat.label}</p>
                 </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         </section>
 
-        <section id="steps" className="scroll-mt-20 border-t border-white/[0.06] py-24">
-          <div className="mx-auto max-w-5xl px-6">
-            <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Como funciona</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Três passos para transformar seu fluxo</h2>
+        {/* Trust stats — estilo Mercado Phone */}
+        <section className="border-y border-white/10 bg-white/[0.02] py-14 backdrop-blur-sm">
+          <motion.div className="mx-auto grid max-w-6xl gap-8 px-5 sm:grid-cols-2 lg:grid-cols-4 sm:px-6">
+            {trustStats.map((stat, i) => (
+              <motion.div key={stat.label} {...fadeInView(i * 0.06)} className="text-center">
+                <p className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{stat.value}</p>
+                <p className="mt-2 text-sm text-white/50">{stat.label}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </section>
+
+        {/* Recursos */}
+        <section id="recursos" className="scroll-mt-24 px-5 py-20 sm:px-6 sm:py-24">
+          <motion.div className="mx-auto max-w-6xl">
+            <motion.div {...fadeInView(0)} className="mx-auto max-w-2xl text-center">
+              <SectionLabel>Recursos</SectionLabel>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">Feito para operações Apple</h2>
+              <p className="mt-4 text-sm leading-relaxed text-white/50 sm:text-base">
+                Da captura da lista à decisão de compra — cada módulo pensado para quem vive de margem e velocidade.
+              </p>
             </motion.div>
-            <motion.div
-              className="mt-14 grid gap-6 md:grid-cols-3"
-              initial="hidden"
-              whileInView="visible"
-              viewport={viewport}
-              variants={{ visible: { transition: { staggerChildren: 0.1 } }, hidden: {} }}
-            >
-              {steps.map((step, index) => (
+            <motion.div className="mt-14 grid gap-4 sm:grid-cols-2">
+              {highlights.map(({ title, description, icon: Icon }, i) => (
                 <motion.div
-                  key={step.title}
-                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 24 } }}
-                  transition={{ duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1]"
-                  whileHover={{ y: -3 }}
+                  key={title}
+                  {...fadeInView(i * 0.05)}
+                  className={`group relative overflow-hidden p-6 transition hover:border-cyan-400/25 hover:bg-white/[0.09] ${glass}`}
                 >
-                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 text-lg font-bold text-cyan-400">
-                    {index + 1}
-                  </div>
-                  <h3 className="text-base font-semibold text-white">{step.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-white/50">{step.description}</p>
-                  <span className="mt-4 inline-block rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-white/60">
-                    {step.highlight}
+                  <motion.div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-cyan-400/10 blur-2xl transition group-hover:bg-cyan-400/20" />
+                  <motion.div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-400/25 to-blue-600/20 text-cyan-300">
+                    <Icon className="h-5 w-5" />
+                  </motion.div>
+                  <h3 className="mt-5 text-lg font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/55">{description}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* Comparativo — estilo Mercado Phone */}
+        <section id="comparativo" className="scroll-mt-24 px-5 py-20 sm:px-6 sm:py-24">
+          <motion.div className="mx-auto max-w-4xl">
+            <motion.div {...fadeInView(0)} className="text-center">
+              <SectionLabel>Comparativo</SectionLabel>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">iGestorPhone vs. planilhas</h2>
+              <p className="mt-4 text-sm text-white/50">Veja por que lojistas trocam grupos de WhatsApp e Excel por um painel único.</p>
+            </motion.div>
+            <motion.div {...fadeInView(0.1)} className={`mt-12 overflow-hidden ${glassPanel}`}>
+              <motion.div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-4 gap-y-1 border-b border-white/10 bg-white/[0.06] px-4 py-4 text-sm font-semibold sm:px-6">
+                <span className="text-white/70">Recurso</span>
+                <span className="text-center text-cyan-300">iGestorPhone</span>
+                <span className="text-center text-white/40">Manual</span>
+              </motion.div>
+              {comparisonRows.map((row, i) => (
+                <motion.div
+                  key={row.label}
+                  className={`grid grid-cols-[1fr_auto_auto] items-center gap-x-4 px-4 py-4 text-sm sm:px-6 ${
+                    i % 2 === 0 ? 'bg-white/[0.02]' : ''
+                  }`}
+                >
+                  <span className="text-white/80">{row.label}</span>
+                  <span className="flex justify-center">
+                    <CompareCell ok={row.us} />
+                  </span>
+                  <span className="flex justify-center">
+                    <CompareCell ok={row.them} />
                   </span>
                 </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         </section>
 
-        <section id="assinatura" className="scroll-mt-20 border-t border-white/[0.06] py-24">
-          <div className="mx-auto max-w-2xl px-6">
+        {/* Passos */}
+        <section id="passos" className="scroll-mt-24 border-t border-white/10 px-5 py-20 sm:px-6 sm:py-24">
+          <motion.div className="mx-auto max-w-6xl">
             <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Assinatura</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Fale com a gente no WhatsApp</h2>
-              <p className="mt-4 text-sm leading-relaxed text-white/50">
-                Condições, demonstração e ativação do acesso são tratadas direto com nossa equipe — sem valores exibidos aqui na página.
-              </p>
+              <SectionLabel>Como funciona</SectionLabel>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">Três passos para transformar seu fluxo</h2>
             </motion.div>
-
-            <motion.div
-              {...fadeInView(0.12)}
-              className="mt-10 flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8 sm:flex-row"
-            >
-              <motion.a
-                href={WHATSAPP_ATENDIMENTO}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-cyan-500/25 transition-all hover:shadow-cyan-500/40 sm:w-auto"
-                variants={buttonHover}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              >
-                <MessageCircle className="h-5 w-5" />
-                Chamar no WhatsApp
-              </motion.a>
-              <Link
-                to="/login"
-                className="inline-flex w-full items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-8 py-4 text-base font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10 sm:w-auto"
-              >
-                Já sou cliente — entrar
-              </Link>
-            </motion.div>
-          </div>
-        </section>
-
-        <section id="depoimentos" className="scroll-mt-20 border-t border-white/[0.06] py-24">
-          <div className="mx-auto max-w-5xl px-6">
-            <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">Depoimentos</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">Quem já usa</h2>
-            </motion.div>
-            <motion.div
-              className="mt-14 grid gap-4 md:grid-cols-3"
-              initial="hidden"
-              whileInView="visible"
-              viewport={viewport}
-              variants={{ visible: { transition: { staggerChildren: 0.08 } }, hidden: {} }}
-            >
-              {testimonials.map((testimonial) => (
-                <motion.div
-                  key={testimonial.role}
-                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 20 } }}
-                  transition={{ duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 transition-colors hover:border-white/[0.1]"
-                  whileHover={{ y: -2 }}
-                >
-                  <p className="text-sm leading-relaxed text-white/70">"{testimonial.content.replace(/^"|"$/g, '')}"</p>
-                  <p className="mt-4 text-[11px] font-medium uppercase tracking-wider text-white/40">
-                    {testimonial.role}
+            <motion.div className="mt-14 grid gap-5 md:grid-cols-3">
+              {steps.map((step, index) => (
+                <motion.div key={step.title} {...fadeInView(index * 0.08)} className={`relative p-6 ${glass}`}>
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400/30 to-blue-600/20 text-lg font-bold text-cyan-200">
+                    {index + 1}
+                  </span>
+                  <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-white/55">{step.description}</p>
+                  <p className="mt-4 inline-block rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-cyan-200/90">
+                    {step.highlight}
                   </p>
                 </motion.div>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         </section>
 
-        <section id="faq" className="scroll-mt-20 border-t border-white/[0.08] py-24">
-          <div className="mx-auto max-w-3xl px-6">
-            <motion.div {...fadeInView(0)} className="text-center">
-              <p className="text-[11px] font-medium uppercase tracking-[0.3em] text-white/40">FAQ</p>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight text-white">Perguntas frequentes</h2>
+        {/* Assinatura CTA glass */}
+        <section id="assinatura" className="scroll-mt-24 px-5 py-20 sm:px-6">
+          <motion.div {...fadeInView(0)} className={`relative mx-auto max-w-3xl overflow-hidden p-8 text-center sm:p-12 ${glassPanel}`}>
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-blue-600/10" />
+            <motion.div className="relative">
+              <h2 className="text-2xl font-bold sm:text-3xl">Pronto para sair das planilhas?</h2>
+              <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/55 sm:text-base">
+                Demonstração personalizada e ativação do acesso com nossa equipe — fale direto no WhatsApp.
+              </p>
+              <motion.div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                <a
+                  href={WHATSAPP_ATENDIMENTO}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-8 py-4 text-base font-semibold shadow-xl shadow-cyan-500/25 transition hover:scale-[1.02]"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Chamar no WhatsApp
+                </a>
+                <Link to="/login" className={`inline-flex items-center justify-center px-8 py-4 text-base font-medium ${glass}`}>
+                  Já sou cliente
+                </Link>
+              </motion.div>
             </motion.div>
-            <motion.div
-              className="mt-14 space-y-3"
-              initial="hidden"
-              whileInView="visible"
-              viewport={viewport}
-              variants={{ visible: { transition: { staggerChildren: 0.05 } }, hidden: {} }}
-            >
-              {faqs.map((faq) => (
+          </motion.div>
+        </section>
+
+        {/* Depoimentos */}
+        <section className="border-t border-white/10 px-5 py-20 sm:px-6 sm:py-24">
+          <motion.div className="mx-auto max-w-6xl">
+            <motion.div {...fadeInView(0)} className="text-center">
+              <SectionLabel>Depoimentos</SectionLabel>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight sm:text-4xl">Quem já usa recomenda</h2>
+            </motion.div>
+            <motion.div className="mt-14 grid gap-4 md:grid-cols-3">
+              {testimonials.map((t, i) => (
+                <motion.div key={t.role} {...fadeInView(i * 0.06)} className={`flex flex-col p-6 ${glass}`}>
+                  <p className="flex-1 text-sm leading-relaxed text-white/70">&ldquo;{t.content}&rdquo;</p>
+                  <p className="mt-5 text-[11px] font-semibold uppercase tracking-wider text-white/40">{t.role}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </section>
+
+        {/* FAQ */}
+        <section id="faq" className="scroll-mt-24 px-5 pb-20 sm:px-6">
+          <motion.div className="mx-auto max-w-3xl">
+            <motion.div {...fadeInView(0)} className="text-center">
+              <SectionLabel>FAQ</SectionLabel>
+              <h2 className="mt-6 text-3xl font-bold tracking-tight">Perguntas frequentes</h2>
+            </motion.div>
+            <motion.div className="mt-12 space-y-3">
+              {faqs.map((faq, i) => (
                 <motion.details
                   key={faq.question}
-                  variants={{ visible: { opacity: 1, y: 0 }, hidden: { opacity: 0, y: 12 } }}
-                  transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-                  className="group rounded-xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 transition-colors hover:border-cyan-500/20 [&[open]]:border-cyan-500/20 [&[open]]:bg-cyan-500/5"
+                  {...fadeInView(i * 0.04)}
+                  className={`group px-5 py-4 transition open:border-cyan-400/25 open:bg-cyan-500/5 ${glass}`}
                 >
-                  <summary className="cursor-pointer list-none text-sm font-semibold text-white [&::-webkit-details-marker]:hidden">
+                  <summary className="cursor-pointer list-none text-sm font-semibold [&::-webkit-details-marker]:hidden">
                     {faq.question}
                   </summary>
                   <p className="mt-3 text-sm leading-relaxed text-white/55">{faq.answer}</p>
                 </motion.details>
               ))}
             </motion.div>
-          </div>
+          </motion.div>
         </section>
-
-        <motion.section
-          className="border-t border-white/[0.06] py-20"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={viewport}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-8 px-6 text-center md:flex-row md:text-left">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">Pronto para começar?</h2>
-              <p className="mt-2 max-w-md text-sm text-white/50">
-                Demonstração personalizada e ativação do acesso com nossa equipe pelo WhatsApp.
-              </p>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <motion.a
-                href={WHATSAPP_ATENDIMENTO}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/25"
-                variants={buttonHover}
-                initial="rest"
-                whileHover="hover"
-                whileTap="tap"
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Falar com especialista
-              </motion.a>
-              <motion.div variants={buttonHover} initial="rest" whileHover="hover" whileTap="tap" transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/5 px-6 py-3.5 text-sm font-medium text-cyan-400 transition-colors hover:border-cyan-400/50 hover:bg-cyan-500/10"
-                >
-                  Entrar no sistema
-                </Link>
-              </motion.div>
-            </div>
-          </div>
-        </motion.section>
       </main>
 
-      <footer className="border-t border-white/[0.08] py-8">
-        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 px-6 text-center text-xs text-white/40 md:flex-row md:text-left">
-          <p className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
-            © {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.
-          </p>
-          <div className="flex flex-col items-center gap-2 md:flex-row md:items-center md:gap-6">
-            <div className="flex items-center gap-4">
-              <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">Atendimento: (11) 94100-7348</a>
-              <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-cyan-400">SAC: (11) 92296-1688</a>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
-              <Link to="/terms" className="transition-colors hover:text-cyan-400">Termos de uso</Link>
-              <Link to="/privacy" className="transition-colors hover:text-cyan-400">Privacidade</Link>
-              <Link to="/lgpd" className="transition-colors hover:text-cyan-400">LGPD</Link>
-              <Link to="/support" className="transition-colors hover:text-cyan-400">Suporte</Link>
-            </div>
-          </div>
-        </div>
+      <footer className="border-t border-white/10 bg-black/40 py-10 backdrop-blur-xl">
+        <motion.div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-5 text-center text-xs text-white/45 sm:flex-row sm:px-6 sm:text-left">
+          <p>© {new Date().getFullYear()} iGestorPhone. Todos os direitos reservados.</p>
+          <motion.div className="flex flex-wrap items-center justify-center gap-4 sm:justify-end">
+            <a href={WHATSAPP_ATENDIMENTO} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300">
+              Atendimento: (11) 94100-7348
+            </a>
+            <a href={WHATSAPP_SAC} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300">
+              SAC: (11) 92296-1688
+            </a>
+            <Link to="/terms" className="hover:text-cyan-300">
+              Termos
+            </Link>
+            <Link to="/privacy" className="hover:text-cyan-300">
+              Privacidade
+            </Link>
+            <Link to="/support" className="hover:text-cyan-300">
+              Suporte
+            </Link>
+          </motion.div>
+        </motion.div>
       </footer>
-    </div>
+    </motion.div>
   )
 }
