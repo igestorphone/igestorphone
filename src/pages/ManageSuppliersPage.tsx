@@ -11,6 +11,7 @@ interface Supplier {
   contact_phone?: string;
   contact_email?: string;
   city?: string;
+  store_address?: string;
   website?: string;
   is_active: boolean;
   created_at: string;
@@ -37,7 +38,8 @@ export default function ManageSuppliersPage() {
     contact_phone: '',
     contact_email: '',
     website: '',
-    city: ''
+    city: '',
+    store_address: '',
   });
 
   // Verificar se é admin
@@ -78,7 +80,8 @@ export default function ManageSuppliersPage() {
       contact_phone: supplier.contact_phone || supplier.whatsapp || '',
       contact_email: supplier.contact_email || '',
       website: supplier.website || '',
-      city: supplier.city || ''
+      city: supplier.city || '',
+      store_address: supplier.store_address || '',
     });
     setShowEditModal(true);
   };
@@ -97,7 +100,12 @@ export default function ManageSuppliersPage() {
       if (editForm.contact_email) updateData.contact_email = editForm.contact_email;
       if (editForm.website) updateData.website = editForm.website;
       if (editForm.city) updateData.city = editForm.city;
-      
+      if (editForm.store_address.trim()) {
+        updateData.store_address = editForm.store_address.trim();
+      } else {
+        updateData.store_address = '';
+      }
+
       await fornecedoresApi.update(supplierToEdit.id.toString(), updateData);
       await fetchSuppliers();
       setShowEditModal(false);
@@ -388,6 +396,22 @@ export default function ManageSuppliersPage() {
                   className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
                   placeholder="São Paulo"
                 />
+              </div>
+
+              <div>
+                <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">
+                  Endereço no card (shopping / galeria)
+                </label>
+                <input
+                  type="text"
+                  value={editForm.store_address}
+                  onChange={(e) => setEditForm({ ...editForm, store_address: e.target.value })}
+                  className="w-full bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/50 focus:outline-none focus:border-blue-500"
+                  placeholder="SHOPPING ORIENTAL LN-359"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-white/45">
+                  Aparece no rodapé do card mobile na busca.
+                </p>
               </div>
 
               <div>

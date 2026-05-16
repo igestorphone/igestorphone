@@ -370,6 +370,7 @@ router.get('/', [
     // Buscar produtos
     const productsResult = await query(`
       SELECT p.*, s.name as supplier_name, s.contact_email as supplier_email,
+             s.store_address as supplier_store_address,
              COALESCE(
                (SELECT phone_number FROM supplier_whatsapp_numbers WHERE supplier_id = s.id AND is_primary = true LIMIT 1),
                s.whatsapp

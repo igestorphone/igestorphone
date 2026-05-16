@@ -282,6 +282,7 @@ const migrations = [
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS city VARCHAR(120)`,
+  `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS store_address VARCHAR(255)`,
 
   // Tabela de permissões por usuário
   `CREATE TABLE IF NOT EXISTS user_permissions (

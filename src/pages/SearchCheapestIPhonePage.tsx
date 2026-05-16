@@ -51,6 +51,7 @@ import { normalizeColor } from './colorNormalizer'
 import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
 import { isAccessoryProduct } from '@/lib/productColorSwatch'
 import ReferralProgramCard from '@/components/referral/ReferralProgramCard'
+import MobileSearchProductCard from '@/components/search/MobileSearchProductCard'
 import { useAuthStore } from '@/stores/authStore'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
@@ -110,6 +111,13 @@ const formatPrice = (price: number) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(price || 0)
+
+function formatProductListedTime(updatedAt?: string | null): string {
+  if (!updatedAt) return ''
+  const d = new Date(updatedAt)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+}
 
 /** Campo `model` que é só RAM/GB ou código minúsculo — não dá para usar como título da linha. */
 function looksLikeSpecsOnlyFragment(s: string): boolean {
@@ -2428,128 +2436,34 @@ Ainda tem disponível?`
                   </table>
                 </div>
 
-                {/* Mobile Card View */}
-                <div className="md:hidden space-y-4 p-4">
+                {/* Mobile Card View — estilo concorrente */}
+                <motion.div className="md:hidden space-y-3 p-3 sm:p-4 bg-gray-50/80 dark:bg-black/40">
                   <AnimatePresence>
                     {pagination.paginated.map((product: any, index: number) => (
                       <motion.div
                         key={`${product.id}-${(currentPage - 1) * itemsPerPage + index}`}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
+                        exit={{ opacity: 0, y: -12 }}
                         transition={{ duration: 0.2 }}
-                        className="bg-white dark:bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-gray-200 dark:border-white/20"
                       >
-                        {/* Header with product name and badge */}
-                        <div className="flex items-start justify-between mb-3 gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-start gap-2">
-                              {currentPage === 1 && index === 0 && (
-                                <motion.span
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{ type: 'spring', stiffness: 200 }}
-                                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-500 dark:bg-green-500 text-white text-xs font-bold shrink-0 mt-0.5"
-                                >
-                                  1
-                                </motion.span>
-                              )}
-                              {(() => {
-                                const { Icon, wrap } = productListIconSpec(product)
-                                return (
-                                  <div className={wrap} aria-hidden title="Categoria visual">
-                                    <Icon className="h-[18px] w-[18px]" strokeWidth={2.25} />
-                                  </div>
-                                )
-                              })()}
-                              <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-tight leading-snug flex-1 min-w-0">
-                                {productListTitleShown(product).toUpperCase()}
-                              </h3>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                              {formatPrice(product.price || 0)}
-                            </div>
-                            {currentPage === 1 && index === 0 && (
-                              <motion.span
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{ type: 'spring', stiffness: 200 }}
-                                className="inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-500/30 text-green-700 dark:text-green-200 border border-green-300 dark:border-green-400/30"
-                              >
-                                Mais Barato
-                              </motion.span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Info badges */}
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-500/30 text-blue-700 dark:text-blue-200 border border-blue-300 dark:border-blue-400/30">
-                            <BarChart3 className="w-3 h-3 mr-1" />
-                            {normalizeStorage(product.storage) || 'N/A'}
-                          </span>
-                          <span className="inline-flex items-center justify-center px-2 py-1 rounded-full bg-gray-100 dark:bg-white/10 border border-gray-200 dark:border-white/15">
-                            <ProductColorSwatch size="sm" {...productSwatchProps(product, searchMode)} />
-                          </span>
-                          {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
-                              {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
-                            </span>
-                          ) : product.variant ? (
-                            <span
-                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold tracking-wide uppercase ${
-                                product.variant.toUpperCase() === 'ANATEL'
-                                  ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
-                                  : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
-                              }`}
-                            >
-                              {product.variant}
-                            </span>
-                          ) : null}
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold tracking-wide bg-slate-100 dark:bg-slate-500/25 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-400/30">
-                            {getProductCategoryCode(product, resolveCategorySearchMode(product, searchMode)) || '—'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mb-3 text-sm text-gray-700 dark:text-white/80">
-                          <ShoppingCart className="w-4 h-4" />
-                          <span>{product.supplier_name || 'N/A'}</span>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex gap-2 pt-3 border-t border-gray-200 dark:border-white/10">
-                          {product.whatsapp ? (
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleWhatsApp(product.whatsapp, product)}
-                              className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-lg font-semibold flex items-center justify-center space-x-2 transition-all shadow-lg"
-                            >
-                              <MessageCircle className="w-5 h-5" />
-                              <span>WhatsApp</span>
-                            </motion.button>
-                          ) : (
-                            <div className="flex-1 text-xs text-gray-400 px-4 py-3 text-center">Sem WhatsApp</div>
-                          )}
-                          <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => {
-                              const text = `${productListTitleShown(product).toUpperCase()}\nPreço: ${formatPrice(product.price || 0)}\nFornecedor: ${product.supplier_name}\nCapacidade: ${normalizeStorage(product.storage) || 'N/A'}\nCor: ${normalizeColor(product.color || 'N/A', product.model || product.name)}\n${
-                                product.variant ? `Variante: ${product.variant}\n` : ''
-                              }`
-                              navigator.clipboard.writeText(text)
-                              toast.success('Copiado para a área de transferência!')
-                            }}
-                            className="p-3 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/20 rounded-lg transition-colors"
-                            title="Copiar informações"
-                          >
-                            <Copy className="w-5 h-5" />
-                          </motion.button>
-                        </div>
+                        <MobileSearchProductCard
+                          product={product}
+                          searchMode={searchMode}
+                          isCheapest={currentPage === 1 && index === 0}
+                          formatPrice={formatPrice}
+                          formatListedTime={formatProductListedTime}
+                          normalizeStorage={normalizeStorage}
+                          productListTitleShown={productListTitleShown}
+                          productListIconSpec={productListIconSpec}
+                          productSwatchProps={productSwatchProps}
+                          onWhatsApp={handleWhatsApp}
+                        />
                       </motion.div>
                     ))}
                   </AnimatePresence>
-                </div>
+                </motion.div>
+
 
                 {/* Paginação no fim da página */}
                 <div className="p-4 border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-gray-900 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

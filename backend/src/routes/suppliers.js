@@ -239,6 +239,7 @@ router.post('/', requireSubscription('active'), [
   body('whatsapp_numbers.*.is_primary').optional().isBoolean(),
   body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
+  body('store_address').optional().trim().isLength({ max: 255 }),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
   body('api_key').optional().trim()
@@ -256,6 +257,7 @@ router.post('/', requireSubscription('active'), [
       whatsapp,
       whatsapp_numbers,
       city,
+      store_address,
       website,
       api_endpoint,
       api_key
@@ -271,8 +273,8 @@ router.post('/', requireSubscription('active'), [
 
     // Criar fornecedor
     const result = await query(`
-      INSERT INTO suppliers (name, contact_email, contact_phone, whatsapp, city, website, api_endpoint, api_key)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO suppliers (name, contact_email, contact_phone, whatsapp, city, store_address, website, api_endpoint, api_key)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `, [
       name,
@@ -280,6 +282,7 @@ router.post('/', requireSubscription('active'), [
       contact_phone || null,
       whatsapp || contact_phone || null,
       city || null,
+      store_address ? String(store_address).trim() : null,
       website || null,
       api_endpoint || null,
       api_key || null
@@ -383,6 +386,7 @@ router.put('/:id', requireSubscription('active'), [
   body('whatsapp_numbers.*.is_primary').optional().isBoolean(),
   body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
+  body('store_address').optional().trim().isLength({ max: 255 }),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
   body('api_key').optional().trim(),
