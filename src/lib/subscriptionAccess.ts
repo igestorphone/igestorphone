@@ -1,4 +1,5 @@
 import type { Usuario } from '@/types'
+import { isSubscriptionExpiredByCalendarSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 
 function roleOf(user: Usuario | null): string {
   if (!user) return ''
@@ -28,10 +29,11 @@ export function hasActiveSubscriptionAccess(user: Usuario | null): boolean {
     return st === 'active' || st === 'trial'
   }
 
-  const exp = new Date(user.subscription_expires_at).getTime()
-  if (Number.isNaN(exp)) return st === 'active' || st === 'trial'
+  if (isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at)) {
+    return false
+  }
 
-  return exp > Date.now()
+  return st === 'active' || st === 'trial' || st === ''
 }
 
 export function requiresCheckoutOnly(user: Usuario | null): boolean {

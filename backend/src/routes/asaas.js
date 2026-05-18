@@ -5,6 +5,7 @@ import { authenticateToken, requireRole } from '../middleware/auth.js';
 import * as asaasService from '../services/asaas.js';
 import { createSessionForUser } from '../services/userSessions.js';
 import { addCalendarDays, BILLING_PERIOD_DAYS, computeExpiryAfterRenewal } from '../utils/billingPeriod.js';
+import { isSubscriptionExpiredByCalendarSaoPaulo } from '../utils/subscriptionExpiryCalendar.js';
 
 const router = express.Router();
 
@@ -87,7 +88,7 @@ router.put('/admin/mensal-override', authenticateToken, requireRole('admin'), as
       await query(`DELETE FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
       return res.json({
         value: null,
-        message: 'Override removido. Checkout mensal volta ao valor padrão (R$ 199,99).',
+        message: 'Override removido. Checkout mensal volta ao valor padrão (R$ 150,00).',
       });
     }
     const num = Number(req.body?.value);
@@ -349,7 +350,7 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
     const hasValidPaidThrough =
       user.subscription_expires_at &&
       !Number.isNaN(new Date(user.subscription_expires_at).getTime()) &&
-      new Date(user.subscription_expires_at) > new Date();
+      !isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
 
     if ((st === 'active' || st === 'trial') && hasValidPaidThrough) {
       return res.json({ paid: true, status: user.subscription_status });
@@ -391,8 +392,7 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
     const expiryTime = user.subscription_expires_at
       ? new Date(user.subscription_expires_at).getTime()
       : null;
-    const accountExpiredByDate =
-      expiryTime != null && !Number.isNaN(expiryTime) && expiryTime < Date.now();
+    const accountExpiredByDate = isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
     // Conta já vencida: não reativar com cobrança antiga (ex.: usuário abre /checkout e verify-payment encontrava o primeiro RECEIVED).
     if (
       accountExpiredByDate &&

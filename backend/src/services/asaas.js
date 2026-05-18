@@ -20,8 +20,8 @@ const PLANS = {
   },
   mensal: {
     name: 'Mensal',
-    planName: 'iGestorPhone Mensal (R$ 199,99)',
-    value: 199.99,
+    planName: 'iGestorPhone Mensal (R$ 150,00)',
+    value: 150,
     cycle: 'MONTHLY',
     durationMonths: 1,
   },

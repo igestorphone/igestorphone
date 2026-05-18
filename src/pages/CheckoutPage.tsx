@@ -29,7 +29,7 @@ const PLAN_LABELS: Record<PlanKey, string> = {
 
 const PLAN_VALUES: Record<PlanKey, number> = {
   teste: 5,
-  mensal: 199.99,
+  mensal: 150,
 }
 
 // Step 1: Login/Register

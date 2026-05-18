@@ -667,7 +667,7 @@ export default function ManageUsersPage() {
             <span className="text-sm text-gray-700 dark:text-white/80">
               Override atual:{' '}
               <strong className="text-gray-900 dark:text-white">
-                {mensalOverrideBrl != null ? `R$ ${mensalOverrideBrl.toFixed(2).replace('.', ',')}` : 'padrão R$ 199,99'}
+                {mensalOverrideBrl != null ? `R$ ${mensalOverrideBrl.toFixed(2).replace('.', ',')}` : 'padrão R$ 150,00'}
               </strong>
             </span>
             <button

@@ -148,7 +148,7 @@ export const asaasApi = {
   getPlans: () =>
     apiClient.get<{ plans: Array<{ id: string; name: string; planName: string; value: number; cycle: string; durationMonths: number }> }>('/asaas/plans'),
 
-  /** Admin: valor atual do override do mensal (null = padrão 199,99) */
+  /** Admin: valor atual do override do mensal (null = padrão 150,00) */
   getMensalOverride: () => apiClient.get<{ value: number | null }>('/asaas/admin/mensal-override'),
 
   /** Admin: { value: 5 } (mín. Asaas) ou { clear: true } */

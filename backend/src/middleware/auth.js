@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
 import { isSessionActive, touchSessionActivity } from '../services/userSessions.js';
+import { isSubscriptionExpiredByCalendarSaoPaulo } from '../utils/subscriptionExpiryCalendar.js';
 
 const IDLE_TIMEOUT_MINUTES = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10);
 const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
@@ -64,10 +65,7 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     function subscriptionDatePassed(u) {
-      if (!u.subscription_expires_at) return false;
-      const t = new Date(u.subscription_expires_at).getTime();
-      if (Number.isNaN(t)) return false;
-      return t <= Date.now();
+      return isSubscriptionExpiredByCalendarSaoPaulo(u.subscription_expires_at);
     }
 
     function isCanceledSubscription(u) {
@@ -98,8 +96,7 @@ export const authenticateToken = async (req, res, next) => {
 
     // Trial vencido → expired; libera apenas rotas de pagamento para regularizar
     if (user.subscription_status === 'trial' && user.subscription_expires_at) {
-      const expiresAt = new Date(user.subscription_expires_at);
-      if (Date.now() > expiresAt.getTime()) {
+      if (isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at)) {
         await query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['expired', user.id]);
         user.subscription_status = 'expired';
         if (!isAdminRow(user) && !isPaymentWallAllowedPath(pathRaw)) {
