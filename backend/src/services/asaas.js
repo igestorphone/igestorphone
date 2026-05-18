@@ -171,6 +171,28 @@ export async function getSubscriptionFirstPayment(subscriptionId) {
   return payments[0];
 }
 
+/** Status Asaas que significam dinheiro recebido (não liberar em PENDING, etc.). */
+export function isConfirmedPaymentStatus(status) {
+  const s = (status || '').toUpperCase();
+  return s === 'RECEIVED' || s === 'CONFIRMED';
+}
+
+/**
+ * Consulta uma cobrança pelo ID (validação estrita no verify-payment).
+ */
+export async function getPaymentById(paymentId) {
+  const res = await fetch(`${ASAAS_BASE_URL}/payments/${paymentId}`, {
+    method: 'GET',
+    headers: getHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const errMsg = data?.errors?.[0]?.description || data?.errors || JSON.stringify(data);
+    throw new Error(`Asaas: ${errMsg}`);
+  }
+  return data;
+}
+
 /**
  * Lista pagamentos de uma assinatura
  * @param {string} subscriptionId - ID da assinatura no Asaas (ex: sub_xxx)

@@ -257,6 +257,7 @@ const migrations = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`,
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS asaas_subscription_id VARCHAR(255)`,
+  `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS asaas_pending_payment_id VARCHAR(255)`,
 
   // Recadastramento obrigatório (v1)
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS last_payment_amount DECIMAL(12,2)`,

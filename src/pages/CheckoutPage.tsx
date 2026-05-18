@@ -248,6 +248,7 @@ export default function CheckoutPage() {
         setPixData(result.pix)
         setPaymentStatus('pending')
         setStep('pix')
+        await refreshUser()
       }
     } catch (e: any) {
       const msg = getErrorMessage(e) || 'Erro ao processar pagamento'

@@ -11,6 +11,57 @@ const router = express.Router();
 
 const MENSAL_VALUE_OVERRIDE_KEY = 'asaas_mensal_value_override';
 
+function userNeedsPaymentBeforeAccess(user) {
+  const st = (user.subscription_status || '').toLowerCase();
+  if (st === 'pending_payment' || st === 'overdue' || st === 'expired') return true;
+  if (!user.subscription_expires_at) return true;
+  return isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
+}
+
+async function activateSubscriptionAfterPayment({ userId, asaasSubscriptionId, payment }) {
+  const paymentMoment =
+    payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || payment.dueDate;
+  const userRow = await query(`SELECT subscription_expires_at FROM users WHERE id = $1`, [userId]);
+  const currentExpires = userRow.rows[0]?.subscription_expires_at;
+  const endDate = computeExpiryAfterRenewal({
+    currentExpiresAt: currentExpires,
+    paymentDate: paymentMoment,
+  });
+
+  await query(
+    `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2, asaas_pending_payment_id = NULL WHERE asaas_subscription_id = $3`,
+    [new Date(payment.paymentDate || payment.clientPaymentDate || Date.now()), endDate, asaasSubscriptionId]
+  );
+  await query(
+    `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
+    [endDate, userId]
+  );
+}
+
+/** Só considera a cobrança PIX atual (ID salvo) ou confirmação após criar a assinatura no banco. */
+async function findConfirmedPaymentForSubscription(sub) {
+  if (sub.asaas_pending_payment_id) {
+    try {
+      const p = await asaasService.getPaymentById(sub.asaas_pending_payment_id);
+      if (asaasService.isConfirmedPaymentStatus(p.status)) return p;
+    } catch (e) {
+      console.warn('findConfirmedPayment: falha ao ler cobrança pendente', sub.asaas_pending_payment_id, e.message);
+    }
+    return null;
+  }
+
+  const payments = await asaasService.getSubscriptionPayments(sub.asaas_subscription_id);
+  const subCreated = new Date(sub.created_at).getTime();
+  const confirmed = payments
+    .filter((p) => asaasService.isConfirmedPaymentStatus(p.status))
+    .filter((p) => {
+      const created = new Date(p.dateCreated || p.paymentDate || 0).getTime();
+      return !Number.isNaN(created) && created >= subCreated - 120000;
+    })
+    .sort((a, b) => new Date(b.dateCreated || 0) - new Date(a.dateCreated || 0));
+  return confirmed[0] || null;
+}
+
 /** Valor mensal forçado via ambiente (ex.: 5 para testar Asaas; mínimo da cobrança é R$ 5). Remova em produção. */
 function getMensalOverrideFromEnv() {
   const raw = process.env.ASAAS_MENSAL_OVERRIDE_BRL;
@@ -231,6 +282,23 @@ router.post('/create-subscription', authenticateToken, createSubscriptionValidat
     const payment = await asaasService.getSubscriptionFirstPayment(subscription.id);
     const pixData = await asaasService.getPixQrCode(payment.id);
 
+    await query(
+      `UPDATE subscriptions SET asaas_pending_payment_id = $1 WHERE asaas_subscription_id = $2`,
+      [payment.id, subscription.id]
+    );
+
+    const userStatusRow = await query(
+      `SELECT subscription_status, subscription_expires_at FROM users WHERE id = $1`,
+      [user.id]
+    );
+    const userForAccess = userStatusRow.rows[0] || user;
+    if (userNeedsPaymentBeforeAccess(userForAccess)) {
+      await query(
+        `UPDATE users SET subscription_status = 'pending_payment', is_active = true WHERE id = $1`,
+        [user.id]
+      );
+    }
+
     return res.json({
       success: true,
       subscriptionId: subscription.id,
@@ -364,11 +432,12 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
       (st === 'trial' && !hasValidPaidThrough);
 
     if (!needsAsaasCheck) {
-      return res.json({ paid: true, status: user.subscription_status });
+      return res.json({ paid: false, message: 'Nenhuma cobrança pendente para este usuário.' });
     }
 
     const subResult = await query(
-      `SELECT id, user_id, asaas_subscription_id, duration_months FROM subscriptions
+      `SELECT id, user_id, asaas_subscription_id, asaas_pending_payment_id, created_at, duration_months
+       FROM subscriptions
        WHERE user_id = $1 AND asaas_subscription_id IS NOT NULL
        ORDER BY created_at DESC LIMIT 1`,
       [userId]
@@ -378,25 +447,22 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
     }
 
     const sub = subResult.rows[0];
-    const payments = await asaasService.getSubscriptionPayments(sub.asaas_subscription_id);
-    const paid = payments.find(
-      (p) => (p.status || '').toUpperCase() === 'RECEIVED' || (p.status || '').toUpperCase() === 'CONFIRMED'
-    );
+    const paid = await findConfirmedPaymentForSubscription(sub);
 
     if (!paid) {
-      return res.json({ paid: false });
+      return res.json({ paid: false, message: 'Aguardando confirmação do pagamento.' });
     }
 
     const paymentMoment = paid.paymentDate || paid.clientPaymentDate || paid.confirmedDate || paid.dueDate;
     const paymentTime = paymentMoment ? new Date(paymentMoment).getTime() : NaN;
+    const accountExpiredByDate = isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
     const expiryTime = user.subscription_expires_at
       ? new Date(user.subscription_expires_at).getTime()
       : null;
-    const accountExpiredByDate = isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
-    // Conta já vencida: não reativar com cobrança antiga (ex.: usuário abre /checkout e verify-payment encontrava o primeiro RECEIVED).
     if (
       accountExpiredByDate &&
       Number.isFinite(paymentTime) &&
+      expiryTime != null &&
       !Number.isNaN(expiryTime) &&
       paymentTime < expiryTime
     ) {
@@ -406,26 +472,13 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
       });
     }
 
-    const userRow = await query(
-      `SELECT subscription_expires_at FROM users WHERE id = $1`,
-      [userId]
-    );
-    const currentExpires = userRow.rows[0]?.subscription_expires_at;
-    const endDate = computeExpiryAfterRenewal({
-      currentExpiresAt: currentExpires,
-      paymentDate: paymentMoment,
+    await activateSubscriptionAfterPayment({
+      userId,
+      asaasSubscriptionId: sub.asaas_subscription_id,
+      payment: paid,
     });
 
-    await query(
-      `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
-      [new Date(paid.paymentDate || Date.now()), endDate, sub.asaas_subscription_id]
-    );
-    await query(
-      `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
-      [endDate, userId]
-    );
-
-    console.log(`Verify-payment: usuário ${userId} ativado (PIX confirmado via API)`);
+    console.log(`Verify-payment: usuário ${userId} ativado (cobrança ${paid.id} confirmada)`);
     res.json({ paid: true, message: 'Pagamento confirmado! Acesso liberado.' });
   } catch (error) {
     console.error('Erro ao verificar pagamento:', error);
@@ -451,8 +504,12 @@ router.post('/webhook', async (req, res) => {
         return res.status(200).send('OK');
       }
 
+      if (!asaasService.isConfirmedPaymentStatus(payment.status)) {
+        return res.status(200).send('OK');
+      }
+
       const subResult = await query(
-        `SELECT s.id, s.user_id, s.plan_name, s.duration_months
+        `SELECT s.id, s.user_id, s.plan_name, s.duration_months, s.asaas_pending_payment_id, s.created_at
          FROM subscriptions s
          WHERE s.asaas_subscription_id = $1`,
         [subscriptionId]
@@ -463,28 +520,20 @@ router.post('/webhook', async (req, res) => {
       }
 
       const sub = subResult.rows[0];
-      const userRow = await query(
-        `SELECT subscription_expires_at FROM users WHERE id = $1`,
-        [sub.user_id]
-      );
-      const currentExpires = userRow.rows[0]?.subscription_expires_at;
-      const paymentMoment =
-        payment.paymentDate || payment.clientPaymentDate || payment.confirmedDate || payment.dueDate;
-      const endDate = computeExpiryAfterRenewal({
-        currentExpiresAt: currentExpires,
-        paymentDate: paymentMoment,
+      if (sub.asaas_pending_payment_id && payment.id !== sub.asaas_pending_payment_id) {
+        console.warn(
+          `Webhook: ignorando cobrança ${payment.id} (pendente atual: ${sub.asaas_pending_payment_id})`
+        );
+        return res.status(200).send('OK');
+      }
+
+      await activateSubscriptionAfterPayment({
+        userId: sub.user_id,
+        asaasSubscriptionId: subscriptionId,
+        payment,
       });
 
-      await query(
-        `UPDATE subscriptions SET status = 'active', start_date = $1, end_date = $2 WHERE asaas_subscription_id = $3`,
-        [new Date(payment.paymentDate || Date.now()), endDate, subscriptionId]
-      );
-      await query(
-        `UPDATE users SET subscription_status = 'active', subscription_expires_at = $1, is_active = true WHERE id = $2`,
-        [endDate, sub.user_id]
-      );
-
-      console.log(`Webhook Asaas: pagamento confirmado - user ${sub.user_id}, subscription ${subscriptionId}`);
+      console.log(`Webhook Asaas: pagamento confirmado - user ${sub.user_id}, payment ${payment.id}`);
     }
 
     if (event === 'PAYMENT_OVERDUE' || event === 'PAYMENT_DELETED') {
