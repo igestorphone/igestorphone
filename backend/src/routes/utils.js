@@ -3,6 +3,7 @@ import axios from 'axios';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { productUpdatedAtDayWhere } from '../utils/productDayFilter.js';
+import { searchModeProductWhereSql } from '../utils/productSearchModeSql.js';
 
 const router = express.Router();
 
@@ -12,6 +13,8 @@ router.get('/stats', authenticateToken, async (req, res) => {
     const rawOffset = Number(req.query?.date_offset ?? 0);
     const dateOffset = Number.isInteger(rawOffset) && rawOffset <= 0 && rawOffset >= -2 ? rawOffset : 0;
     const dateWhere = productUpdatedAtDayWhere(dateOffset, 'p');
+    const searchMode = req.query?.search_mode ?? req.query?.searchMode ?? null;
+    const modeWhere = searchModeProductWhereSql(searchMode, 'p');
 
     const result = await query(`
       WITH produtos_dia AS (
@@ -19,6 +22,7 @@ router.get('/stats', authenticateToken, async (req, res) => {
         FROM products p
         WHERE p.is_active = true AND p.price > 0 AND p.price IS NOT NULL
           AND ${dateWhere}
+          AND (${modeWhere})
       ),
       fornecedores_ativos AS (
         SELECT s.id
