@@ -291,19 +291,19 @@ async function pruneOldProductsAndLists() {
     const isMidnightWindow = horaBrasil === 0 && minutoBrasil >= 0 && minutoBrasil <= 10;
     
     if (isMidnightWindow) {
-      // Regra nova: reter apenas 3 dias (hoje/ontem/anteontem) em São Paulo e apagar o resto DEFINITIVAMENTE
+      // Desativado: DELETE apagava estoque antigo e não volta. Só desativa fora da janela de 3 dias.
       const todaySP = `(NOW() AT TIME ZONE 'America/Sao_Paulo')::date`;
       const cutoffExpr = `${todaySP} - 2`; // mantém >= hoje-2
-      logger.info(`🧹 00h SP: removendo produtos/listas com data < ${todaySP} - 2 (${agoraBrasil})`);
+      logger.info(`🧹 00h SP: desativando produtos/listas com data < ${todaySP} - 2 (${agoraBrasil})`);
 
-      // Produtos: considerar "dia" pela data local SP do updated_at (se existir) ou created_at
-      // Usamos GREATEST para pegar o dia "mais recente" entre created/updated.
       const deletedProducts = await query(`
-        DELETE FROM products p
-        WHERE GREATEST(
-          (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date,
-          (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
-        ) < ${cutoffExpr}
+        UPDATE products p
+        SET is_active = false, updated_at = NOW()
+        WHERE p.is_active = true
+          AND GREATEST(
+            (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date,
+            (p.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date
+          ) < ${cutoffExpr}
       `);
 
       const deletedRawLists = await query(`
@@ -313,7 +313,7 @@ async function pruneOldProductsAndLists() {
 
       const dp = deletedProducts.rowCount || 0;
       const dl = deletedRawLists.rowCount || 0;
-      logger.info(`✅ Limpeza concluída: ${dp} produtos removidos, ${dl} listas brutas removidas (retendo 3 dias)`);
+      logger.info(`✅ Limpeza concluída: ${dp} produtos desativados, ${dl} listas brutas removidas (retendo 3 dias)`);
     }
   } catch (error) {
     logger.error('❌ Erro no scheduler de limpeza automática:', error);
