@@ -23,9 +23,9 @@ async function main() {
 
   const r = await rollYesterdayProductsToToday({ deactivateToday: true })
   console.log(`📅 Hoje (SP): ${r.hoje} · Ontem: ${r.ontem}`)
-  console.log(`🧹 Produtos de hoje desativados: ${r.deactivatedToday}`)
-  console.log(`✅ Produtos de ontem promovidos: ${r.rolled}`)
-  console.log(`📊 Após script — fornec.: ${r.suppliersToday} · produtos: ${r.productsToday}`)
+  console.log(`🧹 Lixo de hoje desativado: ${r.deactivatedToday}`)
+  console.log(`✅ Ontem → hoje: ${r.rolled} (ativos ontem: ${r.bumpedActiveYesterday}, inativos ontem: ${r.restoredInactiveYesterday}, pós-zerar: ${r.restoredZeroedCatalog})`)
+  console.log(`📊 Visíveis hoje — fornec.: ${r.suppliersToday} · produtos: ${r.productsToday}`)
 }
 
 main().catch((e) => {

@@ -1,9 +1,16 @@
 import { query } from '../config/database.js';
 
+const dayCol = (alias) =>
+  `(${alias}.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`;
+const createdDayCol = (alias) =>
+  `(${alias}.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date`;
+
 /**
- * Ban WPP / falha no processamento de hoje:
- * 1) Desativa produtos ativos de HOJE (SP) — lixo do dia ruim
- * 2) Promove ONTEM → updated_at = agora (aparecem em "Hoje")
+ * Promove estoque de ONTEM para HOJE (SP):
+ * 1) Desativa lixo ativo de hoje (listas ruins do dia)
+ * 2) Ativos de ontem → updated_at agora
+ * 3) Inativos de ontem → reativa + updated_at agora
+ * 4) Após "Zerar estoque": inativos com data de HOJE mas criados antes de hoje (= catálogo de ontem)
  */
 export async function rollYesterdayProductsToToday({ deactivateToday = true } = {}) {
   const meta = await query(`
@@ -20,53 +27,55 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
       UPDATE products
       SET is_active = false, updated_at = NOW()
       WHERE is_active = true
-        AND (updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
+        AND ${dayCol('products')} = $1::date
     `,
       [hoje]
     );
     deactivatedToday = offToday.rowCount || 0;
   }
 
-  const countYesterday = await query(
+  const bumpActiveYesterday = await query(
     `
-    SELECT COUNT(*)::int AS n
-    FROM products p
-    WHERE p.is_active = true
-      AND p.price > 0
-      AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
+    UPDATE products
+    SET updated_at = NOW()
+    WHERE is_active = true
+      AND price > 0
+      AND price IS NOT NULL
+      AND ${dayCol('products')} = $1::date
   `,
     [ontem]
   );
-  const yesterdayActive = countYesterday.rows[0]?.n ?? 0;
 
-  let rolled = 0;
-  let emergencyRestore = 0;
-  if (yesterdayActive > 0) {
-    const upd = await query(
-      `
-      UPDATE products
-      SET updated_at = NOW()
-      WHERE is_active = true
-        AND price > 0
-        AND (updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
-    `,
-      [ontem]
-    );
-    rolled = upd.rowCount || 0;
-  } else {
-    // Após "Zerar estoque": tudo fica inativo com data de HOJE — reativa o catálogo inteiro com preço.
-    const emergency = await query(
-      `
-      UPDATE products
-      SET is_active = true, updated_at = NOW()
-      WHERE is_active = false
-        AND price > 0
-        AND price IS NOT NULL
+  const restoreInactiveYesterday = await query(
     `
-    );
-    emergencyRestore = emergency.rowCount || 0;
-    rolled = emergencyRestore;
-  }
+    UPDATE products
+    SET is_active = true, updated_at = NOW()
+    WHERE is_active = false
+      AND price > 0
+      AND price IS NOT NULL
+      AND ${dayCol('products')} = $1::date
+  `,
+    [ontem]
+  );
+
+  // Zerar estoque: ontem ativo virou inativo com updated_at = hoje; não reativar itens criados hoje.
+  const restoreZeroedCatalog = await query(
+    `
+    UPDATE products
+    SET is_active = true, updated_at = NOW()
+    WHERE is_active = false
+      AND price > 0
+      AND price IS NOT NULL
+      AND ${dayCol('products')} = $1::date
+      AND ${createdDayCol('products')} < $1::date
+  `,
+    [hoje]
+  );
+
+  const rolled =
+    (bumpActiveYesterday.rowCount || 0) +
+    (restoreInactiveYesterday.rowCount || 0) +
+    (restoreZeroedCatalog.rowCount || 0);
 
   const suppliersToday = await query(
     `
@@ -74,7 +83,7 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
     FROM products p
     WHERE p.is_active = true
       AND p.price > 0
-      AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
+      AND ${dayCol('p')} = $1::date
   `,
     [hoje]
   );
@@ -85,7 +94,7 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
     FROM products p
     WHERE p.is_active = true
       AND p.price > 0
-      AND (p.updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')::date = $1::date
+      AND ${dayCol('p')} = $1::date
   `,
     [hoje]
   );
@@ -95,7 +104,9 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
     ontem,
     deactivatedToday,
     rolled,
-    emergencyRestore,
+    bumpedActiveYesterday: bumpActiveYesterday.rowCount || 0,
+    restoredInactiveYesterday: restoreInactiveYesterday.rowCount || 0,
+    restoredZeroedCatalog: restoreZeroedCatalog.rowCount || 0,
     suppliersToday: suppliersToday.rows[0]?.n ?? 0,
     productsToday: productsToday.rows[0]?.n ?? 0,
   };

@@ -30,6 +30,7 @@ import asaasRoutes from './routes/asaas.js';
 import notificationsRoutes from './routes/notifications.js';
 import whatsappRoutes from './routes/whatsapp.js';
 import { runMigrations } from './migrate.js';
+import { autoPromoteYesterdayStockIfNeeded } from './services/autoRollYesterdayStock.js';
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -329,6 +330,8 @@ app.listen(PORT, LISTEN_HOST, async () => {
   try {
     await runMigrations();
     logger.info('✅ Migrações do banco verificadas/aplicadas');
+
+    await autoPromoteYesterdayStockIfNeeded(logger);
   } catch (err) {
     logger.error('❌ Falha ao rodar migrações:', err);
     process.exit(1);
