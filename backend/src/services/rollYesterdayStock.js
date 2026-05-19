@@ -40,6 +40,7 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
   const yesterdayActive = countYesterday.rows[0]?.n ?? 0;
 
   let rolled = 0;
+  let emergencyRestore = 0;
   if (yesterdayActive > 0) {
     const upd = await query(
       `
@@ -52,6 +53,19 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
       [ontem]
     );
     rolled = upd.rowCount || 0;
+  } else {
+    // Após "Zerar estoque": tudo fica inativo com data de HOJE — reativa o catálogo inteiro com preço.
+    const emergency = await query(
+      `
+      UPDATE products
+      SET is_active = true, updated_at = NOW()
+      WHERE is_active = false
+        AND price > 0
+        AND price IS NOT NULL
+    `
+    );
+    emergencyRestore = emergency.rowCount || 0;
+    rolled = emergencyRestore;
   }
 
   const suppliersToday = await query(
@@ -81,6 +95,7 @@ export async function rollYesterdayProductsToToday({ deactivateToday = true } = 
     ontem,
     deactivatedToday,
     rolled,
+    emergencyRestore,
     suppliersToday: suppliersToday.rows[0]?.n ?? 0,
     productsToday: productsToday.rows[0]?.n ?? 0,
   };

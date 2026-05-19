@@ -232,7 +232,11 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
   // Função para restaurar produtos de hoje (emergência)
   const [isRestoring, setIsRestoring] = useState(false)
   const handleRestoreTodayProducts = async () => {
-    if (!confirm('⚠️ Restaurar TODOS os produtos de hoje que foram desativados? Isso pode restaurar produtos que foram zerados por engano.')) {
+    if (
+      !confirm(
+        '⚠️ RESTAURAR estoque de hoje?\n\nUse AGORA se zerou o estoque ou o WPP falhou — reativa tudo que foi desativado hoje e volta a busca.'
+      )
+    ) {
       return
     }
 
@@ -858,7 +862,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
               ) : (
                 <>
                   <AlertTriangle className="w-4 h-4" />
-                  <span>Restaurar produtos de hoje</span>
+                  <span>RESTAURAR estoque (urgente)</span>
                 </>
               )}
             </motion.button>
