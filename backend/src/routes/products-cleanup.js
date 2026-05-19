@@ -173,57 +173,47 @@ router.post('/restore-products', authenticateToken, requireRole('admin'), async 
   }
 });
 
-// Rota de EMERGÊNCIA: Restaurar TODOS os produtos de hoje
+// EMERGÊNCIA: reativa TODO estoque inativo com preço (após Zerar estoque / ban WPP)
 router.post('/restore-today-emergency', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
-    console.log('🚨 EMERGÊNCIA: Restaurando TODOS os produtos de hoje...');
-    
-    // Restaurar produtos criados OU atualizados HOJE no timezone do Brasil
-    const result = await query(`
-      UPDATE products 
-      SET is_active = true,
-          updated_at = NOW()
-      WHERE is_active = false
-        AND (
-          DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-          OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-            DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-        )
+    console.log('🚨 EMERGÊNCIA: reativando todo estoque inativo com preço...');
+
+    const before = await query(`
+      SELECT COUNT(*)::int AS inactive FROM products WHERE is_active = false AND price > 0
     `);
-    
+
+    const result = await query(`
+      UPDATE products
+      SET is_active = true, updated_at = NOW()
+      WHERE is_active = false
+        AND price > 0
+        AND price IS NOT NULL
+    `);
+
     const restoredCount = result.rowCount || 0;
-    
-    // Estatísticas
+
     const stats = await query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE is_active = true 
-          AND (DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-            OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')))) as produtos_ativos_hoje,
-        COUNT(*) FILTER (WHERE is_active = false 
-          AND (DATE(updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo'))
-            OR DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo') = 
-               DATE((NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'America/Sao_Paulo')))) as produtos_inativos_hoje
+      SELECT
+        COUNT(*) FILTER (WHERE is_active = true AND price > 0)::int AS produtos_ativos,
+        COUNT(DISTINCT supplier_id) FILTER (WHERE is_active = true AND price > 0 AND supplier_id IS NOT NULL)::int AS fornecedores,
+        COUNT(*) FILTER (WHERE is_active = false AND price > 0)::int AS ainda_inativos
       FROM products
     `);
-    
-    console.log(`✅ ${restoredCount} produtos de HOJE restaurados`);
-    console.log(`📊 Estatísticas: ${stats.rows[0].produtos_ativos_hoje} ativos hoje, ${stats.rows[0].produtos_inativos_hoje} inativos hoje`);
-    
+
+    console.log(`✅ ${restoredCount} produto(s) reativado(s) (tinha ${before.rows[0]?.inactive ?? 0} inativos)`);
+
     res.json({
-      message: 'Produtos de hoje restaurados com sucesso',
+      message: 'Estoque reativado. Recarregue a busca (F5).',
       restored: restoredCount,
+      had_inactive_before: before.rows[0]?.inactive ?? 0,
       statistics: {
-        active_today: parseInt(stats.rows[0].produtos_ativos_hoje),
-        inactive_today: parseInt(stats.rows[0].produtos_inativos_hoje)
-      }
+        active: stats.rows[0]?.produtos_ativos ?? 0,
+        suppliers: stats.rows[0]?.fornecedores ?? 0,
+        still_inactive: stats.rows[0]?.ainda_inativos ?? 0,
+      },
     });
-    
   } catch (error) {
-    console.error('❌ Erro ao restaurar produtos de hoje:', error);
+    console.error('❌ Erro ao restaurar estoque:', error);
     res.status(500).json({ message: 'Erro interno do servidor', error: error.message });
   }
 });

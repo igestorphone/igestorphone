@@ -262,7 +262,9 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
       }
 
       const result = await response.json()
-      alert(`✅ ${result.restored} produtos de hoje restaurados com sucesso!\n\n📊 Estatísticas:\n- Produtos ativos hoje: ${result.statistics.active_today}\n- Produtos inativos hoje: ${result.statistics.inactive_today}`)
+      alert(
+        `✅ Estoque reativado!\n\n• ${result.restored} produto(s)\n• Ativos: ${result.statistics?.active ?? result.statistics?.active_today ?? '?'}\n• Fornecedores: ${result.statistics?.suppliers ?? '?'}\n\nRecarregue Buscar mais barato (F5).`
+      )
       
       // Recarregar página após 2 segundos para mostrar produtos restaurados
       setTimeout(() => {

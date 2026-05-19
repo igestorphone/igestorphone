@@ -25,9 +25,9 @@ export function productUpdatedAtDayWhere(offsetInt = 0, alias = 'p') {
   return `${dateCol} = ${targetExpr}`
 }
 
-/** Números fixos no topo (ex.: dia de ban WPP com estoque de ontem). */
+/** Números fixos no topo — desligado: cards = contagem real do banco. */
 export function statsDisplayOverrideEnabled() {
-  return envEnabled('STATS_DISPLAY_OVERRIDE', true)
+  return envEnabled('STATS_DISPLAY_OVERRIDE', false)
 }
 
 export const STATS_DISPLAY_TOTALS = {
