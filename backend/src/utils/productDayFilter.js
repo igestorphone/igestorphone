@@ -25,14 +25,14 @@ export function productUpdatedAtDayWhere(offsetInt = 0, alias = 'p') {
   return `${dateCol} = ${targetExpr}`
 }
 
-/** Números fixos no topo (marketing). Desligado por padrão — usa contagem real do banco. */
+/** Números fixos no topo (ex.: dia de ban WPP com estoque de ontem). */
 export function statsDisplayOverrideEnabled() {
-  return envEnabled('STATS_DISPLAY_OVERRIDE', false)
+  return envEnabled('STATS_DISPLAY_OVERRIDE', true)
 }
 
 export const STATS_DISPLAY_TOTALS = {
-  total_products: 5287,
-  total_suppliers: 98,
+  total_products: 5138,
+  total_suppliers: 102,
 }
 
 export const STATS_DISPLAY_BY_MODE = {

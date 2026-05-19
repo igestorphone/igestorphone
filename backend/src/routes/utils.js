@@ -2,7 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import { query } from '../config/database.js';
 import { authenticateToken } from '../middleware/auth.js';
-import { productUpdatedAtDayWhere } from '../utils/productDayFilter.js';
+import { productUpdatedAtDayWhere, resolveDisplayStats } from '../utils/productDayFilter.js';
 import { searchModeProductWhereSql } from '../utils/productSearchModeSql.js';
 
 const router = express.Router();
@@ -43,10 +43,19 @@ router.get('/stats', authenticateToken, async (req, res) => {
         ) AS total_without_list
     `);
     const row = result.rows[0];
+    const displayOverride = resolveDisplayStats(searchMode);
+    if (displayOverride) {
+      return res.json({
+        total_products: displayOverride.total_products,
+        total_suppliers: displayOverride.total_suppliers,
+        total_without_list: row?.total_without_list ?? 0,
+        display_override: true,
+      });
+    }
     res.json({
       total_products: row?.total_products ?? 0,
       total_suppliers: row?.total_suppliers ?? 0,
-      total_without_list: row?.total_without_list ?? 0
+      total_without_list: row?.total_without_list ?? 0,
     });
   } catch (err) {
     console.error('Erro ao buscar stats:', err);

@@ -1,6 +1,7 @@
 import express from 'express';
 import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
+import { rollYesterdayProductsToToday } from '../services/rollYesterdayStock.js';
 
 const router = express.Router();
 
@@ -80,6 +81,24 @@ router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), as
   } catch (error) {
     console.error('❌ Erro ao limpar produtos:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Emergência ban WPP: desativa produtos de hoje e promove ontem para aparecer em "Hoje"
+router.post('/roll-yesterday-to-today', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const deactivateToday = req.body?.deactivateToday !== false;
+    const result = await rollYesterdayProductsToToday({ deactivateToday });
+    console.log(
+      `📦 [roll-yesterday-to-today] admin=${req.user?.id} rolled=${result.rolled} offToday=${result.deactivatedToday}`
+    );
+    res.json({
+      message: 'Estoque de ontem promovido para hoje. Amanhã use Zerar estoque antes das novas listas.',
+      ...result,
+    });
+  } catch (error) {
+    console.error('❌ Erro roll-yesterday-to-today:', error);
+    res.status(500).json({ message: 'Erro ao promover estoque de ontem', error: error.message });
   }
 });
 

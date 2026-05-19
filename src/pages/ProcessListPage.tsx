@@ -148,6 +148,51 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
   }, [])
 
   const [isZeroing, setIsZeroing] = useState(false)
+  const [isRollingYesterday, setIsRollingYesterday] = useState(false)
+
+  const handleRollYesterdayToToday = async () => {
+    if (
+      !confirm(
+        'Usar estoque de ONTEM em HOJE?\n\n• Desativa produtos processados hoje (dia ruim do WPP)\n• Promove listas de ontem para aparecer na busca\n\nAmanhã de manhã use "Zerar estoque" antes das listas novas.'
+      )
+    ) {
+      return
+    }
+
+    setIsRollingYesterday(true)
+    try {
+      const authData = localStorage.getItem('auth-storage')
+      if (!authData) throw new Error('Token não encontrado')
+
+      const token = JSON.parse(authData).state?.token
+      if (!token) throw new Error('Token inválido')
+
+      const response = await fetch(buildApiUrl('/products/roll-yesterday-to-today'), {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ deactivateToday: true }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Erro ao promover estoque de ontem')
+      }
+
+      const result = await response.json()
+      alert(
+        `✅ Estoque de ontem ativo em "Hoje"!\n\n• Hoje desativados: ${result.deactivatedToday}\n• Promovidos de ontem: ${result.rolled}\n• Fornec. na busca: ${result.suppliersToday}\n• Produtos na busca: ${result.productsToday}\n\nCards do topo: 102 fornec. / 5138 produtos (após deploy).`
+      )
+    } catch (error: any) {
+      console.error('Erro roll-yesterday:', error)
+      alert(`❌ Erro: ${error.message}`)
+    } finally {
+      setIsRollingYesterday(false)
+    }
+  }
+
   const handleZeroAllProducts = async () => {
     if (!confirm('⚠️ Zerar TODO o estoque ativo?\n\nOs produtos somem da busca até você processar as listas de novo.')) {
       return
@@ -759,8 +804,28 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <motion.button
               type="button"
+              onClick={handleRollYesterdayToToday}
+              disabled={isRollingYesterday || isZeroing || isRestoring}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-600/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            >
+              {isRollingYesterday ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Promovendo ontem...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-4 h-4" />
+                  <span>Usar listas de ontem (hoje)</span>
+                </>
+              )}
+            </motion.button>
+            <motion.button
+              type="button"
               onClick={handleZeroAllProducts}
-              disabled={isZeroing || isRestoring}
+              disabled={isZeroing || isRestoring || isRollingYesterday}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-red-600 hover:bg-red-700 disabled:bg-red-600/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
@@ -780,7 +845,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
             <motion.button
               type="button"
               onClick={handleRestoreTodayProducts}
-              disabled={isRestoring || isZeroing}
+              disabled={isRestoring || isZeroing || isRollingYesterday}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-500/50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg flex items-center gap-2"
