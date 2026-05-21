@@ -23,6 +23,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { asaasApi, subscriptionsApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
 import { calendarDaysRemainingSaoPaulo, formatExpiryDatePtBrSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
+import RenewalWhatsAppPanel from '@/components/subscription/RenewalWhatsAppPanel'
 import toast from 'react-hot-toast'
 
 interface SubscriptionData {
@@ -345,7 +346,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
               {(renewRecommended || accountStatus === 'overdue' || accountStatus === 'pending_payment') && (
-                <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+                <div className="flex flex-col gap-3 shrink-0 w-full md:w-auto">
                   <Link
                     to="/checkout"
                     className="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold px-5 py-3 border border-gray-900 dark:border-white"
@@ -353,6 +354,13 @@ export default function SubscriptionPage() {
                     <QrCode className="w-5 h-5" />
                     Renovar (PIX ou cartão)
                   </Link>
+                  <RenewalWhatsAppPanel
+                    compact
+                    userName={display.name}
+                    userEmail={display.email}
+                    expiresAt={expiresAt}
+                    daysRemaining={daysRemaining}
+                  />
                 </div>
               )}
             </div>
@@ -508,6 +516,12 @@ export default function SubscriptionPage() {
                     Recorrência ativa no Asaas
                   </span>
                 )}
+                <RenewalWhatsAppPanel
+                  userName={display.name}
+                  userEmail={display.email}
+                  expiresAt={expiresAt}
+                  daysRemaining={daysRemaining}
+                />
               </div>
             </motion.div>
 

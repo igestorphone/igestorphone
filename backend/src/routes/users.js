@@ -920,11 +920,10 @@ router.get('/pending', requireRole('admin'), async (req, res) => {
 // IMPORTANTE: Esta rota deve vir ANTES da rota /:id para não capturar "expiring" como ID
 router.get('/expiring', requireRole('admin'), async (req, res) => {
   try {
-    // Verificar se a coluna access_expires_at existe
     const columnCheck = await query(`
       SELECT column_name 
       FROM information_schema.columns 
-      WHERE table_name = 'users' AND column_name = 'access_expires_at'
+      WHERE table_name = 'users' AND column_name = 'subscription_expires_at'
     `);
     
     if (columnCheck.rows.length === 0) {
@@ -937,77 +936,72 @@ router.get('/expiring', requireRole('admin'), async (req, res) => {
         } 
       });
     }
-    
-    const now = new Date();
-    const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-    
-    // Usuários já expirados
+
+    const mapExpiringRow = (row) => ({
+      ...row,
+      telefone: pickPhoneField(row.telefone, row.phone, row.whatsapp),
+    });
+
+    const baseSelect = `
+      SELECT 
+        id, email, name, tipo, created_at, is_active,
+        telefone, phone, whatsapp,
+        subscription_status, subscription_expires_at,
+        ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date AS expiry_sp_date,
+        GREATEST(0, (
+          ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+          - (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+        )::int) AS days_remaining,
+        GREATEST(0, (
+          (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
+          - ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+        )::int) AS days_expired
+      FROM users 
+      WHERE subscription_expires_at IS NOT NULL
+        AND is_active = true
+        AND COALESCE(approval_status, 'approved') = 'approved'
+        AND COALESCE(tipo, 'user') != 'admin'
+    `;
+    const todaySp = `(CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date`;
+
     const expiredResult = await query(`
-      SELECT 
-        id, email, name, tipo, created_at, is_active,
-        access_expires_at, access_duration_days,
-        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_expired
-      FROM users 
-      WHERE access_expires_at IS NOT NULL
-        AND access_expires_at < NOW()
-        AND is_active = true
-        AND COALESCE(approval_status, 'approved') = 'approved'
-      ORDER BY access_expires_at ASC
+      ${baseSelect}
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date <= ${todaySp}
+      ORDER BY subscription_expires_at ASC
     `);
-    
-    // Usuários expirando em até 3 dias
+
     const expiring3DaysResult = await query(`
-      SELECT 
-        id, email, name, tipo, created_at, is_active,
-        access_expires_at, access_duration_days,
-        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
-      FROM users 
-      WHERE access_expires_at IS NOT NULL
-        AND access_expires_at >= NOW()
-        AND access_expires_at <= $1
-        AND is_active = true
-        AND COALESCE(approval_status, 'approved') = 'approved'
-      ORDER BY access_expires_at ASC
-    `, [in3Days]);
-    
-    // Usuários expirando em até 7 dias
+      ${baseSelect}
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date > ${todaySp}
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+            <= ${todaySp} + INTERVAL '3 days'
+      ORDER BY subscription_expires_at ASC
+    `);
+
     const expiring7DaysResult = await query(`
-      SELECT 
-        id, email, name, tipo, created_at, is_active,
-        access_expires_at, access_duration_days,
-        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
-      FROM users 
-      WHERE access_expires_at IS NOT NULL
-        AND access_expires_at > $1
-        AND access_expires_at <= $2
-        AND is_active = true
-        AND COALESCE(approval_status, 'approved') = 'approved'
-      ORDER BY access_expires_at ASC
-    `, [in3Days, in7Days]);
-    
-    // Usuários expirando em até 30 dias
+      ${baseSelect}
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+            > ${todaySp} + INTERVAL '3 days'
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+            <= ${todaySp} + INTERVAL '7 days'
+      ORDER BY subscription_expires_at ASC
+    `);
+
     const expiring30DaysResult = await query(`
-      SELECT 
-        id, email, name, tipo, created_at, is_active,
-        access_expires_at, access_duration_days,
-        EXTRACT(EPOCH FROM (access_expires_at - NOW())) / 86400 as days_remaining
-      FROM users 
-      WHERE access_expires_at IS NOT NULL
-        AND access_expires_at > $1
-        AND access_expires_at <= $2
-        AND is_active = true
-        AND COALESCE(approval_status, 'approved') = 'approved'
-      ORDER BY access_expires_at ASC
-    `, [in7Days, in30Days]);
+      ${baseSelect}
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+            > ${todaySp} + INTERVAL '7 days'
+        AND ((subscription_expires_at AT TIME ZONE 'UTC') AT TIME ZONE 'America/Sao_Paulo')::date
+            <= ${todaySp} + INTERVAL '30 days'
+      ORDER BY subscription_expires_at ASC
+    `);
     
     res.json({ 
       data: { 
-        expired: expiredResult.rows,
-        expiring_3_days: expiring3DaysResult.rows,
-        expiring_7_days: expiring7DaysResult.rows,
-        expiring_30_days: expiring30DaysResult.rows
+        expired: expiredResult.rows.map(mapExpiringRow),
+        expiring_3_days: expiring3DaysResult.rows.map(mapExpiringRow),
+        expiring_7_days: expiring7DaysResult.rows.map(mapExpiringRow),
+        expiring_30_days: expiring30DaysResult.rows.map(mapExpiringRow),
       } 
     });
   } catch (error) {

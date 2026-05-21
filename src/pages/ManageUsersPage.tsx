@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut } from 'lucide-react';
+import { Plus, Edit, Trash2, User, Shield, Search, Calendar, CreditCard, Link as LinkIcon, Copy, Clock, AlertCircle, CheckCircle2, LogOut, MessageCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { openRenewalWhatsAppToClient, openRenewalWhatsAppToSupport } from '@/lib/renewalWhatsApp';
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar';
 import { useAuthStore } from '@/stores/authStore';
 import { usersApi, registrationApi, asaasApi } from '@/lib/api';
@@ -386,6 +387,75 @@ export default function ManageUsersPage() {
       setOverrideLoading(false);
     }
   };
+
+  const pickUserPhone = (u: { whatsapp?: string; telefone?: string; phone?: string }) => {
+    const raw = (u.whatsapp || u.telefone || u.phone || '').trim();
+    const digits = raw.replace(/\D/g, '');
+    return digits.length >= 10 ? raw : null;
+  };
+
+  const handleWhatsAppRenewal = (
+    user: {
+      name: string;
+      email: string;
+      whatsapp?: string;
+      telefone?: string;
+      phone?: string;
+      subscription_expires_at?: string;
+      access_expires_at?: string;
+      days_remaining?: number;
+      days_expired?: number;
+    },
+    expired = false
+  ) => {
+    const phone = pickUserPhone(user);
+    const expiresAt = user.subscription_expires_at || user.access_expires_at;
+    const daysRemaining = expired
+      ? 0
+      : Math.round(
+          user.days_remaining ??
+            calendarDaysRemainingSaoPaulo(expiresAt) ??
+            0
+        );
+    const clientOpts = {
+      clientName: user.name,
+      daysRemaining,
+      expiresAt,
+      expired,
+    };
+    if (phone) {
+      openRenewalWhatsAppToClient(phone, clientOpts);
+      toast.success('Abrindo WhatsApp do cliente com mensagem de renovação');
+    } else {
+      openRenewalWhatsAppToSupport({
+        userName: user.name,
+        userEmail: user.email,
+        expiresAt,
+        daysRemaining,
+      });
+      toast('Cliente sem WhatsApp no cadastro — abrindo atendimento', { icon: 'ℹ️' });
+    }
+  };
+
+  const renderRenewalActions = (user: (typeof expiringUsers.expired)[0], expired = false) => (
+    <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+      <button
+        type="button"
+        onClick={() => handleEditUser(user.id)}
+        className={expired ? 'btn-secondary text-sm px-3 py-1' : 'btn-primary text-sm px-3 py-1'}
+      >
+        Renovar
+      </button>
+      <button
+        type="button"
+        onClick={() => handleWhatsAppRenewal(user, expired)}
+        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white text-sm font-semibold px-3 py-1.5"
+      >
+        <MessageCircle className="w-4 h-4" />
+        WhatsApp
+      </button>
+    </div>
+  );
 
   const handleExpireTestAccountLuiz = async () => {
     const email = 'luizgustavoengel0305@gmail.com';
@@ -929,6 +999,11 @@ export default function ManageUsersPage() {
       {/* Expiring Users Tab */}
       {activeTab === 'expiring' && (
         <div className="space-y-6">
+          <div className="rounded-xl border border-[#25D366]/25 bg-[#25D366]/5 px-4 py-3 text-sm text-gray-700 dark:text-white/80">
+            <strong className="text-gray-900 dark:text-white">WhatsApp na renovação:</strong> o botão verde abre o
+            WhatsApp do cliente com mensagem pronta (link de pagamento R$ 150). Se não tiver número cadastrado, abre o
+            atendimento.
+          </div>
           {expiringLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto mb-4"></div>
@@ -962,19 +1037,14 @@ export default function ManageUsersPage() {
                             <p className="text-gray-600 dark:text-white/70 text-sm mb-1 truncate">{user.email}</p>
                             <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-white/50">
                               <span>Expirou há {Math.abs(Math.round(user.days_expired || 0))} dias</span>
-                              {user.access_expires_at && (
+                              {(user.subscription_expires_at || user.access_expires_at) && (
                                 <span>
-                                  {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                  {new Date(user.subscription_expires_at || user.access_expires_at).toLocaleDateString('pt-BR')}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleEditUser(user.id)}
-                            className="btn-secondary text-sm px-3 py-1"
-                          >
-                            Renovar
-                          </button>
+                          {renderRenewalActions(user, true)}
                         </div>
                       </motion.div>
                     ))}
@@ -1010,19 +1080,14 @@ export default function ManageUsersPage() {
                               <span className="text-orange-600 dark:text-orange-400 font-semibold">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
-                              {user.access_expires_at && (
+                              {(user.subscription_expires_at || user.access_expires_at) && (
                                 <span>
-                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                  Expira em {new Date(user.subscription_expires_at || user.access_expires_at).toLocaleDateString('pt-BR')}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleEditUser(user.id)}
-                            className="btn-primary text-sm px-3 py-1"
-                          >
-                            Renovar
-                          </button>
+                          {renderRenewalActions(user, false)}
                         </div>
                       </motion.div>
                     ))}
@@ -1058,19 +1123,14 @@ export default function ManageUsersPage() {
                               <span className="text-amber-700 dark:text-yellow-400 font-semibold">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
-                              {user.access_expires_at && (
+                              {(user.subscription_expires_at || user.access_expires_at) && (
                                 <span>
-                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                  Expira em {new Date(user.subscription_expires_at || user.access_expires_at).toLocaleDateString('pt-BR')}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleEditUser(user.id)}
-                            className="btn-secondary text-sm px-3 py-1"
-                          >
-                            Renovar
-                          </button>
+                          {renderRenewalActions(user, false)}
                         </div>
                       </motion.div>
                     ))}
@@ -1106,19 +1166,14 @@ export default function ManageUsersPage() {
                               <span className="text-blue-600 dark:text-blue-400">
                                 {Math.round(user.days_remaining || 0)} dias restantes
                               </span>
-                              {user.access_expires_at && (
+                              {(user.subscription_expires_at || user.access_expires_at) && (
                                 <span>
-                                  Expira em {new Date(user.access_expires_at).toLocaleDateString('pt-BR')}
+                                  Expira em {new Date(user.subscription_expires_at || user.access_expires_at).toLocaleDateString('pt-BR')}
                                 </span>
                               )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleEditUser(user.id)}
-                            className="btn-secondary text-sm px-3 py-1"
-                          >
-                            Renovar
-                          </button>
+                          {renderRenewalActions(user, false)}
                         </div>
                       </motion.div>
                     ))}
