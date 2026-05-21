@@ -25,7 +25,7 @@ export function calendarDaysRemainingSaoPaulo(iso) {
   return Math.max(0, diff);
 }
 
-/** Vencido só quando o dia civil da expiração (SP) é anterior a hoje — no dia do vencimento ainda tem acesso. */
+/** Vencido no dia do vencimento (0 dias) e depois — checkout até pagar. */
 export function isSubscriptionExpiredByCalendarSaoPaulo(iso) {
   if (!iso) return false;
   const exp = new Date(iso);
@@ -43,5 +43,5 @@ export function isSubscriptionExpiredByCalendarSaoPaulo(iso) {
     const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
     return Date.UTC(y, m - 1, d);
   };
-  return parseY(expiryYmd) < parseY(todayYmd);
+  return parseY(expiryYmd) <= parseY(todayYmd);
 }

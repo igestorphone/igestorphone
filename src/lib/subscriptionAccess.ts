@@ -13,7 +13,7 @@ export function isSubscriptionAdmin(user: Usuario | null): boolean {
 
 /**
  * Acesso ao app (fora do checkout) liberado: não pendente/atrasado/expirado por status
- * e com validade futura quando houver `subscription_expires_at`.
+ * e com validade futura (1+ dia civil em SP; no dia do vencimento = 0 dias → checkout).
  * Planos legados anual/trimestral: enquanto `subscription_expires_at` estiver no futuro,
  * os dias restantes são a diferença até essa data; depois disso exige renovação (ciclos de 30 dias).
  */

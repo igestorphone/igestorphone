@@ -454,22 +454,26 @@ router.get('/verify-payment', authenticateToken, async (req, res) => {
     }
 
     const paymentMoment = paid.paymentDate || paid.clientPaymentDate || paid.confirmedDate || paid.dueDate;
-    const paymentTime = paymentMoment ? new Date(paymentMoment).getTime() : NaN;
     const accountExpiredByDate = isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at);
-    const expiryTime = user.subscription_expires_at
-      ? new Date(user.subscription_expires_at).getTime()
-      : null;
-    if (
-      accountExpiredByDate &&
-      Number.isFinite(paymentTime) &&
-      expiryTime != null &&
-      !Number.isNaN(expiryTime) &&
-      paymentTime < expiryTime
-    ) {
-      return res.json({
-        paid: false,
-        message: 'Assinatura vencida; é necessário um novo pagamento.',
+    if (accountExpiredByDate && paymentMoment && user.subscription_expires_at) {
+      const fmt = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
       });
+      const payYmd = fmt.format(new Date(paymentMoment));
+      const expiryYmd = fmt.format(new Date(user.subscription_expires_at));
+      const parseY = (ymd) => {
+        const [y, m, d] = ymd.split('-').map((n) => parseInt(n, 10));
+        return Date.UTC(y, m - 1, d);
+      };
+      if (parseY(payYmd) < parseY(expiryYmd)) {
+        return res.json({
+          paid: false,
+          message: 'Assinatura vencida; é necessário um novo pagamento.',
+        });
+      }
     }
 
     await activateSubscriptionAfterPayment({

@@ -31,7 +31,10 @@ export function calendarDaysRemainingSaoPaulo(iso: string | null | undefined): n
   return Math.max(0, diffDays)
 }
 
-/** Vencido só quando o dia da expiração (SP) já passou — com 1 dia no contador o acesso continua liberado. */
+/**
+ * Vencido no dia do vencimento (0 dias) e depois — exige checkout Asaas (R$ 150) até pagar.
+ * Com 1+ dia no contador o acesso continua liberado.
+ */
 export function isSubscriptionExpiredByCalendarSaoPaulo(iso: string | null | undefined): boolean {
   if (!iso) return false
   const exp = new Date(iso)
@@ -39,7 +42,7 @@ export function isSubscriptionExpiredByCalendarSaoPaulo(iso: string | null | und
 
   const todayYmd = ymdInTimeZone(new Date(), SUBSCRIPTION_CALENDAR_TZ)
   const expiryYmd = ymdInTimeZone(exp, SUBSCRIPTION_CALENDAR_TZ)
-  return parseYmdUtcMidnight(expiryYmd) < parseYmdUtcMidnight(todayYmd)
+  return parseYmdUtcMidnight(expiryYmd) <= parseYmdUtcMidnight(todayYmd)
 }
 
 /** Data de validade exibida no mesmo critério do contador (civil em SP). */
