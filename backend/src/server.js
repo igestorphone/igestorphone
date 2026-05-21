@@ -31,6 +31,7 @@ import notificationsRoutes from './routes/notifications.js';
 import whatsappRoutes from './routes/whatsapp.js';
 import { runMigrations } from './migrate.js';
 import { autoPromoteYesterdayStockIfNeeded } from './services/autoRollYesterdayStock.js';
+import { purgeOverdueAccountsPastGrace } from './services/purgeOverdueAccountsPastGrace.js';
 // Importar middleware
 import { authenticateToken } from './middleware/auth.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -252,6 +253,7 @@ app.use(errorHandler);
 // Scheduler automático para limpeza de produtos (reter 3 dias) no horário de São Paulo
 let cleanupInterval = null;
 let subscriptionOverdueInterval = null;
+let gracePurgeInterval = null;
 
 /** Verifica assinaturas com validade já passada e marca como overdue (alinhado ao bloqueio imediato no auth) */
 async function checkSubscriptionOverdue() {
@@ -357,6 +359,11 @@ app.listen(PORT, LISTEN_HOST, async () => {
   runOverdueCheck(); // executa ao subir
   subscriptionOverdueInterval = setInterval(runOverdueCheck, 60 * 60 * 1000); // a cada 1h
   logger.info('📋 Scheduler de assinaturas vencidas ativo (1x/hora)');
+
+  const runGracePurge = () => purgeOverdueAccountsPastGrace(logger).catch(() => {});
+  runGracePurge();
+  gracePurgeInterval = setInterval(runGracePurge, 60 * 60 * 1000);
+  logger.info('🗑️ Exclusão automática pós-tolerância (10 dias sem pagar) ativa (1x/hora)');
 });
 
 // Tratamento de erros não capturados
@@ -375,6 +382,7 @@ process.on('SIGTERM', () => {
   logger.info('🛑 Encerrando servidor...');
   if (cleanupInterval) clearInterval(cleanupInterval);
   if (subscriptionOverdueInterval) clearInterval(subscriptionOverdueInterval);
+  if (gracePurgeInterval) clearInterval(gracePurgeInterval);
   process.exit(0);
 });
 
@@ -382,6 +390,7 @@ process.on('SIGINT', () => {
   logger.info('🛑 Encerrando servidor...');
   if (cleanupInterval) clearInterval(cleanupInterval);
   if (subscriptionOverdueInterval) clearInterval(subscriptionOverdueInterval);
+  if (gracePurgeInterval) clearInterval(gracePurgeInterval);
   process.exit(0);
 });
 

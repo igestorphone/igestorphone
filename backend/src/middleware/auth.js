@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken';
 import { query } from '../config/database.js';
 import { isSessionActive, touchSessionActivity } from '../services/userSessions.js';
-import { isSubscriptionExpiredByCalendarSaoPaulo } from '../utils/subscriptionExpiryCalendar.js';
+import {
+  isSubscriptionExpiredByCalendarSaoPaulo,
+  isPastPaymentGracePeriodSaoPaulo,
+} from '../utils/subscriptionExpiryCalendar.js';
+import { deleteUserAccountPermanently } from '../services/deleteUserAccount.js';
 
 const IDLE_TIMEOUT_MINUTES = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10);
 const IDLE_TIMEOUT_MS = IDLE_TIMEOUT_MINUTES * 60 * 1000;
@@ -44,6 +48,19 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     const user = result.rows[0];
+
+    if (
+      (user.tipo || '').toString().toLowerCase() !== 'admin' &&
+      user.subscription_expires_at &&
+      isPastPaymentGracePeriodSaoPaulo(user.subscription_expires_at)
+    ) {
+      await deleteUserAccountPermanently(user.id, { reason: 'grace_period_expired_on_request' }).catch(() => {});
+      return res.status(401).json({
+        message:
+          'Sua conta foi excluída por falta de pagamento após o prazo de tolerância. Cadastre-se novamente.',
+        code: 'ACCOUNT_REMOVED',
+      });
+    }
 
     const pathRaw = (req.originalUrl || req.path || '').split('?')[0];
 

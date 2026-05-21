@@ -6,6 +6,8 @@ import { body, validationResult } from 'express-validator';
 import { query } from '../config/database.js';
 import { sendPasswordResetEmail, isMailConfigured } from '../services/mail.js';
 import { createSessionForUser, revokeSession, isSessionActive } from '../services/userSessions.js';
+import { isPastPaymentGracePeriodSaoPaulo } from '../utils/subscriptionExpiryCalendar.js';
+import { deleteUserAccountPermanently } from '../services/deleteUserAccount.js';
 
 const router = express.Router();
 
@@ -191,6 +193,16 @@ router.post('/login', loginValidation, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Credenciais inválidas' });
+    }
+
+    const isAdmin = (user.role || '').toString().toLowerCase() === 'admin';
+    if (!isAdmin && user.subscription_expires_at && isPastPaymentGracePeriodSaoPaulo(user.subscription_expires_at)) {
+      await deleteUserAccountPermanently(user.id, { reason: 'grace_period_expired_on_login' }).catch(() => {});
+      return res.status(403).json({
+        message:
+          'Sua conta foi excluída por falta de pagamento após o prazo de tolerância. Você pode se cadastrar novamente.',
+        code: 'ACCOUNT_REMOVED',
+      });
     }
 
     // Atualizar último login

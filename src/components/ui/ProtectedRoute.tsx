@@ -2,7 +2,7 @@ import { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { UserPermissions } from '@/types'
-import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
+import { requiresCheckoutOnly, isAccountRemovedAfterGrace } from '@/lib/subscriptionAccess'
 
 const ONLY_CALENDAR_ALLOWED_PATHS = ['/calendar', '/profile', '/devices']
 
@@ -12,11 +12,16 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredPermission }: ProtectedRouteProps) {
-  const { isAuthenticated, user } = useAuthStore()
+  const { isAuthenticated, user, logout } = useAuthStore()
   const { pathname } = useLocation()
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (isAccountRemovedAfterGrace(user)) {
+    logout()
+    return <Navigate to="/login?reason=account_removed" replace />
   }
 
   if (requiresCheckoutOnly(user)) {

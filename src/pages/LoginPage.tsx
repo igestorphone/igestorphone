@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff, Mail, Lock, AlertCircle } from 'lucide-react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
@@ -35,6 +35,8 @@ export default function LoginPage() {
   const { theme, addNotification } = useAppStore()
   const isDark = theme === 'dark'
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const accountRemoved = searchParams.get('reason') === 'account_removed'
   const [showPassword, setShowPassword] = useState(false)
   const [leaving, setLeaving] = useState(false)
 
@@ -97,6 +99,17 @@ export default function LoginPage() {
         <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Entrar</h1>
         <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Entre com suas credenciais para acessar o sistema</p>
       </div>
+
+      {accountRemoved && (
+        <div
+          className={`mb-5 rounded-xl border px-4 py-3 text-sm ${
+            isDark ? 'border-amber-500/40 bg-amber-500/10 text-amber-100' : 'border-amber-300 bg-amber-50 text-amber-900'
+          }`}
+        >
+          Sua conta foi excluída por falta de pagamento após o prazo de tolerância. Você pode se cadastrar novamente com o
+          mesmo e-mail.
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-2">

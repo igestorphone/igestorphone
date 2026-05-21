@@ -1,5 +1,8 @@
 import type { Usuario } from '@/types'
-import { isSubscriptionExpiredByCalendarSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
+import {
+  isSubscriptionExpiredByCalendarSaoPaulo,
+  isPastPaymentGracePeriodSaoPaulo,
+} from '@/lib/subscriptionExpiryCalendar'
 
 function roleOf(user: Usuario | null): string {
   if (!user) return ''
@@ -14,8 +17,6 @@ export function isSubscriptionAdmin(user: Usuario | null): boolean {
 /**
  * Acesso ao app (fora do checkout) liberado: não pendente/atrasado/expirado por status
  * e com validade futura (1+ dia civil em SP; no dia do vencimento = 0 dias → checkout).
- * Planos legados anual/trimestral: enquanto `subscription_expires_at` estiver no futuro,
- * os dias restantes são a diferença até essa data; depois disso exige renovação (ciclos de 30 dias).
  */
 export function hasActiveSubscriptionAccess(user: Usuario | null): boolean {
   if (!user) return false
@@ -36,8 +37,17 @@ export function hasActiveSubscriptionAccess(user: Usuario | null): boolean {
   return st === 'active' || st === 'trial' || st === ''
 }
 
+/** Passou 10 dias na tela de pagamento sem pagar — conta excluída no servidor. */
+export function isAccountRemovedAfterGrace(user: Usuario | null): boolean {
+  if (!user || isSubscriptionAdmin(user)) return false
+  if (!user.subscription_expires_at) return false
+  return isPastPaymentGracePeriodSaoPaulo(user.subscription_expires_at)
+}
+
+/** Checkout Asaas (R$ 150): vencido ou pendente, ainda dentro dos 10 dias de tolerância. */
 export function requiresCheckoutOnly(user: Usuario | null): boolean {
   if (!user) return false
   if (isSubscriptionAdmin(user)) return false
+  if (isAccountRemovedAfterGrace(user)) return false
   return !hasActiveSubscriptionAccess(user)
 }

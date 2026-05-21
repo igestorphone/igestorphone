@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { asaasApi } from '@/lib/api'
 import { getErrorMessage } from '@/lib/utils'
 import { hasActiveSubscriptionAccess } from '@/lib/subscriptionAccess'
+import { calendarDaysLeftInPaymentGraceSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 import toast from 'react-hot-toast'
 import {
   CreditCard,
@@ -113,6 +114,8 @@ export default function CheckoutPage() {
   }, [step])
 
   const displayPlanPrice = planPriceFromApi ?? PLAN_VALUES[plan]
+
+  const graceDaysLeft = calendarDaysLeftInPaymentGraceSaoPaulo(user?.subscription_expires_at)
 
   useEffect(() => {
     if (isAuthenticated && user && step === 'auth') {
@@ -273,6 +276,16 @@ export default function CheckoutPage() {
         <div className="absolute -right-20 bottom-1/4 h-64 w-64 rounded-full bg-blue-500/[0.05] blur-[80px]" />
       </div>
       <div className="mx-auto max-w-md px-6 py-12">
+        {graceDaysLeft !== null && (
+          <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            <p className="font-medium">Assinatura vencida — regularize para voltar ao sistema</p>
+            <p className="mt-1 text-amber-200/90">
+              {graceDaysLeft === 0
+                ? 'Último dia para pagar R$ 150,00. Após hoje sua conta será excluída automaticamente.'
+                : `Você tem mais ${graceDaysLeft} dia(s) para pagar R$ 150,00. Depois disso a conta será excluída.`}
+            </p>
+          </div>
+        )}
         <div className="mb-8 flex items-center justify-between">
           <Link to="/" replace className="inline-flex items-center gap-2 text-sm text-white/60 transition-colors hover:text-cyan-400">
             <ChevronLeft className="h-4 w-4" />
