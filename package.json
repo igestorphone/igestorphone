@@ -25,7 +25,8 @@
     "db:roll-yesterday-to-today": "node backend/src/scripts/roll-yesterday-products-to-today.js",
     "db:roll-yesterday-to-today:dry": "node backend/src/scripts/roll-yesterday-products-to-today.js --dry-run",
     "db:zero-products": "node backend/src/scripts/zero-all-products.js",
-    "db:restore-all-stock": "node backend/src/scripts/restore-all-stock.js"
+    "db:restore-all-stock": "node backend/src/scripts/restore-all-stock.js",
+    "db:undo-roll-restore-today": "node backend/src/scripts/undo-roll-restore-today.js"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
