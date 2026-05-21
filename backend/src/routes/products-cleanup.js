@@ -2,6 +2,7 @@ import express from 'express';
 import { query } from '../config/database.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 import { rollYesterdayProductsToToday } from '../services/rollYesterdayStock.js';
+import { restoreRecentCatalog } from '../services/restoreRecentCatalog.js';
 
 const router = express.Router();
 
@@ -81,6 +82,21 @@ router.post('/cleanup-old-products', authenticateToken, requireRole('admin'), as
   } catch (error) {
     console.error('❌ Erro ao limpar produtos:', error);
     res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
+// Restaura catálogo recente (hoje/ontem/anteontem) — corrige roll acidental (~3700 produtos)
+router.post('/restore-recent-catalog', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const result = await restoreRecentCatalog();
+    console.log(`📦 [restore-recent-catalog] admin=${req.user?.id}`, result);
+    res.json({
+      message: 'Catálogo recente restaurado. Recarregue a busca (F5).',
+      ...result,
+    });
+  } catch (error) {
+    console.error('❌ Erro restore-recent-catalog:', error);
+    res.status(500).json({ message: 'Erro ao restaurar catálogo', error: error.message });
   }
 });
 

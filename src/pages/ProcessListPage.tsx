@@ -234,7 +234,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
   const handleRestoreTodayProducts = async () => {
     if (
       !confirm(
-        '⚠️ RESTAURAR estoque de hoje?\n\nUse AGORA se zerou o estoque ou o WPP falhou — reativa tudo que foi desativado hoje e volta a busca.'
+        '⚠️ RESTAURAR catálogo recente (~3700)?\n\nReativa listas de hoje/ontem/anteontem e remove catálogo antigo que voltou por engano.'
       )
     ) {
       return
@@ -248,7 +248,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
       const token = JSON.parse(authData).state?.token
       if (!token) throw new Error('Token inválido')
 
-      const response = await fetch(buildApiUrl('/products/restore-today-emergency'), {
+      const response = await fetch(buildApiUrl('/products/restore-recent-catalog'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -263,7 +263,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
 
       const result = await response.json()
       alert(
-        `✅ Estoque reativado!\n\n• ${result.restored} produto(s)\n• Ativos: ${result.statistics?.active ?? result.statistics?.active_today ?? '?'}\n• Fornecedores: ${result.statistics?.suppliers ?? '?'}\n\nRecarregue Buscar mais barato (F5).`
+        `✅ Catálogo restaurado!\n\n• Reativados: ${result.reactivated_recent ?? '?'}\n• Antigos removidos: ${result.deactivated_ancient ?? '?'}\n• Ativos agora: ${result.active_after ?? '?'}\n• Fornecedores: ${result.suppliers_after ?? '?'}\n\nRecarregue Buscar mais barato (F5).`
       )
       
       // Recarregar página após 2 segundos para mostrar produtos restaurados
@@ -864,7 +864,7 @@ export default function ProcessListPage({ initialListType }: { initialListType?:
               ) : (
                 <>
                   <AlertTriangle className="w-4 h-4" />
-                  <span>RESTAURAR estoque (urgente)</span>
+                  <span>RESTAURAR catálogo (~3700)</span>
                 </>
               )}
             </motion.button>

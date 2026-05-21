@@ -1,9 +1,6 @@
 /**
- * Desfaz roll ontem→hoje acidental:
- * - Desativa catálogo antigo reativado (criado antes de hoje)
- * - Reativa listas processadas HOJE (criadas hoje, ficaram inativas no roll)
- *
- *   npm run db:undo-roll-restore-today
+ * @deprecated Use npm run db:restore-recent-catalog
+ * Desfaz roll ontem→hoje (versão antiga só created_at=hoje).
  */
 import dotenv from 'dotenv';
 import path from 'path';
