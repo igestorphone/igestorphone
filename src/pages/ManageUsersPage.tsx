@@ -87,7 +87,6 @@ export default function ManageUsersPage() {
   const [selectedDuration, setSelectedDuration] = useState<5 | 30>(30);
   const [mensalOverrideBrl, setMensalOverrideBrl] = useState<number | null>(null);
   const [overrideLoading, setOverrideLoading] = useState(false);
-  const [testDaysByUser, setTestDaysByUser] = useState<Record<string, string>>({});
   const [linkExpiresIn, setLinkExpiresIn] = useState(7);
   const [cleanupLoading, setCleanupLoading] = useState(false);
 
@@ -457,39 +456,6 @@ export default function ManageUsersPage() {
     </div>
   );
 
-  const handleExpireTestAccountLuiz = async () => {
-    const email = 'luizgustavoengel0305@gmail.com';
-    try {
-      await usersApi.patchSubscriptionExpiryTestByEmail({ email, daysFromNow: 0 });
-      toast.success(`Conta ${email} marcada como vencida (use o checkout para renovar).`);
-      await fetchUsers();
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      toast.error(err?.message || 'Erro ao vencer conta de teste');
-    }
-  };
-
-  const handleApplyTestExpiry = async (targetUserId: string) => {
-    const raw = testDaysByUser[targetUserId] ?? '30';
-    const days = parseInt(raw, 10);
-    if (Number.isNaN(days) || days < 0 || days > 3650) {
-      toast.error('Informe dias entre 0 e 3650');
-      return;
-    }
-    try {
-      await usersApi.patchSubscriptionExpiryTest(targetUserId, { daysFromNow: days });
-      toast.success(
-        days === 0
-          ? 'Validade = agora (usuário deve ir ao checkout).'
-          : `Validade definida: agora + ${days} dia(s).`
-      );
-      await fetchUsers();
-    } catch (error: unknown) {
-      const err = error as { message?: string };
-      toast.error(err?.message || 'Erro ao atualizar validade');
-    }
-  };
-
   const filteredUsers = users
   .filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -728,42 +694,21 @@ export default function ManageUsersPage() {
           </div>
         </div>
 
-        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-white/10">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Testes (Asaas + validade)</p>
-          <p className="text-xs text-gray-500 dark:text-white/50 mb-3">
-            Valor do plano <strong>mensal</strong> no checkout (Asaas exige mín. <strong>R$ 5,00</strong> por cobrança). Em cada usuário use &quot;Dias a partir de agora&quot; (0 = forçar vencido / fluxo checkout).
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-sm text-gray-700 dark:text-white/80">
-              Override atual:{' '}
-              <strong className="text-gray-900 dark:text-white">
-                {mensalOverrideBrl != null ? `R$ ${mensalOverrideBrl.toFixed(2).replace('.', ',')}` : 'padrão R$ 150,00'}
-              </strong>
-            </span>
-            <button
-              type="button"
-              disabled={overrideLoading}
-              onClick={handleSetAsaasMensalTestFive}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 disabled:opacity-50"
-            >
-              Usar R$ 5,00 no checkout (teste)
-            </button>
-            <button
-              type="button"
-              disabled={overrideLoading || mensalOverrideBrl == null}
-              onClick={handleClearAsaasMensalOverride}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-white/10 text-gray-800 dark:text-white border border-gray-300 dark:border-white/20 hover:bg-gray-100 dark:hover:bg-white/15 disabled:opacity-50"
-            >
-              Voltar valor padrão
-            </button>
-            <button
-              type="button"
-              onClick={handleExpireTestAccountLuiz}
-              className="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/35 hover:bg-red-500/25"
-            >
-              Vencer agora: luizgustavoengel0305@gmail.com
-            </button>
-          </div>
+        <div className="mt-5 pt-5 border-t border-gray-200 dark:border-white/10 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-gray-600 dark:text-white/70">
+            Plano único: <strong className="text-gray-900 dark:text-white">R$ 150,00/mês</strong>
+            {mensalOverrideBrl === 5 && (
+              <span className="ml-2 text-amber-600 dark:text-amber-400">· modo teste R$ 5,00 ativo</span>
+            )}
+          </span>
+          <button
+            type="button"
+            disabled={overrideLoading}
+            onClick={mensalOverrideBrl === 5 ? handleClearAsaasMensalOverride : handleSetAsaasMensalTestFive}
+            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            {mensalOverrideBrl === 5 ? 'Voltar ao plano R$ 150,00' : 'Checkout R$ 5,00 (teste)'}
+          </button>
         </div>
       </div>
 
@@ -904,29 +849,6 @@ export default function ManageUsersPage() {
                     ? '—'
                     : `${user.subscription_days_remaining ?? calendarDaysRemainingSaoPaulo(user.subscription_expires_at) ?? 0} dias`}
                 </p>
-              </div>
-              <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-2 border-t border-gray-100 dark:border-white/5">
-                <span className="text-gray-500 dark:text-white/50 text-xs w-full sm:w-auto">
-                  Validade a partir de agora (dias){user.tipo === 'admin' ? ' — admins continuam com acesso ao painel' : ''}
-                </span>
-                <input
-                  type="number"
-                  min={0}
-                  max={3650}
-                  value={testDaysByUser[user.id] ?? '30'}
-                  onChange={(e) =>
-                    setTestDaysByUser((prev) => ({ ...prev, [user.id]: e.target.value }))
-                  }
-                  className="w-24 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleApplyTestExpiry(String(user.id))}
-                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
-                >
-                  Aplicar
-                </button>
-                <span className="text-[11px] text-gray-400 dark:text-white/40">0 = vencido (status expired, checkout)</span>
               </div>
             </div>
 

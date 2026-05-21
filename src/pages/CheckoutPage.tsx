@@ -25,7 +25,7 @@ type PlanKey = 'teste' | 'mensal'
 
 const PLAN_LABELS: Record<PlanKey, string> = {
   teste: 'Teste (R$ 5)',
-  mensal: 'Mensal (30 dias)',
+  mensal: 'Plano único (30 dias)',
 }
 
 const PLAN_VALUES: Record<PlanKey, number> = {

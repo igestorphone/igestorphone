@@ -96,6 +96,15 @@ async function getMensalValueOverride() {
     }
   }
   if (num == null || !Number.isFinite(num) || num <= 0) return null;
+  // Override legado (ex.: R$ 199,99) — plano único é sempre R$ 150,00
+  if (Math.abs(num - 199.99) < 0.01) {
+    try {
+      await query(`DELETE FROM settings WHERE key = $1`, [MENSAL_VALUE_OVERRIDE_KEY]);
+    } catch (_) {
+      /* ignore */
+    }
+    return null;
+  }
   if (num < 5) return 5;
   return num;
 }
