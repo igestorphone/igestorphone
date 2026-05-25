@@ -361,10 +361,12 @@ function InviteRegisterBody({
   token,
   onRegistered,
   isDark,
+  trialDays,
 }: {
   token: string
   onRegistered: () => void
   isDark: boolean
+  trialDays?: number | null
 }) {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -433,7 +435,11 @@ function InviteRegisterBody({
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-5">
       <div className="text-center mb-2">
         <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Criar conta</h1>
-        <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Complete seus dados para ativar o acesso.</p>
+        <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>
+          {trialDays != null && trialDays > 0
+            ? 'Complete seus dados para ativar o acesso.'
+            : 'Cadastro por convite — complete seus dados da loja.'}
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -711,7 +717,7 @@ export default function RegisterPage() {
             <strong>{trialDays} dias grátis</strong> — cadastre-se para começar a usar o iGestorPhone agora.
           </div>
         )}
-        <InviteRegisterBody token={token} onRegistered={() => setRegistered(true)} isDark={isDark} />
+        <InviteRegisterBody token={token} onRegistered={() => setRegistered(true)} isDark={isDark} trialDays={trialDays} />
       </>
     )
   }

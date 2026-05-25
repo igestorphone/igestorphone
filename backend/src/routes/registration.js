@@ -143,6 +143,8 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
         rt.expires_at,
         rt.is_used,
         rt.used_at,
+        rt.trial_days,
+        rt.trial_grace_days,
         u.name as created_by_name,
         u2.name as used_by_name
       FROM registration_tokens rt
@@ -172,7 +174,9 @@ router.get('/registration-links', authenticateToken, requireRole('admin'), async
       usedAt: row.used_at,
       createdByName: row.created_by_name,
       usedByName: row.used_by_name,
-      isValid: !row.is_used && new Date(row.expires_at) > new Date()
+      isValid: !row.is_used && new Date(row.expires_at) > new Date(),
+      isTrial: row.trial_days != null && row.trial_days > 0,
+      trialDays: row.trial_days || null,
     }));
     
     res.json({ data: { links } });

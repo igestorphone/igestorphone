@@ -76,6 +76,7 @@ export default function ManageUsersPage() {
   const [planFilter, setPlanFilter] = useState<PlanFilterKey>('all');
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'expiring'>('users');
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
+  const [currentTrialLink, setCurrentTrialLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -166,9 +167,13 @@ export default function ManageUsersPage() {
     try {
       const response = await registrationApi.getAllLinks();
       const links = response.data?.links || [];
-      const activeLink = links.find((link: RegistrationLink) => link.isValid);
-      if (activeLink) {
-        setCurrentRegistrationLink(normalizeLinkUrl(activeLink.url));
+      const normalLink = links.find((link: any) => link.isValid && !link.isTrial);
+      const trialLink = links.find((link: any) => link.isValid && link.isTrial);
+      if (normalLink) {
+        setCurrentRegistrationLink(normalizeLinkUrl(normalLink.url));
+      }
+      if (trialLink) {
+        setCurrentTrialLink(normalizeLinkUrl(trialLink.url));
       }
     } catch (error) {
       // Silenciar erro, não é crítico
@@ -342,7 +347,7 @@ export default function ManageUsersPage() {
       const linkUrl = response.data?.url;
       if (linkUrl) {
         const normalizedUrl = normalizeLinkUrl(linkUrl);
-        setCurrentRegistrationLink(normalizedUrl);
+        setCurrentTrialLink(normalizedUrl);
         navigator.clipboard.writeText(normalizedUrl);
         toast.success('Link trial (3 dias grátis) gerado e copiado!');
       }
@@ -877,6 +882,42 @@ export default function ManageUsersPage() {
                 toast.success('Link copiado!');
               }}
               className="btn-primary ml-4 flex items-center space-x-2"
+            >
+              <Copy className="w-4 h-4" />
+              <span>Copiar</span>
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Trial Link Card */}
+      {currentTrialLink && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-white/10 border border-emerald-300 dark:border-emerald-500/30 rounded-xl p-6 mb-6"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Link Trial Ativo
+                <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                  3 dias grátis
+                </span>
+              </h3>
+              <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-lg p-3 mb-2">
+                <code className="text-sm text-gray-800 dark:text-white/90 break-all">{currentTrialLink}</code>
+              </div>
+              <p className="text-gray-500 dark:text-white/50 text-xs">
+                Cliente entra direto (sem aprovação) · 3 dias grátis · depois 5 dias p/ pagar R$ 150 · não pagou = conta excluída
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(currentTrialLink);
+                toast.success('Link trial copiado!');
+              }}
+              className="ml-4 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center space-x-2"
             >
               <Copy className="w-4 h-4" />
               <span>Copiar</span>
