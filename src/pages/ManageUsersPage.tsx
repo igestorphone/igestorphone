@@ -358,12 +358,7 @@ export default function ManageUsersPage() {
   };
 
   const handleCopyRegistrationLink = () => {
-    if (currentRegistrationLink) {
-      navigator.clipboard.writeText(currentRegistrationLink);
-      toast.success('Link copiado!');
-    } else {
-      setShowGenerateLinkModal(true);
-    }
+    setShowGenerateLinkModal(true);
   };
 
   const handleApproveUser = async () => {
@@ -736,7 +731,7 @@ export default function ManageUsersPage() {
                 className="btn-primary flex items-center space-x-2"
               >
                 <LinkIcon className="w-4 h-4" />
-                <span>{currentRegistrationLink ? 'Copiar Link para Cadastro' : 'Convidar Novo Usuário'}</span>
+                <span>Copiar Link para Cadastro</span>
               </button>
               <button
                 onClick={handleCreateUser}
@@ -1351,43 +1346,86 @@ export default function ManageUsersPage() {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-xl p-6 w-full max-w-lg"
           >
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Gerar Link de Cadastro</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
-                  Válido por quantos dias?
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="30"
-                  value={linkExpiresIn}
-                  onChange={(e) => setLinkExpiresIn(parseInt(e.target.value) || 7)}
-                  className="input-primary w-full"
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowGenerateLinkModal(false)}
-                  className="btn-secondary"
-                >
-                  Cancelar
-                </button>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-5">Links de Cadastro</h3>
+
+            {/* Link Normal */}
+            <div className="mb-5">
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-white/80 mb-2">Link Normal (precisa de aprovação)</h4>
+              {currentRegistrationLink ? (
+                <div className="bg-gray-50 dark:bg-white/5 rounded-lg p-3 mb-2">
+                  <code className="text-xs text-gray-700 dark:text-white/80 break-all">{currentRegistrationLink}</code>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-white/40 mb-2">Nenhum link normal ativo</p>
+              )}
+              <div className="flex gap-2">
+                {currentRegistrationLink && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentRegistrationLink);
+                      toast.success('Link normal copiado!');
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copiar
+                  </button>
+                )}
                 <button
                   onClick={handleGenerateLink}
-                  className="btn-primary"
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-200 dark:bg-white/10 text-gray-700 dark:text-white/80 hover:bg-gray-300 dark:hover:bg-white/20"
                 >
-                  Gerar Link
-                </button>
-                <button
-                  onClick={() => { setShowGenerateLinkModal(false); handleGenerateTrialLink(); }}
-                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
-                >
-                  Link Trial (3 dias grátis)
+                  {currentRegistrationLink ? 'Gerar Novo' : 'Gerar Link'}
                 </button>
               </div>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-white/10 my-4" />
+
+            {/* Link Trial */}
+            <div className="mb-5">
+              <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Link Trial (3 dias grátis)</h4>
+              <p className="text-xs text-gray-400 dark:text-white/40 mb-2">
+                Entra direto sem aprovação · 3 dias grátis · 5 dias p/ pagar · não pagou = excluído
+              </p>
+              {currentTrialLink ? (
+                <div className="bg-emerald-50 dark:bg-emerald-500/5 rounded-lg p-3 mb-2">
+                  <code className="text-xs text-gray-700 dark:text-white/80 break-all">{currentTrialLink}</code>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 dark:text-white/40 mb-2">Nenhum link trial ativo</p>
+              )}
+              <div className="flex gap-2">
+                {currentTrialLink && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentTrialLink);
+                      toast.success('Link trial copiado!');
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1.5"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    Copiar
+                  </button>
+                )}
+                <button
+                  onClick={() => { handleGenerateTrialLink(); }}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-500/20"
+                >
+                  {currentTrialLink ? 'Gerar Novo' : 'Gerar Link Trial'}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={() => setShowGenerateLinkModal(false)}
+                className="btn-secondary"
+              >
+                Fechar
+              </button>
             </div>
           </motion.div>
         </div>
