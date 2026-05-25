@@ -73,7 +73,7 @@ export default function ManageUsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [planFilter, setPlanFilter] = useState<'all' | 'mensal'>('all');
+  const [planFilter, setPlanFilter] = useState<PlanFilterKey>('all');
   const [activeTab, setActiveTab] = useState<'users' | 'pending' | 'expiring'>('users');
   const [currentRegistrationLink, setCurrentRegistrationLink] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -85,6 +85,7 @@ export default function ManageUsersPage() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [userToApprove, setUserToApprove] = useState<PendingUser | null>(null);
   const [selectedDuration, setSelectedDuration] = useState<5 | 30>(30);
+  type PlanFilterKey = 'all' | 'mensal' | 'trimestral' | 'anual' | 'trial' | 'admin';
   const [mensalOverrideBrl, setMensalOverrideBrl] = useState<number | null>(null);
   const [overrideLoading, setOverrideLoading] = useState(false);
   const [accessDaysByUser, setAccessDaysByUser] = useState<Record<string, string>>({});
@@ -565,23 +566,18 @@ export default function ManageUsersPage() {
     const matchesStatus = statusFilter === '' || 
                          (statusFilter === 'active' && user.is_active) ||
                          (statusFilter === 'inactive' && !user.is_active);
-    
-    console.log('🔍 Filtro usuário:', {
-      name: user.name,
-      email: user.email,
-      searchTerm,
-      statusFilter,
-      isActive: user.is_active,
-      matchesSearch,
-      matchesStatus,
-      finalMatch: matchesSearch && matchesStatus
-    });
-    
+
     const matchesPlan = (() => {
       if (planFilter === 'all') return true;
-      const planType = (user.plan_type || (user as any).subscription?.plan_type || '').toString().toLowerCase();
-      const planName = (user.plan_name || (user as any).subscription?.plan_name || '').toString().toLowerCase();
-      if (planFilter === 'mensal') return planType === 'mensal' || /mensal/.test(planName);
+      const tipo = (user.tipo || '').toLowerCase();
+      const subStatus = (user.subscription_status || '').toLowerCase();
+      const daysRem = user.subscription_days_remaining ?? (user.subscription_expires_at ? calendarDaysRemainingSaoPaulo(user.subscription_expires_at) : null);
+
+      if (planFilter === 'admin') return tipo === 'admin';
+      if (planFilter === 'trial') return subStatus === 'trial';
+      if (planFilter === 'mensal') return tipo !== 'admin' && subStatus !== 'trial' && (daysRem == null || daysRem <= 30);
+      if (planFilter === 'trimestral') return tipo !== 'admin' && subStatus !== 'trial' && daysRem != null && daysRem > 30 && daysRem <= 90;
+      if (planFilter === 'anual') return tipo !== 'admin' && subStatus !== 'trial' && daysRem != null && daysRem > 90;
       return true;
     })();
     
@@ -631,6 +627,45 @@ export default function ManageUsersPage() {
     return (
       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${colors[tipo as keyof typeof colors] || colors.user}`}>
         {tipo === 'admin' ? 'Administrador' : tipo === 'supplier' ? 'Fornecedor' : 'Usuário'}
+      </span>
+    );
+  };
+
+  const getPlanBadge = (user: User) => {
+    const tipo = (user.tipo || '').toLowerCase();
+    const subStatus = (user.subscription_status || '').toLowerCase();
+    if (tipo === 'admin') {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-500/20 text-purple-400 border border-purple-500/30">
+          Admin
+        </span>
+      );
+    }
+    if (subStatus === 'trial') {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+          Teste grátis
+        </span>
+      );
+    }
+    const daysRem = user.subscription_days_remaining ?? (user.subscription_expires_at ? calendarDaysRemainingSaoPaulo(user.subscription_expires_at) : null);
+    if (daysRem != null && daysRem > 90) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+          Anual
+        </span>
+      );
+    }
+    if (daysRem != null && daysRem > 30) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-sky-500/20 text-sky-400 border border-sky-500/30">
+          Trimestral
+        </span>
+      );
+    }
+    return (
+      <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-400 border border-amber-500/30">
+        Mensal
       </span>
     );
   };
@@ -784,11 +819,15 @@ export default function ManageUsersPage() {
 
           <select
             value={planFilter}
-            onChange={(e) => setPlanFilter(e.target.value as 'all' | 'mensal')}
+            onChange={(e) => setPlanFilter(e.target.value as PlanFilterKey)}
             className="bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500"
           >
             <option value="all">Todos (plano)</option>
-            <option value="mensal">Mensal / mensal no nome</option>
+            <option value="mensal">Mensal (até 30 dias)</option>
+            <option value="trimestral">Trimestral (31–90 dias)</option>
+            <option value="anual">Anual (90+ dias)</option>
+            <option value="trial">Período de Teste</option>
+            <option value="admin">Admin</option>
           </select>
 
           <div className="text-gray-600 dark:text-white/70 text-sm">
@@ -876,6 +915,7 @@ export default function ManageUsersPage() {
                   <p className="text-gray-600 dark:text-white/70 text-sm">{user.email}</p>
                   <div className="flex items-center space-x-2 mt-2 flex-wrap gap-1">
                     {getTypeBadge(user.tipo)}
+                    {getPlanBadge(user)}
                     {getStatusBadge(user)}
                     {(() => {
                       const p = (user.plan_name || user.subscription?.plan_name) || '';
