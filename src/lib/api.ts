@@ -508,8 +508,10 @@ export const usersApi = {
     apiClient.delete<any>('/users/cleanup-inactive'),
 
   /** Admin: ajustar subscription_expires_at para NOW + N dias (testes) */
-  patchSubscriptionExpiryTest: (id: string, data: { daysFromNow: number; subscription_status?: string }) =>
-    apiClient.patch<{ message: string; user: unknown }>(`/users/${id}/subscription-expiry-test`, data),
+  patchSubscriptionExpiryTest: (
+    id: string,
+    data: { daysFromNow: number; extend?: boolean; subscription_status?: string }
+  ) => apiClient.patch<{ message: string; user: unknown }>(`/users/${id}/subscription-expiry-test`, data),
 
   /** Admin: mesmo que acima, buscando usuário por e-mail */
   patchSubscriptionExpiryTestByEmail: (data: { email: string; daysFromNow: number; subscription_status?: string }) =>
@@ -625,6 +627,11 @@ export const registrationApi = {
   
   generateLink: async (expiresInDays?: number) => {
     const response = await api.post('/registration-links', { expiresInDays })
+    return response.data
+  },
+
+  generateTrialLink: async () => {
+    const response = await api.post('/registration-links/trial')
     return response.data
   },
   

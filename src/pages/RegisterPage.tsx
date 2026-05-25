@@ -120,19 +120,29 @@ function TermsCheckbox({
   )
 }
 
-function RegisterSuccess({ isDark }: { isDark: boolean }) {
+function RegisterSuccess({ isDark, isTrial, trialDays }: { isDark: boolean; isTrial?: boolean; trialDays?: number }) {
   const cardCls = isDark ? 'text-white/90' : 'text-gray-800'
   return (
     <div className="text-center py-4 space-y-6">
       <CheckCircle2 className={`w-16 h-16 mx-auto ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-      <h2 className={`text-2xl font-bold ${cardCls}`}>Cadastro recebido</h2>
+      {isTrial ? (
+        <>
+          <h2 className={`text-2xl font-bold ${cardCls}`}>Acesso liberado!</h2>
+          <p className={`text-sm ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
+            Você tem <strong>{trialDays || 3} dias grátis</strong> para testar o iGestorPhone.
+            <br />Depois disso, será necessário assinar para continuar.
+          </p>
+        </>
+      ) : (
+        <h2 className={`text-2xl font-bold ${cardCls}`}>Cadastro recebido</h2>
+      )}
       <Link
         to="/login"
         className={`inline-block px-6 py-3 rounded-xl font-semibold transition-colors ${
           isDark ? 'bg-white text-gray-900 hover:bg-white/90' : 'bg-gray-900 text-white hover:bg-gray-800'
         }`}
       >
-        Ir para o login
+        {isTrial ? 'Entrar agora' : 'Ir para o login'}
       </Link>
     </div>
   )
@@ -423,7 +433,7 @@ function InviteRegisterBody({
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-5">
       <div className="text-center mb-2">
         <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Criar conta</h1>
-        <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Cadastro por convite — complete seus dados da loja.</p>
+        <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Complete seus dados para ativar o acesso.</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
@@ -622,6 +632,7 @@ export default function RegisterPage() {
   const [tokenValid, setTokenValid] = useState<boolean | null>(null)
   const [tokenChecking, setTokenChecking] = useState(Boolean(token))
   const [registered, setRegistered] = useState(false)
+  const [trialDays, setTrialDays] = useState<number | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -635,9 +646,10 @@ export default function RegisterPage() {
       setTokenChecking(true)
       setTokenValid(null)
       try {
-        await registrationApi.verifyToken(token)
+        const res = await registrationApi.verifyToken(token) as { data?: { data?: { trialDays?: number } } }
         if (!cancelled) {
           setTokenValid(true)
+          setTrialDays(res?.data?.data?.trialDays ?? null)
           setTokenChecking(false)
         }
       } catch (error: unknown) {
@@ -688,11 +700,20 @@ export default function RegisterPage() {
   }
 
   if (registered) {
-    return <RegisterSuccess isDark={isDark} />
+    return <RegisterSuccess isDark={isDark} isTrial={trialDays != null && trialDays > 0} trialDays={trialDays ?? undefined} />
   }
 
   if (token && tokenValid) {
-    return <InviteRegisterBody token={token} onRegistered={() => setRegistered(true)} isDark={isDark} />
+    return (
+      <>
+        {trialDays != null && trialDays > 0 && (
+          <div className={`mb-4 rounded-xl border px-4 py-3 text-sm ${isDark ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300' : 'border-emerald-500/30 bg-emerald-50 text-emerald-700'}`}>
+            <strong>{trialDays} dias grátis</strong> — cadastre-se para começar a usar o iGestorPhone agora.
+          </div>
+        )}
+        <InviteRegisterBody token={token} onRegistered={() => setRegistered(true)} isDark={isDark} />
+      </>
+    )
   }
 
   return <PublicRegisterBody onRegistered={() => setRegistered(true)} isDark={isDark} />

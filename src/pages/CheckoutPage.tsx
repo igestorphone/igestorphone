@@ -115,7 +115,11 @@ export default function CheckoutPage() {
 
   const displayPlanPrice = planPriceFromApi ?? PLAN_VALUES[plan]
 
-  const graceDaysLeft = calendarDaysLeftInPaymentGraceSaoPaulo(user?.subscription_expires_at)
+  const userTrialGrace = (user as Record<string, unknown>)?.trial_grace_days as number | null | undefined
+  const defaultGraceDaysLeft = calendarDaysLeftInPaymentGraceSaoPaulo(user?.subscription_expires_at)
+  const graceDaysLeft = (userTrialGrace != null && userTrialGrace < 10 && defaultGraceDaysLeft !== null)
+    ? Math.max(0, defaultGraceDaysLeft - (10 - userTrialGrace))
+    : defaultGraceDaysLeft
 
   useEffect(() => {
     if (isAuthenticated && user && step === 'auth') {

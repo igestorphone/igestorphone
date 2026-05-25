@@ -1082,10 +1082,54 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
   }
 });
 
-// Teste admin: ajustar validade por e-mail (mesma regra que por id)
+/** Admin: 0 = vencido; N>0 com extend soma à validade atual (se ainda ativa) ou NOW+N; sem extend = sempre NOW+N. */
+async function applySubscriptionDaysAdmin(userId, daysFromNow, subscriptionStatus, extend = false) {
+  if (daysFromNow <= 0) {
+    return query(
+      `UPDATE users SET
+         subscription_expires_at = NOW() - INTERVAL '1 minute',
+         subscription_status = 'expired',
+         is_active = true,
+         updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING id, email, name, subscription_expires_at, subscription_status`,
+      [userId]
+    );
+  }
+  const expiryExpr = extend
+    ? `CASE
+         WHEN subscription_expires_at IS NOT NULL AND subscription_expires_at > NOW()
+         THEN subscription_expires_at + ($1::integer * INTERVAL '1 day')
+         ELSE NOW() + ($1::integer * INTERVAL '1 day')
+       END`
+    : `NOW() + ($1::integer * INTERVAL '1 day')`;
+  const accessExpr = extend
+    ? `CASE
+         WHEN access_expires_at IS NOT NULL AND access_expires_at > NOW()
+         THEN access_expires_at + ($1::integer * INTERVAL '1 day')
+         ELSE NOW() + ($1::integer * INTERVAL '1 day')
+       END`
+    : `NOW() + ($1::integer * INTERVAL '1 day')`;
+  return query(
+    `UPDATE users SET
+       subscription_expires_at = ${expiryExpr},
+       subscription_status = $2,
+       is_active = true,
+       approval_status = 'approved',
+       access_expires_at = ${accessExpr},
+       access_duration_days = $1,
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = $3
+     RETURNING id, email, name, subscription_expires_at, subscription_status`,
+    [daysFromNow, subscriptionStatus, userId]
+  );
+}
+
+// Admin: ajustar validade por e-mail
 router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
   body('email').isEmail().normalizeEmail(),
   body('daysFromNow').isInt({ min: 0, max: 3650 }),
+  body('extend').optional().isBoolean(),
   body('subscription_status').optional().isIn(['active', 'overdue', 'pending_payment', 'expired', 'trial']),
 ], async (req, res) => {
   try {
@@ -1095,6 +1139,7 @@ router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
     }
     const email = String(req.body.email).toLowerCase().trim();
     const daysFromNow = parseInt(req.body.daysFromNow, 10);
+    const extend = req.body.extend === true;
     const subscriptionStatus = (req.body.subscription_status || (daysFromNow <= 0 ? 'expired' : 'active')).toLowerCase();
 
     const lookup = await query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = $1`, [email]);
@@ -1103,33 +1148,7 @@ router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
     }
     const id = lookup.rows[0].id;
 
-    let result;
-    if (daysFromNow <= 0) {
-      result = await query(
-        `UPDATE users SET
-           subscription_expires_at = NOW() - INTERVAL '1 minute',
-           subscription_status = 'expired',
-           is_active = true,
-           updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING id, email, name, subscription_expires_at, subscription_status`,
-        [id]
-      );
-    } else {
-      result = await query(
-        `UPDATE users SET
-           subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
-           subscription_status = $2,
-           is_active = true,
-           approval_status = 'approved',
-           access_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
-           access_duration_days = $1,
-           updated_at = CURRENT_TIMESTAMP
-         WHERE id = $3
-         RETURNING id, email, name, subscription_expires_at, subscription_status`,
-        [daysFromNow, subscriptionStatus, id]
-      );
-    }
+    const result = await applySubscriptionDaysAdmin(id, daysFromNow, subscriptionStatus, extend);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
@@ -1144,8 +1163,8 @@ router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
        VALUES ($1, $2, $3, $4, $5)`,
       [
         req.user.id,
-        'subscription_expiry_test_set',
-        JSON.stringify({ target_user_id: id, email, days_from_now: daysFromNow, subscription_status: result.rows[0]?.subscription_status }),
+        'subscription_expiry_set',
+        JSON.stringify({ target_user_id: id, email, days_from_now: daysFromNow, extend, subscription_status: result.rows[0]?.subscription_status }),
         req.ip,
         req.get('User-Agent'),
       ]
@@ -1158,9 +1177,10 @@ router.patch('/by-email/subscription-expiry-test', requireRole('admin'), [
   }
 });
 
-// Teste admin: ajustar validade da assinatura (NOW + N dias; 0 = vencido agora + status expired)
+// Admin: ajustar validade da assinatura (0 = vencido; N dias com opção de somar ou definir a partir de hoje)
 router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
   body('daysFromNow').isInt({ min: 0, max: 3650 }),
+  body('extend').optional().isBoolean(),
   body('subscription_status').optional().isIn(['active', 'overdue', 'pending_payment', 'expired', 'trial']),
 ], async (req, res) => {
   try {
@@ -1170,35 +1190,10 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
     }
     const { id } = req.params;
     const daysFromNow = parseInt(req.body.daysFromNow, 10);
+    const extend = req.body.extend === true;
     const subscriptionStatus = (req.body.subscription_status || (daysFromNow <= 0 ? 'expired' : 'active')).toLowerCase();
 
-    let result;
-    if (daysFromNow <= 0) {
-      result = await query(
-        `UPDATE users SET
-           subscription_expires_at = NOW() - INTERVAL '1 minute',
-           subscription_status = 'expired',
-           is_active = true,
-           updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING id, email, name, subscription_expires_at, subscription_status`,
-        [id]
-      );
-    } else {
-      result = await query(
-        `UPDATE users SET
-           subscription_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
-           subscription_status = $2,
-           is_active = true,
-           approval_status = 'approved',
-           access_expires_at = NOW() + ($1::integer * INTERVAL '1 day'),
-           access_duration_days = $1,
-           updated_at = CURRENT_TIMESTAMP
-         WHERE id = $3
-         RETURNING id, email, name, subscription_expires_at, subscription_status`,
-        [daysFromNow, subscriptionStatus, id]
-      );
-    }
+    const result = await applySubscriptionDaysAdmin(id, daysFromNow, subscriptionStatus, extend);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ message: 'Usuário não encontrado' });
@@ -1213,8 +1208,8 @@ router.patch('/:id/subscription-expiry-test', requireRole('admin'), [
        VALUES ($1, $2, $3, $4, $5)`,
       [
         req.user.id,
-        'subscription_expiry_test_set',
-        JSON.stringify({ target_user_id: id, days_from_now: daysFromNow, subscription_status: result.rows[0]?.subscription_status }),
+        'subscription_expiry_set',
+        JSON.stringify({ target_user_id: id, days_from_now: daysFromNow, extend, subscription_status: result.rows[0]?.subscription_status }),
         req.ip,
         req.get('User-Agent'),
       ]

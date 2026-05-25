@@ -65,6 +65,17 @@ export function isPastPaymentGracePeriodSaoPaulo(iso) {
   return parseY(todayYmd) > parseY(deadline);
 }
 
+/** Passou um grace customizado (ex.: 5 dias para trial). */
+export function isPastCustomGracePeriodSaoPaulo(iso, graceDays) {
+  if (!iso || graceDays == null) return false;
+  const exp = new Date(iso);
+  if (Number.isNaN(exp.getTime())) return false;
+  if (!isSubscriptionExpiredByCalendarSaoPaulo(iso)) return false;
+  const deadline = addCalendarDaysYmd(ymdFmt(exp), graceDays);
+  const todayYmd = ymdFmt(new Date());
+  return parseY(todayYmd) > parseY(deadline);
+}
+
 /** Vencido no dia do vencimento (0 dias) e depois — checkout até pagar. */
 export function isSubscriptionExpiredByCalendarSaoPaulo(iso) {
   if (!iso) return false;

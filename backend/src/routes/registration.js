@@ -8,6 +8,9 @@ import { sendRegistrationEmails } from '../services/mail.js';
 
 const router = express.Router();
 
+const TRIAL_DAYS = 3;
+const TRIAL_GRACE_DAYS = 5;
+
 // Gerar link de cadastro (apenas admin)
 router.post('/registration-links', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
@@ -73,6 +76,62 @@ router.post('/registration-links', authenticateToken, requireRole('admin'), asyn
   }
 });
 
+// Gerar link trial (3 dias grátis + 5 dias p/ pagar, senão exclui)
+router.post('/registration-links/trial', authenticateToken, requireRole('admin'), async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const token = crypto.randomBytes(32).toString('hex');
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    await query(`ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_days INTEGER`).catch(() => {});
+    await query(`ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`).catch(() => {});
+
+    const result = await query(`
+      INSERT INTO registration_tokens (token, created_by, expires_at, trial_days, trial_grace_days)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, token, created_at, expires_at, trial_days, trial_grace_days
+    `, [token, adminId, expiresAt, TRIAL_DAYS, TRIAL_GRACE_DAYS]);
+
+    const registrationToken = result.rows[0];
+
+    const frontendUrlRaw = process.env.FRONTEND_URL || 'http://localhost:3000';
+    let frontendUrl = frontendUrlRaw.split(',')[0].trim();
+    if (frontendUrl.includes('igestorphone.com.br') && !frontendUrl.includes('www.')) {
+      frontendUrl = frontendUrl.replace('igestorphone.com.br', 'www.igestorphone.com.br');
+    }
+    frontendUrl = frontendUrl.replace(/\/+$/, '');
+    const registrationUrl = `${frontendUrl}/register/${token}`;
+
+    await query(`
+      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4, $5)
+    `, [
+      adminId,
+      'trial_link_created',
+      JSON.stringify({ token_id: registrationToken.id, trial_days: TRIAL_DAYS, trial_grace_days: TRIAL_GRACE_DAYS }),
+      req.ip,
+      req.get('User-Agent')
+    ]);
+
+    res.status(201).json({
+      message: `Link trial gerado: ${TRIAL_DAYS} dias grátis + ${TRIAL_GRACE_DAYS} dias p/ pagar`,
+      data: {
+        id: registrationToken.id,
+        token: registrationToken.token,
+        url: registrationUrl,
+        expiresAt: registrationToken.expires_at,
+        trialDays: TRIAL_DAYS,
+        trialGraceDays: TRIAL_GRACE_DAYS,
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao gerar link trial:', error);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+  }
+});
+
 // Listar links de cadastro gerados (apenas admin)
 router.get('/registration-links', authenticateToken, requireRole('admin'), async (req, res) => {
   try {
@@ -130,7 +189,7 @@ const verifyTokenHelper = async (token) => {
   }
   
   const result = await query(`
-    SELECT id, token, expires_at, is_used
+    SELECT id, token, expires_at, is_used, trial_days, trial_grace_days
     FROM registration_tokens
     WHERE token = $1
   `, [token]);
@@ -152,8 +211,8 @@ const verifyTokenHelper = async (token) => {
   return { valid: true, tokenData };
 };
 
-/** Cria usuário pendente de aprovação (comum a cadastro por link e cadastro público). */
-const insertPendingUserRecord = async (req, logAction, logDetails = {}) => {
+/** Cria usuário (pendente ou trial ativo). opts.trial ativa o acesso direto. */
+const insertPendingUserRecord = async (req, logAction, logDetails = {}, opts = {}) => {
   const { name, email, password, endereco, data_nascimento, whatsapp, nome_loja, cnpj } = req.body;
 
   if (cnpj && String(cnpj).replace(/\D/g, '').length !== 14) {
@@ -171,30 +230,47 @@ const insertPendingUserRecord = async (req, logAction, logDetails = {}) => {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp VARCHAR(30)`).catch(() => {});
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nome_loja VARCHAR(255)`).catch(() => {});
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS cnpj VARCHAR(18)`).catch(() => {});
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`).catch(() => {});
 
   const phone = whatsapp ? String(whatsapp).trim() : null;
+
+  const isTrial = !!opts.trial;
+  const trialDays = opts.trialDays || TRIAL_DAYS;
+  const trialGraceDays = opts.trialGraceDays || TRIAL_GRACE_DAYS;
+
+  const isActive = isTrial ? true : false;
+  const approvalStatus = isTrial ? 'approved' : 'pending';
+  const subscriptionStatus = isTrial ? 'trial' : null;
+  const subscriptionExpiresAt = isTrial
+    ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000)
+    : null;
+  const userTrialGraceDays = isTrial ? trialGraceDays : null;
 
   const userResult = await query(
     `
     INSERT INTO users (
       name, email, password_hash, tipo, is_active, approval_status,
-      endereco, data_nascimento, telefone, whatsapp, nome_loja, cnpj
+      endereco, data_nascimento, telefone, whatsapp, nome_loja, cnpj,
+      subscription_status, subscription_expires_at, trial_grace_days
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11)
-    RETURNING id, name, email, tipo, approval_status, created_at
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $9, $10, $11, $12, $13, $14)
+    RETURNING id, name, email, tipo, approval_status, created_at, subscription_status, subscription_expires_at
   `,
     [
       name,
       email,
       passwordHash,
       'user',
-      false,
-      'pending',
+      isActive,
+      approvalStatus,
       endereco || null,
       data_nascimento || null,
       phone,
       nome_loja || null,
       cnpj ? String(cnpj).replace(/\D/g, '') : null,
+      subscriptionStatus,
+      subscriptionExpiresAt,
+      userTrialGraceDays,
     ]
   );
 
@@ -245,11 +321,14 @@ router.get('/register/:token', async (req, res) => {
       return res.status(verification.message.includes('inválido') ? 404 : 400).json({ message: verification.message });
     }
     
+    const td = verification.tokenData;
     res.json({
       message: 'Token válido',
       data: {
-        token: verification.tokenData.token,
-        expiresAt: verification.tokenData.expires_at
+        token: td.token,
+        expiresAt: td.expires_at,
+        trialDays: td.trial_days || null,
+        trialGraceDays: td.trial_grace_days || null,
       }
     });
   } catch (error) {
@@ -268,11 +347,14 @@ router.get('/register', async (req, res) => {
       return res.status(verification.message.includes('inválido') ? 404 : 400).json({ message: verification.message });
     }
     
+    const td = verification.tokenData;
     res.json({
       message: 'Token válido',
       data: {
-        token: verification.tokenData.token,
-        expiresAt: verification.tokenData.expires_at
+        token: td.token,
+        expiresAt: td.expires_at,
+        trialDays: td.trial_days || null,
+        trialGraceDays: td.trial_grace_days || null,
       }
     });
   } catch (error) {
@@ -293,8 +375,17 @@ const registerUserHelper = async (token, req) => {
   }
 
   const tokenData = verification.tokenData;
+  const isTrial = tokenData.trial_days != null && tokenData.trial_days > 0;
+  const trialOpts = isTrial
+    ? { trial: true, trialDays: tokenData.trial_days, trialGraceDays: tokenData.trial_grace_days || TRIAL_GRACE_DAYS }
+    : {};
 
-  const inserted = await insertPendingUserRecord(req, 'user_registered_via_token', { token_id: tokenData.id });
+  const inserted = await insertPendingUserRecord(
+    req,
+    isTrial ? 'user_registered_trial' : 'user_registered_via_token',
+    { token_id: tokenData.id },
+    trialOpts
+  );
   if (!inserted.success) {
     return inserted;
   }

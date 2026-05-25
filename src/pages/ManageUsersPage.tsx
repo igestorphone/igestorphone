@@ -87,6 +87,8 @@ export default function ManageUsersPage() {
   const [selectedDuration, setSelectedDuration] = useState<5 | 30>(30);
   const [mensalOverrideBrl, setMensalOverrideBrl] = useState<number | null>(null);
   const [overrideLoading, setOverrideLoading] = useState(false);
+  const [accessDaysByUser, setAccessDaysByUser] = useState<Record<string, string>>({});
+  const [applyingDaysFor, setApplyingDaysFor] = useState<string | null>(null);
   const [linkExpiresIn, setLinkExpiresIn] = useState(7);
   const [cleanupLoading, setCleanupLoading] = useState(false);
 
@@ -323,13 +325,28 @@ export default function ManageUsersPage() {
       if (linkUrl) {
         const normalizedUrl = normalizeLinkUrl(linkUrl);
         setCurrentRegistrationLink(normalizedUrl);
-        // Copiar automaticamente o link normalizado
         navigator.clipboard.writeText(normalizedUrl);
         toast.success('Link gerado e copiado!');
       }
       setShowGenerateLinkModal(false);
     } catch (error: any) {
       const message = error.response?.data?.message || 'Erro ao gerar link';
+      toast.error(message);
+    }
+  };
+
+  const handleGenerateTrialLink = async () => {
+    try {
+      const response = await registrationApi.generateTrialLink();
+      const linkUrl = response.data?.url;
+      if (linkUrl) {
+        const normalizedUrl = normalizeLinkUrl(linkUrl);
+        setCurrentRegistrationLink(normalizedUrl);
+        navigator.clipboard.writeText(normalizedUrl);
+        toast.success('Link trial (3 dias grátis) gerado e copiado!');
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Erro ao gerar link trial';
       toast.error(message);
     }
   };
@@ -435,6 +452,91 @@ export default function ManageUsersPage() {
       toast('Cliente sem WhatsApp no cadastro — abrindo atendimento', { icon: 'ℹ️' });
     }
   };
+
+  const handleApplySubscriptionDays = async (
+    userId: string,
+    opts: { days: number; extend?: boolean }
+  ) => {
+    const { days, extend = false } = opts;
+    if (Number.isNaN(days) || days < 0 || days > 3650) {
+      toast.error('Informe dias entre 0 e 3650');
+      return;
+    }
+    setApplyingDaysFor(userId);
+    try {
+      await usersApi.patchSubscriptionExpiryTest(userId, { daysFromNow: days, extend });
+      toast.success(
+        days === 0
+          ? 'Assinatura marcada como vencida (cliente vai ao checkout).'
+          : extend
+            ? `+${days} dia(s) somados à validade.`
+            : `Acesso liberado por ${days} dia(s) a partir de hoje.`
+      );
+      await fetchUsers();
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      toast.error(err?.message || 'Erro ao atualizar validade');
+    } finally {
+      setApplyingDaysFor(null);
+    }
+  };
+
+  const renderAccessDaysControl = (userId: string) => (
+    <div className="md:col-span-3 flex flex-wrap items-end gap-2 pt-3 mt-1 border-t border-gray-100 dark:border-white/10">
+      <span className="text-gray-600 dark:text-white/70 text-xs font-medium w-full sm:w-auto">
+        Liberar / alterar acesso
+      </span>
+      <button
+        type="button"
+        disabled={applyingDaysFor === userId}
+        onClick={() => handleApplySubscriptionDays(userId, { days: 30, extend: true })}
+        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+      >
+        +30 dias
+      </button>
+      <button
+        type="button"
+        disabled={applyingDaysFor === userId}
+        onClick={() => handleApplySubscriptionDays(userId, { days: 30, extend: false })}
+        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
+      >
+        30 dias (hoje)
+      </button>
+      <button
+        type="button"
+        disabled={applyingDaysFor === userId}
+        onClick={() => handleApplySubscriptionDays(userId, { days: 0 })}
+        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/35 hover:bg-red-500/25 disabled:opacity-50"
+      >
+        Vencido
+      </button>
+      <input
+        type="number"
+        min={0}
+        max={3650}
+        value={accessDaysByUser[userId] ?? '30'}
+        onChange={(e) =>
+          setAccessDaysByUser((prev) => ({ ...prev, [userId]: e.target.value }))
+        }
+        className="w-20 bg-white dark:bg-white/10 border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1.5 text-sm text-gray-900 dark:text-white"
+        title="Dias a partir de hoje"
+      />
+      <button
+        type="button"
+        disabled={applyingDaysFor === userId}
+        onClick={() => {
+          const days = parseInt(accessDaysByUser[userId] ?? '30', 10);
+          handleApplySubscriptionDays(userId, { days, extend: false });
+        }}
+        className="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+      >
+        {applyingDaysFor === userId ? '...' : 'Aplicar'}
+      </button>
+      <span className="text-[11px] text-gray-400 dark:text-white/40 w-full">
+        +30 soma à data atual se ainda ativo; &quot;30 dias (hoje)&quot; e o campo = a partir de hoje. 0 = vencido.
+      </span>
+    </div>
+  );
 
   const renderRenewalActions = (user: (typeof expiringUsers.expired)[0], expired = false) => (
     <div className="flex flex-col sm:flex-row gap-2 shrink-0">
@@ -850,6 +952,7 @@ export default function ManageUsersPage() {
                     : `${user.subscription_days_remaining ?? calendarDaysRemainingSaoPaulo(user.subscription_expires_at) ?? 0} dias`}
                 </p>
               </div>
+              {user.tipo !== 'admin' && renderAccessDaysControl(String(user.id))}
             </div>
 
             {/* Permissions */}
@@ -1196,6 +1299,12 @@ export default function ManageUsersPage() {
                   className="btn-primary"
                 >
                   Gerar Link
+                </button>
+                <button
+                  onClick={() => { setShowGenerateLinkModal(false); handleGenerateTrialLink(); }}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
+                >
+                  Link Trial (3 dias grátis)
                 </button>
               </div>
             </div>

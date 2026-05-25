@@ -134,7 +134,7 @@ router.post('/login', loginValidation, async (req, res) => {
     const baseWhere = 'WHERE LOWER(TRIM(email)) = $1';
     const fallbackWhere = 'WHERE TRIM(email) = $1';
     const fullSelect = `id, email, password_hash, name, is_active, last_login,
-      subscription_status, subscription_expires_at,
+      subscription_status, subscription_expires_at, trial_grace_days,
       COALESCE(tipo, role, 'user') AS role,
       access_expires_at, approval_status, parent_id`;
     const minimalSelect = `id, email, password_hash, name, is_active, last_login,
@@ -241,6 +241,7 @@ router.post('/login', loginValidation, async (req, res) => {
         role: user.role,
         subscription_status: user.subscription_status,
         subscription_expires_at: user.subscription_expires_at,
+        trial_grace_days: user.trial_grace_days ?? null,
         last_login: user.last_login
       },
       token
@@ -422,7 +423,7 @@ router.get('/verify', async (req, res) => {
 
     // Buscar dados atualizados do usuário
     const result = await query(`
-      SELECT id, email, name, role, subscription_status, subscription_expires_at, 
+      SELECT id, email, name, role, subscription_status, subscription_expires_at, trial_grace_days,
              is_active, created_at, last_login
       FROM users WHERE id = $1
     `, [decoded.userId]);
@@ -446,6 +447,7 @@ router.get('/verify', async (req, res) => {
         role: user.role,
         subscription_status: user.subscription_status,
         subscription_expires_at: user.subscription_expires_at,
+        trial_grace_days: user.trial_grace_days ?? null,
         created_at: user.created_at,
         last_login: user.last_login
       }

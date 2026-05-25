@@ -39,7 +39,7 @@ export const authenticateToken = async (req, res, next) => {
 
     // Buscar usuário no banco para verificar se ainda está ativo
     const result = await query(`
-      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at, parent_id
+      SELECT id, email, name, tipo, subscription_status, subscription_expires_at, is_active, last_activity_at, parent_id, trial_grace_days
       FROM users WHERE id = $1
     `, [decoded.userId]);
 
@@ -52,14 +52,21 @@ export const authenticateToken = async (req, res, next) => {
     if (
       (user.tipo || '').toString().toLowerCase() !== 'admin' &&
       user.subscription_expires_at &&
-      isPastPaymentGracePeriodSaoPaulo(user.subscription_expires_at)
+      isSubscriptionExpiredByCalendarSaoPaulo(user.subscription_expires_at)
     ) {
-      await deleteUserAccountPermanently(user.id, { reason: 'grace_period_expired_on_request' }).catch(() => {});
-      return res.status(401).json({
-        message:
-          'Sua conta foi excluída por falta de pagamento após o prazo de tolerância. Cadastre-se novamente.',
-        code: 'ACCOUNT_REMOVED',
-      });
+      const customGrace = user.trial_grace_days != null ? Number(user.trial_grace_days) : null;
+      const { isPastCustomGracePeriodSaoPaulo } = await import('../utils/subscriptionExpiryCalendar.js');
+      const pastGrace = customGrace != null
+        ? isPastCustomGracePeriodSaoPaulo(user.subscription_expires_at, customGrace)
+        : isPastPaymentGracePeriodSaoPaulo(user.subscription_expires_at);
+      if (pastGrace) {
+        await deleteUserAccountPermanently(user.id, { reason: 'grace_period_expired_on_request' }).catch(() => {});
+        return res.status(401).json({
+          message:
+            'Sua conta foi excluída por falta de pagamento após o prazo de tolerância. Cadastre-se novamente.',
+          code: 'ACCOUNT_REMOVED',
+        });
+      }
     }
 
     const pathRaw = (req.originalUrl || req.path || '').split('?')[0];

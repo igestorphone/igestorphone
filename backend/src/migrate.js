@@ -398,7 +398,12 @@ const migrations = [
   `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
   `DROP TRIGGER IF EXISTS update_whatsapp_inbox_updated_at ON whatsapp_inbox`,
-  `CREATE TRIGGER update_whatsapp_inbox_updated_at BEFORE UPDATE ON whatsapp_inbox FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`
+  `CREATE TRIGGER update_whatsapp_inbox_updated_at BEFORE UPDATE ON whatsapp_inbox FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  // Trial: link grátis com grace individual
+  `ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_days INTEGER`,
+  `ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`,
 ];
 
 async function runMigrations() {
