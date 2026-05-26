@@ -624,6 +624,7 @@ function SearchInputDebounced({
   searchMode = 'all',
   suggestionEntries = [],
   inventoryLoading = false,
+  externalValue,
 }: {
   onDebouncedChange: (value: string) => void
   onPick?: (value: string) => void
@@ -633,6 +634,7 @@ function SearchInputDebounced({
   /** Modelos + código (IPH, SEMI…) do estoque do dia. */
   suggestionEntries?: StockAutocompleteEntry[]
   inventoryLoading?: boolean
+  externalValue?: string
 }) {
   const acMode: 'android' | 'lacrado' | 'seminovo' | 'all' =
     searchMode === 'all' || !searchMode
@@ -642,7 +644,14 @@ function SearchInputDebounced({
         : searchMode === 'seminovo'
           ? 'seminovo'
           : 'lacrado'
-  const [localValue, setLocalValue] = useState('')
+  const [localValue, setLocalValue] = useState(externalValue ?? '')
+  const prevExternalRef = useRef(externalValue)
+  useEffect(() => {
+    if (externalValue !== prevExternalRef.current) {
+      prevExternalRef.current = externalValue
+      setLocalValue(externalValue ?? '')
+    }
+  }, [externalValue])
   const [typingText, setTypingText] = useState('')
   const [activeIdx, setActiveIdx] = useState(-1)
   const [panelOpen, setPanelOpen] = useState(false)
@@ -1686,12 +1695,12 @@ Ainda tem disponível?`
             <div ref={searchInputRef} className="relative z-30 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-sm overflow-visible">
               <div className="p-3 sm:p-4 pb-2 sm:pb-3">
                 <SearchInputDebounced
-                key={searchMode ?? 'all'}
                 onDebouncedChange={setDebouncedSearch}
                 onPick={handleSearchPick}
                 searchMode={searchMode ?? 'all'}
                 suggestionEntries={stockAutocompleteEntries}
                 inventoryLoading={inventoryQuery.isLoading || inventoryQuery.isFetching}
+                externalValue={debouncedSearch}
                 placeholder={
                   searchMode === 'android'
                     ? 'Ex: Samsung, Xiaomi, Motorola...'
