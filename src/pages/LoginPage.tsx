@@ -9,6 +9,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 import toast from 'react-hot-toast'
+import { LoginCopaBanner } from '@/components/auth/LoginCopaDecor'
 
 function getPostLoginPath(): string {
   const u = useAuthStore.getState().user
@@ -95,6 +96,8 @@ export default function LoginPage() {
       transition={{ duration: leaving ? 0.28 : 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="w-full"
     >
+      <LoginCopaBanner isDark={isDark} />
+
       <div className="text-center mb-6">
         <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>Entrar</h1>
         <p className={`mt-2 text-sm sm:text-base ${mutedCls}`}>Entre com suas credenciais para acessar o sistema</p>

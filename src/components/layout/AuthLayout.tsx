@@ -1,8 +1,9 @@
 import { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Moon, Sun, ChevronLeft } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
+import { LoginCopaBackground, LoginCopaCardStripe } from '@/components/auth/LoginCopaDecor'
 
 interface AuthLayoutProps {
   children: ReactNode
@@ -15,6 +16,8 @@ function logoForTheme(theme: 'light' | 'dark') {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const { theme, setTheme } = useAppStore()
+  const { pathname } = useLocation()
+  const isLoginPage = pathname === '/login'
   const isDark = theme === 'dark'
   const logoSrc = logoForTheme(theme)
 
@@ -23,9 +26,10 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
     : 'auth-card-light bg-white border border-gray-200/90 shadow-xl shadow-gray-300/40'
 
   return (
-    <div className={`min-h-screen flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-[#f3f4f6]'}`}>
+    <div className={`relative min-h-screen flex flex-col ${isDark ? 'bg-zinc-950' : 'bg-[#f3f4f6]'}`}>
+      {isLoginPage && <LoginCopaBackground isDark={isDark} />}
       <header
-        className={`shrink-0 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 ${
+        className={`relative z-10 shrink-0 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 ${
           isDark ? 'border-b border-white/10 bg-black/25' : 'border-b border-gray-200/90 bg-white/90 backdrop-blur-sm'
         }`}
       >
@@ -52,14 +56,15 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
         </button>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-10">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 sm:py-10">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="w-full max-w-md"
         >
-          <div className={`${cardClass} rounded-2xl p-6 sm:p-8`}>
+          <div className={`relative overflow-hidden ${cardClass} rounded-2xl p-6 sm:p-8`}>
+            {isLoginPage && <LoginCopaCardStripe />}
             <div className="flex justify-center mb-6">
               <img
                 src={logoSrc}
