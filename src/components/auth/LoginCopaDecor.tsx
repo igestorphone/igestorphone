@@ -113,7 +113,7 @@ export function LoginCopaBanner({ isDark }: { isDark: boolean }) {
         <span className="font-bold text-[#009739] dark:text-emerald-400">Bora, Brasil!</span>
         <span className={`font-normal ${isDark ? 'text-white/70' : 'text-gray-600'}`}>
           {' '}
-          — rumo à Copa
+          — Rumo ao Hexa
         </span>
       </span>
       <span className="text-lg leading-none" aria-hidden>
