@@ -1,65 +1,22 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
   Activity,
   Clock3,
-  MapPin,
+  LogIn,
   Monitor,
   Radio,
   RefreshCw,
   ShieldAlert,
+  Smartphone,
   Users,
+  Zap,
 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { analyticsApi, type LivePresenceResponse, type LivePresenceSession } from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
-
-const BR = { minLat: -33.75, maxLat: 5.27, minLng: -73.99, maxLng: -34.79 }
-
-function latLngToBrazilPercent(lat: number, lng: number) {
-  const x = ((lng - BR.minLng) / (BR.maxLng - BR.minLng)) * 100
-  const y = ((BR.maxLat - lat) / (BR.maxLat - BR.minLat)) * 100
-  return {
-    x: Math.min(95, Math.max(5, x)),
-    y: Math.min(92, Math.max(8, y)),
-  }
-}
-
-function BrazilSilhouette({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 120 140"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden
-    >
-      <defs>
-        <linearGradient id="brFill" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="rgb(16 185 129)" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="rgb(6 182 212)" stopOpacity="0.12" />
-        </linearGradient>
-        <filter id="brGlow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="1.2" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <path
-        fill="url(#brFill)"
-        stroke="currentColor"
-        strokeWidth={0.45}
-        strokeOpacity={0.45}
-        filter="url(#brGlow)"
-        d="M38 18 L52 14 L68 16 L82 22 L94 32 L100 48 L98 62 L102 76 L96 92 L84 108 L68 118 L48 122 L32 114 L22 98 L18 78 L20 58 L26 40 Z"
-      />
-    </svg>
-  )
-}
 
 const container = {
   hidden: { opacity: 0 },
@@ -79,11 +36,13 @@ function StatCard({
   value,
   icon: Icon,
   accent,
+  pulse,
 }: {
   label: string
   value: string | number
   icon: typeof Users
   accent: 'emerald' | 'cyan' | 'violet'
+  pulse?: boolean
 }) {
   const ring =
     accent === 'emerald'
@@ -113,30 +72,130 @@ function StatCard({
           </p>
           <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight text-gray-900 dark:text-white">{value}</p>
         </div>
-        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
-          <Icon className="h-6 w-6" strokeWidth={1.75} />
+        <div className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBg}`}>
+          {pulse ? (
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-xl bg-emerald-400/30" />
+          ) : null}
+          <Icon className="relative h-6 w-6" strokeWidth={1.75} />
         </div>
       </div>
     </motion.div>
   )
 }
 
-function MapPinDot({ p, i }: { p: LivePresenceSession & { x: number; y: number }; i: number }) {
-  const title = `${p.userName || p.userEmail || 'Usuário'} · ${[p.geo?.city, p.geo?.region].filter(Boolean).join(', ')}`
+function LivePulseBar({ active }: { active: boolean }) {
   return (
-    <motion.span
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ type: 'spring', stiffness: 420, damping: 22, delay: 0.12 + i * 0.04 }}
-      className="absolute z-20 -ml-2 -mt-2"
-      style={{ left: `${p.x}%`, top: `${p.y}%` }}
-      title={title}
+    <div className="relative h-1 overflow-hidden rounded-full bg-white/10">
+      <motion.div
+        className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-gradient-to-r from-transparent via-emerald-400 to-transparent"
+        animate={active ? { x: ['-100%', '400%'] } : { opacity: 0.3 }}
+        transition={active ? { duration: 2.2, repeat: Infinity, ease: 'linear' } : {}}
+      />
+    </div>
+  )
+}
+
+function tipoBadge(tipo: string | null) {
+  const t = (tipo || 'user').toLowerCase()
+  if (t === 'admin') return { label: 'Admin', cls: 'bg-violet-500/15 text-violet-700 dark:text-violet-300 border-violet-500/25' }
+  return { label: 'Usuário', cls: 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-white/55 border-gray-200/80 dark:border-white/10' }
+}
+
+function LiveEntryCard({ session, index }: { session: LivePresenceSession; index: number }) {
+  const initial = (session.userName || session.userEmail || '?').charAt(0).toUpperCase()
+  const badge = tipoBadge(session.userTipo)
+  const enteredAgo = session.createdAt
+    ? formatDistanceToNow(new Date(session.createdAt), { addSuffix: true, locale: ptBR })
+    : null
+  const activeAgo = session.lastActivityAt
+    ? formatDistanceToNow(new Date(session.lastActivityAt), { addSuffix: true, locale: ptBR })
+    : null
+  const location = session.geo
+    ? [session.geo.city, session.geo.region, session.geo.countryCode].filter(Boolean).join(' · ')
+    : session.ip && !session.ipIsPublic
+      ? 'IP local'
+      : null
+  const isFreshEntry =
+    session.createdAt &&
+    Date.now() - new Date(session.createdAt).getTime() < 3 * 60 * 1000
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20, scale: 0.98 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 12, scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 30, delay: index * 0.04 }}
+      className={`group relative overflow-hidden rounded-2xl border p-4 transition-shadow hover:shadow-lg ${
+        isFreshEntry
+          ? 'border-emerald-500/35 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent shadow-emerald-500/10'
+          : 'border-white/10 bg-white/[0.04] hover:border-white/15 hover:bg-white/[0.06]'
+      }`}
     >
-      <span className="relative flex h-4 w-4">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
-        <span className="relative inline-flex h-4 w-4 rounded-full border border-white/30 bg-gradient-to-br from-emerald-300 to-emerald-600 shadow-[0_0_14px_rgba(52,211,153,0.75)]" />
-      </span>
-    </motion.span>
+      {isFreshEntry ? (
+        <motion.div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-emerald-400/0 via-emerald-400/8 to-emerald-400/0"
+          animate={{ x: ['-100%', '200%'] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'linear', repeatDelay: 1 }}
+        />
+      ) : null}
+
+      <div className="relative flex gap-3 sm:gap-4">
+        <div className="relative shrink-0">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400/20 to-cyan-500/20 text-sm font-bold text-white ring-1 ring-white/10">
+            {initial}
+          </div>
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-50" />
+            <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-slate-900 bg-emerald-500" />
+          </span>
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="truncate font-semibold text-white">{session.userName || 'Sem nome'}</span>
+            <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${badge.cls}`}>
+              {badge.label}
+            </span>
+            {isFreshEntry ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                <Zap className="h-3 w-3" />
+                Novo
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-white/45">{session.userEmail}</p>
+
+          <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-white/55">
+            {enteredAgo ? (
+              <span className="inline-flex items-center gap-1.5">
+                <LogIn className="h-3.5 w-3.5 text-emerald-400/80" />
+                Entrou {enteredAgo}
+              </span>
+            ) : null}
+            {activeAgo ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Activity className="h-3.5 w-3.5 text-cyan-400/80" />
+                Ativo {activeAgo}
+              </span>
+            ) : null}
+          </div>
+
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-2 py-1 text-white/60">
+              <Smartphone className="h-3 w-3 shrink-0" />
+              <span className="line-clamp-1 max-w-[200px]">{session.deviceLabel}</span>
+            </span>
+            {session.ip ? (
+              <span className="rounded-lg bg-white/5 px-2 py-1 font-mono text-white/50">{session.ip}</span>
+            ) : null}
+            {location ? (
+              <span className="rounded-lg bg-white/5 px-2 py-1 text-white/45">{location}</span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    </motion.div>
   )
 }
 
@@ -169,35 +228,46 @@ export default function AdminLiveOverviewPage() {
       return body as LivePresenceResponse
     },
     enabled: isAdmin,
-    refetchInterval: 20_000,
+    refetchInterval: 15_000,
   })
 
   const payload = presenceQuery.data
 
-  const mapPoints = useMemo(() => {
+  const recentEntries = useMemo(() => {
+    if (!payload?.sessions?.length) return 0
+    const cutoff = Date.now() - withinMinutes * 60 * 1000
+    return payload.sessions.filter((s) => s.createdAt && new Date(s.createdAt).getTime() >= cutoff).length
+  }, [payload?.sessions, withinMinutes])
+
+  const sortedSessions = useMemo(() => {
     if (!payload?.sessions?.length) return []
-    const list: Array<LivePresenceSession & { x: number; y: number; br: boolean }> = []
+    return [...payload.sessions].sort((a, b) => {
+      const aT = new Date(a.createdAt || 0).getTime()
+      const bT = new Date(b.createdAt || 0).getTime()
+      return bT - aT
+    })
+  }, [payload?.sessions])
+
+  const deviceBreakdown = useMemo(() => {
+    if (!payload?.sessions?.length) return []
+    const counts: Record<string, number> = {}
     for (const s of payload.sessions) {
-      const g = s.geo
-      if (!g || typeof g.lat !== 'number' || typeof g.lng !== 'number') continue
-      const br = g.countryCode === 'BR'
-      if (!br) continue
-      const { x, y } = latLngToBrazilPercent(g.lat, g.lng)
-      list.push({ ...s, x, y, br })
+      const label = s.deviceLabel?.split('·')[0]?.trim() || s.deviceLabel || 'Outro'
+      const key = label.length > 28 ? `${label.slice(0, 26)}…` : label
+      counts[key] = (counts[key] || 0) + 1
     }
-    return list
+    return Object.entries(counts)
+      .map(([device, count]) => ({ device, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6)
   }, [payload?.sessions])
 
-  const outsideBrazilCount = useMemo(() => {
-    if (!payload?.sessions) return 0
-    return payload.sessions.filter((s) => s.geo && s.geo.countryCode && s.geo.countryCode !== 'BR').length
-  }, [payload?.sessions])
+  const maxDeviceCount = useMemo(() => {
+    if (!deviceBreakdown.length) return 1
+    return Math.max(...deviceBreakdown.map((d) => d.count), 1)
+  }, [deviceBreakdown])
 
-  const maxStateCount = useMemo(() => {
-    const rows = payload?.brazilByState
-    if (!rows?.length) return 1
-    return Math.max(...rows.map((r) => r.count), 1)
-  }, [payload?.brazilByState])
+  const hasActiveSessions = (payload?.sessionCount ?? 0) > 0
 
   if (!isAdmin) {
     return (
@@ -231,7 +301,13 @@ export default function AdminLiveOverviewPage() {
 
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-1 flex-col gap-4 sm:flex-row sm:items-start">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/30">
+              {hasActiveSessions ? (
+                <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
+                  <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-300" />
+                </span>
+              ) : null}
               <Activity className="h-7 w-7" strokeWidth={2} />
             </div>
             <div>
@@ -254,8 +330,7 @@ export default function AdminLiveOverviewPage() {
                 </span>
               </div>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-gray-600 dark:text-white/55">
-                Quem está com sessão ativa na janela escolhida. A posição no mapa é uma{' '}
-                <span className="font-medium text-gray-800 dark:text-white/75">estimativa por IP</span>, não GPS.
+                Acompanhe em tempo real quem entrou e quem está ativo no sistema. Atualiza automaticamente a cada 15 segundos.
               </p>
             </div>
           </div>
@@ -311,21 +386,21 @@ export default function AdminLiveOverviewPage() {
         initial="hidden"
         animate="show"
       >
-        <StatCard label="Usuários distintos" value={payload?.uniqueUsers ?? '—'} icon={Users} accent="emerald" />
+        <StatCard label="Usuários distintos" value={payload?.uniqueUsers ?? '—'} icon={Users} accent="emerald" pulse={hasActiveSessions} />
         <StatCard label="Sessões ativas" value={payload?.sessionCount ?? '—'} icon={Monitor} accent="cyan" />
-        <StatCard label="Pontos no mapa (BR)" value={mapPoints.length} icon={MapPin} accent="violet" />
+        <StatCard label="Entradas na janela" value={recentEntries} icon={LogIn} accent="violet" pulse={recentEntries > 0} />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
-          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-black p-6 shadow-2xl shadow-black/40 ring-1 ring-white/5 md:p-8"
+          className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-slate-900 via-slate-950 to-black p-6 shadow-2xl shadow-black/40 ring-1 ring-white/5 md:p-8 xl:col-span-2"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(52,211,153,0.18),transparent)]" />
           <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
+            className="pointer-events-none absolute inset-0 opacity-[0.2]"
             style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)`,
@@ -334,40 +409,56 @@ export default function AdminLiveOverviewPage() {
           />
 
           <div className="relative z-10">
-            <div className="flex items-start justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-white md:text-xl">Presença no Brasil</h2>
-                <p className="mt-1 max-w-sm text-xs leading-relaxed text-white/50">
-                  {mapPoints.length === 0
-                    ? 'Nenhum IP público geolocalizado no Brasil nesta janela (desenvolvimento local costuma não aparecer).'
-                    : `${mapPoints.length} ponto(s) estimado(s) no território nacional.`}
+                <h2 className="text-lg font-semibold text-white md:text-xl">Quem está entrando</h2>
+                <p className="mt-1 text-xs text-white/45">
+                  Ordenado pela entrada mais recente · badge <span className="text-emerald-400">Novo</span> = entrou há menos de 3 min
                 </p>
               </div>
-              <div className="hidden rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-300/90 sm:block">
-                IP → região
-              </div>
+              {payload?.generatedAt ? (
+                <span className="text-[10px] text-white/35">
+                  Atualizado {formatDistanceToNow(new Date(payload.generatedAt), { addSuffix: true, locale: ptBR })}
+                </span>
+              ) : null}
             </div>
 
-            <div className="relative mx-auto mt-6 w-full max-w-md">
-              <div className="relative aspect-[6/7] overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-inner">
-                <BrazilSilhouette className="absolute inset-0 h-full w-full text-emerald-400/90" />
-                <div className="absolute inset-[6%] rounded-xl bg-gradient-to-b from-emerald-500/5 to-transparent" />
-                {mapPoints.map((p, i) => (
-                  <MapPinDot key={`${p.sessionId}-${i}`} p={p} i={i} />
-                ))}
-              </div>
-              <p className="mt-3 text-center text-[10px] text-white/35">Silhueta ilustrativa · posição dos pontos derivada de lat/lng do IP</p>
-            </div>
+            <LivePulseBar active={hasActiveSessions} />
 
-            {outsideBrazilCount > 0 ? (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-5 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-center text-xs text-amber-100/90"
-              >
-                {outsideBrazilCount} sessão(ões) com IP fora do Brasil — detalhes na tabela abaixo.
-              </motion.p>
-            ) : null}
+            <div className="mt-5 max-h-[520px] space-y-3 overflow-y-auto pr-1 scrollbar-thin">
+              {presenceQuery.isLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-24 animate-pulse rounded-2xl bg-white/5" />
+                  ))}
+                </div>
+              ) : sortedSessions.length > 0 ? (
+                <AnimatePresence mode="popLayout">
+                  {sortedSessions.map((s, i) => (
+                    <LiveEntryCard key={s.sessionId} session={s} index={i} />
+                  ))}
+                </AnimatePresence>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-16 text-center"
+                >
+                  <div className="relative mb-4">
+                    <Monitor className="h-12 w-12 text-white/15" />
+                    <motion.span
+                      className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-white/20"
+                      animate={{ scale: [1, 1.4, 1], opacity: [0.4, 0.8, 0.4] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </div>
+                  <p className="text-sm font-medium text-white/60">Ninguém online nesta janela</p>
+                  <p className="mt-1 max-w-xs text-xs text-white/35">
+                    Amplie o intervalo de minutos ou aguarde alguém fazer login no sistema.
+                  </p>
+                </motion.div>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -375,50 +466,88 @@ export default function AdminLiveOverviewPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
-          className="flex flex-col rounded-3xl border border-gray-200/90 bg-white/90 p-6 shadow-md dark:border-white/[0.07] dark:bg-gray-950/60 md:p-8"
+          className="flex flex-col gap-6"
         >
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white md:text-xl">Por estado (BR)</h2>
-            {payload?.generatedAt ? (
-              <span className="text-[10px] text-gray-400 dark:text-white/35">
-                {formatDistanceToNow(new Date(payload.generatedAt), { addSuffix: true, locale: ptBR })}
-              </span>
-            ) : null}
-          </div>
-          <p className="mt-1 text-xs text-gray-500 dark:text-white/45">Volume relativo de sessões com IP associado ao estado.</p>
+          <div className="rounded-3xl border border-gray-200/90 bg-white/90 p-6 shadow-md dark:border-white/[0.07] dark:bg-gray-950/60 md:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Resumo rápido</h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-white/45">Números da janela selecionada</p>
 
-          <div className="mt-6 flex flex-1 flex-col gap-3">
-            {payload?.brazilByState?.length ? (
-              payload.brazilByState.slice(0, 12).map((row, idx) => {
-                const pct = Math.round((row.count / maxStateCount) * 100)
-                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
-                return (
-                  <div key={row.state} className="group">
-                    <div className="mb-1 flex items-center justify-between gap-2 text-sm">
-                      <span className="flex items-center gap-2 font-medium text-gray-800 dark:text-white/85">
-                        {medal ? <span className="text-base leading-none">{medal}</span> : null}
-                        {row.state}
-                      </span>
-                      <span className="tabular-nums text-sm font-bold text-emerald-600 dark:text-emerald-400">{row.count}</span>
-                    </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.06]">
-                      <motion.div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-500"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${pct}%` }}
-                        transition={{ type: 'spring', stiffness: 200, damping: 24, delay: 0.05 + idx * 0.03 }}
-                      />
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-12 text-center dark:border-white/10">
-                <MapPin className="mb-3 h-10 w-10 text-gray-300 dark:text-white/20" />
-                <p className="text-sm text-gray-500 dark:text-white/45">Sem dados por estado nesta atualização.</p>
-              </div>
-            )}
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {[
+                { label: 'Online', value: payload?.sessionCount ?? 0, color: 'text-emerald-600 dark:text-emerald-400' },
+                { label: 'Entradas', value: recentEntries, color: 'text-violet-600 dark:text-violet-400' },
+                { label: 'Usuários', value: payload?.uniqueUsers ?? 0, color: 'text-cyan-600 dark:text-cyan-400' },
+                {
+                  label: 'Admins',
+                  value: payload?.sessions?.filter((s) => (s.userTipo || '').toLowerCase() === 'admin').length ?? 0,
+                  color: 'text-amber-600 dark:text-amber-400',
+                },
+              ].map((item) => (
+                <motion.div
+                  key={item.label}
+                  whileHover={{ scale: 1.02 }}
+                  className="rounded-2xl border border-gray-100 bg-gray-50/80 p-4 text-center dark:border-white/[0.06] dark:bg-white/[0.03]"
+                >
+                  <p className={`text-2xl font-bold tabular-nums ${item.color}`}>{item.value}</p>
+                  <p className="mt-1 text-[11px] font-medium uppercase tracking-wider text-gray-500 dark:text-white/40">
+                    {item.label}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
           </div>
+
+          <div className="flex flex-1 flex-col rounded-3xl border border-gray-200/90 bg-white/90 p-6 shadow-md dark:border-white/[0.07] dark:bg-gray-950/60 md:p-6">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Dispositivos</h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-white/45">Onde as pessoas estão acessando</p>
+
+            <div className="mt-5 flex flex-1 flex-col gap-3">
+              {deviceBreakdown.length > 0 ? (
+                deviceBreakdown.map((row, idx) => {
+                  const pct = Math.round((row.count / maxDeviceCount) * 100)
+                  return (
+                    <div key={row.device} className="group">
+                      <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                        <span className="truncate font-medium text-gray-800 dark:text-white/85">{row.device}</span>
+                        <span className="shrink-0 tabular-nums text-sm font-bold text-cyan-600 dark:text-cyan-400">
+                          {row.count}
+                        </span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-gray-100 dark:bg-white/[0.06]">
+                        <motion.div
+                          className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-emerald-500"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ type: 'spring', stiffness: 200, damping: 24, delay: 0.05 + idx * 0.04 }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-200 py-10 text-center dark:border-white/10">
+                  <Smartphone className="mb-3 h-9 w-9 text-gray-300 dark:text-white/20" />
+                  <p className="text-sm text-gray-500 dark:text-white/45">Sem dispositivos nesta janela.</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {payload?.brazilByState?.length ? (
+            <div className="rounded-3xl border border-gray-200/90 bg-white/90 p-6 shadow-md dark:border-white/[0.07] dark:bg-gray-950/60">
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-white">Por estado</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {payload.brazilByState.slice(0, 8).map((row) => (
+                  <span
+                    key={row.state}
+                    className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:text-emerald-300"
+                  >
+                    {row.state} · {row.count}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </motion.div>
       </div>
 
@@ -429,9 +558,9 @@ export default function AdminLiveOverviewPage() {
         className="overflow-hidden rounded-3xl border border-gray-200/90 bg-white/95 shadow-lg dark:border-white/[0.07] dark:bg-gray-950/70 dark:shadow-none"
       >
         <div className="border-b border-gray-100 bg-gradient-to-r from-gray-50/80 to-transparent px-5 py-4 dark:border-white/[0.06] dark:from-white/[0.03] md:px-6">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Sessões</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Detalhes das sessões</h2>
           <p className="mt-1 text-xs text-gray-500 dark:text-white/45">
-            Dispositivo e IP registrados no login. Geolocalização opcional no servidor (aproximação).
+            Visão completa com IP, dispositivo e última atividade.
           </p>
         </div>
 
@@ -443,14 +572,14 @@ export default function AdminLiveOverviewPage() {
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/80 text-left text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:border-white/[0.06] dark:bg-white/[0.03] dark:text-white/40">
                   <th className="px-5 py-3 md:px-6">Usuário</th>
+                  <th className="px-5 py-3 md:px-6">Entrada</th>
                   <th className="px-5 py-3 md:px-6">Dispositivo</th>
                   <th className="px-5 py-3 md:px-6">IP</th>
-                  <th className="px-5 py-3 md:px-6">Local (IP)</th>
                   <th className="px-5 py-3 md:px-6">Atividade</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-white/[0.06]">
-                {(payload?.sessions || []).map((s) => {
+                {sortedSessions.map((s) => {
                   const initial = (s.userName || s.userEmail || '?').charAt(0).toUpperCase()
                   return (
                     <tr
@@ -465,33 +594,19 @@ export default function AdminLiveOverviewPage() {
                           <div className="min-w-0">
                             <div className="font-semibold text-gray-900 dark:text-white">{s.userName || '—'}</div>
                             <div className="truncate text-xs text-gray-500 dark:text-white/45">{s.userEmail}</div>
-                            <span className="mt-0.5 inline-block rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600 dark:bg-white/10 dark:text-white/50">
-                              {s.userTipo}
-                            </span>
                           </div>
                         </div>
+                      </td>
+                      <td className="whitespace-nowrap px-5 py-3.5 text-xs text-gray-600 dark:text-white/60 md:px-6">
+                        {s.createdAt
+                          ? formatDistanceToNow(new Date(s.createdAt), { addSuffix: true, locale: ptBR })
+                          : '—'}
                       </td>
                       <td className="max-w-[200px] px-5 py-3.5 text-xs text-gray-600 dark:text-white/65 md:px-6">
                         <span className="line-clamp-2">{s.deviceLabel}</span>
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 font-mono text-xs text-gray-700 dark:text-white/70 md:px-6">
                         {s.ip || '—'}
-                      </td>
-                      <td className="px-5 py-3.5 text-xs md:px-6">
-                        {s.geo ? (
-                          <div>
-                            <div className="font-medium text-gray-800 dark:text-white/85">
-                              {[s.geo.city, s.geo.region].filter(Boolean).join(', ')}
-                            </div>
-                            <div className="text-gray-400 dark:text-white/35">{s.geo.country}</div>
-                          </div>
-                        ) : s.ip && !s.ipIsPublic ? (
-                          <span className="rounded-md bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-800 dark:text-amber-200/90">
-                            IP local/privado
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
                       </td>
                       <td className="whitespace-nowrap px-5 py-3.5 text-xs text-gray-600 dark:text-white/60 md:px-6">
                         {s.lastActivityAt ? (
