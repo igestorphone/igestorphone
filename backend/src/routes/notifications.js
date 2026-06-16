@@ -7,8 +7,15 @@ const router = express.Router();
 
 // Helper: decide if a user matches target filter
 function buildTargetWhere(target) {
-  // target example: { scope: 'all' } or { scope: 'plan', plan_type: 'mensal' } or { scope: 'embaixador' } or { scope: 'recadastro_pendente' }
+  // target: { scope: 'all' } | { scope: 'plan', plan_type } | { scope: 'embaixador' } | { scope: 'user', user_id }
   const scope = (target?.scope || 'all').toString();
+  if (scope === 'user') {
+    const userId = parseInt(String(target?.user_id ?? ''), 10);
+    if (!Number.isFinite(userId) || userId <= 0) {
+      return { where: '1=0', values: [], error: 'user_id inválido' };
+    }
+    return { where: 'u.id = $1', values: [userId] };
+  }
   if (scope === 'all') return { where: '1=1', values: [] };
   if (scope === 'recadastro_pendente') {
     // Notificações de recadastro foram desativadas temporariamente.
@@ -59,6 +66,20 @@ router.post(
         });
       }
 
+      if (scope === 'user') {
+        const userId = parseInt(String(target?.user_id ?? ''), 10);
+        if (!Number.isFinite(userId) || userId <= 0) {
+          return res.status(400).json({ message: 'Selecione um usuário válido para envio individual.' });
+        }
+        const userCheck = await query(
+          `SELECT id, name, email, is_active FROM users WHERE id = $1`,
+          [userId]
+        );
+        if (userCheck.rows.length === 0) {
+          return res.status(404).json({ message: 'Usuário não encontrado.' });
+        }
+      }
+
       const created = await query(
         `INSERT INTO notifications (title, message, link_url, target, created_by)
          VALUES ($1, $2, $3, $4::jsonb, $5)
@@ -67,15 +88,24 @@ router.post(
       );
       const notification = created.rows[0];
 
-      // Deliver to matching users (including admins)
-      const { where, values } = buildTargetWhere(target);
+      // Deliver to matching users
+      const { where, values, error: targetError } = buildTargetWhere(target);
+      if (targetError) {
+        return res.status(400).json({ message: targetError });
+      }
+
+      const activeOnly = scope !== 'user';
       const usersResult = await query(
-        `SELECT u.id
+        `SELECT u.id, u.name, u.email
          FROM users u
-         WHERE u.is_active = true
-           AND (${where})`,
+         WHERE (${where})
+           ${activeOnly ? 'AND u.is_active = true' : ''}`,
         values
       );
+
+      if (scope === 'user' && usersResult.rows.length === 0) {
+        return res.status(400).json({ message: 'Não foi possível entregar: usuário inativo ou indisponível.' });
+      }
 
       if (usersResult.rows.length > 0) {
         const userIds = usersResult.rows.map((r) => r.id);
@@ -87,7 +117,15 @@ router.post(
         );
       }
 
-      res.status(201).json({ notification, delivered_to: usersResult.rows.length });
+      const recipient = scope === 'user' && usersResult.rows[0]
+        ? { id: usersResult.rows[0].id, name: usersResult.rows[0].name, email: usersResult.rows[0].email }
+        : null;
+
+      res.status(201).json({
+        notification,
+        delivered_to: usersResult.rows.length,
+        recipient,
+      });
     } catch (e) {
       console.error('Erro ao criar notificação:', e);
       res.status(500).json({ message: 'Erro interno do servidor' });
