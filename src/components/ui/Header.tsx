@@ -24,8 +24,12 @@ export default function Header() {
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userButtonRef = useRef<HTMLButtonElement>(null)
   const notifRef = useRef<HTMLDivElement>(null)
+  const notifButtonRef = useRef<HTMLButtonElement>(null)
   const [showNotifs, setShowNotifs] = useState(false)
-  const [notifPos, setNotifPos] = useState({ top: 0, right: 0 })
+  const [notifPos, setNotifPos] = useState({ top: 0, right: 0, left: 0 })
+  const [notifNarrow, setNotifNarrow] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
+  )
   const [scrolled, setScrolled] = useState(false)
   const prevUnreadRef = useRef<number | null>(null)
   const didInitUnreadRef = useRef(false)
@@ -81,14 +85,38 @@ export default function Header() {
   }, [showUserMenu])
 
   useEffect(() => {
-    if (showNotifs && notifRef.current) {
-      const rect = notifRef.current.getBoundingClientRect()
-      setNotifPos({
-        top: rect.bottom + window.scrollY + 8,
-        right: window.innerWidth - rect.right + window.scrollX
-      })
+    const mq = window.matchMedia('(max-width: 639px)')
+    const onChange = () => setNotifNarrow(mq.matches)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  const updateNotifPosition = () => {
+    const el = notifButtonRef.current ?? notifRef.current?.querySelector('button')
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const top = rect.bottom + 8
+    const panelW = Math.min(360, window.innerWidth - 24)
+    if (notifNarrow) {
+      setNotifPos({ top, right: 12, left: 12 })
+      return
     }
-  }, [showNotifs])
+    let left = rect.right - panelW
+    left = Math.max(12, Math.min(left, window.innerWidth - panelW - 12))
+    setNotifPos({ top, right: window.innerWidth - rect.right, left })
+  }
+
+  useEffect(() => {
+    if (!showNotifs) return
+    updateNotifPosition()
+    window.addEventListener('resize', updateNotifPosition)
+    window.addEventListener('scroll', updateNotifPosition, true)
+    return () => {
+      window.removeEventListener('resize', updateNotifPosition)
+      window.removeEventListener('scroll', updateNotifPosition, true)
+    }
+  }, [showNotifs, notifNarrow])
 
   // Fechar menu quando clicar fora
   useEffect(() => {
@@ -255,6 +283,7 @@ export default function Header() {
             {/* Notificações (todos os usuários) */}
             <div className="relative z-[9998]" ref={notifRef}>
                 <button
+                  ref={notifButtonRef}
                   onClick={() => setShowNotifs((v) => !v)}
                   className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
                   title="Notificações"
@@ -268,26 +297,38 @@ export default function Header() {
                 </button>
                 <AnimatePresence>
                   {showNotifs && (
+                    <>
+                      {notifNarrow && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="fixed inset-0 z-[99998] bg-black/40 backdrop-blur-[2px]"
+                          onClick={() => setShowNotifs(false)}
+                          aria-hidden
+                        />
+                      )}
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -10, scale: 0.98 }}
                       transition={{ duration: 0.18 }}
-                      className="fixed w-[360px] max-w-[92vw] bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999]"
+                      className="fixed bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999] overflow-hidden flex flex-col"
                       style={{
                         top: `${notifPos.top}px`,
-                        right: `${notifPos.right}px`,
-                        maxHeight: 'calc(100vh - 20px)',
-                        overflowY: 'auto'
+                        ...(notifNarrow
+                          ? { left: 12, right: 12, width: 'auto' }
+                          : { left: notifPos.left, width: 'min(360px, calc(100vw - 1.5rem))' }),
+                        maxHeight: 'min(70vh, calc(100vh - env(safe-area-inset-top) - 5rem))',
                       }}
                     >
-                      <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between">
+                      <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
                         <div className="text-sm font-semibold text-gray-900 dark:text-white">Notificações</div>
                         <div className="text-xs text-gray-500 dark:text-white/60">
                           {unreadCount} não lida(s)
                         </div>
                       </div>
-                      <div className="py-2">
+                      <div className="py-2 overflow-y-auto overscroll-contain">
                         {myNotifsQuery.isFetching && myNotifs.length === 0 ? (
                           <div className="px-4 py-6 text-sm text-gray-500 dark:text-white/60">Carregando…</div>
                         ) : myNotifs.length === 0 ? (
@@ -299,19 +340,19 @@ export default function Header() {
                               <button
                                 key={n.id}
                                 onClick={() => markReadAndOpen(n)}
-                                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${
+                                className={`w-full text-left px-4 py-3.5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${
                                   isUnread ? 'bg-indigo-50/60 dark:bg-indigo-500/10' : ''
                                 }`}
                               >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-semibold text-gray-900 dark:text-white break-words">
                                       {n.title}
                                     </div>
-                                    <div className="text-xs text-gray-600 dark:text-white/70 line-clamp-2 mt-0.5">
+                                    <div className="text-xs text-gray-600 dark:text-white/70 mt-1 break-words leading-relaxed line-clamp-4">
                                       {n.message}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-white/50 mt-1">
+                                    <div className="text-[10px] text-gray-500 dark:text-white/50 mt-1.5">
                                       {new Date(n.created_at).toLocaleString('pt-BR')}
                                     </div>
                                   </div>
@@ -324,7 +365,19 @@ export default function Header() {
                           })
                         )}
                       </div>
+                      {notifNarrow && (
+                        <div className="border-t border-gray-200 dark:border-white/10 p-3 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setShowNotifs(false)}
+                            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white"
+                          >
+                            Fechar
+                          </button>
+                        </div>
+                      )}
                     </motion.div>
+                    </>
                   )}
                 </AnimatePresence>
               </div>
