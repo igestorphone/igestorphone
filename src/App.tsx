@@ -2,7 +2,6 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { Analytics } from '@vercel/analytics/react'
 import { useAuthStore } from '@/stores/authStore'
 import { useIdleLogout } from '@/hooks/useIdleLogout'
-import { usePermissions } from '@/hooks/usePermissions'
 
 import AuthLayout from '@/components/layout/AuthLayout'
 import MainLayout from '@/components/layout/MainLayout'
@@ -31,9 +30,6 @@ import BugReportsPage from '@/pages/BugReportsPage'
 import DevLogPage from '@/pages/DevLogPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
 import RankingPage from '@/pages/RankingPage'
-import CalendarPage from '@/pages/CalendarPage'
-import PriceAveragesPage from '@/pages/PriceAveragesPage'
-import FuncionariosCalendarioPage from '@/pages/FuncionariosCalendarioPage'
 import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
 import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
@@ -44,13 +40,12 @@ const AUTH_REDIRECT_PATH = '/search-cheapest-iphone'
 
 function App() {
   const { isAuthenticated, user } = useAuthStore()
-  const { canAccessOnlyCalendar } = usePermissions()
   useIdleLogout()
 
   const defaultAuthenticatedPath = (() => {
     if (!user) return AUTH_REDIRECT_PATH
     if (requiresCheckoutOnly(user)) return '/checkout'
-    return canAccessOnlyCalendar() ? '/calendar' : AUTH_REDIRECT_PATH
+    return AUTH_REDIRECT_PATH
   })()
 
   // "/" e "/login" permitem ver a landing/login mesmo com pagamento pendente ou assinatura vencida (ex.: botão Voltar)
@@ -150,13 +145,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<SearchCheapestIPhonePage />} />
-        </Route>
-        <Route path="/price-averages" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<PriceAveragesPage />} />
         </Route>
         <Route path="/outside-sp" element={
           <ProtectedRoute>
@@ -286,20 +274,6 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<RankingPage />} />
-        </Route>
-        <Route path="/calendar" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<CalendarPage />} />
-        </Route>
-        <Route path="/funcionarios-calendario" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<FuncionariosCalendarioPage />} />
         </Route>
       </Routes>
       <Analytics />

@@ -43,11 +43,6 @@ export async function deleteUserAccountPermanently(userId, { logUserId = null, r
 
       await client.query('BEGIN');
       await client.query('DELETE FROM subscriptions WHERE user_id = $1', [uid]);
-      await client.query(
-        'DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)',
-        [uid]
-      );
-      await client.query('DELETE FROM calendar_events WHERE user_id = $1', [uid]);
       await client.query('DELETE FROM goals WHERE user_id = $1', [uid]);
       await client.query('DELETE FROM notes WHERE user_id = $1', [uid]);
       await client.query('DELETE FROM support_tickets WHERE user_id = $1', [uid]);

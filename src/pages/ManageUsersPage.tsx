@@ -675,7 +675,6 @@ export default function ManageUsersPage() {
     
     const permissionNames = {
       'consultar_listas': 'Consultar Listas',
-      'medias_preco': 'Médias de Preço',
       'buscar_iphone_barato': 'Buscar iPhone Mais Barato',
       'envio_fora_sp': 'Envio pra Fora de SP'
     };

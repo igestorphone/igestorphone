@@ -110,7 +110,7 @@ const EditUserPage: React.FC = () => {
         telefone: user.telefone || user.whatsapp || '',
         tipo: user.tipo || 'user',
         isActive: user.is_active !== false,
-        permissions: user.tipo === 'admin' ? (user.permissions || []) : ['consultar_listas', 'medias_preco', 'buscar_iphone_barato']
+        permissions: user.tipo === 'admin' ? (user.permissions || []) : ['consultar_listas', 'buscar_iphone_barato']
       });
       
       // Carregar data de expiração do acesso

@@ -141,17 +141,18 @@ router.post(
     body('version').trim().isLength({ min: 1, max: 50 }).withMessage('Versão é obrigatória (máx. 50)'),
     body('title').optional({ nullable: true }).trim().isLength({ max: 255 }),
     body('description').optional({ nullable: true }).trim(),
-    body('released_at').optional({ nullable: true }).isISO8601().withMessage('Data inválida')
+    body('released_at').optional({ nullable: true }).isISO8601().withMessage('Data inválida'),
+    body('is_public').optional().isBoolean()
   ],
   async (req, res) => {
     if (!handleValidation(req, res)) return
     try {
-      const { version, title, description, released_at } = req.body
+      const { version, title, description, released_at, is_public } = req.body
       const result = await query(
-        `INSERT INTO dev_releases (user_id, version, title, description, released_at)
-         VALUES ($1, $2, $3, $4, COALESCE($5::date, CURRENT_DATE))
+        `INSERT INTO dev_releases (user_id, version, title, description, released_at, is_public)
+         VALUES ($1, $2, $3, $4, COALESCE($5::date, CURRENT_DATE), $6)
          RETURNING *`,
-        [req.user.id, version, title || null, description || null, released_at || null]
+        [req.user.id, version, title || null, description || null, released_at || null, is_public === true]
       )
       res.status(201).json({ release: result.rows[0] })
     } catch (error) {
@@ -167,13 +168,14 @@ router.put(
     body('version').optional().trim().isLength({ min: 1, max: 50 }),
     body('title').optional({ nullable: true }).trim().isLength({ max: 255 }),
     body('description').optional({ nullable: true }).trim(),
-    body('released_at').optional({ nullable: true }).isISO8601()
+    body('released_at').optional({ nullable: true }).isISO8601(),
+    body('is_public').optional().isBoolean()
   ],
   async (req, res) => {
     if (!handleValidation(req, res)) return
     try {
       const { id } = req.params
-      const { version, title, description, released_at } = req.body
+      const { version, title, description, released_at, is_public } = req.body
       const fields = []
       const values = []
       let i = 1
@@ -181,6 +183,7 @@ router.put(
       if (title !== undefined) { fields.push(`title = $${i++}`); values.push(title || null) }
       if (description !== undefined) { fields.push(`description = $${i++}`); values.push(description || null) }
       if (released_at !== undefined) { fields.push(`released_at = $${i++}::date`); values.push(released_at) }
+      if (is_public !== undefined) { fields.push(`is_public = $${i++}`); values.push(is_public === true) }
       if (fields.length === 0) {
         return res.status(400).json({ message: 'Nenhum campo informado para atualização' })
       }

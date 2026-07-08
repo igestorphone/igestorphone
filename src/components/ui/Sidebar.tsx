@@ -17,8 +17,6 @@ import {
   Moon,
   Sun,
   MessageCircle,
-  Calendar,
-  BarChart3,
   Crown,
   Bell,
   Monitor,
@@ -39,9 +37,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const { theme, sidebarCollapsed, toggleSidebarCollapsed, setTheme } = useAppStore()
   const navigate = useNavigate()
   const {
-    canAccessSearchCheapest,
-    canAccessPriceAverages,
-    canAccessOnlyCalendar
+    canAccessSearchCheapest
   } = usePermissions()
 
   const isAdmin = user?.tipo === 'admin'
@@ -54,20 +50,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const [isConfigOpen, setIsConfigOpen] = useState(true)
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(true)
 
-  // Funcionário (só calendário): apenas Calendário + Meus Dados
-  const onlyCalendarNavigation = [
-    { name: 'Calendário', href: '/calendar', icon: Calendar },
-  ]
-  const onlyCalendarConfig = [
-    { name: 'Meus Dados', href: '/profile', icon: Users },
-    { name: 'Dispositivos', href: '/devices', icon: Monitor },
-  ]
-
   // Navegação principal (topo)
   const mainNavigation = [
     { name: 'Buscar mais barato', href: '/search-cheapest-iphone', icon: Search, permission: 'buscar_iphone_barato' },
-    { name: 'Média de Preço', href: '/price-averages', icon: BarChart3, permission: 'medias_preco' },
-    { name: 'Calendário', href: '/calendar', icon: Calendar },
   ]
 
   // Configurações (seção recolhível)
@@ -75,7 +60,6 @@ export default function Sidebar({ onClose }: SidebarProps) {
     { name: 'Meus Dados', href: '/profile', icon: Users },
     { name: 'Dispositivos', href: '/devices', icon: Monitor },
     { name: 'Assinatura', href: '/subscription', icon: CreditCard },
-    { name: 'Usuário do calendário', href: '/funcionarios-calendario', icon: UserPlus },
   ]
 
   const adminNavigation = [
@@ -129,28 +113,24 @@ export default function Sidebar({ onClose }: SidebarProps) {
     }
   ]
 
-  const filteredMainNavigation = canAccessOnlyCalendar()
-    ? onlyCalendarNavigation
-    : mainNavigation.filter(item => {
-        if (item.permission) {
-          switch (item.permission) {
-            case 'buscar_iphone_barato':
-              return canAccessSearchCheapest()
-            case 'medias_preco':
-              return canAccessPriceAverages()
-            default:
-              return true
-          }
-        }
-        return true
-      })
+  const filteredMainNavigation = mainNavigation.filter(item => {
+    if (item.permission) {
+      switch (item.permission) {
+        case 'buscar_iphone_barato':
+          return canAccessSearchCheapest()
+        default:
+          return true
+      }
+    }
+    return true
+  })
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light')
   }
 
   const handleLogoClick = () => {
-    navigate(canAccessOnlyCalendar() ? '/calendar' : '/search-cheapest-iphone')
+    navigate('/search-cheapest-iphone')
     onClose()
   }
 
@@ -265,7 +245,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
             </button>
             {isConfigOpen && (
               <div className="space-y-1">
-                {(canAccessOnlyCalendar() ? onlyCalendarConfig : configNavigation).map((item) => (
+                {configNavigation.map((item) => (
                   <NavItem key={item.href} item={item} onClick={onClose} />
                 ))}
               </div>
@@ -368,7 +348,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
         )}
 
         {/* Admin Navigation - No final */}
-        {isAdmin && !canAccessOnlyCalendar() && (
+        {isAdmin && (
           <div className="mt-8">
             {!sidebarCollapsed && (
               <button

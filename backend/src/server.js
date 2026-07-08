@@ -22,7 +22,6 @@ import supplierSuggestionsRoutes from './routes/supplier-suggestions.js';
 import bugReportsRoutes from './routes/bug-reports.js';
 import supportRoutes from './routes/support.js';
 import devlogRoutes from './routes/devlog.js';
-import calendarRoutes from './routes/calendar.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
 import asaasRoutes from './routes/asaas.js';
@@ -200,8 +199,6 @@ app.use('/api/supplier-suggestions', supplierSuggestionsRoutes);
 app.use('/api/bug-reports', bugReportsRoutes);
 app.use('/api/support', supportRoutes);
 app.use('/api/devlog', devlogRoutes);
-app.use('/api/calendar', authenticateToken, calendarRoutes);
-
 // Rotas de IA - algumas públicas, outras protegidas
 app.use('/api/ai', aiRoutes);
 

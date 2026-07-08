@@ -16,10 +16,6 @@ function getPostLoginPath(): string {
   if (requiresCheckoutOnly(u)) {
     return '/checkout'
   }
-  const p = u.permissions
-  if (Array.isArray(p) && p.length === 1 && p[0] === 'calendario') {
-    return '/calendar'
-  }
   return '/search-cheapest-iphone'
 }
 

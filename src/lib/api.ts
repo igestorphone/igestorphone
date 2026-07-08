@@ -232,29 +232,7 @@ export const produtosApi = {
     apiClient.get<any>(`/products/${productId}/price-history`),
 
   getPriceHistoryByModel: (params: { model: string; storage?: string; color?: string }) =>
-    apiClient.get<any>('/products/price-history-by-model', { params }),
-
-  getPriceAverages: (params?: {
-    search?: string
-    color?: string
-    storage?: string
-    /** 0 = hoje (SP), -1 = ontem, -2 = anteontem */
-    date_offset?: number
-  }) =>
-    apiClient.get<{
-      averages: {
-        model: string
-        color: string
-        storage: string
-        avg_price: number
-        count: number
-        min_price: number | null
-        max_price: number | null
-      }[]
-      dateFilter?: 'day' | 'rolling3' | 'all'
-      dateOffset?: number
-      noDateFilter?: boolean
-    }>('/products/price-averages', { params })
+    apiClient.get<any>('/products/price-history-by-model', { params })
 }
 
 export const statisticsApi = {
@@ -505,65 +483,6 @@ export const usersApi = {
 
   revokeSession: (sessionId: string) =>
     apiClient.delete<{ message: string }>(`/users/sessions/${sessionId}`),
-}
-
-// Calendário compartilhado (vendedor/atendente)
-export interface CalendarEventItemPayload {
-  iphoneModel: string
-  storage: string
-  color?: string | null
-  imeiEnd: string
-  valorAVista: number
-  valorComJuros: number
-  formaPagamento: string
-  valorTroca?: number | null
-  manutencaoDescontada?: number | null
-  tradeInModel?: string | null
-  tradeInStorage?: string | null
-  trocaAparelhos?: { model: string; storage: string; condicao?: 'novo' | 'seminovo' | null; obs?: string | null }[] | null
-  parcelas?: number | null
-  valorSinal?: number | null
-  condicao?: 'novo' | 'seminovo' | null
-  origemProduto?: 'estoque' | 'fornecedor' | null
-  notes?: string | null
-}
-
-export const calendarApi = {
-  getByMonth: (year: number, month: number) =>
-    apiClient.get<{ events: any[] }>('/calendar/events', { params: { year, month } }),
-  getByDate: (date: string) =>
-    apiClient.get<{ events: any[] }>('/calendar/events', { params: { date } }),
-  create: (data: {
-    date: string
-    time?: string
-    clientName?: string
-    status?: string
-    notes?: string
-    items?: CalendarEventItemPayload[]
-    iphoneModel?: string
-    storage?: string
-    imeiEnd?: string
-    valorAVista?: number
-    valorComJuros?: number
-    formaPagamento?: string
-    color?: string | null
-    valorTroca?: number | null
-    manutencaoDescontada?: number | null
-  }) =>
-    apiClient.post<{ event: any }>('/calendar/events', data),
-  update: (id: number, data: Partial<{
-    date: string
-    time: string
-    clientName: string
-    status: string
-    notes: string
-    items: CalendarEventItemPayload[]
-  }>) =>
-    apiClient.patch<{ event: any }>(`/calendar/events/${id}`, data),
-  reschedule: (id: number, data: { date: string; time?: string; setStatusReagendado?: boolean }) =>
-    apiClient.patch<{ event: any }>(`/calendar/events/${id}/reschedule`, data),
-  delete: (id: number) =>
-    apiClient.delete(`/calendar/events/${id}`),
 }
 
 export const registrationApi = {

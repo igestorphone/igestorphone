@@ -49,49 +49,9 @@ const migrations = [
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS end_date TIMESTAMP`,
   `ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN DEFAULT false`,
 
-  // Calendário compartilhado (vendedor/atendente - eventos de venda)
-  `CREATE TABLE IF NOT EXISTS calendar_events (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    date DATE NOT NULL,
-    time VARCHAR(5),
-    client_name VARCHAR(255),
-    iphone_model VARCHAR(120) NOT NULL,
-    storage VARCHAR(50) NOT NULL,
-    imei_end VARCHAR(20) NOT NULL,
-    valor_a_vista DECIMAL(12,2) NOT NULL DEFAULT 0,
-    valor_com_juros DECIMAL(12,2) NOT NULL DEFAULT 0,
-    forma_pagamento VARCHAR(80) NOT NULL DEFAULT 'PIX',
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `ALTER TABLE calendar_events ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'agendado'`,
-  `CREATE TABLE IF NOT EXISTS calendar_event_items (
-    id SERIAL PRIMARY KEY,
-    event_id INTEGER NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
-    iphone_model VARCHAR(120) NOT NULL,
-    storage VARCHAR(50) NOT NULL,
-    color VARCHAR(80),
-    imei_end VARCHAR(20) NOT NULL,
-    valor_a_vista DECIMAL(12,2) NOT NULL DEFAULT 0,
-    valor_com_juros DECIMAL(12,2) NOT NULL DEFAULT 0,
-    forma_pagamento VARCHAR(80) NOT NULL DEFAULT 'PIX',
-    valor_troca DECIMAL(12,2),
-    manutencao_descontada DECIMAL(12,2),
-    notes TEXT
-  )`,
-  `INSERT INTO calendar_event_items (event_id, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento)
-   SELECT id, iphone_model, storage, imei_end, valor_a_vista, valor_com_juros, forma_pagamento
-   FROM calendar_events e
-   WHERE NOT EXISTS (SELECT 1 FROM calendar_event_items i WHERE i.event_id = e.id)`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS modelo_troca VARCHAR(120)`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS armazenamento_troca VARCHAR(50)`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS troca_aparelhos JSONB DEFAULT '[]'::jsonb`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS parcelas INTEGER`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS valor_sinal DECIMAL(12,2)`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS condicao VARCHAR(20)`,
-  `ALTER TABLE calendar_event_items ADD COLUMN IF NOT EXISTS origem_produto VARCHAR(30)`,
+  // Recurso de Calendário removido — dropar tabelas antigas se existirem
+  `DROP TABLE IF EXISTS calendar_event_items CASCADE`,
+  `DROP TABLE IF EXISTS calendar_events CASCADE`,
 
   // Tabela de fornecedores
   `CREATE TABLE IF NOT EXISTS suppliers (
@@ -391,9 +351,6 @@ const migrations = [
   `DROP TRIGGER IF EXISTS update_notes_updated_at ON notes`,
   `CREATE TRIGGER update_notes_updated_at BEFORE UPDATE ON notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
-  `DROP TRIGGER IF EXISTS update_calendar_events_updated_at ON calendar_events`,
-  `CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON calendar_events FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
-
   `DROP TRIGGER IF EXISTS update_support_tickets_updated_at ON support_tickets`,
   `CREATE TRIGGER update_support_tickets_updated_at BEFORE UPDATE ON support_tickets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
@@ -466,6 +423,7 @@ const migrations = [
     released_at DATE DEFAULT CURRENT_DATE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
+  `ALTER TABLE dev_releases ADD COLUMN IF NOT EXISTS is_public BOOLEAN DEFAULT false`,
   `CREATE INDEX IF NOT EXISTS idx_dev_releases_released_at ON dev_releases(released_at DESC)`,
 
   // Anotações livres de desenvolvimento (ideias, links, credenciais de teste)

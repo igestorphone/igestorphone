@@ -31,7 +31,7 @@ const CreateUserPage: React.FC = () => {
     telefone: '',
     tipo: 'user',
     isActive: true,
-    permissions: ['consultar_listas', 'medias_preco', 'buscar_iphone_barato'] // Todas as permissões por padrão
+    permissions: ['consultar_listas', 'buscar_iphone_barato'] // Todas as permissões por padrão
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

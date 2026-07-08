@@ -14,7 +14,9 @@ import {
   XCircle,
   ChevronRight,
   Calendar,
-  Filter
+  Filter,
+  Copy,
+  Megaphone
 } from 'lucide-react'
 import { devlogApi } from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -41,6 +43,7 @@ interface DevRelease {
   title: string | null
   description: string | null
   released_at: string
+  is_public: boolean
 }
 
 interface DevNote {
@@ -105,6 +108,43 @@ function inDateRange(value: string | null, from: string, to: string): boolean {
 
 const dateInputCls =
   'rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-sm text-gray-700 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 dark:border-white/15 dark:bg-white/5 dark:text-white'
+
+function buildReleaseSummary(rel: DevRelease): string {
+  const lines: string[] = []
+  lines.push(`🚀 *iGestorPhone ${rel.version}* já está disponível! 🎉`)
+  if (rel.title) lines.push(`_${rel.title}_`)
+  lines.push('')
+  lines.push('✨ *Novidades desta versão:*')
+  if (rel.description) lines.push(rel.description.trim())
+  lines.push('')
+  lines.push('💬 Dúvidas ou sugestões? É só chamar o suporte. Bom uso! 🙌')
+  return lines.join('\n')
+}
+
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch {
+    /* fallback abaixo */
+  }
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.style.position = 'fixed'
+    ta.style.opacity = '0'
+    document.body.appendChild(ta)
+    ta.focus()
+    ta.select()
+    const ok = document.execCommand('copy')
+    document.body.removeChild(ta)
+    return ok
+  } catch {
+    return false
+  }
+}
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
@@ -468,7 +508,19 @@ export default function DevLogPage() {
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     {rel.title && <p className="font-semibold text-gray-900 dark:text-white">{rel.title}</p>}
-                    <p className="text-xs text-gray-400">{formatDate(rel.released_at)}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-2">
+                      <p className="text-xs text-gray-400">{formatDate(rel.released_at)}</p>
+                      {rel.is_public ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                          <Megaphone className="h-3 w-3" />
+                          Clientes
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-500 dark:bg-white/10 dark:text-white/60">
+                          Interno
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <button
@@ -489,6 +541,19 @@ export default function DevLogPage() {
                 </div>
                 {rel.description && (
                   <p className="mt-2 whitespace-pre-wrap text-sm text-gray-600 dark:text-white/70">{rel.description}</p>
+                )}
+                {rel.is_public && (
+                  <button
+                    onClick={async () => {
+                      const ok = await copyToClipboard(buildReleaseSummary(rel))
+                      if (ok) toast.success('Resumo copiado! Cole na sua comunidade.')
+                      else toast.error('Não foi possível copiar')
+                    }}
+                    className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-500"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copiar resumo para a comunidade
+                  </button>
                 )}
               </div>
             </div>
@@ -651,6 +716,7 @@ function ReleaseForm({
   const [releasedAt, setReleasedAt] = useState(
     initial?.released_at ? initial.released_at.slice(0, 10) : new Date().toISOString().slice(0, 10)
   )
+  const [isPublic, setIsPublic] = useState(initial?.is_public ?? false)
 
   return (
     <Modal title={initial ? 'Editar versão' : 'Nova versão'} onClose={onCancel}>
@@ -658,7 +724,7 @@ function ReleaseForm({
         onSubmit={(e) => {
           e.preventDefault()
           if (!version.trim()) return toast.error('Informe a versão')
-          onSubmit({ version: version.trim(), title, description, released_at: releasedAt })
+          onSubmit({ version: version.trim(), title, description, released_at: releasedAt, is_public: isPublic })
         }}
         className="space-y-4"
       >
@@ -680,6 +746,20 @@ function ReleaseForm({
           <label className={labelCls}>O que foi entregue</label>
           <textarea className={`${inputCls} min-h-[100px]`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="- Corrigido bug X&#10;- Adicionado recurso Y" />
         </div>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-white/10 dark:bg-white/5">
+          <input
+            type="checkbox"
+            checked={isPublic}
+            onChange={(e) => setIsPublic(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+          />
+          <span className="text-sm">
+            <span className="font-semibold text-gray-800 dark:text-white/90">Novidade para clientes</span>
+            <span className="block text-xs text-gray-500 dark:text-white/60">
+              Marque quando a mudança for visível para os usuários. Só versões marcadas geram o resumo para enviar na comunidade (mudanças internas de administração ficam ocultas).
+            </span>
+          </span>
+        </label>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onCancel} className="rounded-xl px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 dark:text-white/70 dark:hover:bg-white/10">
             Cancelar

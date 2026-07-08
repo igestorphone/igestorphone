@@ -319,131 +319,6 @@ router.put('/profile/recadastro', authenticateToken, [
   }
 });
 
-// Criar usuário funcionário (só calendário) – apenas assinante sem parent_id pode criar
-router.post('/funcionario-calendario', authenticateToken, [
-  body('name').trim().isLength({ min: 2 }),
-  body('email').isEmail().normalizeEmail(),
-  body('senha').isLength({ min: 6 })
-], async (req, res) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    if (req.user.parent_id) {
-      return res.status(403).json({ message: 'Apenas o assinante pode criar usuário do calendário.' });
-    }
-    const { name, senha } = req.body;
-    const email = (req.body.email || '').toString().toLowerCase().trim();
-
-    const existingUser = await query('SELECT id FROM users WHERE LOWER(TRIM(email)) = $1', [email]);
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'Email já está em uso' });
-    }
-
-    const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
-    const passwordHash = await bcrypt.hash(senha, saltRounds);
-
-    const parent = await query(
-      'SELECT id, subscription_status, subscription_expires_at FROM users WHERE id = $1',
-      [req.user.id]
-    );
-    if (parent.rows.length === 0) {
-      return res.status(403).json({ message: 'Usuário não encontrado' });
-    }
-    const p = parent.rows[0];
-
-    const userResult = await query(`
-      INSERT INTO users (name, email, password_hash, tipo, parent_id, is_active, subscription_status, subscription_expires_at)
-      VALUES ($1, $2, $3, 'user', $4, true, $5, $6)
-      RETURNING id, name, email, tipo, parent_id, created_at
-    `, [name, email, passwordHash, req.user.id, p.subscription_status || 'trial', p.subscription_expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)]);
-
-    const user = userResult.rows[0];
-
-    // Permitir login imediato: aprovar e não limitar por access_expires (ignora se colunas não existirem)
-    await query('UPDATE users SET approval_status = $1 WHERE id = $2', ['approved', user.id]).catch(() => {});
-    await query('UPDATE users SET access_expires_at = NULL WHERE id = $1', [user.id]).catch(() => {});
-
-    await query(`
-      INSERT INTO user_permissions (user_id, permission_name, granted)
-      VALUES ($1, 'calendario', true)
-      ON CONFLICT (user_id, permission_name) DO UPDATE SET granted = true
-    `, [user.id]);
-
-    await query(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [
-      req.user.id,
-      'funcionario_calendario_created',
-      JSON.stringify({ created_user_id: user.id, email: user.email }),
-      req.ip,
-      req.get('User-Agent')
-    ]);
-
-    res.status(201).json({ message: 'Usuário do calendário criado com sucesso', user });
-  } catch (error) {
-    console.error('Erro ao criar funcionário calendário:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
-  }
-});
-
-// Listar funcionários (usuários do calendário) criados pelo assinante
-router.get('/meus-funcionarios', authenticateToken, async (req, res) => {
-  try {
-    if (req.user.parent_id) {
-      return res.status(403).json({ message: 'Apenas o assinante pode listar usuários do calendário.' });
-    }
-    const result = await query(`
-      SELECT id, name, email, tipo, created_at, is_active
-      FROM users
-      WHERE parent_id = $1 AND is_active = true
-      ORDER BY created_at DESC
-    `, [req.user.id]);
-    res.json({ funcionarios: result.rows });
-  } catch (error) {
-    console.error('Erro ao listar funcionários:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
-  }
-});
-
-// Excluir funcionário (usuário do calendário) – remove do banco para permitir reutilizar o email
-router.delete('/funcionario-calendario/:id', authenticateToken, async (req, res) => {
-  try {
-    if (req.user.parent_id) {
-      return res.status(403).json({ message: 'Apenas o assinante pode excluir usuário do calendário.' });
-    }
-    const funcionarioId = parseInt(req.params.id, 10);
-    if (Number.isNaN(funcionarioId)) {
-      return res.status(400).json({ message: 'ID inválido' });
-    }
-    const check = await query(
-      'SELECT id FROM users WHERE id = $1 AND parent_id = $2',
-      [funcionarioId, req.user.id]
-    );
-    if (check.rows.length === 0) {
-      return res.status(404).json({ message: 'Usuário do calendário não encontrado ou você não pode excluí-lo.' });
-    }
-    await query('DELETE FROM user_permissions WHERE user_id = $1', [funcionarioId]);
-    await query('DELETE FROM users WHERE id = $1', [funcionarioId]);
-    await query(`
-      INSERT INTO system_logs (user_id, action, details, ip_address, user_agent)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [
-      req.user.id,
-      'funcionario_calendario_deleted',
-      JSON.stringify({ deleted_user_id: funcionarioId }),
-      req.ip,
-      req.get('User-Agent')
-    ]);
-    res.json({ message: 'Usuário do calendário excluído.' });
-  } catch (error) {
-    console.error('Erro ao excluir funcionário calendário:', error);
-    res.status(500).json({ message: 'Erro interno do servidor' });
-  }
-});
-
 // Atualizar perfil
 router.put('/profile', authenticateToken, [
   body('name').optional().trim().isLength({ min: 2 }),
@@ -1044,8 +919,6 @@ router.delete('/cleanup-inactive', requireRole('admin'), async (req, res) => {
 
         await runOptional(client, 'DELETE FROM user_permissions WHERE user_id = $1', [u.id]);
         await q('DELETE FROM subscriptions WHERE user_id = $1', [u.id]);
-        await q('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [u.id]);
-        await q('DELETE FROM calendar_events WHERE user_id = $1', [u.id]);
         await q('DELETE FROM goals WHERE user_id = $1', [u.id]);
         await q('DELETE FROM notes WHERE user_id = $1', [u.id]);
         await q('DELETE FROM support_tickets WHERE user_id = $1', [u.id]);
@@ -1633,8 +1506,6 @@ router.delete('/:id', requireRole('admin'), async (req, res) => {
 
       await client.query('BEGIN');
       await client.query('DELETE FROM subscriptions WHERE user_id = $1', [id]);
-      await client.query('DELETE FROM calendar_event_items WHERE event_id IN (SELECT id FROM calendar_events WHERE user_id = $1)', [id]);
-      await client.query('DELETE FROM calendar_events WHERE user_id = $1', [id]);
       await client.query('DELETE FROM goals WHERE user_id = $1', [id]);
       await client.query('DELETE FROM notes WHERE user_id = $1', [id]);
       await client.query('DELETE FROM support_tickets WHERE user_id = $1', [id]);
