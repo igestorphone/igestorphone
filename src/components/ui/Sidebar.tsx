@@ -10,7 +10,6 @@ import {
   Building2,
   UserPlus,
   Bug,
-  Target,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -23,7 +22,8 @@ import {
   Crown,
   Bell,
   Monitor,
-  Activity
+  Activity,
+  Code2
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
@@ -122,9 +122,9 @@ export default function Sidebar({ onClose }: SidebarProps) {
       category: 'admin'
     },
     {
-      name: 'Metas & Anotações',
-      href: '/goals',
-      icon: Target,
+      name: 'Controle de TI',
+      href: '/dev-log',
+      icon: Code2,
       category: 'admin'
     }
   ]

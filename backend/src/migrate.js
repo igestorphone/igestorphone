@@ -437,6 +437,48 @@ const migrations = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(50)`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMP`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS access_duration_days INTEGER`,
+
+  // ===== Controle de TI / Dev Log (admin) =====
+  // Backlog de tarefas de desenvolvimento
+  `CREATE TABLE IF NOT EXISTS dev_tasks (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'todo',
+    priority VARCHAR(20) NOT NULL DEFAULT 'medium',
+    target_version VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_dev_tasks_status ON dev_tasks(status)`,
+  `DROP TRIGGER IF EXISTS update_dev_tasks_updated_at ON dev_tasks`,
+  `CREATE TRIGGER update_dev_tasks_updated_at BEFORE UPDATE ON dev_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  // Versões/releases entregues (changelog)
+  `CREATE TABLE IF NOT EXISTS dev_releases (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    version VARCHAR(50) NOT NULL,
+    title VARCHAR(255),
+    description TEXT,
+    released_at DATE DEFAULT CURRENT_DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_dev_releases_released_at ON dev_releases(released_at DESC)`,
+
+  // Anotações livres de desenvolvimento (ideias, links, credenciais de teste)
+  `CREATE TABLE IF NOT EXISTS dev_notes (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `DROP TRIGGER IF EXISTS update_dev_notes_updated_at ON dev_notes`,
+  `CREATE TRIGGER update_dev_notes_updated_at BEFORE UPDATE ON dev_notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 ];
 
 async function runMigrations() {

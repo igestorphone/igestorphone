@@ -21,8 +21,7 @@ import utilsRoutes from './routes/utils.js';
 import supplierSuggestionsRoutes from './routes/supplier-suggestions.js';
 import bugReportsRoutes from './routes/bug-reports.js';
 import supportRoutes from './routes/support.js';
-import goalsRoutes from './routes/goals.js';
-import notesRoutes from './routes/notes.js';
+import devlogRoutes from './routes/devlog.js';
 import calendarRoutes from './routes/calendar.js';
 import registrationRoutes from './routes/registration.js';
 import productsCleanupRoutes from './routes/products-cleanup.js';
@@ -200,8 +199,7 @@ app.use('/api/utils', utilsRoutes);
 app.use('/api/supplier-suggestions', supplierSuggestionsRoutes);
 app.use('/api/bug-reports', bugReportsRoutes);
 app.use('/api/support', supportRoutes);
-app.use('/api/goals', authenticateToken, goalsRoutes);
-app.use('/api/notes', authenticateToken, notesRoutes);
+app.use('/api/devlog', devlogRoutes);
 app.use('/api/calendar', authenticateToken, calendarRoutes);
 
 // Rotas de IA - algumas públicas, outras protegidas

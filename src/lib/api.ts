@@ -346,41 +346,24 @@ export const supportApi = {
   createTicket: (data: { subject: string; message: string; priority?: 'low' | 'medium' | 'high' }) => api.post<{ success: boolean; ticket: { id: string; subject: string; message: string; status: string; priority: string; createdAt: string | null } }>('/support/tickets', data).then(r => r.data)
 }
 
-export const goalsApi = {
-  getAll: async () => {
-    const response = await api.get('/goals')
-    return response.data
+export const devlogApi = {
+  tasks: {
+    getAll: async () => (await api.get('/devlog/tasks')).data,
+    create: async (data: any) => (await api.post('/devlog/tasks', data)).data,
+    update: async (id: number, data: any) => (await api.put(`/devlog/tasks/${id}`, data)).data,
+    delete: async (id: number) => (await api.delete(`/devlog/tasks/${id}`)).data
   },
-  create: async (data: any) => {
-    const response = await api.post('/goals', data)
-    return response.data
+  releases: {
+    getAll: async () => (await api.get('/devlog/releases')).data,
+    create: async (data: any) => (await api.post('/devlog/releases', data)).data,
+    update: async (id: number, data: any) => (await api.put(`/devlog/releases/${id}`, data)).data,
+    delete: async (id: number) => (await api.delete(`/devlog/releases/${id}`)).data
   },
-  update: async (id: number, data: any) => {
-    const response = await api.put(`/goals/${id}`, data)
-    return response.data
-  },
-  delete: async (id: number) => {
-    const response = await api.delete(`/goals/${id}`)
-    return response.data
-  }
-}
-
-export const notesApi = {
-  getAll: async () => {
-    const response = await api.get('/notes')
-    return response.data
-  },
-  create: async (data: any) => {
-    const response = await api.post('/notes', data)
-    return response.data
-  },
-  update: async (id: number, data: any) => {
-    const response = await api.put(`/notes/${id}`, data)
-    return response.data
-  },
-  delete: async (id: number) => {
-    const response = await api.delete(`/notes/${id}`)
-    return response.data
+  notes: {
+    getAll: async () => (await api.get('/devlog/notes')).data,
+    create: async (data: any) => (await api.post('/devlog/notes', data)).data,
+    update: async (id: number, data: any) => (await api.put(`/devlog/notes/${id}`, data)).data,
+    delete: async (id: number) => (await api.delete(`/devlog/notes/${id}`)).data
   }
 }
 

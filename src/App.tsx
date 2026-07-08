@@ -28,7 +28,7 @@ import SupportPage from '@/pages/SupportPage'
 import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
 import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
 import BugReportsPage from '@/pages/BugReportsPage'
-import GoalsPage from '@/pages/GoalsPage'
+import DevLogPage from '@/pages/DevLogPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
 import RankingPage from '@/pages/RankingPage'
 import CalendarPage from '@/pages/CalendarPage'
@@ -224,12 +224,12 @@ function App() {
         }>
           <Route index element={<BugReportsPage />} />
         </Route>
-        <Route path="/goals" element={
+        <Route path="/dev-log" element={
           <ProtectedRoute>
             <MainLayout />
           </ProtectedRoute>
         }>
-          <Route index element={<GoalsPage />} />
+          <Route index element={<DevLogPage />} />
         </Route>
         <Route path="/admin/users/create" element={
           <ProtectedRoute>
