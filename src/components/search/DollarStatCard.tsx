@@ -28,6 +28,7 @@ export default function DollarStatCard({ className = '' }: { className?: string 
   return (
     <SearchStatCard
       className={className}
+      dense
       label="Dólar"
       icon={DollarSign}
       iconWrapClass="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
@@ -36,12 +37,12 @@ export default function DollarStatCard({ className = '' }: { className?: string 
       trailing={
         pct != null ? (
           <span
-            className={`inline-flex shrink-0 items-center gap-0.5 text-[10px] font-semibold sm:text-[11px] ${
+            className={`inline-flex shrink-0 items-center gap-0.5 text-[10px] font-semibold whitespace-nowrap sm:text-[11px] ${
               up ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
             }`}
           >
             {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-            {`${pct.toFixed(2).replace('.', ',')}%`}
+            {`${up ? '+' : ''}${pct.toFixed(2).replace('.', ',')}%`}
           </span>
         ) : null
       }
