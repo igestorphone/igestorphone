@@ -48,7 +48,7 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
         }
       }}
       whileTap={{ scale: 0.99 }}
-      className={`relative overflow-hidden rounded-xl border border-emerald-200/70 dark:border-emerald-400/30 shadow-md shadow-emerald-500/10 cursor-pointer touch-manipulation ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-400/30 shadow-md shadow-emerald-500/10 cursor-pointer touch-manipulation aspect-[5/2] xl:aspect-[3/1] xl:self-start ${className}`}
     >
       <motion.div
         aria-hidden
@@ -57,32 +57,37 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
         transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Mobile: faixa compacta estilo concorrente */}
+      {/* Mobile: altura ~2.5:1 como o banner do concorrente */}
       <motion.div
-        className="relative flex items-center gap-3 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-700 dark:from-emerald-800 dark:via-emerald-900 dark:to-teal-950 px-3 py-2.5 xl:hidden"
+        className="relative flex h-full flex-col justify-between bg-gradient-to-br from-emerald-400/90 via-emerald-500 to-teal-600 dark:from-emerald-800 dark:via-emerald-900 dark:to-teal-950 px-3.5 py-3 xl:hidden"
         initial={false}
       >
-        <motion.div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-100/90">Indique e ganhe</p>
-          <p className="mt-0.5 text-[15px] font-black leading-tight text-white">
-            1 cliente = <span className="text-amber-200">1 mês grátis</span>
+        <p className="text-[9px] font-bold uppercase tracking-wider text-emerald-950/70 dark:text-emerald-100/80">
+          Indique e ganhe
+        </p>
+
+        <div className="flex min-h-0 flex-1 items-center justify-between gap-2 py-1">
+          <p className="text-[15px] font-black leading-snug text-white">
+            1 cliente = <span className="text-amber-100">1 mês grátis</span>
           </p>
-        </motion.div>
-        <motion.div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/25 bg-white/15"
-          aria-hidden
-          animate={{ y: [0, -2, 0] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          <Gift className="h-5 w-5 text-amber-200" strokeWidth={1.75} />
-        </motion.div>
-        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#25D366] text-white shadow-sm">
-          <MessageCircle className="h-4 w-4" aria-hidden />
+          <motion.div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15"
+            aria-hidden
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <Gift className="h-5 w-5 text-amber-100" strokeWidth={1.75} />
+          </motion.div>
+        </div>
+
+        <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-full bg-[#22c55e] py-2 text-[11px] font-bold text-white shadow-sm">
+          <MessageCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Indicar pelo WhatsApp
         </span>
       </motion.div>
 
-      {/* Desktop: banner grande à direita */}
-      <div className="relative hidden min-h-[210px] flex-col xl:flex">
+      {/* Desktop: banner grande (proporção 3:1 como o concorrente) */}
+      <div className="relative hidden h-full flex-col xl:flex">
         <motion.div
           aria-hidden
           className="pointer-events-none absolute -bottom-14 -left-8 h-40 w-40 rounded-full bg-teal-400/25 blur-3xl dark:bg-teal-500/15"
@@ -90,51 +95,36 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
           transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
         />
 
-        <motion.div className="relative flex flex-1 flex-col bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-900 dark:via-emerald-950 dark:to-black p-5">
-          <motion.div
-            className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-white backdrop-blur-sm"
-            animate={{ opacity: [0.85, 1, 0.85] }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            Indique e ganhe
-          </motion.div>
-
-          <div className="mt-4 flex flex-1 flex-row items-center justify-between gap-4">
-            <motion.div className="min-w-0 flex-1">
-              <p className="text-lg font-bold text-white/95">Traga um lojista</p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <div className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 backdrop-blur-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-100/80">Você indica</p>
-                  <p className="text-2xl font-black text-white">1 cliente</p>
-                </div>
-                <span className="text-2xl font-black text-emerald-200/90" aria-hidden>
-                  =
-                </span>
-                <div className="rounded-xl border border-amber-300/35 bg-amber-400/15 px-3 py-2 backdrop-blur-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-100/90">Você ganha</p>
-                  <p className="text-2xl font-black text-amber-50">1 mês grátis</p>
-                </div>
-              </div>
-            </motion.div>
-
+        <motion.div className="relative flex h-full flex-row items-center justify-between gap-4 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 dark:from-emerald-900 dark:via-emerald-950 dark:to-black p-4">
+          <div className="min-w-0 flex-1">
             <motion.div
-              className="flex h-24 w-24 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-inner backdrop-blur-md"
-              aria-hidden
-              animate={{ y: [0, -6, 0], rotate: [0, -5, 5, 0] }}
-              transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+              className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white backdrop-blur-sm"
+              animate={{ opacity: [0.85, 1, 0.85] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <Gift className="h-12 w-12 text-amber-200" strokeWidth={1.5} />
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Indique e ganhe
             </motion.div>
+            <p className="mt-2 text-xl font-black leading-tight text-white">
+              1 cliente = <span className="text-amber-200">1 mês grátis</span>
+            </p>
+            <motion.span
+              className="mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-black/20"
+              whileHover={{ backgroundColor: '#20bd5a' }}
+            >
+              <MessageCircle className="h-4 w-4 shrink-0" aria-hidden />
+              Indicar pelo WhatsApp
+            </motion.span>
           </div>
 
-          <motion.span
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-black/20"
-            whileHover={{ backgroundColor: '#20bd5a' }}
+          <motion.div
+            className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-inner backdrop-blur-md"
+            aria-hidden
+            animate={{ y: [0, -6, 0], rotate: [0, -5, 5, 0] }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
           >
-            <MessageCircle className="h-5 w-5 shrink-0" aria-hidden />
-            Indicar pelo WhatsApp
-          </motion.span>
+            <Gift className="h-9 w-9 text-amber-200" strokeWidth={1.5} />
+          </motion.div>
         </motion.div>
       </div>
     </motion.div>

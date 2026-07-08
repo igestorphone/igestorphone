@@ -167,25 +167,9 @@ const migrations = [
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
-  // Notificações in-app
-  `CREATE TABLE IF NOT EXISTS notifications (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(200) NOT NULL,
-    message TEXT NOT NULL,
-    link_url TEXT,
-    target JSONB NOT NULL DEFAULT '{}'::jsonb,
-    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS user_notifications (
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    notification_id INTEGER NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
-    read_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (user_id, notification_id)
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_user_notifications_user_read ON user_notifications(user_id, read_at)`,
-  `CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at)`,
+  // Notificações in-app removidas — dropar tabelas se existirem
+  `DROP TABLE IF EXISTS user_notifications CASCADE`,
+  `DROP TABLE IF EXISTS notifications CASCADE`,
 
   // Inbox WhatsApp (webhook Cloud API)
   `CREATE TABLE IF NOT EXISTS whatsapp_inbox (

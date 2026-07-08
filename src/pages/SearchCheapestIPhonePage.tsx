@@ -50,6 +50,8 @@ import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
 import { isAccessoryProduct } from '@/lib/productColorSwatch'
 import ReferralProgramCard from '@/components/referral/ReferralProgramCard'
 import MobileSearchProductCard from '@/components/search/MobileSearchProductCard'
+import DollarStatCard from '@/components/search/DollarStatCard'
+import SearchStatCard from '@/components/search/SearchStatCard'
 import { useAuthStore } from '@/stores/authStore'
 
 // Cores oficiais disponíveis (para filtro - apenas iPhone 17 normal tem essas 5 cores)
@@ -1656,40 +1658,29 @@ Ainda tem disponível?`
             userEmail={authUser?.email}
           />
           <motion.div layout className="order-2 xl:order-1 xl:col-span-7 space-y-3">
-            <motion.div className="grid grid-cols-3 gap-2 sm:gap-3 auto-rows-min">
-              <div className="rounded-xl border border-slate-200/90 dark:border-white/10 bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black p-3 min-h-[84px] shadow-[0_1px_0_rgba(15,23,42,0.04)]">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Produtos</p>
-                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300">
-                    <Package className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-slate-900 dark:text-white">
-                  <AnimatedNumber value={displayTopProducts} />
-                </p>
-              </div>
-              <div className="rounded-xl border border-emerald-200/80 dark:border-emerald-400/20 bg-gradient-to-br from-white to-emerald-50/60 dark:from-zinc-950 dark:to-emerald-950/20 p-3 min-h-[84px] shadow-[0_1px_0_rgba(16,185,129,0.08)]">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Fornec.</p>
-                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-slate-900 dark:text-white">
-                  <AnimatedNumber value={displayTopSuppliers} />
-                </p>
-              </div>
-              <div className="rounded-xl border border-amber-200/80 dark:border-amber-400/20 bg-gradient-to-br from-white to-amber-50/60 dark:from-zinc-950 dark:to-amber-950/20 p-3 min-h-[84px] shadow-[0_1px_0_rgba(245,158,11,0.08)]">
-                <div className="flex items-center justify-between">
-                  <p className="text-[10px] sm:text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400 font-semibold">Sem lista</p>
-                  <span className="inline-flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className="mt-1 text-[22px] sm:text-[28px] leading-none font-black text-amber-700 dark:text-amber-300">
-                  <AnimatedNumber value={totalWithoutListToday} />
-                </p>
-              </div>
+            <motion.div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5 sm:gap-2 xl:gap-3 auto-rows-min">
+              <SearchStatCard
+                label="Produtos"
+                icon={Package}
+                iconWrapClass="bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300"
+                value={<AnimatedNumber value={displayTopProducts} />}
+              />
+              <SearchStatCard
+                label="Fornecedores"
+                icon={ShoppingCart}
+                iconWrapClass="bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
+                iconClass="text-emerald-700 dark:text-emerald-300"
+                value={<AnimatedNumber value={displayTopSuppliers} />}
+              />
+              <SearchStatCard
+                label="Sem lista"
+                icon={AlertTriangle}
+                iconWrapClass="bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+                iconClass="text-amber-700 dark:text-amber-300"
+                valueClass="text-amber-700 dark:text-amber-300"
+                value={<AnimatedNumber value={totalWithoutListToday} />}
+              />
+              <DollarStatCard />
             </motion.div>
 
             <div ref={searchInputRef} className="relative z-30 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-zinc-950 shadow-sm overflow-visible">

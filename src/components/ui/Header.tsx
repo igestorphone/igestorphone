@@ -1,38 +1,41 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, LogOut, User, UserPlus, Bug, Moon, Sun, Bell, ExternalLink, Clock, Monitor } from 'lucide-react'
+import { Menu, X, LogOut, User, UserPlus, Bug, Moon, Sun, Clock, Monitor, Search, Settings, ChevronDown, FileText, Users, Building2, Activity, Code2, CreditCard, MessageCircle } from 'lucide-react'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
+import { usePermissions } from '@/hooks/usePermissions'
 import SuggestSupplierModal from '@/components/forms/SuggestSupplierModal'
 import ReportBugModal from '@/components/forms/ReportBugModal'
-import { notificationsApi } from '@/lib/api'
-import { useQuery } from '@tanstack/react-query'
-import toast from 'react-hot-toast'
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
+
+const adminNavigation = [
+  { name: 'Processar lista', href: '/process-list', icon: FileText },
+  { name: 'Gerenciar Usuários', href: '/manage-users', icon: Users },
+  { name: 'Gerenciar Fornecedores', href: '/admin/manage-suppliers', icon: Building2 },
+  { name: 'Indicações de Fornecedores', href: '/supplier-suggestions', icon: UserPlus },
+  { name: 'Monitor ao vivo', href: '/admin/monitor', icon: Activity },
+  { name: 'Reportes de Bug', href: '/bug-reports', icon: Bug },
+  { name: 'Controle de TI', href: '/dev-log', icon: Code2 },
+]
 
 export default function Header() {
   const { user, logout } = useAuthStore()
   const { sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
+  const { canAccessSearchCheapest } = usePermissions()
+  const isAdmin = user?.tipo === 'admin'
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showAdminMenu, setShowAdminMenu] = useState(false)
   const [showSuggestModal, setShowSuggestModal] = useState(false)
   const [showBugModal, setShowBugModal] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const navigate = useNavigate()
   const userMenuRef = useRef<HTMLDivElement>(null)
   const userButtonRef = useRef<HTMLButtonElement>(null)
-  const notifRef = useRef<HTMLDivElement>(null)
-  const notifButtonRef = useRef<HTMLButtonElement>(null)
-  const [showNotifs, setShowNotifs] = useState(false)
-  const [notifPos, setNotifPos] = useState({ top: 0, right: 0, left: 0 })
-  const [notifNarrow, setNotifNarrow] = useState(() =>
-    typeof window !== 'undefined' ? window.matchMedia('(max-width: 639px)').matches : false
-  )
+  const adminMenuRef = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
-  const prevUnreadRef = useRef<number | null>(null)
-  const didInitUnreadRef = useRef(false)
 
   /** Re-render após meia-noite (SP) para o contador de dias baixar sem recarregar a página. */
   const [dayTick, setDayTick] = useState(0)
@@ -54,6 +57,13 @@ export default function Header() {
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark')
   }
+
+  const topNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+      isActive
+        ? 'bg-gray-900 text-white dark:bg-white dark:text-black'
+        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+    }`
 
   useEffect(() => {
     const readScroll = () => {
@@ -84,131 +94,25 @@ export default function Header() {
     }
   }, [showUserMenu])
 
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px)')
-    const onChange = () => setNotifNarrow(mq.matches)
-    onChange()
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
-  const updateNotifPosition = () => {
-    const el = notifButtonRef.current ?? notifRef.current?.querySelector('button')
-    if (!el) return
-    const rect = el.getBoundingClientRect()
-    const top = rect.bottom + 8
-    const panelW = Math.min(360, window.innerWidth - 24)
-    if (notifNarrow) {
-      setNotifPos({ top, right: 12, left: 12 })
-      return
-    }
-    let left = rect.right - panelW
-    left = Math.max(12, Math.min(left, window.innerWidth - panelW - 12))
-    setNotifPos({ top, right: window.innerWidth - rect.right, left })
-  }
-
-  useEffect(() => {
-    if (!showNotifs) return
-    updateNotifPosition()
-    window.addEventListener('resize', updateNotifPosition)
-    window.addEventListener('scroll', updateNotifPosition, true)
-    return () => {
-      window.removeEventListener('resize', updateNotifPosition)
-      window.removeEventListener('scroll', updateNotifPosition, true)
-    }
-  }, [showNotifs, notifNarrow])
-
   // Fechar menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false)
       }
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setShowNotifs(false)
+      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
+        setShowAdminMenu(false)
       }
     }
 
-    if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-    if (showNotifs) {
+    if (showUserMenu || showAdminMenu) {
       document.addEventListener('mousedown', handleClickOutside)
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showUserMenu, showNotifs])
-
-  const myNotifsQuery = useQuery({
-    queryKey: ['my-notifications'],
-    queryFn: () => notificationsApi.my(),
-    enabled: Boolean(user),
-    staleTime: 10000,
-    refetchOnWindowFocus: true,
-    refetchInterval: user ? 60000 : false,
-  })
-  const notifsRaw = (myNotifsQuery.data as any)?.data ?? myNotifsQuery.data
-  const myNotifs = notifsRaw?.notifications ?? []
-  const unreadCount = Number(notifsRaw?.unreadCount ?? 0)
-
-  useEffect(() => {
-    if (!user) return
-
-    if (!didInitUnreadRef.current) {
-      didInitUnreadRef.current = true
-      prevUnreadRef.current = unreadCount
-      return
-    }
-
-    const prev = prevUnreadRef.current ?? 0
-    prevUnreadRef.current = unreadCount
-
-    const delta = unreadCount - prev
-    if (delta <= 0) return
-
-    toast.custom(
-      (t) => (
-        <button
-          onClick={() => {
-            toast.dismiss(t.id)
-            setShowNotifs(true)
-          }}
-          className={`${
-            t.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
-          } transition-all duration-200 w-[360px] max-w-[92vw] text-left px-4 py-3 rounded-2xl shadow-2xl border border-gray-200 dark:border-white/15 bg-white dark:bg-black`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-bold text-gray-900 dark:text-white">
-                🔔 Você recebeu {delta} notificaç{delta === 1 ? 'ão' : 'ões'} nova{delta === 1 ? '' : 's'}!
-              </div>
-              <div className="text-xs text-gray-600 dark:text-white/70 mt-0.5">
-                Toque aqui para abrir.
-              </div>
-            </div>
-            <div className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 shrink-0 mt-0.5">
-              Ver
-            </div>
-          </div>
-        </button>
-      ),
-      { duration: 4500 }
-    )
-  }, [unreadCount, user])
-
-  const markReadAndOpen = async (n: any) => {
-    try {
-      await notificationsApi.markRead(Number(n.id))
-      myNotifsQuery.refetch()
-    } catch (_) {}
-    if (n.link_url) {
-      window.open(n.link_url, '_blank')
-    } else {
-      toast.success('Notificação marcada como lida.')
-    }
-  }
+  }, [showUserMenu, showAdminMenu])
 
   const handleLogout = () => {
     logout()
@@ -229,31 +133,84 @@ export default function Header() {
         <div className="flex items-center justify-between h-16 sm:h-20 relative">
           {/* Left side */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Mobile menu button - min 44px tap target (iOS) */}
-            <button
-              onClick={toggleSidebar}
-              className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center shrink-0"
-            >
-              <div className={`transition-transform duration-200 ${sidebarOpen ? 'rotate-90' : ''}`}>
-                {sidebarOpen ? (
-                  <X className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
-                ) : (
-                  <Menu className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
-                )}
-              </div>
-            </button>
-            {/* Logo no mobile - centralizado, maior */}
+            {/* Logo no mobile - à esquerda (igual concorrente) */}
             <Link
               to="/search-cheapest-iphone"
-              className="lg:hidden flex items-center justify-center min-w-0 flex-1"
+              className="lg:hidden flex items-center shrink-0"
               onClick={() => sidebarOpen && setSidebarOpen(false)}
             >
               <img
                 src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
                 alt="iGestorPhone"
-                className="h-12 w-auto max-w-[160px] object-contain"
+                className="h-10 w-auto max-w-[150px] object-contain"
               />
             </Link>
+
+            {/* Desktop: logo à esquerda */}
+            <Link to="/search-cheapest-iphone" className="hidden lg:flex items-center shrink-0">
+              <img
+                src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
+                alt="iGestorPhone"
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+
+            {/* Desktop: navegação no topo */}
+            <nav className="hidden lg:flex items-center gap-1 ml-4">
+              {canAccessSearchCheapest() && (
+                <NavLink to="/search-cheapest-iphone" className={topNavLinkClass}>
+                  <Search className="w-4 h-4" />
+                  <span>Preços</span>
+                </NavLink>
+              )}
+
+              {isAdmin && (
+                <div className="relative" ref={adminMenuRef}>
+                  <button
+                    onClick={() => setShowAdminMenu((v) => !v)}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                      showAdminMenu
+                        ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+                    }`}
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Administração</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showAdminMenu ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  <AnimatePresence>
+                    {showAdminMenu && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                        transition={{ duration: 0.16 }}
+                        className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-black border border-gray-200 dark:border-white/15 rounded-2xl shadow-2xl z-[9999] py-2"
+                      >
+                        {adminNavigation.map((item) => (
+                          <NavLink
+                            key={item.href}
+                            to={item.href}
+                            onClick={() => setShowAdminMenu(false)}
+                            className={({ isActive }) =>
+                              `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                                isActive
+                                  ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300'
+                                  : 'text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10'
+                              }`
+                            }
+                          >
+                            <item.icon className="w-4 h-4 shrink-0" />
+                            <span className="font-medium truncate">{item.name}</span>
+                          </NavLink>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+            </nav>
           </div>
 
           {/* Right side */}
@@ -280,108 +237,6 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Notificações (todos os usuários) */}
-            <div className="relative z-[9998]" ref={notifRef}>
-                <button
-                  ref={notifButtonRef}
-                  onClick={() => setShowNotifs((v) => !v)}
-                  className="relative p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
-                  title="Notificações"
-                >
-                  <Bell className={`${theme === 'dark' ? 'text-white' : 'text-gray-800'} w-5 h-5 group-hover:scale-110 transition-transform`} />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-600 text-white text-[10px] flex items-center justify-center font-bold">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-                <AnimatePresence>
-                  {showNotifs && (
-                    <>
-                      {notifNarrow && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="fixed inset-0 z-[99998] bg-black/40 backdrop-blur-[2px]"
-                          onClick={() => setShowNotifs(false)}
-                          aria-hidden
-                        />
-                      )}
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                      transition={{ duration: 0.18 }}
-                      className="fixed bg-white dark:bg-black backdrop-blur-xl border border-gray-200 dark:border-white/20 rounded-2xl shadow-2xl z-[99999] overflow-hidden flex flex-col"
-                      style={{
-                        top: `${notifPos.top}px`,
-                        ...(notifNarrow
-                          ? { left: 12, right: 12, width: 'auto' }
-                          : { left: notifPos.left, width: 'min(360px, calc(100vw - 1.5rem))' }),
-                        maxHeight: 'min(70vh, calc(100vh - env(safe-area-inset-top) - 5rem))',
-                      }}
-                    >
-                      <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10 flex items-center justify-between shrink-0">
-                        <div className="text-sm font-semibold text-gray-900 dark:text-white">Notificações</div>
-                        <div className="text-xs text-gray-500 dark:text-white/60">
-                          {unreadCount} não lida(s)
-                        </div>
-                      </div>
-                      <div className="py-2 overflow-y-auto overscroll-contain">
-                        {myNotifsQuery.isFetching && myNotifs.length === 0 ? (
-                          <div className="px-4 py-6 text-sm text-gray-500 dark:text-white/60">Carregando…</div>
-                        ) : myNotifs.length === 0 ? (
-                          <div className="px-4 py-6 text-sm text-gray-500 dark:text-white/60">Nenhuma notificação.</div>
-                        ) : (
-                          myNotifs.slice(0, 8).map((n: any) => {
-                            const isUnread = !n.read_at
-                            return (
-                              <button
-                                key={n.id}
-                                onClick={() => markReadAndOpen(n)}
-                                className={`w-full text-left px-4 py-3.5 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${
-                                  isUnread ? 'bg-indigo-50/60 dark:bg-indigo-500/10' : ''
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-semibold text-gray-900 dark:text-white break-words">
-                                      {n.title}
-                                    </div>
-                                    <div className="text-xs text-gray-600 dark:text-white/70 mt-1 break-words leading-relaxed line-clamp-4">
-                                      {n.message}
-                                    </div>
-                                    <div className="text-[10px] text-gray-500 dark:text-white/50 mt-1.5">
-                                      {new Date(n.created_at).toLocaleString('pt-BR')}
-                                    </div>
-                                  </div>
-                                  {n.link_url && (
-                                    <ExternalLink className="w-4 h-4 text-gray-400 dark:text-white/60 shrink-0 mt-0.5" />
-                                  )}
-                                </div>
-                              </button>
-                            )
-                          })
-                        )}
-                      </div>
-                      {notifNarrow && (
-                        <div className="border-t border-gray-200 dark:border-white/10 p-3 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => setShowNotifs(false)}
-                            className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white"
-                          >
-                            Fechar
-                          </button>
-                        </div>
-                      )}
-                    </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-
             {/* Toggle Theme Button */}
             <button
               onClick={toggleTheme}
@@ -393,6 +248,21 @@ export default function Header() {
               ) : (
                 <Moon className="w-5 h-5 text-gray-800 group-hover:scale-110 transition-transform" />
               )}
+            </button>
+
+            {/* Mobile menu button - à direita, depois da lua (igual concorrente) */}
+            <button
+              onClick={toggleSidebar}
+              className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center shrink-0"
+              title="Menu"
+            >
+              <div className={`transition-transform duration-200 ${sidebarOpen ? 'rotate-90' : ''}`}>
+                {sidebarOpen ? (
+                  <X className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
+                ) : (
+                  <Menu className="w-5 h-5 text-gray-800 dark:text-white group-hover:scale-110 transition-transform" />
+                )}
+              </div>
             </button>
 
             {/* Botão Indicar Fornecedor */}
@@ -413,8 +283,8 @@ export default function Header() {
               <span>Bug</span>
             </button>
 
-            {/* User menu */}
-            <div className="relative z-[9998]" ref={userMenuRef}>
+            {/* User menu (desktop apenas — no mobile as opções ficam no menu hambúrguer) */}
+            <div className="relative z-[9998] hidden lg:block" ref={userMenuRef}>
               <button
                 ref={userButtonRef}
                 onClick={() => setShowUserMenu(!showUserMenu)}
@@ -502,6 +372,26 @@ export default function Header() {
                         >
                           <Monitor className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Dispositivos</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('/subscription')
+                            setShowUserMenu(false)
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group"
+                        >
+                          <CreditCard className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span>Assinatura</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            navigate('/support')
+                            setShowUserMenu(false)
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group"
+                        >
+                          <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span>Fale Conosco</span>
                         </button>
                         <hr className="my-2 border-gray-200 dark:border-white/10" />
                         <button

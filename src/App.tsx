@@ -32,7 +32,6 @@ import SubscriptionPage from '@/pages/SubscriptionPage'
 import RankingPage from '@/pages/RankingPage'
 import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
-import NotificationsAdminPage from '@/pages/NotificationsAdminPage'
 import AdminLiveOverviewPage from '@/pages/AdminLiveOverviewPage'
 import { hasActiveSubscriptionAccess, requiresCheckoutOnly } from '@/lib/subscriptionAccess'
 
@@ -183,13 +182,7 @@ function App() {
         }>
           <Route index element={<ManageSuppliersPage />} />
         </Route>
-        <Route path="/admin/notifications" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<NotificationsAdminPage />} />
-        </Route>
+        <Route path="/admin/notifications" element={<Navigate to="/admin/monitor" replace />} />
         <Route path="/admin/whatsapp-inbox" element={<Navigate to="/admin/monitor" replace />} />
         <Route path="/admin/monitor" element={
           <ProtectedRoute>
