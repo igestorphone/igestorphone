@@ -15,8 +15,8 @@ export default function DollarStatCard({ className = '' }: { className?: string 
   const { data } = useQuery({
     queryKey: ['usd-brl'],
     queryFn: fetchUsdBrl,
-    staleTime: 5 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1,
   })
