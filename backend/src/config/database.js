@@ -13,12 +13,21 @@ const basePoolConfig = {
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10)
 };
 
+// Habilita SSL quando o banco é remoto (ex.: Neon/Render), mesmo em desenvolvimento local.
+// Provedores gerenciados exigem SSL; um Postgres local normalmente não usa.
+const connectionString = process.env.DATABASE_URL || '';
+const wantsSSL =
+  isProduction ||
+  process.env.DB_SSL === 'true' ||
+  /neon\.tech|render\.com|sslmode=require|amazonaws\.com/i.test(connectionString);
+const sslConfig = wantsSSL ? { rejectUnauthorized: false } : false;
+
 let dbConfig;
 
 if (process.env.DATABASE_URL) {
   dbConfig = {
     connectionString: process.env.DATABASE_URL,
-    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    ssl: sslConfig,
     ...basePoolConfig
   };
 } else {
@@ -28,7 +37,7 @@ if (process.env.DATABASE_URL) {
     database: process.env.DB_NAME || 'igestorphone',
     user: process.env.DB_USER || 'MAC',
     password: process.env.DB_PASSWORD || '',
-    ssl: isProduction ? { rejectUnauthorized: false } : false,
+    ssl: sslConfig,
     ...basePoolConfig
   };
 }

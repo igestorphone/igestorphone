@@ -400,10 +400,43 @@ const migrations = [
   `DROP TRIGGER IF EXISTS update_whatsapp_inbox_updated_at ON whatsapp_inbox`,
   `CREATE TRIGGER update_whatsapp_inbox_updated_at BEFORE UPDATE ON whatsapp_inbox FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
 
+  // Números de WhatsApp dos fornecedores (múltiplos por fornecedor)
+  `CREATE TABLE IF NOT EXISTS supplier_whatsapp_numbers (
+    id SERIAL PRIMARY KEY,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    phone_number VARCHAR(30) NOT NULL,
+    is_primary BOOLEAN DEFAULT false,
+    description VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(supplier_id, phone_number)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_supplier_whatsapp_phone ON supplier_whatsapp_numbers(phone_number)`,
+  `CREATE INDEX IF NOT EXISTS idx_supplier_whatsapp_supplier ON supplier_whatsapp_numbers(supplier_id)`,
+  `DROP TRIGGER IF EXISTS update_supplier_whatsapp_numbers_updated_at ON supplier_whatsapp_numbers`,
+  `CREATE TRIGGER update_supplier_whatsapp_numbers_updated_at BEFORE UPDATE ON supplier_whatsapp_numbers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()`,
+
+  // Tabela de tokens de cadastro (links de convite gerados pelo admin)
+  `CREATE TABLE IF NOT EXISTS registration_tokens (
+    id SERIAL PRIMARY KEY,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    used_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    expires_at TIMESTAMP,
+    is_used BOOLEAN DEFAULT false,
+    used_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+
   // Trial: link grátis com grace individual
   `ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_days INTEGER`,
   `ALTER TABLE registration_tokens ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`,
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_grace_days INTEGER`,
+
+  // Sistema de aprovação/acesso (usado no login e no cadastro por convite)
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS approval_status VARCHAR(50)`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMP`,
+  `ALTER TABLE users ADD COLUMN IF NOT EXISTS access_duration_days INTEGER`,
 ];
 
 async function runMigrations() {
