@@ -47,24 +47,26 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
         }
       }}
       whileTap={{ scale: 0.99 }}
-      className={`relative overflow-hidden rounded-2xl shadow-md cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black aspect-[5/2] xl:aspect-[1024/341] xl:self-start ${className}`}
+      className={`relative overflow-hidden rounded-2xl shadow-md cursor-pointer touch-manipulation focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black xl:self-start ${className}`}
       aria-label="Programa de indicação iGestorPhone — Enviar meu convite"
     >
-      {/* Mobile: altura compacta (~2.5:1, como o concorrente); a arte é cortada com object-cover */}
+      {/*
+        Importante: a proporção fica NA própria <img> (não em um wrapper com filhos absolute).
+        No Safari/iOS, aspect-ratio + só filhos position:absolute pode colapsar a altura a 0
+        e o banner some no celular.
+      */}
       <img
         src="/assets/images/referral-banner-mobile.jpg"
         alt="Programa de indicação iGestorPhone: indique lojistas e use grátis"
-        className="absolute inset-0 h-full w-full object-cover object-[center_30%] xl:hidden"
-        loading="lazy"
+        className="block w-full aspect-[5/2] object-cover object-[center_30%] xl:hidden"
+        loading="eager"
         decoding="async"
       />
-
-      {/* Desktop: proporção da arte do designer */}
       <img
         src="/assets/images/referral-banner-desktop.jpg"
         alt="Programa de indicação iGestorPhone: indique lojistas e use grátis"
-        className="absolute inset-0 hidden h-full w-full object-cover object-center xl:block"
-        loading="lazy"
+        className="hidden w-full aspect-[1024/341] object-cover object-center xl:block"
+        loading="eager"
         decoding="async"
       />
     </motion.div>
