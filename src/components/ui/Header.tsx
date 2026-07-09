@@ -28,7 +28,6 @@ import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
-import { usePermissions } from '@/hooks/usePermissions'
 import ReportBugModal from '@/components/forms/ReportBugModal'
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 
@@ -45,7 +44,6 @@ const adminNavigation = [
 export default function Header() {
   const { user, logout } = useAuthStore()
   const { sidebarOpen, setSidebarOpen, theme, setTheme } = useAppStore()
-  const { canAccessSearchCheapest } = usePermissions()
   const isAdmin = user?.tipo === 'admin'
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showAdminMenu, setShowAdminMenu] = useState(false)
@@ -148,9 +146,9 @@ export default function Header() {
       }`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="relative flex h-16 items-center sm:h-20">
+        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3 sm:h-20">
           {/* Esquerda: logo */}
-          <div className="flex min-w-0 flex-1 items-center">
+          <div className="flex min-w-0 items-center justify-self-start">
             <Link
               to="/search-cheapest-iphone"
               className="lg:hidden flex items-center shrink-0 group"
@@ -176,71 +174,67 @@ export default function Header() {
           </div>
 
           {/* Centro: Preços + Avaliações (+ Administração no desktop) */}
-          <nav className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 lg:flex">
-            <div className="pointer-events-auto flex items-center gap-1">
-              {canAccessSearchCheapest() && (
-                <NavLink to="/search-cheapest-iphone" className={topNavLinkClass}>
-                  <Search className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-rotate-12" />
-                  <span>Preços</span>
-                </NavLink>
-              )}
+          <nav className="hidden items-center justify-self-center gap-1 lg:flex">
+            <NavLink to="/search-cheapest-iphone" className={topNavLinkClass}>
+              <Search className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-rotate-12" />
+              <span>Preços</span>
+            </NavLink>
 
-              <NavLink to="/reviews" className={topNavLinkClass}>
-                <Star className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-12" />
-                <span>Avaliações</span>
-              </NavLink>
+            <NavLink to="/reviews" className={topNavLinkClass}>
+              <Star className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-12" />
+              <span>Avaliações</span>
+            </NavLink>
 
-              {isAdmin && (
-                <div className="relative" ref={adminMenuRef}>
-                  <button
-                    onClick={() => setShowAdminMenu((v) => !v)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
-                      showAdminMenu
-                        ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
-                    }`}
-                  >
-                    <Settings className="w-4 h-4" />
-                    <span>Administração</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showAdminMenu ? 'rotate-180' : ''}`} />
-                  </button>
+            {isAdmin && (
+              <div className="relative" ref={adminMenuRef}>
+                <button
+                  onClick={() => setShowAdminMenu((v) => !v)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                    showAdminMenu
+                      ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-white'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+                  }`}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Administração</span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showAdminMenu ? 'rotate-180' : ''}`} />
+                </button>
 
-                  <AnimatePresence>
-                    {showAdminMenu && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                        transition={{ duration: 0.16 }}
-                        className="absolute left-0 top-full mt-2 w-64 bg-white dark:bg-black border border-gray-200 dark:border-white/15 rounded-2xl shadow-2xl z-[9999] py-2"
-                      >
-                        {adminNavigation.map((item) => (
-                          <NavLink
-                            key={item.href}
-                            to={item.href}
-                            onClick={() => setShowAdminMenu(false)}
-                            className={({ isActive }) =>
-                              `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                                isActive
-                                  ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300'
-                                  : 'text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10'
-                              }`
-                            }
-                          >
-                            <item.icon className="w-4 h-4 shrink-0" />
-                            <span className="font-medium truncate">{item.name}</span>
-                          </NavLink>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-            </div>
+                <AnimatePresence>
+                  {showAdminMenu && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                      transition={{ duration: 0.16 }}
+                      className="absolute left-1/2 top-full mt-2 w-64 -translate-x-1/2 bg-white dark:bg-black border border-gray-200 dark:border-white/15 rounded-2xl shadow-2xl z-[9999] py-2"
+                    >
+                      {adminNavigation.map((item) => (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setShowAdminMenu(false)}
+                          className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                              isActive
+                                ? 'bg-purple-500/15 text-purple-700 dark:text-purple-300'
+                                : 'text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10'
+                            }`
+                          }
+                        >
+                          <item.icon className="w-4 h-4 shrink-0" />
+                          <span className="font-medium truncate">{item.name}</span>
+                        </NavLink>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
           </nav>
 
           {/* Direita: dias, tema, menu mobile, usuário */}
-          <div className="flex flex-1 items-center justify-end space-x-3 shrink-0">
+          <div className="flex items-center justify-end justify-self-end space-x-3 shrink-0">
             {user && subscriptionDaysLeft !== null && (
               <Link
                 to="/subscription"

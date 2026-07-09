@@ -24,7 +24,6 @@ import {
   Star,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { usePermissions } from '@/hooks/usePermissions'
 import { useAppStore } from '@/stores/appStore'
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 import ReportBugModal from '@/components/forms/ReportBugModal'
@@ -53,7 +52,6 @@ const userLinks = [
 export default function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuthStore()
   const { theme, setTheme } = useAppStore()
-  const { canAccessSearchCheapest } = usePermissions()
   const isAdmin = user?.tipo === 'admin'
   const [isAdminOpen, setIsAdminOpen] = useState(false)
   const [showBugModal, setShowBugModal] = useState(false)
@@ -142,12 +140,10 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </Link>
         )}
 
-        {canAccessSearchCheapest() && (
-          <NavLink to="/search-cheapest-iphone" onClick={onClose} className={mainRowClass}>
-            <Search className="w-5 h-5 shrink-0" />
-            <span>Preços</span>
-          </NavLink>
-        )}
+        <NavLink to="/search-cheapest-iphone" onClick={onClose} className={mainRowClass}>
+          <Search className="w-5 h-5 shrink-0" />
+          <span>Preços</span>
+        </NavLink>
 
         <NavLink to="/reviews" onClick={onClose} className={mainRowClass}>
           <Star className="w-5 h-5 shrink-0" />
