@@ -1716,13 +1716,18 @@ Ainda tem disponível?`
                       if (searchMode === mode) setSearchMode(null)
                       else setSearchMode(mode)
                     }}
-                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 rounded-full border text-sm font-semibold transition-all touch-manipulation min-h-[40px] ${
+                    className={`group flex-1 sm:flex-none flex items-center justify-center gap-1.5 py-2 px-3 rounded-full border text-sm font-semibold transition-all duration-300 touch-manipulation min-h-[40px] hover:-translate-y-0.5 hover:shadow-sm ${
                       searchMode === mode
                         ? activeClass
                         : 'bg-white dark:bg-zinc-900 border-gray-200 dark:border-white/15 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/25'
                     }`}
                   >
-                    <span aria-hidden className="text-base leading-none">{emoji}</span>
+                    <span
+                      aria-hidden
+                      className="text-base leading-none inline-block transition-transform duration-300 ease-out will-change-transform group-hover:scale-125 group-hover:-translate-y-0.5"
+                    >
+                      {emoji}
+                    </span>
                     <span className="truncate">{label}</span>
                   </button>
                 ))}

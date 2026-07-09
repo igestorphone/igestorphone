@@ -59,10 +59,10 @@ export default function Header() {
   }
 
   const topNavLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+    `group relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ease-out will-change-transform hover:-translate-y-0.5 ${
       isActive
-        ? 'bg-gray-900 text-white dark:bg-white dark:text-black'
-        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10'
+        ? 'bg-gray-900 text-white shadow-md shadow-gray-900/25 hover:shadow-lg hover:shadow-gray-900/30 dark:bg-white dark:text-black dark:shadow-white/15 dark:hover:shadow-white/25'
+        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 hover:shadow-md hover:shadow-gray-900/10 dark:text-white/70 dark:hover:text-white dark:hover:bg-white/10 dark:hover:shadow-black/30'
     }`
 
   useEffect(() => {
@@ -162,7 +162,7 @@ export default function Header() {
             <nav className="hidden lg:flex items-center gap-1 ml-4">
               {canAccessSearchCheapest() && (
                 <NavLink to="/search-cheapest-iphone" className={topNavLinkClass}>
-                  <Search className="w-4 h-4" />
+                  <Search className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-rotate-12" />
                   <span>Preços</span>
                 </NavLink>
               )}
