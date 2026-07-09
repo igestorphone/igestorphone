@@ -32,8 +32,9 @@ import {
   Laptop,
 } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { produtosApi, utilsApi } from '@/lib/api'
+import { produtosApi, utilsApi, supplierReviewsApi } from '@/lib/api'
 import { createWhatsAppUrl } from '@/lib/utils'
+import { SupplierAvatar } from '@/components/ui/SupplierAvatar'
 import {
   getProductCategoryCode,
   parseRamFromProduct,
@@ -1623,6 +1624,13 @@ Ainda tem disponível?`
     }
     const url = createWhatsAppUrl(whatsapp, message.trim())
     window.open(url, '_blank')
+
+    const supplierId = Number(product?.supplier_id)
+    if (Number.isFinite(supplierId) && supplierId > 0) {
+      void supplierReviewsApi.contact(supplierId).catch(() => {
+        /* fire-and-forget: não bloquear WhatsApp */
+      })
+    }
   }
 
   const serverStatusQuery = useQuery({
@@ -2310,30 +2318,37 @@ Ainda tem disponível?`
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-normal text-xs text-gray-900 dark:text-white">
-                              <div className="flex min-w-0 flex-col gap-1">
-                                <span className="truncate font-semibold uppercase tracking-wide">
-                                  {product.supplier_name || 'N/A'}
-                                </span>
-                                {(product.supplier_store_address || '').trim() ? (
-                                  <span className="truncate text-[10px] font-medium uppercase leading-snug tracking-wide text-gray-500 dark:text-white/45">
-                                    {(product.supplier_store_address || '').trim()}
+                              <div className="flex min-w-0 items-start gap-2">
+                                <SupplierAvatar
+                                  name={product.supplier_name}
+                                  photoUrl={product.supplier_photo_url}
+                                  size="sm"
+                                />
+                                <div className="flex min-w-0 flex-col gap-1">
+                                  <span className="truncate font-semibold uppercase tracking-wide">
+                                    {product.supplier_name || 'N/A'}
                                   </span>
-                                ) : null}
-                                {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
-                                    {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
-                                  </span>
-                                ) : product.variant ? (
-                                  <span
-                                    className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
-                                      product.variant.toUpperCase() === 'ANATEL'
-                                        ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
-                                        : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
-                                    }`}
-                                  >
-                                    {product.variant}
-                                  </span>
-                                ) : null}
+                                  {(product.supplier_store_address || '').trim() ? (
+                                    <span className="truncate text-[10px] font-medium uppercase leading-snug tracking-wide text-gray-500 dark:text-white/45">
+                                      {(product.supplier_store_address || '').trim()}
+                                    </span>
+                                  ) : null}
+                                  {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
+                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
+                                      {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
+                                    </span>
+                                  ) : product.variant ? (
+                                    <span
+                                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
+                                        product.variant.toUpperCase() === 'ANATEL'
+                                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
+                                          : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
+                                      }`}
+                                    >
+                                      {product.variant}
+                                    </span>
+                                  ) : null}
+                                </div>
                               </div>
                             </td>
                             <td className="px-2 py-3 whitespace-nowrap">

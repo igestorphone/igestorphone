@@ -215,6 +215,29 @@ export const fornecedoresApi = {
     apiClient.get<any>(`/suppliers/${id}/raw-list`)
 }
 
+export const supplierReviewsApi = {
+  contact: (supplierId: number) =>
+    apiClient.post<any>('/supplier-reviews/contact', { supplier_id: supplierId }),
+
+  getPending: () =>
+    apiClient.get<any>('/supplier-reviews/pending'),
+
+  getMine: () =>
+    apiClient.get<any>('/supplier-reviews/mine'),
+
+  getTop: (limit = 12) =>
+    apiClient.get<any>('/supplier-reviews/top', { params: { limit } }),
+
+  search: (params?: { search?: string; limit?: number; rated_only?: boolean }) =>
+    apiClient.get<any>('/supplier-reviews', { params }),
+
+  submit: (data: { supplier_id: number; rating: number; comment?: string }) =>
+    apiClient.post<any>('/supplier-reviews/submit', data),
+
+  dismiss: (supplierId: number) =>
+    apiClient.post<any>('/supplier-reviews/dismiss', { supplier_id: supplierId }),
+}
+
 export const produtosApi = {
   getAll: (params?: any) =>
     apiClient.get<any[]>('/products', { params }),

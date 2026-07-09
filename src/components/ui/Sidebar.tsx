@@ -21,11 +21,13 @@ import {
   LogOut,
   User,
   Clock,
+  Star,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAppStore } from '@/stores/appStore'
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
+import ReportBugModal from '@/components/forms/ReportBugModal'
 
 interface SidebarProps {
   onClose: () => void
@@ -54,6 +56,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
   const { canAccessSearchCheapest } = usePermissions()
   const isAdmin = user?.tipo === 'admin'
   const [isAdminOpen, setIsAdminOpen] = useState(false)
+  const [showBugModal, setShowBugModal] = useState(false)
 
   const subscriptionDaysLeft = calendarDaysRemainingSaoPaulo(user?.subscription_expires_at)
   const subscriptionUrgent =
@@ -146,6 +149,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         )}
 
+        <NavLink to="/reviews" onClick={onClose} className={mainRowClass}>
+          <Star className="w-5 h-5 shrink-0" />
+          <span>Avaliações</span>
+        </NavLink>
+
         {isAdmin && (
           <div>
             <button
@@ -205,6 +213,14 @@ export default function Sidebar({ onClose }: SidebarProps) {
           </NavLink>
         ))}
         <button
+          type="button"
+          onClick={() => setShowBugModal(true)}
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-gray-700 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+        >
+          <Bug className="w-4 h-4 shrink-0" />
+          <span>Reportar Bug</span>
+        </button>
+        <button
           onClick={() => {
             logout()
             onClose()
@@ -215,6 +231,11 @@ export default function Sidebar({ onClose }: SidebarProps) {
           <span>Sair</span>
         </button>
       </div>
+
+      <ReportBugModal
+        isOpen={showBugModal}
+        onClose={() => setShowBugModal(false)}
+      />
     </div>
   )
 }

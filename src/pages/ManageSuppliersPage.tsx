@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Edit, Trash2, Users, Phone, Mail, Search, CheckCircle, AlertCircle, X, MapPin, Eraser } from 'lucide-react';
+import { Edit, Trash2, Users, Phone, Mail, Search, CheckCircle, AlertCircle, X, MapPin, Eraser, Camera } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { fornecedoresApi } from '@/lib/api';
+import { SupplierAvatar, SupplierRatingBadge } from '@/components/ui/SupplierAvatar';
 
 interface Supplier {
   id: number;
@@ -13,6 +14,9 @@ interface Supplier {
   city?: string;
   store_address?: string;
   website?: string;
+  photo_url?: string | null;
+  rating_avg?: number;
+  rating_count?: number;
   is_active: boolean;
   created_at: string;
   last_processed_at?: string;
@@ -40,7 +44,9 @@ export default function ManageSuppliersPage() {
     website: '',
     city: '',
     store_address: '',
+    photo_url: '' as string | null,
   });
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   // Verificar se é admin
   if (user?.tipo !== 'admin') {
@@ -82,8 +88,27 @@ export default function ManageSuppliersPage() {
       website: supplier.website || '',
       city: supplier.city || '',
       store_address: supplier.store_address || '',
+      photo_url: supplier.photo_url || null,
     });
     setShowEditModal(true);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('Selecione uma imagem (JPG, PNG, etc.)');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('A foto deve ter no máximo 2 MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setEditForm((prev) => ({ ...prev, photo_url: String(reader.result || '') }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveEdit = async () => {
@@ -105,6 +130,7 @@ export default function ManageSuppliersPage() {
       } else {
         updateData.store_address = '';
       }
+      updateData.photo_url = editForm.photo_url || null;
 
       await fornecedoresApi.update(supplierToEdit.id.toString(), updateData);
       await fetchSuppliers();
@@ -239,11 +265,12 @@ export default function ManageSuppliersPage() {
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
+                <SupplierAvatar name={supplier.name} photoUrl={supplier.photo_url} size="lg" />
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{supplier.name}</h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{supplier.name}</h3>
+                    <SupplierRatingBadge avg={supplier.rating_avg} count={supplier.rating_count} />
+                  </div>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {supplier.whatsapp && (
                       <span className="text-gray-600 dark:text-white/70 text-sm flex items-center space-x-1">
@@ -343,6 +370,37 @@ export default function ManageSuppliersPage() {
             </div>
 
             <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <SupplierAvatar name={editForm.name} photoUrl={editForm.photo_url} size="lg" />
+                <div className="flex flex-col gap-2">
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handlePhotoChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100"
+                  >
+                    <Camera className="h-4 w-4" />
+                    {editForm.photo_url ? 'Trocar foto' : 'Adicionar foto'}
+                  </button>
+                  {editForm.photo_url && (
+                    <button
+                      type="button"
+                      onClick={() => setEditForm({ ...editForm, photo_url: null })}
+                      className="text-left text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                    >
+                      Remover foto
+                    </button>
+                  )}
+                  <p className="text-[11px] text-gray-500 dark:text-white/45">JPG/PNG até 2 MB. Aparece na busca e nas avaliações.</p>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-gray-600 dark:text-white/70 text-sm mb-2">Nome do Fornecedor *</label>
                 <input

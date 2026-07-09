@@ -1,13 +1,34 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, LogOut, User, UserPlus, Bug, Moon, Sun, Clock, Monitor, Search, Settings, ChevronDown, FileText, Users, Building2, Activity, Code2, CreditCard, MessageCircle } from 'lucide-react'
+import {
+  Menu,
+  X,
+  LogOut,
+  User,
+  UserPlus,
+  Bug,
+  Moon,
+  Sun,
+  Clock,
+  Monitor,
+  Search,
+  Settings,
+  ChevronDown,
+  FileText,
+  Users,
+  Building2,
+  Activity,
+  Code2,
+  CreditCard,
+  MessageCircle,
+  Star,
+} from 'lucide-react'
 import AvatarDisplay from '@/components/ui/AvatarDisplay'
 import { useAuthStore } from '@/stores/authStore'
 import { useAppStore } from '@/stores/appStore'
 import { useNavigate } from 'react-router-dom'
 import { usePermissions } from '@/hooks/usePermissions'
-import SuggestSupplierModal from '@/components/forms/SuggestSupplierModal'
 import ReportBugModal from '@/components/forms/ReportBugModal'
 import { calendarDaysRemainingSaoPaulo } from '@/lib/subscriptionExpiryCalendar'
 
@@ -28,7 +49,6 @@ export default function Header() {
   const isAdmin = user?.tipo === 'admin'
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showAdminMenu, setShowAdminMenu] = useState(false)
-  const [showSuggestModal, setShowSuggestModal] = useState(false)
   const [showBugModal, setShowBugModal] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const navigate = useNavigate()
@@ -83,7 +103,6 @@ export default function Header() {
     }
   }, [])
 
-  // Calcular posição do dropdown quando abrir
   useEffect(() => {
     if (showUserMenu && userButtonRef.current) {
       const rect = userButtonRef.current.getBoundingClientRect()
@@ -94,7 +113,6 @@ export default function Header() {
     }
   }, [showUserMenu])
 
-  // Fechar menu quando clicar fora
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
@@ -130,10 +148,9 @@ export default function Header() {
       }`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 sm:h-20 relative">
-          {/* Left side */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            {/* Logo no mobile - à esquerda (igual concorrente) */}
+        <div className="relative flex h-16 items-center sm:h-20">
+          {/* Esquerda: logo */}
+          <div className="flex min-w-0 flex-1 items-center">
             <Link
               to="/search-cheapest-iphone"
               className="lg:hidden flex items-center shrink-0 group"
@@ -146,7 +163,6 @@ export default function Header() {
               />
             </Link>
 
-            {/* Desktop: logo à esquerda */}
             <Link
               to="/search-cheapest-iphone"
               className="hidden lg:flex items-center shrink-0 group"
@@ -157,15 +173,22 @@ export default function Header() {
                 className="h-10 w-auto object-contain transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.06] group-hover:-translate-y-0.5"
               />
             </Link>
+          </div>
 
-            {/* Desktop: navegação no topo */}
-            <nav className="hidden lg:flex items-center gap-1 ml-4">
+          {/* Centro: Preços + Avaliações (+ Administração no desktop) */}
+          <nav className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 lg:flex">
+            <div className="pointer-events-auto flex items-center gap-1">
               {canAccessSearchCheapest() && (
                 <NavLink to="/search-cheapest-iphone" className={topNavLinkClass}>
                   <Search className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:-rotate-12" />
                   <span>Preços</span>
                 </NavLink>
               )}
+
+              <NavLink to="/reviews" className={topNavLinkClass}>
+                <Star className="w-4 h-4 transition-transform duration-300 ease-out group-hover:scale-110 group-hover:rotate-12" />
+                <span>Avaliações</span>
+              </NavLink>
 
               {isAdmin && (
                 <div className="relative" ref={adminMenuRef}>
@@ -213,11 +236,11 @@ export default function Header() {
                   </AnimatePresence>
                 </div>
               )}
-            </nav>
-          </div>
+            </div>
+          </nav>
 
-          {/* Right side */}
-          <div className="flex items-center space-x-3 shrink-0">
+          {/* Direita: dias, tema, menu mobile, usuário */}
+          <div className="flex flex-1 items-center justify-end space-x-3 shrink-0">
             {user && subscriptionDaysLeft !== null && (
               <Link
                 to="/subscription"
@@ -240,7 +263,6 @@ export default function Header() {
               </Link>
             )}
 
-            {/* Toggle Theme Button */}
             <button
               onClick={toggleTheme}
               className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 group"
@@ -253,7 +275,6 @@ export default function Header() {
               )}
             </button>
 
-            {/* Mobile menu button - à direita, depois da lua (igual concorrente) */}
             <button
               onClick={toggleSidebar}
               className="min-w-[44px] min-h-[44px] p-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 lg:hidden group flex items-center justify-center shrink-0"
@@ -268,25 +289,6 @@ export default function Header() {
               </div>
             </button>
 
-            {/* Botão Indicar Fornecedor */}
-            <button
-              onClick={() => setShowSuggestModal(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all border border-gray-300/60 dark:border-white/15 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-white/90"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Indicar</span>
-            </button>
-
-            {/* Botão Reportar Bug */}
-            <button
-              onClick={() => setShowBugModal(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all border border-gray-300/60 dark:border-white/15 bg-white/50 hover:bg-gray-100/80 dark:bg-white/10 dark:hover:bg-white/15 text-gray-700 dark:text-white/90 hover:border-red-300/50 dark:hover:border-red-500/30 hover:text-red-600 dark:hover:text-red-400"
-            >
-              <Bug className="w-4 h-4" />
-              <span>Bug</span>
-            </button>
-
-            {/* User menu (desktop apenas — no mobile as opções ficam no menu hambúrguer) */}
             <div className="relative z-[9998] hidden lg:block" ref={userMenuRef}>
               <button
                 ref={userButtonRef}
@@ -304,7 +306,6 @@ export default function Header() {
                 </div>
               </button>
 
-              {/* User dropdown */}
               <AnimatePresence>
                 {showUserMenu && (
                   <motion.div
@@ -321,7 +322,6 @@ export default function Header() {
                     }}
                   >
                     <div className="py-2">
-                      {/* User Info */}
                       <div className="px-4 py-3 border-b border-gray-200 dark:border-white/10">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{(user?.name || user?.nome || '').trim().split(' ')[0] || 'Usuário'}</p>
                         <p className="text-xs text-gray-600 dark:text-white/70 capitalize">{user?.tipo || user?.role || 'user'}</p>
@@ -353,10 +353,9 @@ export default function Header() {
                           </Link>
                         )}
                       </div>
-                      
-                      {/* Menu Items */}
+
                       <div className="py-1">
-                        <button 
+                        <button
                           onClick={() => {
                             navigate('/profile')
                             setShowUserMenu(false)
@@ -396,6 +395,16 @@ export default function Header() {
                           <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
                           <span>Fale Conosco</span>
                         </button>
+                        <button
+                          onClick={() => {
+                            setShowUserMenu(false)
+                            setShowBugModal(true)
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors flex items-center space-x-3 group"
+                        >
+                          <Bug className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span>Reportar Bug</span>
+                        </button>
                         <hr className="my-2 border-gray-200 dark:border-white/10" />
                         <button
                           onClick={handleLogout}
@@ -414,13 +423,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Modal de Indicação */}
-      <SuggestSupplierModal
-        isOpen={showSuggestModal}
-        onClose={() => setShowSuggestModal(false)}
-      />
-
-      {/* Modal de Reportar Bug */}
       <ReportBugModal
         isOpen={showBugModal}
         onClose={() => setShowBugModal(false)}

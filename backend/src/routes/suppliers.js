@@ -240,6 +240,7 @@ router.post('/', requireSubscription('active'), [
   body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
   body('store_address').optional().trim().isLength({ max: 255 }),
+  body('photo_url').optional({ nullable: true }),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
   body('api_key').optional().trim()
@@ -258,6 +259,7 @@ router.post('/', requireSubscription('active'), [
       whatsapp_numbers,
       city,
       store_address,
+      photo_url,
       website,
       api_endpoint,
       api_key
@@ -273,8 +275,8 @@ router.post('/', requireSubscription('active'), [
 
     // Criar fornecedor
     const result = await query(`
-      INSERT INTO suppliers (name, contact_email, contact_phone, whatsapp, city, store_address, website, api_endpoint, api_key)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO suppliers (name, contact_email, contact_phone, whatsapp, city, store_address, photo_url, website, api_endpoint, api_key)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `, [
       name,
@@ -283,6 +285,7 @@ router.post('/', requireSubscription('active'), [
       whatsapp || contact_phone || null,
       city || null,
       store_address ? String(store_address).trim() : null,
+      photo_url || null,
       website || null,
       api_endpoint || null,
       api_key || null
@@ -387,6 +390,7 @@ router.put('/:id', requireSubscription('active'), [
   body('whatsapp_numbers.*.description').optional().trim(),
   body('city').optional().trim(),
   body('store_address').optional().trim().isLength({ max: 255 }),
+  body('photo_url').optional({ nullable: true }),
   body('website').optional().isURL(),
   body('api_endpoint').optional().isURL(),
   body('api_key').optional().trim(),
@@ -418,12 +422,16 @@ router.put('/:id', requireSubscription('active'), [
     }
 
     // Preparar campos para atualização
+    const allowedFields = new Set([
+      'name', 'contact_email', 'contact_phone', 'whatsapp', 'city',
+      'store_address', 'photo_url', 'website', 'api_endpoint', 'api_key', 'is_active'
+    ]);
     const fieldsToUpdate = [];
     const values = [];
     let paramCount = 1;
 
     Object.keys(updates).forEach(key => {
-      if (updates[key] !== undefined && key !== 'id') {
+      if (updates[key] !== undefined && key !== 'id' && allowedFields.has(key)) {
         fieldsToUpdate.push(`${key} = $${paramCount}`);
         values.push(updates[key]);
         paramCount++;
@@ -431,6 +439,7 @@ router.put('/:id', requireSubscription('active'), [
     });
 
     if (fieldsToUpdate.length > 0) {
+      fieldsToUpdate.push('updated_at = CURRENT_TIMESTAMP');
       values.push(id);
       const queryText = `UPDATE suppliers SET ${fieldsToUpdate.join(', ')} WHERE id = $${paramCount} RETURNING *`;
       await query(queryText, values);

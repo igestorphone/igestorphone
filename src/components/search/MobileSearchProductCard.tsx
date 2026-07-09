@@ -1,5 +1,6 @@
-import { MessageCircle, MapPin, BadgeCheck, type LucideIcon } from 'lucide-react'
+import { MessageCircle, MapPin, type LucideIcon } from 'lucide-react'
 import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
+import { SupplierAvatar } from '@/components/ui/SupplierAvatar'
 import { normalizeColor } from '@/pages/colorNormalizer'
 type SearchMode = 'novo' | 'seminovo' | 'android'
 
@@ -89,10 +90,12 @@ export default function MobileSearchProductCard({
         </div>
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-white/45">Fornecedor</p>
-          <p className="mt-0.5 flex items-center gap-1 font-semibold text-emerald-700 dark:text-emerald-400">
-            <span className="truncate">{product.supplier_name || 'N/A'}</span>
-            <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-500" aria-hidden />
-          </p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+            <SupplierAvatar name={product.supplier_name} photoUrl={product.supplier_photo_url} size="sm" />
+            <p className="truncate font-semibold text-emerald-700 dark:text-emerald-400">
+              {product.supplier_name || 'N/A'}
+            </p>
+          </div>
         </div>
       </div>
 

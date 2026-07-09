@@ -30,6 +30,7 @@ import BugReportsPage from '@/pages/BugReportsPage'
 import DevLogPage from '@/pages/DevLogPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
 import RankingPage from '@/pages/RankingPage'
+import ReviewsPage from '@/pages/ReviewsPage'
 import PostLoginRedirect from '@/components/routing/PostLoginRedirect'
 import CheckoutPage from '@/pages/CheckoutPage'
 import AdminLiveOverviewPage from '@/pages/AdminLiveOverviewPage'
@@ -267,6 +268,13 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<RankingPage />} />
+        </Route>
+        <Route path="/reviews" element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<ReviewsPage />} />
         </Route>
       </Routes>
       <Analytics />

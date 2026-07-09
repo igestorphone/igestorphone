@@ -228,6 +228,26 @@ const migrations = [
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS city VARCHAR(120)`,
   `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS store_address VARCHAR(255)`,
+  `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS photo_url TEXT`,
+  `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS rating_avg NUMERIC(3,2) DEFAULT 0`,
+  `ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS rating_count INTEGER DEFAULT 0`,
+
+  // Avaliações de fornecedores (pendente após contato WhatsApp)
+  `CREATE TABLE IF NOT EXISTS supplier_reviews (
+    id SERIAL PRIMARY KEY,
+    supplier_id INTEGER NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    rating SMALLINT CHECK (rating IS NULL OR (rating BETWEEN 1 AND 5)),
+    comment TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    contacted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    submitted_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(supplier_id, user_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_supplier_reviews_user_status ON supplier_reviews(user_id, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_supplier_reviews_supplier_status ON supplier_reviews(supplier_id, status)`,
 
   // Tabela de permissões por usuário
   `CREATE TABLE IF NOT EXISTS user_permissions (
