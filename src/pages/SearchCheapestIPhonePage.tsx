@@ -256,6 +256,16 @@ function getSaoPauloDateParts(offsetDays: number) {
   // "quarta-feira" -> "Quarta-Feira"
   const weekday = weekdayLong.charAt(0).toUpperCase() + weekdayLong.slice(1).replace(/-feira/i, '-Feira')
 
+  const weekdayShort = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    weekday: 'short',
+  })
+    .format(baseUtc)
+    .replace(/\./g, '')
+    .trim()
+    .toUpperCase()
+    .slice(0, 3)
+
   let monthShort = new Intl.DateTimeFormat('pt-BR', {
     timeZone: 'America/Sao_Paulo',
     month: 'short',
@@ -273,13 +283,17 @@ function getSaoPauloDateParts(offsetDays: number) {
   }).format(baseUtc)
 
   const dayNumberPlain = String(Number(dayNumber))
+  const dayPadded = dayNumber.padStart(2, '0')
 
   return {
     weekday,
+    weekdayShort,
     dayNumber: dayNumberPlain,
+    dayPadded,
     monthShort,
     year,
     subtitle: `${dayNumberPlain} de ${monthShort} • ${year}`,
+    compactLabel: `${weekdayShort} ${dayPadded} de ${monthShort} ${year}`,
   }
 }
 
@@ -1803,33 +1817,31 @@ Ainda tem disponível?`
                 ref={datePickerButtonRef}
                 type="button"
                 onClick={() => setShowDatePicker((s) => !s)}
-                className="w-full h-10 xl:h-11 px-1.5 xl:px-3 py-0 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-lg text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors flex items-center"
+                className="w-full h-10 xl:h-11 px-2.5 xl:px-3 py-0 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm font-semibold text-gray-900 dark:text-white hover:border-gray-300 dark:hover:border-white/20 transition-colors flex items-center"
               >
-                <div className="flex items-center justify-between gap-1 xl:gap-3 w-full min-w-0">
-                  <div className="flex items-center gap-1 xl:gap-3 min-w-0">
-                    <span className="w-7 h-7 xl:w-10 xl:h-10 rounded-lg xl:rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 flex items-center justify-center text-xs xl:text-base font-bold shrink-0">
-                      {selectedDateParts.dayNumber}
+                <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200/80 text-gray-700 dark:bg-white/10 dark:text-white/80">
+                      <CalendarDays className="h-3.5 w-3.5" />
                     </span>
-                    <div className="min-w-0">
-                      <div className="text-[10px] xl:text-sm font-semibold truncate leading-tight">{selectedDateParts.weekday}</div>
+                    <div className="min-w-0 truncate text-[12px] xl:text-sm leading-tight">
+                      <span className="font-medium uppercase tracking-wide text-gray-500 dark:text-white/55">
+                        {selectedDateParts.weekdayShort}
+                      </span>{' '}
+                      <span className="font-bold text-gray-900 dark:text-white">
+                        {selectedDateParts.dayPadded} de {selectedDateParts.monthShort}
+                      </span>{' '}
+                      <span className="font-medium text-gray-400 dark:text-white/40">
+                        {selectedDateParts.year}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-0.5 xl:gap-2 shrink-0">
-                    {(() => {
-                      const opt = dateOptions.find((d) => d.key === selectedDateKey)
-                      return (
-                        <span className="px-1.5 py-0.5 xl:px-3 xl:py-1.5 rounded-full bg-gray-900 text-white text-[9px] xl:text-xs font-semibold">
-                          {opt?.label ?? 'Hoje'}
-                        </span>
-                      )
-                    })()}
-                    {showDatePicker ? (
-                      <ChevronUp className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 shrink-0" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 shrink-0" />
-                    )}
-                  </div>
+                  {showDatePicker ? (
+                    <ChevronUp className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 shrink-0" />
+                  )}
                 </div>
               </button>
 
@@ -1873,28 +1885,26 @@ Ainda tem disponível?`
                               }`}
                             >
                               <span
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0 ${
-                                  isSelected ? 'bg-white/10 text-white dark:bg-gray-900 dark:text-white' : 'bg-gray-900/5 text-gray-900 dark:text-white/90'
+                                className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                                  isSelected
+                                    ? 'bg-white/15 text-white dark:bg-gray-900/10 dark:text-gray-900'
+                                    : 'bg-gray-200/80 text-gray-700 dark:bg-white/10 dark:text-white/80'
                                 }`}
                               >
-                                {parts.dayNumber}
+                                <CalendarDays className="h-4 w-4" />
                               </span>
                               <div className="min-w-0 flex-1 text-left">
                                 <div className={`text-sm font-semibold truncate ${isSelected ? 'text-white dark:text-gray-900' : 'text-gray-900 dark:text-white'}`}>
-                                  {parts.weekday}
+                                  <span className="uppercase tracking-wide opacity-70">{parts.weekdayShort}</span>{' '}
+                                  {parts.dayPadded} de {parts.monthShort} {parts.year}
                                 </div>
                                 <div className={`text-xs truncate ${isSelected ? 'text-white/70 dark:text-gray-900/70' : 'text-gray-500 dark:text-gray-400'}`}>
-                                  {parts.subtitle}
+                                  {opt.label}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2 shrink-0">
                                 {isSelected && (
-                                  <span className="px-3 py-1.5 rounded-full bg-gray-900 text-white text-xs font-semibold hidden sm:inline-flex">
-                                    {opt.label}
-                                  </span>
-                                )}
-                                {isSelected && (
-                                  <Check className="w-5 h-5 text-white" />
+                                  <Check className={`w-5 h-5 ${isSelected ? 'text-white dark:text-gray-900' : ''}`} />
                                 )}
                               </div>
                             </button>
