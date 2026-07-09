@@ -121,6 +121,62 @@ function buildReleaseSummary(rel: DevRelease): string {
   return lines.join('\n')
 }
 
+function buildDailySummary(input: {
+  dateLabel: string
+  done: DevTask[]
+  doing: DevTask[]
+  releases: DevRelease[]
+  notes: DevNote[]
+}): string {
+  const { dateLabel, done, doing, releases, notes } = input
+  const lines: string[] = []
+  lines.push(`📋 *Resumo do dia — ${dateLabel}*`)
+  lines.push('_iGestorPhone · Controle de TI_')
+  lines.push('')
+
+  if (done.length === 0 && doing.length === 0 && releases.length === 0 && notes.length === 0) {
+    lines.push('Hoje ainda não registrei entregas no Controle de TI.')
+    return lines.join('\n')
+  }
+
+  if (done.length > 0) {
+    lines.push('✅ *Concluído:*')
+    for (const t of done) {
+      lines.push(`• ${t.title}`)
+      if (t.description?.trim()) lines.push(`  _${t.description.trim()}_`)
+    }
+    lines.push('')
+  }
+
+  if (doing.length > 0) {
+    lines.push('🚧 *Em andamento:*')
+    for (const t of doing) {
+      lines.push(`• ${t.title}`)
+    }
+    lines.push('')
+  }
+
+  if (releases.length > 0) {
+    lines.push('🚀 *Versões:*')
+    for (const r of releases) {
+      const title = r.title ? ` — ${r.title}` : ''
+      lines.push(`• ${r.version}${title}`)
+    }
+    lines.push('')
+  }
+
+  if (notes.length > 0) {
+    lines.push('📝 *Anotações:*')
+    for (const n of notes) {
+      lines.push(`• ${n.title}`)
+    }
+    lines.push('')
+  }
+
+  lines.push('Qualquer dúvida, me avisa.')
+  return lines.join('\n').trimEnd()
+}
+
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -292,6 +348,14 @@ export default function DevLogPage() {
   const releases = allReleases.filter((r) => inDateRange(r.released_at, dateFrom, dateTo))
   const notes = allNotes.filter((n) => inDateRange(n.updated_at, dateFrom, dateTo))
 
+  const doneToday = allTasks.filter(
+    (t) => t.status === 'done' && toLocalDay(t.completed_at || t.created_at) === todayStr
+  )
+  const doingNow = allTasks.filter((t) => t.status === 'doing')
+  const releasesToday = allReleases.filter((r) => toLocalDay(r.released_at) === todayStr)
+  const notesToday = allNotes.filter((n) => toLocalDay(n.updated_at) === todayStr)
+  const todayLabel = formatDate(new Date().toISOString())
+
   const tabs: { id: TabId; label: string; icon: typeof ListTodo; count: number }[] = [
     { id: 'backlog', label: 'Backlog', icon: ListTodo, count: tasks.filter((t) => t.status !== 'done').length },
     { id: 'releases', label: 'Versões', icon: Tag, count: releases.length },
@@ -312,17 +376,44 @@ export default function DevLogPage() {
             </p>
           </div>
         </div>
-        <button
-          className={primaryBtn}
-          onClick={() => {
-            if (tab === 'backlog') setTaskModal({ open: true })
-            else if (tab === 'releases') setReleaseModal({ open: true })
-            else setNoteModal({ open: true })
-          }}
-        >
-          <Plus className="h-4 w-4" />
-          {tab === 'backlog' ? 'Nova tarefa' : tab === 'releases' ? 'Nova versão' : 'Nova anotação'}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-300 bg-white px-3.5 py-2 text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50 dark:border-white/15 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+            onClick={async () => {
+              const text = buildDailySummary({
+                dateLabel: todayLabel,
+                done: doneToday,
+                doing: doingNow,
+                releases: releasesToday,
+                notes: notesToday
+              })
+              const ok = await copyToClipboard(text)
+              if (ok) toast.success('Resumo do dia copiado! Cole no WhatsApp do sócio.')
+              else toast.error('Não foi possível copiar')
+            }}
+            title="Copia um resumo do que foi feito hoje"
+          >
+            <Copy className="h-4 w-4" />
+            Resumo do dia
+            {doneToday.length > 0 && (
+              <span className="rounded-full bg-emerald-100 px-1.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                {doneToday.length}
+              </span>
+            )}
+          </button>
+          <button
+            className={primaryBtn}
+            onClick={() => {
+              if (tab === 'backlog') setTaskModal({ open: true })
+              else if (tab === 'releases') setReleaseModal({ open: true })
+              else setNoteModal({ open: true })
+            }}
+          >
+            <Plus className="h-4 w-4" />
+            {tab === 'backlog' ? 'Nova tarefa' : tab === 'releases' ? 'Nova versão' : 'Nova anotação'}
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 flex gap-1 rounded-xl bg-gray-100 p-1 dark:bg-white/5">
