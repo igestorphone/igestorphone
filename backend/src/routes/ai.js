@@ -7,6 +7,7 @@ import { query } from '../config/database.js';
 import { normalizeColor } from '../utils/colorNormalizer.js';
 import { forceAsIsSeminovo, hasAsIsSignal } from '../utils/asIsDetector.js';
 import { forceCpoNovo, hasCpoSignal } from '../utils/cpoDetector.js';
+import { hasAirTagSignal, normalizeAirTagProduct } from '../utils/airtagNormalizer.js';
 
 const router = express.Router();
 
@@ -602,7 +603,9 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
     for (const product of validated_products_filtered) {
       try {
         let currentProduct = listKind === 'android' ? sanitizeAndroidProduct(product) : product;
-        if (hasAsIsSignal(currentProduct)) {
+        if (hasAirTagSignal(currentProduct)) {
+          currentProduct = normalizeAirTagProduct(currentProduct);
+        } else if (hasAsIsSignal(currentProduct)) {
           currentProduct = forceAsIsSeminovo(currentProduct);
         } else if (hasCpoSignal(currentProduct)) {
           currentProduct = forceCpoNovo(currentProduct);
@@ -629,8 +632,13 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           }
         }
 
-        // AS IS nunca pode ficar como Novo/LACRADO; CPO nunca pode ficar como Seminovo
-        if (hasAsIsSignal({ ...currentProduct, condition, condition_detail: conditionDetail })) {
+        // AS IS nunca pode ficar como Novo/LACRADO; CPO nunca pode ficar como Seminovo; AirTag sempre LACRADO
+        if (hasAirTagSignal({ ...currentProduct, condition, condition_detail: conditionDetail })) {
+          const normalized = normalizeAirTagProduct({ ...currentProduct, condition, condition_detail: conditionDetail });
+          currentProduct = normalized;
+          condition = 'Novo';
+          conditionDetail = 'LACRADO';
+        } else if (hasAsIsSignal({ ...currentProduct, condition, condition_detail: conditionDetail })) {
           condition = 'Seminovo';
           if (!conditionDetail.includes('ASIS') && !conditionDetail.includes('AS IS')) {
             conditionDetail = 'ASIS';
