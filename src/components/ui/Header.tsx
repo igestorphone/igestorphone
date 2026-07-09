@@ -146,7 +146,11 @@ export default function Header() {
       }`}
     >
       <div className="px-4 sm:px-6 lg:px-8">
-        <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center gap-3 sm:h-20">
+        {/*
+          Mobile: 2 colunas (logo | ações). Se usarmos 3 colunas e o nav central
+          ficar display:none, o grid remove esse item e as ações caem no meio.
+        */}
+        <div className="grid h-16 grid-cols-[1fr_auto] items-center gap-3 sm:h-20 lg:grid-cols-[1fr_auto_1fr]">
           {/* Esquerda: logo */}
           <div className="flex min-w-0 items-center justify-self-start">
             <Link

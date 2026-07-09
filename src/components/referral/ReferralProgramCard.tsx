@@ -136,7 +136,7 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
         Proporção na própria <img> fantasma — no Safari/iOS aspect-ratio +
         só filhos absolute pode colapsar a altura a 0.
       */}
-      <div className="relative w-full">
+      <div className="relative w-full overflow-hidden">
         <img
           src={slide.mobileSrc}
           alt=""
@@ -164,10 +164,14 @@ export default function ReferralProgramCard({ userName, userEmail, className = '
             className="absolute inset-0 block w-full h-full cursor-pointer touch-manipulation overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-black"
             aria-label={slide.ariaLabel}
           >
+            {/*
+              Zoom suave (Ken Burns) sem cortar as laterais da arte:
+              scale sobe e a imagem cresce a partir do centro, com overflow hidden no botão.
+            */}
             <motion.img
               src={slide.mobileSrc}
               alt={slide.alt}
-              className="absolute inset-0 block h-full w-full object-cover object-[center_30%] xl:hidden"
+              className="absolute inset-0 block h-full w-full object-cover object-center xl:hidden"
               loading="eager"
               decoding="async"
               draggable={false}
