@@ -136,22 +136,25 @@ export default function Header() {
             {/* Logo no mobile - à esquerda (igual concorrente) */}
             <Link
               to="/search-cheapest-iphone"
-              className="lg:hidden flex items-center shrink-0"
+              className="lg:hidden flex items-center shrink-0 group"
               onClick={() => sidebarOpen && setSidebarOpen(false)}
             >
               <img
                 src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
                 alt="iGestorPhone"
-                className="h-10 w-auto max-w-[150px] object-contain"
+                className="h-10 w-auto max-w-[150px] object-contain transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.06] group-hover:-translate-y-0.5 group-active:scale-[1.03]"
               />
             </Link>
 
             {/* Desktop: logo à esquerda */}
-            <Link to="/search-cheapest-iphone" className="hidden lg:flex items-center shrink-0">
+            <Link
+              to="/search-cheapest-iphone"
+              className="hidden lg:flex items-center shrink-0 group"
+            >
               <img
                 src={theme === 'dark' ? '/assets/images/logo-dark.png' : '/assets/images/logo-light.png'}
                 alt="iGestorPhone"
-                className="h-10 w-auto object-contain"
+                className="h-10 w-auto object-contain transition-transform duration-300 ease-out will-change-transform group-hover:scale-[1.06] group-hover:-translate-y-0.5"
               />
             </Link>
 
