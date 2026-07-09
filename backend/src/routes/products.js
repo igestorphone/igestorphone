@@ -292,18 +292,19 @@ router.get('/', [
     // Filtro por tipo de condição (lacrados_novos ou seminovos)
     if (cleanConditionType) {
       if (cleanConditionType === 'lacrados_novos') {
-        // Lacrado = mesmo critério da média de preços: Novo + detail LACRADO/NOVO + anti-seminovo no texto.
+        // Lacrado = Novo + detail LACRADO/NOVO/CPO + anti-seminovo no texto (AS IS/SWAP/etc.)
         whereClause += ` AND p.condition = 'Novo'`;
-        whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`;
+        whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO', 'CPO')`;
         const listingBlob =
           `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`;
-        whereClause += ` AND NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|recondicionado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]cpo[[:>:]]|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`;
-        whereClause += ` AND (COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|cpo|asis|recondicionado)'))`;
+        whereClause += ` AND NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|recondicionado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|as[[:space:]._-]*is|asis|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`;
+        whereClause += ` AND (COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|asis|as[[:space:]._-]*is|recondicionado)'))`;
       } else if (cleanConditionType === 'seminovos') {
         whereClause += ` AND (
           p.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')
           OR (p.condition = 'Seminovo' AND (p.condition_detail IS NULL OR p.condition_detail = ''))
         )`;
+        whereClause += ` AND COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') <> 'CPO'`;
       }
     }
 
@@ -426,15 +427,15 @@ router.get('/price-averages', async (req, res) => {
   const nonAppleRe =
     '(tecno|infinix|samsung|galaxy|xiaomi|redmi|poco|motorola|realme|oppo|vivo|huawei|nothing|oneplus|honor|zte|zenfone|pixel|nubia|meizu|black[[:space:]]*shark)'
 
-  // Só lacrado na caixa: LACRADO ou NOVO explícitos (sem CPO — preço de CPO puxa o MIN como “seminovo” na prática).
-  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')`
+  // Lacrado na caixa: LACRADO, NOVO ou CPO (CPO = Certified Pre-Owned Apple = Novo).
+  const detailLacradoOnly = `COALESCE(UPPER(TRIM(COALESCE(p.condition_detail, ''))), '') IN ('LACRADO', 'NOVO', 'CPO')`
 
-  // Texto do anúncio (nome/modelo/cor/armazenamento) não pode indicar seminovo/usado/vitrine/saúde de bateria típica de usado.
+  // Texto do anúncio (nome/modelo/cor/armazenamento) não pode indicar seminovo/usado/vitrine/AS IS.
   const listingBlob = `LOWER(COALESCE(p.name, '') || ' ' || COALESCE(p.model, '') || ' ' || COALESCE(p.color, '') || ' ' || COALESCE(p.storage, ''))`
-  const antiSeminovoListing = `NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]display[[:>:]]|non[[:space:]]*active|[[:<:]]asis[[:>:]]|[[:<:]]cpo[[:>:]]|[[:<:]]2nd[[:>:]]|second[[:space:]]*hand|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`
+  const antiSeminovoListing = `NOT (${listingBlob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|semi[[:space:]]+novo|recondicionado|pré[[:space:]]*-?[[:space:]]*usado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]display[[:>:]]|non[[:space:]]*active|[[:<:]]asis[[:>:]]|as[[:space:]._-]*is|[[:<:]]2nd[[:>:]]|second[[:space:]]*hand|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')`
 
-  // variant costuma trazer CPO / origem; exclui sinais de usado (AMERICANO/CHINÊS etc. continuam ok).
-  const variantLacradoOk = `(COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|cpo|asis|recondicionado|non[[:space:]]*active)'))`
+  // variant: exclui sinais de usado; CPO no variant é OK (é Novo).
+  const variantLacradoOk = `(COALESCE(TRIM(COALESCE(p.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(p.variant, ''))) ~* '(swap|vitrine|seminovo|asis|as[[:space:]._-]*is|recondicionado|non[[:space:]]*active)'))`
 
   const lacradoCore = [
     'p.is_active = true',

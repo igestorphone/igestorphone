@@ -5,6 +5,8 @@ import aiDashboardService from '../services/aiDashboardService.js';
 import { authenticateToken, requireSubscription } from '../middleware/auth.js';
 import { query } from '../config/database.js';
 import { normalizeColor } from '../utils/colorNormalizer.js';
+import { forceAsIsSeminovo, hasAsIsSignal } from '../utils/asIsDetector.js';
+import { forceCpoNovo, hasCpoSignal } from '../utils/cpoDetector.js';
 
 const router = express.Router();
 
@@ -456,11 +458,28 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
       return res.status(400).json({ message: 'Nenhum produto válido para salvar' });
     }
 
-    // Filtrar conforme o tipo de lista (lacrada = só Novo; seminovo = só Seminovo; android = todos)
+    // AS IS = seminovo; CPO = novo. Normaliza antes do filtro (AS IS tem prioridade se ambos aparecerem).
+    const productsNormalized = validated_products.map((product) => {
+      if (hasAsIsSignal(product)) {
+        const forced = forceAsIsSeminovo(product);
+        console.log(`🔁 [AS IS] Reclassificado para Seminovo: ${forced.name || forced.model}`);
+        return forced;
+      }
+      if (hasCpoSignal(product)) {
+        const forced = forceCpoNovo(product);
+        console.log(`🔁 [CPO] Reclassificado para Novo/Lacrado: ${forced.name || forced.model}`);
+        return forced;
+      }
+      return product;
+    });
+
+    // Filtrar conforme o tipo de lista (lacrada = Novo + AS IS como Seminovo; seminovo = só Seminovo; android = todos)
     const condicoesInvalidas = ['SWAP', 'VITRINE', 'USADO', 'RECONDICIONADO'];
-    const produtosValidos = validated_products.filter(product => {
+    const produtosValidos = productsNormalized.filter(product => {
       const cond = (product.condition || '').toLowerCase();
       if (listKind === 'lacrada') {
+        // AS IS pode (e deve) ser salvo como Seminovo mesmo em processamento de lista lacrada
+        if (hasAsIsSignal(product) && cond === 'seminovo') return true;
         if (cond !== 'novo') {
           console.log(`🚫 [Lacrada] Rejeitado (não é Novo): ${product.name} - condition: ${product.condition}`);
           return false;
@@ -475,6 +494,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         return true;
       }
       if (listKind === 'seminovo') {
+        // CPO = Novo: pode (e deve) ser salvo como Novo mesmo em processamento de lista seminovo
+        if (hasCpoSignal(product) && cond === 'novo') return true;
         if (cond !== 'seminovo') {
           console.log(`🚫 [Seminovo] Rejeitado (não é Seminovo): ${product.name} - condition: ${product.condition}`);
           return false;
@@ -491,11 +512,11 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         : listKind === 'seminovo'
           ? 'Nenhum produto válido. Apenas produtos com condition Seminovo são aceitos.'
           : 'Nenhum produto válido para salvar.';
-      return res.status(400).json({ message: msg, filtered_count: validated_products.length });
+      return res.status(400).json({ message: msg, filtered_count: productsNormalized.length });
     }
 
-    if (produtosValidos.length < validated_products.length) {
-      console.log(`⚠️ ${validated_products.length - produtosValidos.length} produtos filtrados antes de salvar (list_type=${listKind})`);
+    if (produtosValidos.length < productsNormalized.length) {
+      console.log(`⚠️ ${productsNormalized.length - produtosValidos.length} produtos filtrados antes de salvar (list_type=${listKind})`);
     }
 
     // Usar apenas produtos válidos
@@ -580,7 +601,12 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
 
     for (const product of validated_products_filtered) {
       try {
-        const currentProduct = listKind === 'android' ? sanitizeAndroidProduct(product) : product;
+        let currentProduct = listKind === 'android' ? sanitizeAndroidProduct(product) : product;
+        if (hasAsIsSignal(currentProduct)) {
+          currentProduct = forceAsIsSeminovo(currentProduct);
+        } else if (hasCpoSignal(currentProduct)) {
+          currentProduct = forceCpoNovo(currentProduct);
+        }
         console.log(`  🔍 Processando produto: ${currentProduct.name} (${currentProduct.model || 'sem modelo'}) - R$ ${currentProduct.price}`);
         // Padronizar condição
         let condition = currentProduct.condition || 'Novo';
@@ -601,6 +627,17 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
           } else if (!conditionDetail && condition === 'Novo') {
             conditionDetail = 'NOVO'; // Padrão para novos sem detalhe
           }
+        }
+
+        // AS IS nunca pode ficar como Novo/LACRADO; CPO nunca pode ficar como Seminovo
+        if (hasAsIsSignal({ ...currentProduct, condition, condition_detail: conditionDetail })) {
+          condition = 'Seminovo';
+          if (!conditionDetail.includes('ASIS') && !conditionDetail.includes('AS IS')) {
+            conditionDetail = 'ASIS';
+          }
+        } else if (hasCpoSignal({ ...currentProduct, condition, condition_detail: conditionDetail })) {
+          condition = 'Novo';
+          conditionDetail = 'CPO';
         }
 
         // Verificar se produto já existe (mesmo fornecedor, modelo, cor, armazenamento, condição)

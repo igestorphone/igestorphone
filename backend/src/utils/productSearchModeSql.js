@@ -11,28 +11,29 @@ function nameModelBlob(alias) {
   return `LOWER(COALESCE(${alias}.name, '') || ' ' || COALESCE(${alias}.model, ''))`
 }
 
-/** Lacrado / novo — condition_type lacrados_novos */
+/** Lacrado / novo — condition_type lacrados_novos (inclui CPO = Novo) */
 export function lacradoProductWhereSql(alias = 'p') {
   const blob = listingBlob(alias)
   const nm = nameModelBlob(alias)
   return `(
     ${alias}.condition = 'Novo'
-    AND COALESCE(UPPER(TRIM(COALESCE(${alias}.condition_detail, ''))), '') IN ('LACRADO', 'NOVO')
-    AND NOT (${blob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|recondicionado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]cpo[[:>:]]|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')
-    AND (COALESCE(TRIM(COALESCE(${alias}.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(${alias}.variant, ''))) ~* '(swap|vitrine|seminovo|cpo|asis|recondicionado)'))
+    AND COALESCE(UPPER(TRIM(COALESCE(${alias}.condition_detail, ''))), '') IN ('LACRADO', 'NOVO', 'CPO')
+    AND NOT (${blob} ~* '(seminovo|semi[[:space:]]*-?[[:space:]]*novo|recondicionado|vitrine|swap|open[[:space:]]*box|mostru[aá]rio|[[:<:]]usad[oa][[:>:]]|[[:<:]]used[[:>:]]|as[[:space:]._-]*is|asis|(^|[^0-9,.])(8[0-9]|9[0-9])\\s*%)')
+    AND (COALESCE(TRIM(COALESCE(${alias}.variant, '')), '') = '' OR NOT (LOWER(TRIM(COALESCE(${alias}.variant, ''))) ~* '(swap|vitrine|seminovo|asis|as[[:space:]._-]*is|recondicionado)'))
     AND (${alias}.product_type = 'apple' OR ${alias}.product_type IS NULL)
     AND NOT (${nm} ~* '${NON_APPLE_BLOB_RE}')
   )`
 }
 
-/** Semi-novo — condition_type seminovos */
+/** Semi-novo — condition_type seminovos (CPO NÃO entra aqui) */
 export function seminovoProductWhereSql(alias = 'p') {
   const nm = nameModelBlob(alias)
   return `(
     (
-      ${alias}.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS', 'CPO')
+      ${alias}.condition_detail IN ('SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVO PREMIUM', 'SEMINOVO AMERICANO', 'NON ACTIVE', 'ASIS', 'ASIS+', 'AS IS PLUS')
       OR (${alias}.condition = 'Seminovo' AND (${alias}.condition_detail IS NULL OR ${alias}.condition_detail = ''))
     )
+    AND COALESCE(UPPER(TRIM(COALESCE(${alias}.condition_detail, ''))), '') <> 'CPO'
     AND (${alias}.product_type = 'apple' OR ${alias}.product_type IS NULL)
     AND NOT (${nm} ~* '${NON_APPLE_BLOB_RE}')
   )`

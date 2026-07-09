@@ -1,6 +1,8 @@
-/** Filtro client-side alinhado à média de preços / busca lacrado (evita CPO e texto de seminovo). */
+/** Filtro client-side alinhado à busca lacrado / seminovo.
+ * CPO = Novo/Lacrado. AS IS / SWAP / VITRINE = Seminovo.
+ */
 
-const LACRADO_DETAILS = new Set(['LACRADO', 'NOVO'])
+const LACRADO_DETAILS = new Set(['LACRADO', 'NOVO', 'CPO'])
 
 const SEMINOVO_DETAILS = new Set([
   'SWAP',
@@ -12,15 +14,14 @@ const SEMINOVO_DETAILS = new Set([
   'ASIS',
   'ASIS+',
   'AS IS PLUS',
-  'CPO',
 ])
 
 const SEMINOVO_CONDITIONS = new Set(['seminovo', 'usado', 'recondicionado'])
 
 const SEMINOVO_LISTING_RE =
-  /seminovo|semi[\s-]*novo|recondicionado|pré[\s-]*usado|pré-usado|vitrine|swap|open\s*box|mostru[aá]rio|\bdisplay\b|non\s*active|\bcpo\b|\b2nd\b|second\s*hand|\busad[oa]\b|\bused\b|refurb|outlet|\bgrade\s*[abc]\b|(?:^|[^\d,.])(8\d|9\d)\s*%/i
+  /seminovo|semi[\s-]*novo|recondicionado|pré[\s-]*usado|pré-usado|vitrine|swap|open\s*box|mostru[aá]rio|\bdisplay\b|non\s*active|\b2nd\b|second\s*hand|\busad[oa]\b|\bused\b|refurb|outlet|\bgrade\s*[abc]\b|\bas[\s._-]*is\+?\b|\basis\+?\b|(?:^|[^\d,.])(8\d|9\d)\s*%/i
 
-const VARIANT_SEMINOVO_RE = /swap|vitrine|seminovo|cpo|asis|recondicionado|non\s*active/i
+const VARIANT_SEMINOVO_RE = /swap|vitrine|seminovo|asis|as[\s._-]*is|recondicionado|non\s*active/i
 
 export type ProductSearchModeFilter = 'novo' | 'seminovo' | 'android' | null
 
@@ -45,7 +46,7 @@ export function hasSeminovoListingSignals(product: {
   return variant.length > 0 && VARIANT_SEMINOVO_RE.test(variant)
 }
 
-/** Lacrado = só condition_detail LACRADO ou NOVO, sem sinais de seminovo no anúncio. */
+/** Lacrado = LACRADO, NOVO ou CPO, sem sinais de seminovo (AS IS/SWAP/etc.). */
 export function isLacradoProduct(product: {
   condition?: string | null
   condition_detail?: string | null
@@ -75,6 +76,7 @@ export function isSeminovoProduct(product: {
   variant?: string | null
 }): boolean {
   const detail = (product.condition_detail || '').trim().toUpperCase()
+  // CPO / LACRADO / NOVO nunca são seminovo
   if (detail && LACRADO_DETAILS.has(detail)) return false
 
   const cond = (product.condition || '').trim().toLowerCase()

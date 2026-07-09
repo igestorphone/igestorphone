@@ -1,6 +1,8 @@
 import OpenAI from 'openai';
 import { query } from '../config/database.js';
 import aiDashboardService from './aiDashboardService.js';
+import { forceAsIsSeminovo, hasAsIsSignal } from '../utils/asIsDetector.js';
+import { forceCpoNovo, hasCpoSignal } from '../utils/cpoDetector.js';
 
 // Configurar OpenAI
 const openai = new OpenAI({
@@ -587,12 +589,12 @@ REGRAS CRÍTICAS:
    - CRÍTICO: Processe TODOS os iPad encontrados (Air, Pro, A16, M1, M2, M3, todas variações de tamanho: 11", 12.9", etc.)
    - CRÍTICO: Processe TODOS os AirPods encontrados (Pro, Pro 2, Pro 3, AirPods 2, AirPods 3, etc.)
 2. CONDITION - APENAS NOVOS: Aceite APENAS produtos com condição NOVO, LACRADO ou CPO
-   - CPO (Certified Pre-Owned Apple) = NOVO — sempre processar como condition: "Novo", condition_detail: "CPO"
+   - CPO (Certified Pre-Owned Apple) = NOVO / LACRADO — sempre processar como condition: "Novo", condition_detail: "CPO", variant: "CPO". NUNCA trate CPO como seminovo.
    - REGRA CRÍTICA: iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS - sempre marque como condition: "Novo" e condition_detail: "LACRADO"
    - REGRA CRÍTICA: Se encontrar "Apple Watch", "MacBook", "iPad", "AirPods" na lista SEM qualificação de "usado" ou "seminovo", ASSUMA que é NOVO/LACRADO e PROCESSAR
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
-4. TERMOS PARA SEMINOVOS (IGNORAR em lista lacrada): "swap", "vitrine", "seminovo", "seminovos" — SWAP/VITRINE/SEMINOVO são a mesma coisa (seminovos); em lista de NOVOS não extrair esses produtos
-5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS
+4. TERMOS PARA SEMINOVOS (NÃO tratar como LACRADO): "swap", "vitrine", "seminovo", "seminovos", "AS IS", "ASIS", "ASIS+", "AS IS PLUS" — AS IS é SEMPRE seminovo
+5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS. Se mencionar AS IS / ASIS → NÃO marque como Novo/LACRADO (é seminovo)
    - IMPORTANTE: Se produto está em seção LACRADOS/NOVOS, PROCESSAR mesmo se tiver "(DESATIVADO)" na descrição - isso pode ser apenas uma nota da lista
 6. LACRADO = NOVO: Se encontrar "LACRADO", "IPHONE LACRADO", "GARANTIA APPLE", "1 ANO DE GARANTIA APPLE", "GARANTIA DOS APARELHOS LACRADOS" → condition: "Novo", condition_detail: "LACRADO"
 7. MODELO: Extraia EXATAMENTE como escrito - NUNCA adicione Pro/Max/Plus se não estiver explícito. Processe TODOS os modelos iPhone encontrados (11, 12, 13, 14, 15, 16, 17 e todas variações). IMPORTANTE: Se encontrar "iPhone 11", "iPhone 12", "iPhone 13", "iPhone 14", "iPhone 15", "iPhone 16", "iPhone 17" na lista LACRADOS/NOVOS, EXTRAIA esses produtos normalmente - todos são válidos se forem LACRADOS/NOVOS.
@@ -645,6 +647,7 @@ REGRAS CRÍTICAS:
 
 IMPORTANTE: 
 - Se um produto tem SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, bateria (80%, 85%, 90%), NON ACTIVE → IGNORE completamente
+- Se um produto tem "AS IS", "ASIS", "ASIS+", "AS IS PLUS" → NÃO é lacrado: marque condition: "Seminovo", condition_detail: "ASIS" (ou "ASIS+" / "AS IS PLUS")
 - Se houver seção "SWAP", "Vitrine", "Seminovo" → IGNORE apenas produtos DENTRO dessa seção
 - "americano" como variante de produto NOVO → PROCESSAR. "seminovo americano" ou "americano" em seção SWAP/VITRINE → IGNORAR
 - EXTRAIA TODOS os modelos iPhone encontrados: 11, 12, 13, 14, 15, 16, 17 e variações. Não ignore modelos mais antigos (11, 12, 13, 14, 15). Todos são válidos se forem LACRADOS/NOVOS.
@@ -686,11 +689,18 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
 
       const parsedResponse = this.parseAIResponse(outputText);
       
-      // FILTRAR APENAS PRODUTOS NOVOS (NOVO, LACRADO, CPO)
+      // FILTRAR APENAS PRODUTOS NOVOS (NOVO, LACRADO, CPO) — AS IS vira Seminovo (não lacrado)
       // Ignorar produtos com SWAP, VITRINE, SEMINOVO, USADO, REcondicionado
       // NOTA: NÃO ignorar produtos LACRADOS apenas por terem "(DESATIVADO)" - isso pode ser apenas nota da lista
       if (parsedResponse.validated_products && parsedResponse.validated_products.length > 0) {
+        const asIsProducts = [];
         const produtosNovos = parsedResponse.validated_products.filter(product => {
+          // AS IS = seminovo: separa para não cair em LACRADO
+          if (hasAsIsSignal(product)) {
+            asIsProducts.push(forceAsIsSeminovo(product));
+            return false;
+          }
+
           // Verificar condition - deve ser "Novo"
           if (product.condition && product.condition.toLowerCase() !== 'novo') {
             return false;
@@ -699,7 +709,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           // Verificar condition_detail - deve ser LACRADO, NOVO, CPO ou vazio
           // NOTA: Não ignorar produtos com "(DESATIVADO)" se forem LACRADOS/NOVOS - pode ser apenas nota da lista
           const detail = (product.condition_detail || '').toUpperCase();
-          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO'];
+          const condicoesInvalidas = ['SWAP', 'VITRINE', 'SEMINOVO', 'SEMINOVOS', 'USADO', 'RECONDICIONADO', 'ASIS', 'AS IS'];
           if (detail && condicoesInvalidas.some(invalida => detail.includes(invalida))) {
             return false;
           }
@@ -725,6 +735,11 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           
           return true;
         }).map(product => {
+          // CPO = sempre Novo (antes de forçar iPad/Watch etc.)
+          if (hasCpoSignal(product) && !hasAsIsSignal(product)) {
+            return forceCpoNovo(product);
+          }
+
           // GARANTIR que iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS
           const productName = (product.name || '').toLowerCase();
           const productModel = (product.model || '').toLowerCase();
@@ -748,23 +763,20 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           
           return product;
         });
+
+        if (asIsProducts.length > 0) {
+          console.log(`🔁 ${asIsProducts.length} produto(s) AS IS reclassificado(s) como Seminovo`);
+        }
         
-        // Atualizar a resposta com apenas produtos novos
-        parsedResponse.validated_products = produtosNovos;
+        // Novos + AS IS (já como Seminovo) — o save trata AS IS mesmo em list_type lacrada
+        parsedResponse.validated_products = [...produtosNovos, ...asIsProducts];
         
         // Se todos foram filtrados, significa que eram apenas vitrine/seminovos
-        if (produtosNovos.length === 0) {
-          if (parsedResponse.validated_products && parsedResponse.validated_products.length > 0) {
-            console.warn('🚫 Todos os produtos foram filtrados - eram apenas vitrine/seminovos');
-            parsedResponse.valid = true; // Mantém como válido, mas com 0 produtos
-            if (!parsedResponse.warnings) parsedResponse.warnings = [];
-            parsedResponse.warnings.push('Lista contém apenas produtos de vitrine/seminovos. Apenas produtos NOVOS, LACRADOS ou CPO são processados.');
-          } else {
-            // Nenhum produto foi retornado pela IA
-            parsedResponse.valid = true;
-            if (!parsedResponse.warnings) parsedResponse.warnings = [];
-            parsedResponse.warnings.push('Nenhum produto NOVO encontrado na lista. Apenas produtos NOVOS, LACRADOS ou CPO são aceitos.');
-          }
+        if (parsedResponse.validated_products.length === 0) {
+          console.warn('🚫 Todos os produtos foram filtrados - eram apenas vitrine/seminovos');
+          parsedResponse.valid = true; // Mantém como válido, mas com 0 produtos
+          if (!parsedResponse.warnings) parsedResponse.warnings = [];
+          parsedResponse.warnings.push('Lista contém apenas produtos de vitrine/seminovos. Apenas produtos NOVOS, LACRADOS ou CPO são processados.');
         }
       }
       
