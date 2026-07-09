@@ -8,6 +8,7 @@ import { normalizeColor } from '../utils/colorNormalizer.js';
 import { forceAsIsSeminovo, hasAsIsSignal } from '../utils/asIsDetector.js';
 import { forceCpoNovo, hasCpoSignal } from '../utils/cpoDetector.js';
 import { hasAirTagSignal, normalizeAirTagProduct } from '../utils/airtagNormalizer.js';
+import { hasBaseIPad11Signal, normalizeIPadProduct } from '../utils/ipadNormalizer.js';
 
 const router = express.Router();
 
@@ -605,6 +606,8 @@ router.post('/process-list', authenticateToken, requireSubscription('active'), [
         let currentProduct = listKind === 'android' ? sanitizeAndroidProduct(product) : product;
         if (hasAirTagSignal(currentProduct)) {
           currentProduct = normalizeAirTagProduct(currentProduct);
+        } else if (hasBaseIPad11Signal(currentProduct)) {
+          currentProduct = normalizeIPadProduct(currentProduct);
         } else if (hasAsIsSignal(currentProduct)) {
           currentProduct = forceAsIsSeminovo(currentProduct);
         } else if (hasCpoSignal(currentProduct)) {

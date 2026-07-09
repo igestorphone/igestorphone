@@ -823,7 +823,16 @@ function identifyIPhoneModel(model = '') {
   if (lowerModel.includes('ipad air 5') || (lowerModel.includes('ipad air') && lowerModel.includes('5'))) {
     return 'ipad air 5'
   }
-  if (lowerModel.includes('ipad 11') || (lowerModel.includes('ipad') && lowerModel.includes('11') && !lowerModel.includes('pro'))) {
+  // iPad Air 11" (M2/M3) — NÃO é iPad 11 base
+  if (lowerModel.includes('ipad air') || (lowerModel.includes('ipad') && lowerModel.includes('air') && (lowerModel.includes('m3') || lowerModel.includes('m2')))) {
+    return 'ipad air'
+  }
+  // iPad base 11ª gen = A16
+  if (
+    lowerModel.includes('ipad 11') ||
+    (lowerModel.includes('ipad') && /\ba\s*16\b/.test(lowerModel) && !lowerModel.includes('pro') && !lowerModel.includes('air')) ||
+    (lowerModel.includes('ipad') && lowerModel.includes('11') && !lowerModel.includes('pro') && !lowerModel.includes('air'))
+  ) {
     return 'ipad 11'
   }
   if (lowerModel.includes('ipad 10') || (lowerModel.includes('ipad') && lowerModel.includes('10') && !lowerModel.includes('pro'))) {

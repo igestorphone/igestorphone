@@ -4,6 +4,7 @@ import aiDashboardService from './aiDashboardService.js';
 import { forceAsIsSeminovo, hasAsIsSignal } from '../utils/asIsDetector.js';
 import { forceCpoNovo, hasCpoSignal } from '../utils/cpoDetector.js';
 import { hasAirTagSignal, normalizeAirTagProduct } from '../utils/airtagNormalizer.js';
+import { hasBaseIPad11Signal, normalizeIPadProduct } from '../utils/ipadNormalizer.js';
 
 // Configurar OpenAI
 const openai = new OpenAI({
@@ -597,6 +598,7 @@ REGRAS CRÍTICAS:
      • 1 unidade / "1 pack" / "unitário" / sem quantidade → model="AIRTAG 1 PACK", name="AIRTAG 1 PACK"
      • 4 unidades / "4 pack" / "pack 4" / "kit 4" / "x4" → model="AIRTAG 4 PACK", name="AIRTAG 4 PACK"
      • NUNCA misture 1 pack com 4 pack (são produtos diferentes)
+   - IPAD BASE (CRÍTICO): "iPad A16", "iPad (A16)", "iPad 11", "iPad 11ª geração" são O MESMO produto → model="iPad 11", name começando com "iPad 11". NÃO confundir com iPad Pro 11" nem iPad Air 11".
 3. TERMOS PARA NOVOS (PROCESSAR): "lacrado", "novo", "1 ano de garantia apple", "cpo", "garantia apple", "garantia dos aparelhos lacrados"
 4. TERMOS PARA SEMINOVOS (NÃO tratar como LACRADO): "swap", "vitrine", "seminovo", "seminovos", "AS IS", "ASIS", "ASIS+", "AS IS PLUS" — AS IS é SEMPRE seminovo
 5. IGNORE COMPLETAMENTE: Se um produto menciona SWAP, VITRINE, SEMINOVO, SEMINOVOS, USADO, REcondicionado, NON ACTIVE, 80%, 85%, 90% bateria - NÃO EXTRAIA ESTES PRODUTOS. Se mencionar AS IS / ASIS → NÃO marque como Novo/LACRADO (é seminovo)
@@ -648,6 +650,7 @@ REGRAS CRÍTICAS:
    - APPLE WATCH: "Apple Watch Series 11 (42mm)" → "• Preto — R$ 2.500" → Extrair: name="Apple Watch Series 11", model="Apple Watch Series 11 42mm", color="Preto", price=2500, condition="Novo", condition_detail="LACRADO"
    - MACBOOK: "MacBook M4 — 16GB / 256GB — 13"" → "• ⚫ Midnight — R$ 6.100" → Extrair: name="MacBook M4 13"", model="MacBook M4 16GB 256GB 13"", color="Midnight", storage="256GB", price=6100, condition="Novo", condition_detail="LACRADO"
    - IPAD: "iPad Air M3 — 11"" → "• Azul — R$ 3.650" → Extrair: name="iPad Air M3", model="iPad Air M3 11"", color="Azul", price=3650, condition="Novo", condition_detail="LACRADO"
+   - IPAD BASE: "iPad A16 128GB" / "iPad (A16)" / "iPad 11" → Extrair: name="iPad 11 128GB", model="iPad 11", price=..., condition="Novo", condition_detail="LACRADO" (A16 = 11ª geração = mesmo produto)
    - AIRPODS: "AirPods Pro 3 — Original Apple" → "• ⚪ Novo lacrado — R$ 1.750" → Extrair: name="AirPods Pro 3", model="AirPods Pro 3", price=1750, condition="Novo", condition_detail="LACRADO"
    - AIRTAG: "AirTag" ou "AirTag 1 Pack" — R$ 350 → Extrair: name="AIRTAG 1 PACK", model="AIRTAG 1 PACK", price=350, condition="Novo", condition_detail="LACRADO"
    - AIRTAG: "AirTag 4 Pack" / "AirTag Pack 4" / "AirTag x4" — R$ 1.100 → Extrair: name="AIRTAG 4 PACK", model="AIRTAG 4 PACK", price=1100, condition="Novo", condition_detail="LACRADO"
@@ -750,6 +753,11 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           // AirTag → AIRTAG 1 PACK / AIRTAG 4 PACK + sempre Novo/LACRADO
           if (hasAirTagSignal(product)) {
             return normalizeAirTagProduct(product);
+          }
+
+          // iPad A16 = iPad 11 (mesma linha base) → canonical "iPad 11"
+          if (hasBaseIPad11Signal(product)) {
+            product = normalizeIPadProduct(product);
           }
 
           // GARANTIR que iPad, MacBook, AirPods, Apple Watch são SEMPRE NOVOS
@@ -922,7 +930,12 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
       };
 
       parsedResponse.validated_products = parsedResponse.validated_products.map((product) => {
-        const base = hasAirTagSignal(product) ? normalizeAirTagProduct(product) : product;
+        let base = product;
+        if (hasAirTagSignal(product)) {
+          base = normalizeAirTagProduct(product);
+        } else if (hasBaseIPad11Signal(product)) {
+          base = normalizeIPadProduct(product);
+        }
 
         const combinedText = [base.storage, base.model, base.name]
           .filter(Boolean)
@@ -938,7 +951,7 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
           variant: variantValue || null
         };
 
-        if (storageValue && base.model && !hasAirTagSignal(base)) {
+        if (storageValue && base.model && !hasAirTagSignal(base) && !hasBaseIPad11Signal(base)) {
           updatedProduct.model = ensureStorageInModelText(base.model, storageValue);
         }
 

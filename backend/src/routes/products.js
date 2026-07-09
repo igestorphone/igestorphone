@@ -12,6 +12,12 @@ function normalizeModelForAverages(rawModel) {
   if (!rawModel || typeof rawModel !== 'string') return '';
   let m = rawModel.toLowerCase().trim();
   m = m.replace(/\s+(lac|lacrado|anatel|e-?sim|e sim|com\s*chip|li|pons|dual\s*sim)\s*$/gi, '').trim();
+  // iPad A16 = iPad 11 (mesma linha base); não confundir Pro/Air
+  const isOtherIpad =
+    /\bipad\s*pro\b/.test(m) || /\bipad\s*air\b/.test(m) || /\bipad\s*mini\b/.test(m);
+  if (!isOtherIpad && /\bipad\b/.test(m) && (/\ba\s*16\b/.test(m) || /\bipad\s*11\b/.test(m))) {
+    return 'ipad 11';
+  }
   return m;
 }
 
