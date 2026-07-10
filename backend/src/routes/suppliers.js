@@ -57,23 +57,34 @@ router.get('/', [
     const limitParamIndex = timestampParamIndex + 1;
     const offsetParamIndex = timestampParamIndex + 2;
     
+    // Evita JOIN pesado em todos os produtos ativos (estoura RAM no Render free).
+    // photo_url base64 não vai na listagem — só flag has_photo + URL http curta.
     const suppliersResult = await query(`
-      SELECT s.*, 
-             COUNT(p.id) as product_count,
-             AVG(p.price) as avg_price,
-             MAX(p.updated_at) as last_processed_at,
-             CASE 
-               WHEN MAX(p.updated_at) >= $${timestampParamIndex}::timestamp THEN true
-               ELSE false
-             END as processed_today,
-             COUNT(DISTINCT CASE 
-               WHEN p.updated_at >= $${timestampParamIndex}::timestamp THEN p.id
-               ELSE NULL
-             END) as products_processed_today
+      SELECT s.id, s.name, s.contact_email, s.contact_phone, s.whatsapp, s.city,
+             s.store_address, s.website, s.api_endpoint, s.is_active,
+             s.created_at, s.updated_at, s.rating_avg, s.rating_count,
+             CASE
+               WHEN s.photo_url IS NULL OR s.photo_url = '' THEN NULL
+               WHEN length(s.photo_url) > 100000 THEN NULL
+               ELSE s.photo_url
+             END as photo_url,
+             (s.photo_url IS NOT NULL AND s.photo_url <> '') as has_photo,
+             COALESCE(stats.product_count, 0) as product_count,
+             stats.avg_price,
+             stats.last_processed_at,
+             COALESCE(stats.last_processed_at >= $${timestampParamIndex}::timestamp, false) as processed_today,
+             COALESCE(stats.products_processed_today, 0) as products_processed_today
       FROM suppliers s
-      LEFT JOIN products p ON s.id = p.supplier_id AND p.is_active = true
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int as product_count,
+          AVG(p.price) as avg_price,
+          MAX(p.updated_at) as last_processed_at,
+          COUNT(*) FILTER (WHERE p.updated_at >= $${timestampParamIndex}::timestamp)::int as products_processed_today
+        FROM products p
+        WHERE p.supplier_id = s.id AND p.is_active = true
+      ) stats ON true
       ${whereClause}
-      GROUP BY s.id
       ORDER BY s.created_at DESC
       LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `, [...queryValues, limit, offset]);
@@ -81,9 +92,8 @@ router.get('/', [
     // Contar total (usar apenas os parâmetros do whereClause, SEM o timestamp)
     // A query de contagem não precisa do timestamp porque só está contando fornecedores
     const countResult = await query(`
-      SELECT COUNT(DISTINCT s.id) as total
+      SELECT COUNT(*) as total
       FROM suppliers s
-      LEFT JOIN products p ON s.id = p.supplier_id AND p.is_active = true
       ${whereClause}
     `, values); // Usar apenas 'values', não 'queryValues' (que contém o timestamp)
 
@@ -419,6 +429,13 @@ router.put('/:id', requireSubscription('active'), [
       if (emailCheck.rows.length > 0) {
         return res.status(400).json({ message: 'Email já está em uso por outro fornecedor' });
       }
+    }
+
+    // Base64 grande no Render free = heap OOM (exit 134). Limite ~300KB de data-URL.
+    if (typeof updates.photo_url === 'string' && updates.photo_url.length > 400_000) {
+      return res.status(400).json({
+        message: 'Foto muito grande. Use uma imagem de até ~300 KB (ou comprima antes de enviar).'
+      });
     }
 
     // Preparar campos para atualização

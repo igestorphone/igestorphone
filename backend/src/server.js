@@ -80,7 +80,19 @@ console.log('🌐 Configuração de CORS:');
 console.log('   FRONTEND_URL:', frontendUrl);
 console.log('   Origens permitidas:', allAllowedOrigins);
 
-// Configurar logger
+// Configurar logger (em produção só console — File em disco efêmero do Render gasta RAM/I/O)
+const loggerTransports = [
+  new winston.transports.Console({
+    format: winston.format.simple()
+  })
+];
+if (process.env.NODE_ENV !== 'production') {
+  loggerTransports.unshift(
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  );
+}
+
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.combine(
@@ -88,13 +100,7 @@ const logger = winston.createLogger({
     winston.format.errors({ stack: true }),
     winston.format.json()
   ),
-  transports: [
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
+  transports: loggerTransports
 });
 
 /** Onde está o build do Vite (index.html). Render: cwd costuma ser a raiz do repo; __dirname sozinho pode apontar para .../src/dist errado. */
@@ -167,9 +173,9 @@ const authLimiter = rateLimit({
 app.use('/api/', limiter);
 app.use('/api/auth', authLimiter);
 
-// Middleware de parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Middleware de parsing (fotos base64 grandes estouram heap no Render free)
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.JSON_BODY_LIMIT || '1mb' }));
 
 // Middleware de logging
 app.use((req, res, next) => {

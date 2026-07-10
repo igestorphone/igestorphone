@@ -8,7 +8,8 @@ const { Pool } = pkg;
 const isProduction = process.env.NODE_ENV === 'production';
 
 const basePoolConfig = {
-  max: parseInt(process.env.DB_POOL_MAX || '20', 10),
+  // Render free ~512MB: pool grande = várias queries pesadas em paralelo = OOM
+  max: parseInt(process.env.DB_POOL_MAX || (isProduction ? '5' : '20'), 10),
   idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
   connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10)
 };

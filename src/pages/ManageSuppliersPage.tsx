@@ -78,7 +78,7 @@ export default function ManageSuppliersPage() {
     }
   };
 
-  const handleEdit = (supplier: Supplier) => {
+  const handleEdit = async (supplier: Supplier) => {
     setSupplierToEdit(supplier);
     setEditForm({
       name: supplier.name || '',
@@ -91,6 +91,16 @@ export default function ManageSuppliersPage() {
       photo_url: supplier.photo_url || null,
     });
     setShowEditModal(true);
+    // Lista pode omitir base64 grande — busca completa só no modal
+    try {
+      const full = await fornecedoresApi.getById(supplier.id.toString());
+      const data = (full as any)?.data || full;
+      if (data?.photo_url) {
+        setEditForm((prev) => ({ ...prev, photo_url: data.photo_url }));
+      }
+    } catch {
+      /* mantém o que veio da lista */
+    }
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,9 +114,40 @@ export default function ManageSuppliersPage() {
       alert('A foto deve ter no máximo 2 MB');
       return;
     }
+
     const reader = new FileReader();
     reader.onload = () => {
-      setEditForm((prev) => ({ ...prev, photo_url: String(reader.result || '') }));
+      const raw = String(reader.result || '');
+      const img = new Image();
+      img.onload = () => {
+        const maxSide = 320;
+        const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setEditForm((prev) => ({ ...prev, photo_url: raw }));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, w, h);
+        // JPEG compacto — evita base64 gigante derrubar o Render (heap OOM)
+        let dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        if (dataUrl.length > 350_000) {
+          dataUrl = canvas.toDataURL('image/jpeg', 0.55);
+        }
+        if (dataUrl.length > 400_000) {
+          alert('Não foi possível comprimir a foto o suficiente. Tente outra imagem.');
+          return;
+        }
+        setEditForm((prev) => ({ ...prev, photo_url: dataUrl }));
+      };
+      img.onerror = () => {
+        alert('Não foi possível ler a imagem.');
+      };
+      img.src = raw;
     };
     reader.readAsDataURL(file);
   };

@@ -24,7 +24,7 @@ function normalizeModelForAverages(rawModel) {
 // Buscar produtos com filtros
 router.get('/', [
   queryValidator('page').optional().isInt({ min: 1 }),
-  queryValidator('limit').optional().isInt({ min: 1, max: 10000 }), // Limite aumentado para 10.000 produtos
+  queryValidator('limit').optional().isInt({ min: 1, max: 5000 }),
   queryValidator('search').optional().trim(),
   queryValidator('supplier_id').optional().custom((value) => {
     // Aceitar string vazia ou número inteiro
@@ -375,10 +375,19 @@ router.get('/', [
     }
 
     // Buscar produtos
+    // CRÍTICO: nunca devolver photo_url em base64 (data:...) na listagem —
+    // com milhares de linhas a mesma foto se multiplica e estoura o heap (exit 134).
     const productsResult = await query(`
-      SELECT p.*, s.name as supplier_name, s.contact_email as supplier_email,
+      SELECT p.id, p.supplier_id, p.name, p.model, p.storage, p.color, p.price,
+             p.condition, p.condition_detail, p.variant, p.product_type, p.is_active,
+             p.created_at, p.updated_at,
+             s.name as supplier_name, s.contact_email as supplier_email,
              s.store_address as supplier_store_address,
-             s.photo_url as supplier_photo_url,
+             CASE
+               WHEN s.photo_url IS NULL OR s.photo_url = '' THEN NULL
+               WHEN s.photo_url LIKE 'data:%' THEN NULL
+               ELSE s.photo_url
+             END as supplier_photo_url,
              s.rating_avg as supplier_rating_avg,
              s.rating_count as supplier_rating_count,
              COALESCE(
