@@ -25,7 +25,6 @@ import DevicesPage from '@/pages/DevicesPage'
 import { TermsPublicPage, PrivacyPublicPage, LgpdPublicPage } from '@/pages/PublicLegalPages'
 import SupportPage from '@/pages/SupportPage'
 import ManageSuppliersPage from '@/pages/ManageSuppliersPage'
-import SupplierSuggestionsPage from '@/pages/SupplierSuggestionsPage'
 import BugReportsPage from '@/pages/BugReportsPage'
 import DevLogPage from '@/pages/DevLogPage'
 import SubscriptionPage from '@/pages/SubscriptionPage'
@@ -192,13 +191,7 @@ function App() {
         }>
           <Route index element={<AdminLiveOverviewPage />} />
         </Route>
-        <Route path="/supplier-suggestions" element={
-          <ProtectedRoute>
-            <MainLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<SupplierSuggestionsPage />} />
-        </Route>
+        <Route path="/supplier-suggestions" element={<Navigate to="/admin/manage-suppliers" replace />} />
         <Route path="/bug-reports" element={
           <ProtectedRoute>
             <MainLayout />

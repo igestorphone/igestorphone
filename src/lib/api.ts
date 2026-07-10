@@ -308,25 +308,6 @@ export const utilsApi = {
   }
 }
 
-export const supplierSuggestionsApi = {
-  getAll: async (params?: any) => {
-    const response = await api.get('/supplier-suggestions', { params })
-    return response.data
-  },
-  create: async (data: any) => {
-    const response = await api.post('/supplier-suggestions', data)
-    return response.data
-  },
-  updateStatus: async (id: number, status: 'pending' | 'approved' | 'rejected') => {
-    const response = await api.patch(`/supplier-suggestions/${id}`, { status })
-    return response.data
-  },
-  getPendingCount: async () => {
-    const response = await api.get('/supplier-suggestions/count/pending')
-    return response.data
-  }
-}
-
 export const bugReportsApi = {
   getAll: async (params?: any) => {
     const response = await api.get('/bug-reports', { params })
