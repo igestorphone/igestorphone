@@ -374,20 +374,13 @@ router.get('/', [
       usedDateLabel = 'today';
     }
 
-    // Buscar produtos
-    // CRÍTICO: nunca devolver photo_url em base64 (data:...) na listagem —
-    // com milhares de linhas a mesma foto se multiplica e estoura o heap (exit 134).
+    // Buscar produtos (sem photo_url na query — base64 repetido N vezes = OOM no Render)
     const productsResult = await query(`
       SELECT p.id, p.supplier_id, p.name, p.model, p.storage, p.color, p.price,
              p.condition, p.condition_detail, p.variant, p.product_type, p.is_active,
              p.created_at, p.updated_at,
              s.name as supplier_name, s.contact_email as supplier_email,
              s.store_address as supplier_store_address,
-             CASE
-               WHEN s.photo_url IS NULL OR s.photo_url = '' THEN NULL
-               WHEN s.photo_url LIKE 'data:%' THEN NULL
-               ELSE s.photo_url
-             END as supplier_photo_url,
              s.rating_avg as supplier_rating_avg,
              s.rating_count as supplier_rating_count,
              COALESCE(
@@ -401,6 +394,34 @@ router.get('/', [
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `, [...values, limit, offset]);
 
+    // Fotos 1x por fornecedor (mapa), não por linha de produto
+    const supplierIds = [
+      ...new Set(
+        productsResult.rows
+          .map((r) => r.supplier_id)
+          .filter((id) => id != null)
+          .map((id) => Number(id))
+      ),
+    ];
+    /** @type {Record<string, string>} */
+    const supplier_photos = {};
+    if (supplierIds.length > 0) {
+      const photosResult = await query(
+        `
+        SELECT id, photo_url
+        FROM suppliers
+        WHERE id = ANY($1::int[])
+          AND photo_url IS NOT NULL
+          AND photo_url <> ''
+          AND length(photo_url) <= 400000
+      `,
+        [supplierIds]
+      );
+      for (const row of photosResult.rows) {
+        supplier_photos[String(row.id)] = row.photo_url;
+      }
+    }
+
     // Contar total
     const countResult = await query(`
       SELECT COUNT(*) as total
@@ -412,10 +433,11 @@ router.get('/', [
     const total = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(total / limit);
 
-    console.log(`📊 Total de produtos encontrados: ${total} (página ${page} de ${totalPages})`);
+    console.log(`📊 Total de produtos encontrados: ${total} (página ${page} de ${totalPages}) · fotos fornecedores: ${Object.keys(supplier_photos).length}`);
 
     res.json({
       products: productsResult.rows,
+      supplier_photos,
       usedDate,
       usedDateLabel,
       pagination: {

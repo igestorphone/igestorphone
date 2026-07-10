@@ -582,15 +582,25 @@ function normalizeProductsApiResponse(response: any): any[] {
   else if (response?.data?.products) products = response.data.products
   else if (response?.data && Array.isArray(response.data)) products = response.data
 
+  const photos: Record<string, string> =
+    response?.supplier_photos ||
+    response?.data?.supplier_photos ||
+    {}
+
   const getVariantPriority = (variant?: string | null) =>
     variant && variant.toString().toUpperCase().includes('ANATEL') ? 1 : 0
 
   return products
-    .map((product: any) => ({
-      ...product,
-      price: parseFloat(product.price) || 0,
-      variant: product.variant ? product.variant.toString() : null,
-    }))
+    .map((product: any) => {
+      const sid = product.supplier_id != null ? String(product.supplier_id) : ''
+      const fromMap = sid && photos[sid] ? photos[sid] : null
+      return {
+        ...product,
+        price: parseFloat(product.price) || 0,
+        variant: product.variant ? product.variant.toString() : null,
+        supplier_photo_url: product.supplier_photo_url || fromMap || null,
+      }
+    })
     .sort((a: any, b: any) => {
       const priorityDiff = getVariantPriority(a.variant) - getVariantPriority(b.variant)
       if (priorityDiff !== 0) return priorityDiff
