@@ -2,19 +2,9 @@ import { MessageCircle, MapPin, type LucideIcon } from 'lucide-react'
 import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
 import { SupplierAvatar } from '@/components/ui/SupplierAvatar'
 import { normalizeColor } from '@/pages/colorNormalizer'
+import { detectProductRegionIds, regionOptionById } from '@/lib/productRegions'
+
 type SearchMode = 'novo' | 'seminovo' | 'android'
-
-const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
-  AMERICANO: { flag: '🇺🇸', label: 'Americano' },
-  CHINÊS: { flag: '🇨🇳', label: 'Chinês' },
-  CHINES: { flag: '🇨🇳', label: 'Chinês' },
-  DUBAI: { flag: '🇦🇪', label: 'Dubai' },
-}
-
-function getSeminovoOriginBadge(variant: string | null | undefined) {
-  if (!variant) return null
-  return SEMINOVO_ORIGIN[variant.toUpperCase().trim()] ?? null
-}
 
 type MobileSearchProductCardProps = {
   product: any
@@ -43,10 +33,11 @@ export default function MobileSearchProductCard({
 }: MobileSearchProductCardProps) {
   const listedTime = formatListedTime(product.updated_at)
   const storeAddress = (product.supplier_store_address || '').trim()
+  const regionIds = detectProductRegionIds(product)
   const regionLabel =
-    searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant)
-      ? `${getSeminovoOriginBadge(product.variant)!.flag} ${getSeminovoOriginBadge(product.variant)!.label}`
-      : product.variant || '—'
+    regionIds.length > 0
+      ? regionIds.map((id) => regionOptionById(id)?.shortLabel || id).join(', ')
+      : '—'
   const colorLabel = normalizeColor(product.color || '', product.model || product.name)
   const { Icon, wrap } = productListIconSpec(product)
 

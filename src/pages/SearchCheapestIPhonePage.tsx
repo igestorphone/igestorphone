@@ -50,6 +50,12 @@ import { normalizeColor } from './colorNormalizer'
 import ProductColorSwatch from '@/components/ui/ProductColorSwatch'
 import { isAccessoryProduct } from '@/lib/productColorSwatch'
 import ReferralProgramCard from '@/components/referral/ReferralProgramCard'
+import RegionFilterDropdown from '@/components/search/RegionFilterDropdown'
+import {
+  detectProductRegionIds,
+  productMatchesRegions,
+  type RegionOptionId,
+} from '@/lib/productRegions'
 import MobileSearchProductCard from '@/components/search/MobileSearchProductCard'
 import DollarStatCard from '@/components/search/DollarStatCard'
 import SearchStatCard from '@/components/search/SearchStatCard'
@@ -380,19 +386,6 @@ function isPlainIPhone17Search(query: string): boolean {
     return false
   }
   return true
-}
-
-// Origem do seminovo (qualidade): bandeira + label para exibir na busca
-const SEMINOVO_ORIGIN: Record<string, { flag: string; label: string }> = {
-  AMERICANO: { flag: '🇺🇸', label: 'Americano' },
-  CHINÊS: { flag: '🇨🇳', label: 'Chinês' },
-  CHINES: { flag: '🇨🇳', label: 'Chinês' },
-  DUBAI: { flag: '🇦🇪', label: 'Dubai' }
-}
-function getSeminovoOriginBadge(variant: string | null | undefined) {
-  if (!variant || typeof variant !== 'string') return null
-  const key = variant.toUpperCase().trim()
-  return SEMINOVO_ORIGIN[key] ?? null
 }
 
 type SearchMode = 'novo' | 'seminovo' | 'android'
@@ -1235,6 +1228,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
   }, [showDatePicker])
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
+  const [selectedRegions, setSelectedRegions] = useState<RegionOptionId[]>([])
   const [selectedRam, setSelectedRam] = useState('')
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedSupplier, setSelectedSupplier] = useState('')
@@ -1264,7 +1258,7 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchMode, debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRam, selectedColor, selectedSupplier])
+  }, [searchMode, debouncedSearch, selectedDateKey, selectedCategory, selectedStorage, selectedRegions, selectedRam, selectedColor, selectedSupplier])
 
   useEffect(() => {
     setSelectedCategory('')
@@ -1556,6 +1550,9 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     if (selectedStorage) {
       all = all.filter((p: any) => normalizeStorage(p.storage) === selectedStorage)
     }
+    if (selectedRegions.length > 0) {
+      all = all.filter((p: any) => productMatchesRegions(p, selectedRegions))
+    }
     if (selectedSupplier) {
       all = all.filter((p: any) => (p.supplier_name || '').toLowerCase() === selectedSupplier.toLowerCase())
     }
@@ -1581,9 +1578,18 @@ export default function SearchCheapestIPhonePage({ initialSearchMode }: { initia
     selectedSupplier,
     selectedCategory,
     selectedStorage,
+    selectedRegions,
     debouncedSearch,
     searchMode,
   ])
+
+  const availableRegionIds = useMemo(() => {
+    const set = new Set<RegionOptionId>()
+    for (const p of productsQuery.data || []) {
+      for (const id of detectProductRegionIds(p)) set.add(id)
+    }
+    return [...set]
+  }, [productsQuery.data])
 
   const visibleSuppliers = useMemo(() => {
     const term = supplierSearch.trim().toLowerCase()
@@ -1816,7 +1822,7 @@ Ainda tem disponível?`
           </button>
           {/* Filters row - no mobile só quando expandido */}
           <div className={`${showFiltersMobile ? 'block' : 'hidden'} md:block`}>
-            <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 xl:grid-cols-7 gap-3">
             <div className="relative min-w-0">
               <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
                 <CalendarDays className="w-3 h-3 xl:w-4 xl:h-4 mr-1 shrink-0" />
@@ -2012,6 +2018,12 @@ Ainda tem disponível?`
                 <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 xl:w-4 xl:h-4 text-gray-400 dark:text-gray-500 pointer-events-none" />
               </div>
             </div>
+
+            <RegionFilterDropdown
+              selected={selectedRegions}
+              onChange={setSelectedRegions}
+              availableIds={availableRegionIds}
+            />
 
             <div className="relative min-w-0">
               <label className="block text-[10px] xl:text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5 xl:mb-2 flex items-center min-w-0">
@@ -2351,21 +2363,6 @@ Ainda tem disponível?`
                                   {(product.supplier_store_address || '').trim() ? (
                                     <span className="truncate text-[10px] font-medium uppercase leading-snug tracking-wide text-gray-500 dark:text-white/45">
                                       {(product.supplier_store_address || '').trim()}
-                                    </span>
-                                  ) : null}
-                                  {searchMode === 'seminovo' && getSeminovoOriginBadge(product.variant) ? (
-                                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-semibold w-fit bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-white/20">
-                                      {getSeminovoOriginBadge(product.variant)!.flag} {getSeminovoOriginBadge(product.variant)!.label}
-                                    </span>
-                                  ) : product.variant ? (
-                                    <span
-                                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold tracking-wide uppercase w-fit ${
-                                        product.variant.toUpperCase() === 'ANATEL'
-                                          ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-200 border border-amber-300 dark:border-amber-400/40'
-                                          : 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-400/30'
-                                      }`}
-                                    >
-                                      {product.variant}
                                     </span>
                                   ) : null}
                                 </div>
