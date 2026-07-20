@@ -13,42 +13,74 @@ import { hasBaseIPad11Signal, normalizeIPadProduct } from '../utils/ipadNormaliz
 const router = express.Router();
 
 const detectVariant = (product) => {
-  const combined = [
-    product?.variant,
+  const sourceParts = [
     product?.network,
     product?.notes,
     product?.model,
     product?.name,
     product?.additional_info,
-    product?.description
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+    product?.description,
+    product?.condition_detail,
+  ];
+  const sourceOnly = sourceParts.filter(Boolean).join(' ').toLowerCase();
+  const aiVariant = (product?.variant || '').toString().trim();
 
-  if (!combined) return null;
+  if (!sourceOnly && !aiVariant) return null;
 
-  if (combined.includes('anatel')) return 'ANATEL';
-  if (combined.includes('e-sim') || combined.includes('esim') || combined.includes('e sim')) return 'E-SIM';
+  // Anatel só com palavra explícita — LL/A NÃO é Anatel
+  if (/\banatel\b/.test(sourceOnly) || sourceOnly.includes('🇧🇷')) return 'ANATEL';
+
   if (
-    combined.includes('chip físico') ||
-    combined.includes('chip fisico') ||
-    combined.includes('chip fisco') ||
-    combined.includes('1 chip') ||
-    combined.includes('01 chip') ||
-    combined.includes('2 chip') ||
-    combined.includes('02 chip')
-  )
-    return 'CHIP FÍSICO';
-  if (combined.includes('chip virtual')) return 'CHIP VIRTUAL';
-  if (combined.includes('chin')) return 'CHINÊS';
-  if (combined.includes('jap')) return 'JAPONÊS';
-  if (combined.includes('indi')) return 'INDIANO';
-  if (combined.includes('usa') || combined.includes('americano')) return 'AMERICANO';
-  if (combined.includes('dubai')) return 'DUBAI';
-  if (combined.includes('cpo')) return 'CPO';
+    sourceOnly.includes('e-sim') ||
+    sourceOnly.includes('esim') ||
+    sourceOnly.includes('e sim') ||
+    sourceOnly.includes('chip virtual')
+  ) {
+    return 'E-SIM';
+  }
 
-  return product?.variant ? product.variant.toString().toUpperCase() : null;
+  if (
+    /\bll\s*\/\s*a\b/.test(sourceOnly) ||
+    /\bll\/a\b/.test(sourceOnly) ||
+    /\blz\s*\/\s*a\b/.test(sourceOnly) ||
+    sourceOnly.includes('chip físico') ||
+    sourceOnly.includes('chip fisico') ||
+    sourceOnly.includes('chip fisco') ||
+    sourceOnly.includes('1 chip') ||
+    sourceOnly.includes('01 chip') ||
+    sourceOnly.includes('2 chip') ||
+    sourceOnly.includes('02 chip')
+  ) {
+    if (sourceOnly.includes('chin') || sourceOnly.includes('🇨🇳')) return 'CHINÊS';
+    if (sourceOnly.includes('jap') || sourceOnly.includes('🇯🇵') || /\bjp\b/.test(sourceOnly)) return 'JAPONÊS';
+    if (sourceOnly.includes('indi') || sourceOnly.includes('🇮🇳')) return 'INDIANO';
+    if (sourceOnly.includes('dubai') || sourceOnly.includes('🇦🇪')) return 'DUBAI';
+    if (sourceOnly.includes('usa') || sourceOnly.includes('americano') || sourceOnly.includes('🇺🇸')) return 'AMERICANO';
+    return 'CHIP FÍSICO';
+  }
+
+  if (sourceOnly.includes('chin') || sourceOnly.includes('🇨🇳')) return 'CHINÊS';
+  if (sourceOnly.includes('jap') || sourceOnly.includes('🇯🇵') || /\bjp\b/.test(sourceOnly)) return 'JAPONÊS';
+  if (sourceOnly.includes('indi') || sourceOnly.includes('🇮🇳')) return 'INDIANO';
+  if (sourceOnly.includes('dubai') || sourceOnly.includes('🇦🇪')) return 'DUBAI';
+  if (sourceOnly.includes('usa') || sourceOnly.includes('americano') || sourceOnly.includes('🇺🇸')) return 'AMERICANO';
+  if (sourceOnly.includes('cpo') || aiVariant.toUpperCase() === 'CPO') return 'CPO';
+
+  if (aiVariant) {
+    const v = aiVariant.toUpperCase();
+    if (v === 'ANATEL') return null;
+    if (v === 'ESIM' || v === 'CHIP VIRTUAL') return 'E-SIM';
+    if (v === 'CHIP FISICO') return 'CHIP FÍSICO';
+    if (v === 'CHINES') return 'CHINÊS';
+    if (v === 'JAPONES') return 'JAPONÊS';
+    if (
+      ['E-SIM', 'CHIP FÍSICO', 'CHINÊS', 'JAPONÊS', 'INDIANO', 'AMERICANO', 'DUBAI', 'CPO'].includes(v)
+    ) {
+      return v;
+    }
+  }
+
+  return null;
 };
 
 const normalizeAndroidText = (value) => {

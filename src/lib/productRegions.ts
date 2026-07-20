@@ -93,7 +93,8 @@ function hasChipFisico(b: string) {
     b.includes('01 chip') ||
     b.includes('2 chip') ||
     b.includes('02 chip') ||
-    /\bll\b/.test(b) ||
+    /\bll\s*\/\s*a\b/.test(b) ||
+    /\bll\/a\b/.test(b) ||
     b.includes('physical sim') ||
     b.includes('nano sim')
   )
@@ -135,17 +136,23 @@ export function detectProductRegionIds(product: {
   const b = blobOf(product)
   if (!b.trim()) return []
 
-  const ids = new Set<RegionOptionId>()
-  const variant = (product.variant || '').toString().toUpperCase().trim()
-
-  // Anatel nunca combina com chip
-  if (hasAnatel(b) || variant === 'ANATEL') {
-    ids.add('anatel')
+  // Anatel SOMENTE com palavra/bandeira explícita no nome/modelo (não confiar em variant inventado pela IA)
+  const textOnly = [product.name, product.model, product.notes]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+  if (/\banatel\b/.test(textOnly) || (product.name || '').includes('🇧🇷') || (product.model || '').includes('🇧🇷')) {
     return ['anatel']
   }
+  // variant ANATEL antigo/errado (ex.: LL/A gravado como Anatel) → ignora
 
-  // Variant canônico sozinho
-  if (variant === 'CHINÊS' || variant === 'CHINES') {
+  const ids = new Set<RegionOptionId>()
+  const variant = (product.variant || '').toString().toUpperCase().trim()
+  if (variant === 'ANATEL') {
+    // sem texto explícito: não classifica como Anatel
+  } else if (variant === 'CHINÊS' || variant === 'CHINES') {
     ids.add(hasChipVirtual(b) && !hasChipFisico(b) ? 'chip_virtual' : 'chip_fisico_china')
   } else if (variant === 'JAPONÊS' || variant === 'JAPONES') {
     ids.add('chip_virtual_japao')

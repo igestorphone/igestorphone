@@ -614,13 +614,16 @@ REGRAS CRÍTICAS:
    - NOVO → condition: "Novo", condition_detail: "NOVO"
    - CPO (Certified Pre-Owned Apple) = NOVO → condition: "Novo", condition_detail: "CPO"
    - Se não encontrar condição clara, mas está em seção de LACRADOS/NOVOS, assuma condition_detail: "LACRADO"
-12. VARIANTE (CRÍTICO):
-   - ANATEL, 🇧🇷 → variant: "ANATEL"
+12. VARIANTE / REGIÃO (CRÍTICO — NÃO INVENTAR):
+   - ANATEL ou 🇧🇷 explícito no texto → variant: "ANATEL"
+   - NÃO marque ANATEL só porque a lista é brasileira, "lacrado" ou "garantia fabricante". Sem a palavra "anatel" / 🇧🇷 → variant vazio.
+   - LL/A, LL, LZ/A NÃO são Anatel → em geral variant: "CHIP FÍSICO" (ou origem se houver bandeira/país)
    - CPO → variant: "CPO" (além de condition_detail: "CPO")
    - eSIM/ESIM/E-SIM/CHIP VIRTUAL → variant: "E-SIM"
-   - CHIP FÍSICO/LL → variant baseado na região (🇺🇸=AMERICANO, 🇯🇵=JAPONÊS, 🇮🇳=INDIANO)
+   - CHIP FÍSICO explícito → variant: "CHIP FÍSICO" (país aparte se 🇺🇸/🇯🇵/🇮🇳/🇨🇳)
    - 🇺🇸/🇯🇵/🇮🇳/🇨🇳/JP/HN/JA → variant: "AMERICANO"/"JAPONÊS"/"INDIANO"/"CHINÊS"
    - IMPORTANTE: "americano" como variante de produto NOVO → OK. "americano" em contexto de SWAP/VITRINE/SEMINOVO → IGNORAR
+   - Se a lista NÃO especificar região/chip → variant: "" (vazio). Nunca chute Anatel.
 13. FORMATOS DE LISTA:
    - Formato 1: 📲17 PRO MAX 1TB → depois 🚦AZUL 💲10600 → produto separado por cor
    - Formato 2: 🌐IPHONE 17 PROMAX 1T 💰11,000 💰 → depois cores → produto com preço único para todas cores
@@ -901,32 +904,90 @@ Retorne JSON válido APENAS com produtos Apple NOVOS encontrados:
       };
 
       const detectVariant = (product) => {
-        const combined =
-          [product.variant, product.network, product.notes, product.model, product.name, product.additional_info]
-            .filter(Boolean)
-            .join(' ')
-            .toLowerCase();
+        const sourceParts = [
+          product.network,
+          product.notes,
+          product.model,
+          product.name,
+          product.additional_info,
+          product.condition_detail,
+        ];
+        const sourceOnly = sourceParts.filter(Boolean).join(' ').toLowerCase();
+        const aiVariant = (product.variant || '').toString().trim();
+        const combined = [sourceOnly, aiVariant.toLowerCase()].filter(Boolean).join(' ');
 
         if (!combined) return null;
-        if (combined.includes('anatel')) return 'ANATEL';
-        if (combined.includes('e-sim') || combined.includes('esim') || combined.includes('e sim')) return 'E-SIM';
+
+        // Anatel SOMENTE se a lista disser anatel / 🇧🇷 (nunca inventar; LL/A ≠ Anatel)
+        if (/\banatel\b/.test(sourceOnly) || sourceOnly.includes('🇧🇷')) return 'ANATEL';
+
         if (
-          combined.includes('chip físico') ||
-          combined.includes('chip fisico') ||
-          combined.includes('chip fisco') ||
-          combined.includes('1 chip') ||
-          combined.includes('01 chip') ||
-          combined.includes('2 chip') ||
-          combined.includes('02 chip')
-        )
+          sourceOnly.includes('e-sim') ||
+          sourceOnly.includes('esim') ||
+          sourceOnly.includes('e sim') ||
+          sourceOnly.includes('chip virtual')
+        ) {
+          return 'E-SIM';
+        }
+
+        // Códigos de região Apple (LL/A etc.) = chip físico, não Anatel
+        if (
+          /\bll\s*\/\s*a\b/.test(sourceOnly) ||
+          /\bll\/a\b/.test(sourceOnly) ||
+          /\blz\s*\/\s*a\b/.test(sourceOnly) ||
+          sourceOnly.includes('chip físico') ||
+          sourceOnly.includes('chip fisico') ||
+          sourceOnly.includes('chip fisco') ||
+          sourceOnly.includes('1 chip') ||
+          sourceOnly.includes('01 chip') ||
+          sourceOnly.includes('2 chip') ||
+          sourceOnly.includes('02 chip')
+        ) {
+          if (sourceOnly.includes('chin') || sourceOnly.includes('🇨🇳')) return 'CHINÊS';
+          if (sourceOnly.includes('jap') || sourceOnly.includes('🇯🇵') || /\bjp\b/.test(sourceOnly)) return 'JAPONÊS';
+          if (sourceOnly.includes('indi') || sourceOnly.includes('🇮🇳')) return 'INDIANO';
+          if (sourceOnly.includes('dubai') || sourceOnly.includes('🇦🇪')) return 'DUBAI';
+          if (sourceOnly.includes('usa') || sourceOnly.includes('americano') || sourceOnly.includes('🇺🇸')) return 'AMERICANO';
           return 'CHIP FÍSICO';
-        if (combined.includes('chip virtual')) return 'CHIP VIRTUAL';
-        if (combined.includes('chin')) return 'CHINÊS';
-        if (combined.includes('jap')) return 'JAPONÊS';
-        if (combined.includes('indi')) return 'INDIANO';
-        if (combined.includes('usa') || combined.includes('americano')) return 'AMERICANO';
-        if (combined.includes('cpo')) return 'CPO';
-        return product.variant ? product.variant.toString().toUpperCase() : null;
+        }
+
+        if (sourceOnly.includes('chin') || sourceOnly.includes('🇨🇳')) return 'CHINÊS';
+        if (sourceOnly.includes('jap') || sourceOnly.includes('🇯🇵') || /\bjp\b/.test(sourceOnly)) return 'JAPONÊS';
+        if (sourceOnly.includes('indi') || sourceOnly.includes('🇮🇳')) return 'INDIANO';
+        if (sourceOnly.includes('dubai') || sourceOnly.includes('🇦🇪')) return 'DUBAI';
+        if (sourceOnly.includes('usa') || sourceOnly.includes('americano') || sourceOnly.includes('🇺🇸')) return 'AMERICANO';
+        if (sourceOnly.includes('cpo') || aiVariant.toUpperCase() === 'CPO') return 'CPO';
+
+        // Confia no variant da IA só se não for Anatel inventado
+        if (aiVariant) {
+          const v = aiVariant.toUpperCase();
+          if (v === 'ANATEL') return null;
+          if (
+            [
+              'E-SIM',
+              'ESIM',
+              'CHIP VIRTUAL',
+              'CHIP FÍSICO',
+              'CHIP FISICO',
+              'CHINÊS',
+              'CHINES',
+              'JAPONÊS',
+              'JAPONES',
+              'INDIANO',
+              'AMERICANO',
+              'DUBAI',
+              'CPO',
+            ].includes(v)
+          ) {
+            if (v === 'ESIM' || v === 'CHIP VIRTUAL') return 'E-SIM';
+            if (v === 'CHIP FISICO') return 'CHIP FÍSICO';
+            if (v === 'CHINES') return 'CHINÊS';
+            if (v === 'JAPONES') return 'JAPONÊS';
+            return v;
+          }
+        }
+
+        return null;
       };
 
       parsedResponse.validated_products = parsedResponse.validated_products.map((product) => {
